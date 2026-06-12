@@ -2,7 +2,7 @@
 project: temperance_engine
 effort: E4
 phase: verify
-progress: 12/12
+progress: 18/18
 mode: public-package
 ---
 
@@ -44,6 +44,12 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - [x] ISC-10: Peon-ping pack mapping is documented pack-by-pack.
 - [x] ISC-11: CodeGraph routing is documented.
 - [x] ISC-12: Credits are documented.
+- [x] ISC-13: skills.sh-facing skill card exists.
+- [x] ISC-14: skills.sh metadata exists.
+- [x] ISC-15: README includes banner, badges, architecture, and upload guidance.
+- [x] ISC-16: Upstream GitHub repos are linked from credits or upstream docs.
+- [x] ISC-17: Banner image exists.
+- [x] ISC-18: Icon image exists.
 
 ## Test Strategy
 
@@ -61,6 +67,12 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | ISC-10 | file | `docs/peon-ping-packs.md` exists | present | test |
 | ISC-11 | file | `docs/codegraph-routing.md` exists | present | test |
 | ISC-12 | file | `CREDITS.md` exists | present | test |
+| ISC-13 | file | `skills/temperance-engine/SKILL.md` exists | present | test |
+| ISC-14 | file | `skills.sh.json` exists | present | test |
+| ISC-15 | text | README references banner and skills.sh | match | grep |
+| ISC-16 | text | upstream repo links are present | match | grep |
+| ISC-17 | file | `assets/banner.png` exists | present | test |
+| ISC-18 | file | `assets/icon.png` exists | present | test |
 
 ## Features
 
@@ -75,6 +87,8 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - Use a public repo that references voice assets instead of bundling them.
 - Keep the first installer Mac-friendly but not Mac-required.
 - Generalize paths through `$HOME` and override variables.
+- Treat skills.sh readiness as a skill-card plus metadata layer, not a separate installer fork.
+- Link only upstream GitHub repositories verified through `gh repo view`; leave CodeGraph as a referenced local CLI without inventing an unverified repo URL.
 
 ## Verification
 
@@ -82,3 +96,5 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - `bun build package/pulse-compat/compat-server.ts --target=bun` passed.
 - `node package/skill-resolvers/skill_cluster_resolver.mjs` returned `skill-index-present` on the local system.
 - `./install.sh --dry-run --skip-voice` completed without mutating live config and showed backup-first writes.
+- `codex-gpt-image` generated `assets/banner.png` and `assets/icon.png` through Codex OAuth.
+- `gh repo view` verified links for OpenCode, Codex CLI, GitHub CLI, Bun, and ripgrep.

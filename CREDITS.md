@@ -4,15 +4,16 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 
 ## Runtime Surfaces
 
-- Claude Code and local Claude configuration surfaces.
-- OpenCode configuration and MCP surfaces.
-- Codex local instruction and hook surfaces.
-- GitHub CLI for optional repository creation and publishing.
+- Claude Code and local Claude configuration surfaces. Claude Code is a product surface from Anthropic; this repo only ships local templates and does not redistribute Claude Code.
+- [OpenCode](https://github.com/anomalyco/opencode) configuration and MCP surfaces.
+- [OpenAI Codex CLI](https://github.com/openai/codex) local instruction and hook surfaces.
+- [GitHub CLI](https://github.com/cli/cli) for optional repository creation and publishing.
+- [Bun](https://github.com/oven-sh/bun) for the optional local Pulse compatibility server runtime.
 
 ## Search and Code Intelligence
 
-- CodeGraph for local AST-backed code indexing and structural search.
-- Ripgrep-powered file and text search patterns where structural search is not required.
+- CodeGraph for local AST-backed code indexing and structural search. This repo references the local `codegraph` CLI but does not vendor it.
+- [ripgrep](https://github.com/BurntSushi/ripgrep)-powered file and text search patterns where structural search is not required.
 
 ## Skills and Agent Routing
 
@@ -23,6 +24,21 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 
 - peon-ping style local sound notifications.
 - Voice/audio packs are referenced, not bundled. Users must provide packs they have rights to use.
+
+## Public Assets
+
+- `assets/banner.png` and `assets/icon.png` were generated for this repository with the local `codex-gpt-image` workflow using Codex OAuth and GPT Image tooling.
+- The generated assets are included under this repository's MIT license unless a future replacement asset specifies different terms.
+
+## GitHub Repositories Linked
+
+| Project | Link | Why it matters |
+|---|---|---|
+| OpenCode | https://github.com/anomalyco/opencode | OpenCode config and MCP surface. |
+| OpenAI Codex CLI | https://github.com/openai/codex | Codex local instruction surface and auth assumptions. |
+| GitHub CLI | https://github.com/cli/cli | Public repo creation and publishing workflow. |
+| Bun | https://github.com/oven-sh/bun | Runtime for the optional Pulse compatibility server. |
+| ripgrep | https://github.com/BurntSushi/ripgrep | Fast literal file and content search model. |
 
 ## Local Session Work
 

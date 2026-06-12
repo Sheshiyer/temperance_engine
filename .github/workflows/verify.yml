@@ -1,0 +1,20 @@
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify package
+        run: ./verify.sh
+
+      - name: Check image assets
+        run: sips -g pixelWidth -g pixelHeight assets/banner.png assets/icon.png

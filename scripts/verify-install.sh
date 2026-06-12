@@ -20,6 +20,11 @@ check_file "$ROOT/docs/skill-clusters.md"
 check_file "$ROOT/docs/peon-ping-packs.md"
 check_file "$ROOT/docs/codegraph-routing.md"
 check_file "$ROOT/CREDITS.md"
+check_file "$ROOT/UPSTREAM.md"
+check_file "$ROOT/skills.sh.json"
+check_file "$ROOT/skills/temperance-engine/SKILL.md"
+check_file "$ROOT/assets/banner.png"
+check_file "$ROOT/assets/icon.png"
 
 for script in "$ROOT"/*.sh "$ROOT/scripts"/*.sh; do
   sh -n "$script"
@@ -33,6 +38,16 @@ if grep -R "$user_path_pattern" "$ROOT/install.sh" "$ROOT/verify.sh" "$ROOT/scri
 else
   printf '%s\n' "ok: no hard-coded local user path in install surface"
 fi
+
+if grep -q "assets/banner.png" "$ROOT/README.md" && grep -q "skills.sh" "$ROOT/README.md"; then
+  printf '%s\n' "ok: README references banner and skills.sh"
+else
+  printf '%s\n' "README missing banner or skills.sh guidance" >&2
+  fail=1
+fi
+
+node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$ROOT/skills.sh.json"
+printf '%s\n' "ok: skills.sh.json parses"
 
 if test "$fail" -ne 0; then
   exit 1
