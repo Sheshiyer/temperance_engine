@@ -1,0 +1,30 @@
+# Temperance Engine Claude Template
+
+First visible line for PAI-formatted responses: `NOESIS`.
+
+## Mode Model
+
+- Simple acknowledgments can use minimal responses.
+- Single-step quick tasks can use native responses.
+- Multi-step work uses the Algorithm: observe, think, plan, build, execute, verify, learn.
+
+## Voice
+
+If a local Pulse compatibility server is running, phase notifications can POST to:
+
+```bash
+curl -s -X POST http://localhost:31337/notify \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Entering the Observe phase.","voice_enabled":true}'
+```
+
+## Skill Clusters
+
+- Canonical home: `$HOME/.agents/skill-clusters`.
+- Do not scan `$HOME/.agents/skill-clusters/skills` wholesale.
+- Use `skill-index.json` for resolution.
+
+## CodeGraph
+
+- Use CodeGraph with `projectPath: "$HOME/.agents"` for `.agents` structural search.
+- Do not use Augment/codebase-retrieval for `$HOME` or `$HOME/.agents`.

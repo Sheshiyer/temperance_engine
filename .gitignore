@@ -1,0 +1,11 @@
+.DS_Store
+*.log
+*.pid
+node_modules/
+.env
+.env.*
+!.env.example
+backups/
+.temperance_engine/
+dist/
+coverage/

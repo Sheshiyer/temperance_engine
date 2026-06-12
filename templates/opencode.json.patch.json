@@ -1,0 +1,14 @@
+{
+  "mcp": {
+    "augment-context-engine": {
+      "type": "local",
+      "command": ["auggie", "--mcp", "--mcp-auto-workspace"],
+      "enabled": false
+    },
+    "codegraph": {
+      "type": "local",
+      "command": ["codegraph", "mcp"],
+      "enabled": true
+    }
+  }
+}
