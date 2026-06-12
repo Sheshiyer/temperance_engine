@@ -6,6 +6,9 @@ Temperance Engine is an integration package. It connects local configuration sur
 
 | Surface | Repository | Role |
 |---|---|---|
+| Personal AI Infrastructure | https://github.com/danielmiessler/Personal_AI_Infrastructure | Main PAI/Algorithm/ISA inspiration and upstream conceptual root. |
+| CodeGraph | https://github.com/colbymchenry/codegraph | Local AST-backed structural code index for `.agents`. |
+| peon-ping | https://github.com/PeonPing/peon-ping | Local AI-agent voice notification pattern and script surface. |
 | OpenCode | https://github.com/anomalyco/opencode | OpenCode configuration and MCP runtime surface. |
 | Codex CLI | https://github.com/openai/codex | Local Codex instruction surface and OAuth-adjacent tooling assumptions. |
 | GitHub CLI | https://github.com/cli/cli | Optional public repo creation and publishing. |

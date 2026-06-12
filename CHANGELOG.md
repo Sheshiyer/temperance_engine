@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added explicit credits for Personal AI Infrastructure, CodeGraph, and peon-ping.
+- Added full system-flow architecture diagram and Thoughtseed Labs attribution to README.
 - Added skills.sh-facing skill card and metadata.
 - Added generated banner and icon assets.
 - Added upstream link map and expanded credits.

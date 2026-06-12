@@ -17,6 +17,7 @@ tags:
 homepage: "https://github.com/Sheshiyer/temperance_engine"
 repository: "https://github.com/Sheshiyer/temperance_engine"
 license: "MIT"
+author: "Thoughtseed Labs"
 icon: "../../assets/icon.png"
 banner: "../../assets/banner.png"
 ---
@@ -85,4 +86,4 @@ The verifier checks required files, shell syntax, documentation presence, and ab
 
 ## Credits
 
-Temperance Engine links and credits upstream surfaces in `CREDITS.md` and `UPSTREAM.md`. It references OpenCode, Codex CLI, GitHub CLI, Bun, ripgrep, CodeGraph, Claude Code surfaces, peon-ping, and skills.sh without vendoring private or unclear-license assets.
+Temperance Engine is built by Thoughtseed Labs and links upstream surfaces in `CREDITS.md` and `UPSTREAM.md`. It credits Personal AI Infrastructure, CodeGraph, peon-ping, OpenCode, Codex CLI, GitHub CLI, Bun, ripgrep, Claude Code surfaces, and skills.sh without vendoring private or unclear-license assets.

@@ -6,6 +6,8 @@
 
 **A one-time installer for a local PAI operator runtime: Algorithm flow, skill-cluster routing, optional peon-ping voice, and CodeGraph-first search.**
 
+Built by [Thoughtseed Labs](https://github.com/Sheshiyer).
+
 ![License](https://img.shields.io/github/license/Sheshiyer/temperance_engine?style=flat-square)
 ![Verify](https://img.shields.io/github/actions/workflow/status/Sheshiyer/temperance_engine/verify.yml?branch=main&style=flat-square&label=verify)
 ![Last Commit](https://img.shields.io/github/last-commit/Sheshiyer/temperance_engine?style=flat-square)
@@ -57,19 +59,67 @@ cd temperance_engine
 
 On non-macOS systems, voice installation is skipped automatically. On macOS, voice integration is enabled only if a local peon-ping script is present at `~/.claude/hooks/peon-ping/peon.sh` unless `--with-voice` or `--skip-voice` is provided.
 
-## Architecture
+## System Flow
+
+Temperance Engine helps by turning a scattered local-agent setup into one explicit, inspectable loop: install safely, route work through PAI instructions, keep skills discoverable without context bloat, use CodeGraph for structural understanding, and make phase progress audible when local peon-ping packs are available.
 
 ```mermaid
-graph LR
-    A[Operator Prompt] --> B[PAI Instruction Surface]
-    B --> C[Algorithm Phases]
-    C --> D[Pulse Compat localhost:31337]
-    D --> E[Optional peon-ping packs]
-    B --> F[Skill Cluster Resolver]
-    F --> G[skill-index.json]
-    B --> H[CodeGraph .agents index]
-    H --> I[Structural search]
+flowchart TB
+    U[Human operator] --> I[Temperance install.sh]
+
+    subgraph SafeInstall[Backup-first installation]
+        I --> B[Timestamped backups]
+        I --> T[Claude / Codex / OpenCode templates]
+        I --> P[Pulse compatibility server]
+        I --> R[Skill resolver shim]
+        I --> G[CodeGraph routing rules]
+    end
+
+    subgraph Runtime[Local operator runtime]
+        T --> A[PAI / NOESIS instruction surface]
+        A --> O[Observe]
+        O --> TH[Think]
+        TH --> PL[Plan]
+        PL --> BU[Build]
+        BU --> EX[Execute]
+        EX --> VE[Verify]
+        VE --> LE[Learn]
+    end
+
+    subgraph SearchAndSkills[Context without startup bloat]
+        R --> SI[skill-index.json]
+        SI --> SC[Active skill-cluster hubs]
+        G --> CG[CodeGraph index at $HOME/.agents]
+        CG --> SS[Structural symbol / file / flow search]
+    end
+
+    subgraph Voice[Optional voice feedback]
+        P --> N["/notify localhost:31337"]
+        O --> N
+        TH --> N
+        PL --> N
+        BU --> N
+        EX --> N
+        VE --> N
+        LE --> N
+        N --> PP[peon-ping local script]
+        PP --> VP[User-provided sound packs]
+    end
+
+    VE --> VFY[verify.sh evidence]
+    LE --> DOC[Docs, credits, rollback notes]
 ```
+
+## How It Helps
+
+| Problem in local agent setups | Temperance Engine response |
+|---|---|
+| Hidden config sprawl | Installs visible templates and documents every touched surface. |
+| Risky setup scripts | Uses dry-run support and backup-first writes. |
+| Skill overload | Keeps skill-cluster discovery through `skill-index.json` instead of scanning everything at startup. |
+| Weak codebase search | Routes `.agents` structure through CodeGraph's local index. |
+| Silent long-running work | Optionally maps Algorithm phases to peon-ping voice packs. |
+| Hard rollback | Documents backups and rollback commands. |
 
 ## Safe Defaults
 
@@ -129,6 +179,9 @@ Suggested listing metadata:
 
 ## Upstream Links
 
+- [Personal AI Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure)
+- [CodeGraph](https://github.com/colbymchenry/codegraph)
+- [peon-ping](https://github.com/PeonPing/peon-ping)
 - [OpenCode](https://github.com/anomalyco/opencode)
 - [OpenAI Codex CLI](https://github.com/openai/codex)
 - [GitHub CLI](https://github.com/cli/cli)
@@ -146,5 +199,7 @@ This is a packaging repo for a local runtime pattern. Review scripts before runn
 <img src="assets/icon.png" alt="Temperance Engine icon" width="96" />
 
 Built for operators who want local autonomy without hidden runtime sprawl.
+
+Built by Thoughtseed Labs.
 
 </div>

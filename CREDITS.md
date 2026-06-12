@@ -4,6 +4,7 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 
 ## Runtime Surfaces
 
+- [Personal AI Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure) by Daniel Miessler is the principal upstream inspiration for the PAI/Algorithm/ISA runtime pattern this package installs around.
 - Claude Code and local Claude configuration surfaces. Claude Code is a product surface from Anthropic; this repo only ships local templates and does not redistribute Claude Code.
 - [OpenCode](https://github.com/anomalyco/opencode) configuration and MCP surfaces.
 - [OpenAI Codex CLI](https://github.com/openai/codex) local instruction and hook surfaces.
@@ -12,7 +13,7 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 
 ## Search and Code Intelligence
 
-- CodeGraph for local AST-backed code indexing and structural search. This repo references the local `codegraph` CLI but does not vendor it.
+- [CodeGraph](https://github.com/colbymchenry/codegraph) for local AST-backed code indexing and structural search. This repo references the local `codegraph` CLI but does not vendor it.
 - [ripgrep](https://github.com/BurntSushi/ripgrep)-powered file and text search patterns where structural search is not required.
 
 ## Skills and Agent Routing
@@ -22,7 +23,7 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 
 ## Voice Feedback
 
-- peon-ping style local sound notifications.
+- [peon-ping](https://github.com/PeonPing/peon-ping) style local sound notifications.
 - Voice/audio packs are referenced, not bundled. Users must provide packs they have rights to use.
 
 ## Public Assets
@@ -34,6 +35,9 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 
 | Project | Link | Why it matters |
 |---|---|---|
+| Personal AI Infrastructure | https://github.com/danielmiessler/Personal_AI_Infrastructure | PAI/Algorithm/ISA runtime inspiration. |
+| CodeGraph | https://github.com/colbymchenry/codegraph | Local AST-backed structural code index. |
+| peon-ping | https://github.com/PeonPing/peon-ping | Local voice notification pattern and script surface. |
 | OpenCode | https://github.com/anomalyco/opencode | OpenCode config and MCP surface. |
 | OpenAI Codex CLI | https://github.com/openai/codex | Codex local instruction surface and auth assumptions. |
 | GitHub CLI | https://github.com/cli/cli | Public repo creation and publishing workflow. |

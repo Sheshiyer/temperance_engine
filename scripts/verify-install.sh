@@ -46,6 +46,13 @@ else
   fail=1
 fi
 
+if grep -q "Thoughtseed Labs" "$ROOT/README.md" && grep -q "Personal_AI_Infrastructure" "$ROOT/CREDITS.md" && grep -q "colbymchenry/codegraph" "$ROOT/CREDITS.md" && grep -q "PeonPing/peon-ping" "$ROOT/CREDITS.md"; then
+  printf '%s\n' "ok: README and credits include requested attribution"
+else
+  printf '%s\n' "README or credits missing requested attribution" >&2
+  fail=1
+fi
+
 node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$ROOT/skills.sh.json"
 printf '%s\n' "ok: skills.sh.json parses"
 
