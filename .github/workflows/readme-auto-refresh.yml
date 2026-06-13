@@ -1,0 +1,82 @@
+name: README Auto Refresh
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'CONTRIBUTING.md'
+      - 'CREDITS.md'
+      - 'ISA.md'
+      - 'SECURITY.md'
+      - 'UPSTREAM.md'
+      - 'LICENSE'
+      - 'LICENSE.*'
+      - 'install.sh'
+      - 'uninstall.sh'
+      - 'verify.sh'
+      - '.github/workflows/**'
+      - '.github/*'
+      - 'docs/**'
+      - 'assets/**'
+      - 'scripts/**'
+      - 'skills/**'
+      - 'templates/**'
+      - 'package/**'
+      - 'tasks/**'
+      - '.readme-notebooklm/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild NotebookLM README blocks
+        id: rebuild
+        env:
+          READMEREBUILD_FORCE: "0"
+          READMEREBUILD_SKIP_NOTEBOOKLM: "0"
+        run: |
+          bash scripts/rebuild-readme.sh "${GITHUB_REPOSITORY#*/}" "${{ github.repository_owner }}"
+          if git status --short -- README.md .readme-notebooklm | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open follow-up PR when README changes
+        if: steps.rebuild.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: readme-continuity-refresh
+          commit-message: "chore(readme): refresh NotebookLM intelligence sections"
+          title: "chore(readme): refresh README continuity after merge"
+          body: |
+            Automated follow-up from README continuity workflow.
+
+            This commit refreshes NotebookLM-backed README sections:
+            - Project Intelligence Snapshot
+            - Concept Map
+            - Repository Signals Table
+            - Asset Trail
+          base: main
+          delete-branch: true
+          add-paths: |
+            README.md
+            .readme-notebooklm/assets/manifest.json
+            .readme-notebooklm/assets/notebooklm-report.md
+            .readme-notebooklm/assets/notebooklm-mind-map.json
+            .readme-notebooklm/assets/notebooklm-data-table.csv
+            .readme-notebooklm/assets/notebooklm-data-table.json

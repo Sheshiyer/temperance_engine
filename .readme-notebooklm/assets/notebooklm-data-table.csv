@@ -1,0 +1,10 @@
+﻿Project Name,Description,Integration Type,Upstream URL,Role in Runtime,Status,Source
+Personal AI Infrastructure,PAI/Algorithm/ISA runtime pattern and instruction surfaces.,Principal,https://github.com/danielmiessler/Personal_AI_Infrastructure,Core runtime pattern the package installs around.,unreleased,"[1, 2]"
+OpenCode,OpenCode configuration and MCP surface.,Template installation,https://github.com/anomalyco/opencode,Receives instruction templates and MCP-related config.,verified,[1-3]
+CodeGraph,Local AST-backed code indexing and structural search.,Referenced,https://github.com/colbymchenry/codegraph,Powers structural search and .agents routing rules.,unreleased,"[1, 2]"
+Claude Code,AI product surface from Anthropic.,Template installation,Not in source,Receives local instruction templates and configuration.,Not in source,"[1, 2]"
+OpenAI Codex CLI,Codex local instruction surface and auth assumptions.,Referenced,https://github.com/openai/codex,Target local instruction/config integration point.,verified,[1-3]
+peon-ping,Local voice notification pattern and script surface.,Referenced,https://github.com/PeonPing/peon-ping,Maps Algorithm phases to local sound packs.,unreleased,"[1, 2]"
+ripgrep,Fast file/content search utility.,Referenced,https://github.com/BurntSushi/ripgrep,Fallback search patterns alongside structural indexing.,verified,[1-3]
+Bun,High-performance JavaScript runtime.,Optional,https://github.com/oven-sh/bun,Runs local Pulse compatibility server on localhost:31337.,verified,[1-3]
+GitHub CLI,Public repo/publishing workflow helper.,Optional,https://github.com/cli/cli,Used for optional repository operations.,verified,[1-3]

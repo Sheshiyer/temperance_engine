@@ -1,0 +1,151 @@
+{
+  "mind_map": {
+    "name": "Temperance Engine",
+    "children": [
+      {
+        "name": "Core Purpose",
+        "children": [
+          {
+            "name": "Local AI-operator runtime installer"
+          },
+          {
+            "name": "Unified inspectable loop"
+          },
+          {
+            "name": "Eliminate configuration sprawl"
+          },
+          {
+            "name": "Privacy-first and backup-first"
+          }
+        ]
+      },
+      {
+        "name": "Key Components",
+        "children": [
+          {
+            "name": "PAI Infrastructure",
+            "children": [
+              {
+                "name": "Algorithm-driven workflows"
+              },
+              {
+                "name": "Instruction surfaces"
+              },
+              {
+                "name": "ISA runtime pattern"
+              }
+            ]
+          },
+          {
+            "name": "Skill-Cluster Routing",
+            "children": [
+              {
+                "name": "Skill discovery via index"
+              },
+              {
+                "name": "Prevents startup debloat"
+              },
+              {
+                "name": "Active symlinks"
+              }
+            ]
+          },
+          {
+            "name": "CodeGraph Search",
+            "children": [
+              {
+                "name": "AST-backed indexing"
+              },
+              {
+                "name": "Structural lookup for .agents"
+              }
+            ]
+          },
+          {
+            "name": "Peon-Ping Voice",
+            "children": [
+              {
+                "name": "Phase-based sound notifications"
+              },
+              {
+                "name": "macOS primary support"
+              },
+              {
+                "name": "Referenced (not bundled) packs"
+              }
+            ]
+          },
+          {
+            "name": "Pulse Compatibility Server",
+            "children": [
+              {
+                "name": "Localhost:31337 endpoint"
+              },
+              {
+                "name": "Bun runtime"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Safety & Constraints",
+        "children": [
+          {
+            "name": "Backup-first install scripts"
+          },
+          {
+            "name": "POSIX-shell compatibility"
+          },
+          {
+            "name": "No private memory or credentials"
+          },
+          {
+            "name": "Generalized $HOME paths"
+          },
+          {
+            "name": "Rollback documentation"
+          }
+        ]
+      },
+      {
+        "name": "Project Artifacts",
+        "children": [
+          {
+            "name": "install.sh & verify.sh"
+          },
+          {
+            "name": "README (Generated & versioned)"
+          },
+          {
+            "name": "Generated assets (banner/icon)"
+          },
+          {
+            "name": "skills.sh skill card"
+          }
+        ]
+      },
+      {
+        "name": "Upstream Integrations",
+        "children": [
+          {
+            "name": "Claude Code (Anthropic)"
+          },
+          {
+            "name": "OpenCode"
+          },
+          {
+            "name": "OpenAI Codex CLI"
+          },
+          {
+            "name": "GitHub CLI"
+          },
+          {
+            "name": "ripgrep"
+          }
+        ]
+      }
+    ]
+  },
+  "note_id": "f5580c7f-3778-4751-9d9a-a6f394551614"
+}

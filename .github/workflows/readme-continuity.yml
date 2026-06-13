@@ -1,0 +1,21 @@
+name: README Continuity
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  guard:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate README continuity for PRs
+        run: |
+          bash scripts/readme-continuity-check.sh \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}"
