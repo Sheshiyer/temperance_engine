@@ -154,7 +154,7 @@ def render_mind_map() -> str:
         return f"N{node_id:03d}"
 
     def esc(text: str) -> str:
-        return str(text).replace('"', '\\"').replace("\n", " ").strip()[:50]
+        return str(text).replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ").strip()[:50]
 
     if not isinstance(payload, dict) or not isinstance(payload.get("mind_map"), dict):
         return "graph LR\n  TE[Temperance Engine] --> MM[Malformed mind map schema]"
@@ -168,12 +168,12 @@ def render_mind_map() -> str:
                 continue
             cid = next_id()
             cname = esc(child.get("name", "Untitled"))
-            lines.append(f"  {cid}[{cname}]")
+            lines.append(f'  {cid}["{cname}"]')
             lines.append(f"  {parent} --> {cid}")
             walk(child, cid, depth + 1)
 
     root_id = next_id()
-    lines.append(f"  {root_id}[{esc(root_name)}]")
+    lines.append(f'  {root_id}["{esc(root_name)}"]')
     walk(payload["mind_map"], root_id, 0)
 
     if len(lines) <= 2:
