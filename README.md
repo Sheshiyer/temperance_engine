@@ -72,88 +72,88 @@ On non-macOS systems, voice installation is skipped automatically. On macOS, voi
 
 ```mermaid
 graph LR
-  N001[Temperance Engine]
-  N002[Core Purpose]
+  N001["Temperance Engine"]
+  N002["Core Purpose"]
   N001 --> N002
-  N003[Local AI-operator runtime installer]
+  N003["Local AI-operator runtime installer"]
   N002 --> N003
-  N004[Unified inspectable loop]
+  N004["Unified inspectable loop"]
   N002 --> N004
-  N005[Eliminate configuration sprawl]
+  N005["Eliminate configuration sprawl"]
   N002 --> N005
-  N006[Privacy-first and backup-first]
+  N006["Privacy-first and backup-first"]
   N002 --> N006
-  N007[Key Components]
+  N007["Key Components"]
   N001 --> N007
-  N008[PAI Infrastructure]
+  N008["PAI Infrastructure"]
   N007 --> N008
-  N009[Algorithm-driven workflows]
+  N009["Algorithm-driven workflows"]
   N008 --> N009
-  N010[Instruction surfaces]
+  N010["Instruction surfaces"]
   N008 --> N010
-  N011[ISA runtime pattern]
+  N011["ISA runtime pattern"]
   N008 --> N011
-  N012[Skill-Cluster Routing]
+  N012["Skill-Cluster Routing"]
   N007 --> N012
-  N013[Skill discovery via index]
+  N013["Skill discovery via index"]
   N012 --> N013
-  N014[Prevents startup debloat]
+  N014["Prevents startup debloat"]
   N012 --> N014
-  N015[Active symlinks]
+  N015["Active symlinks"]
   N012 --> N015
-  N016[CodeGraph Search]
+  N016["CodeGraph Search"]
   N007 --> N016
-  N017[AST-backed indexing]
+  N017["AST-backed indexing"]
   N016 --> N017
-  N018[Structural lookup for .agents]
+  N018["Structural lookup for .agents"]
   N016 --> N018
-  N019[Peon-Ping Voice]
+  N019["Peon-Ping Voice"]
   N007 --> N019
-  N020[Phase-based sound notifications]
+  N020["Phase-based sound notifications"]
   N019 --> N020
-  N021[macOS primary support]
+  N021["macOS primary support"]
   N019 --> N021
-  N022[Referenced (not bundled) packs]
+  N022["Referenced (not bundled) packs"]
   N019 --> N022
-  N023[Pulse Compatibility Server]
+  N023["Pulse Compatibility Server"]
   N007 --> N023
-  N024[Localhost:31337 endpoint]
+  N024["Localhost:31337 endpoint"]
   N023 --> N024
-  N025[Bun runtime]
+  N025["Bun runtime"]
   N023 --> N025
-  N026[Safety & Constraints]
+  N026["Safety & Constraints"]
   N001 --> N026
-  N027[Backup-first install scripts]
+  N027["Backup-first install scripts"]
   N026 --> N027
-  N028[POSIX-shell compatibility]
+  N028["POSIX-shell compatibility"]
   N026 --> N028
-  N029[No private memory or credentials]
+  N029["No private memory or credentials"]
   N026 --> N029
-  N030[Generalized $HOME paths]
+  N030["Generalized $HOME paths"]
   N026 --> N030
-  N031[Rollback documentation]
+  N031["Rollback documentation"]
   N026 --> N031
-  N032[Project Artifacts]
+  N032["Project Artifacts"]
   N001 --> N032
-  N033[install.sh & verify.sh]
+  N033["install.sh & verify.sh"]
   N032 --> N033
-  N034[README (Generated & versioned)]
+  N034["README (Generated & versioned)"]
   N032 --> N034
-  N035[Generated assets (banner/icon)]
+  N035["Generated assets (banner/icon)"]
   N032 --> N035
-  N036[skills.sh skill card]
+  N036["skills.sh skill card"]
   N032 --> N036
-  N037[Upstream Integrations]
+  N037["Upstream Integrations"]
   N001 --> N037
-  N038[Claude Code (Anthropic)]
+  N038["Claude Code (Anthropic)"]
   N037 --> N038
-  N039[OpenCode]
+  N039["OpenCode"]
   N037 --> N039
-  N040[OpenAI Codex CLI]
+  N040["OpenAI Codex CLI"]
   N037 --> N040
-  N041[GitHub CLI]
+  N041["GitHub CLI"]
   N037 --> N041
-  N042[ripgrep]
+  N042["ripgrep"]
   N037 --> N042
 ```
 
