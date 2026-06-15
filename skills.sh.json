@@ -1,7 +1,7 @@
 {
   "name": "temperance-engine",
   "displayName": "Temperance Engine",
-  "description": "Install a local PAI operator runtime with skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first .agents search.",
+  "description": "Install an OpenCode/Cursor-first local PAI operator runtime with optional Claude/Codex compatibility, skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first .agents search.",
   "category": "Developer Tooling",
   "author": "Thoughtseed Labs",
   "license": "MIT",
@@ -11,5 +11,5 @@
   "icon": "assets/icon.png",
   "banner": "assets/banner.png",
   "platforms": ["macOS", "Linux", "Unix-like"],
-  "tags": ["pai", "opencode", "codex", "codegraph", "skills", "installer", "local-agent-runtime"]
+  "tags": ["pai", "opencode", "cursor", "codex", "codegraph", "skills", "installer", "local-agent-runtime"]
 }

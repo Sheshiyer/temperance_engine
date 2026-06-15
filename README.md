@@ -4,7 +4,7 @@
 
 # Temperance Engine
 
-**A one-time installer for a local PAI operator runtime: Algorithm flow, skill-cluster routing, optional peon-ping voice, and CodeGraph-first search.**
+**A one-time installer for an OpenCode/Cursor-first local PAI operator runtime: Algorithm flow, skill-cluster routing, optional peon-ping voice, and CodeGraph-first search.**
 
 Built by [Thoughtseed Labs](https://github.com/Sheshiyer).
 
@@ -18,9 +18,9 @@ Built by [Thoughtseed Labs](https://github.com/Sheshiyer).
 
 </div>
 
-Temperance Engine packages a local AI-operator runtime pattern: PAI-style instruction surfaces, a guarded Algorithm flow, skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first structural search.
+Temperance Engine packages a local AI-operator runtime pattern for teams working primarily in OpenCode or Cursor: PAI-style instruction surfaces, a guarded Algorithm flow, skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first structural search.
 
-This repository is a public installer wrapper. It does not bundle private memory, private configs, proprietary model credentials, or voice/audio packs.
+This repository is a public installer wrapper. It does not require Claude Code, Claude Pro/Max, Anthropic auth, private memory, private configs, proprietary model credentials, or voice/audio packs.
 
 ---
 
@@ -30,8 +30,9 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 
 ## What It Installs
 
-- PAI instruction templates for Claude, Codex, and OpenCode.
-- A local Pulse compatibility server on `localhost:31337`.
+- PAI instruction templates for OpenCode, Cursor, and portable `AGENTS.md` use.
+- Optional templates for Claude Code and Codex when a user explicitly opts in.
+- Optional local Pulse compatibility server on `localhost:31337` when Claude/Pulse compatibility is explicitly enabled.
 - Optional peon-ping phase routing for macOS users with local packs.
 - Skill-cluster resolver guidance and install hooks.
 - CodeGraph routing rules for `~/.agents`.
@@ -57,13 +58,15 @@ cd temperance_engine
 ./verify.sh
 ```
 
+Default install is OpenCode/Cursor-first. It does not install Claude Code or Codex templates unless you pass `--with-claude` or `--with-codex`.
+
 On non-macOS systems, voice installation is skipped automatically. On macOS, voice integration is enabled only if a local peon-ping script is present at `~/.claude/hooks/peon-ping/peon.sh` unless `--with-voice` or `--skip-voice` is provided.
 
 <!-- readme-gen:start:notebooklm-report -->
 ## 🚀 Project Intelligence Snapshot
 
-- Developed by Thoughtseed Labs, **Temperance Engine** is a comprehensive public packaging repository and one-time installer designed to standardize and secure local AI-operator runtimes. The project addresses the problem of "configuration sprawl"—the fragmentation of local AI-agent setups across hidden directories, voice hooks, and search indexes—by consolidating these elements into a reviewable, modular framework.
-- The engine integrates high-profile upstream patterns, most notably Daniel Miessler’s Personal AI Infrastructure (PAI), providing a structured environment for Algorithm-driven workflows. Its core mission is to provide a readable public repository that installs safe components, references optional local assets, and verifies configurations without leaking private machine state. Adhering to a "privacy-first" and "backup-first" philosophy, Temperance Engine ensures operators maintain absolute control over their local environment while benefiting from a unified, inspectable loop.
+- Developed by Thoughtseed Labs, **Temperance Engine** is a public packaging repository and one-time installer for OpenCode/Cursor-first local AI-operator runtimes. It addresses configuration sprawl across hidden config directories, optional voice hooks, and search indexes by consolidating those elements into a reviewable, modular framework.
+- The engine integrates Daniel Miessler's Personal AI Infrastructure (PAI) runtime pattern without making Claude Code, Claude Pro/Max, Anthropic auth, or a specific model mandatory. Its core mission is to install safe OpenCode/Cursor-compatible instruction surfaces, reference optional local assets, and verify configurations without leaking private machine state.
 - [Read the full report for deeper context](.readme-notebooklm/assets/notebooklm-report.md)
 
 <!-- readme-gen:end:notebooklm-report -->
@@ -145,16 +148,18 @@ graph LR
   N032 --> N036
   N037["Upstream Integrations"]
   N001 --> N037
-  N038["Claude Code (Anthropic)"]
+  N038["OpenCode"]
   N037 --> N038
-  N039["OpenCode"]
+  N039["Cursor"]
   N037 --> N039
-  N040["OpenAI Codex CLI"]
+  N040["Claude Code optional"]
   N037 --> N040
-  N041["GitHub CLI"]
+  N041["OpenAI Codex CLI optional"]
   N037 --> N041
-  N042["ripgrep"]
+  N042["GitHub CLI"]
   N037 --> N042
+  N043[ripgrep]
+  N037 --> N043
 ```
 
 <!-- readme-gen:end:notebooklm-mindmap -->
@@ -165,9 +170,10 @@ graph LR
 | --- | --- | --- | --- | --- | --- |
 | Personal AI Infrastructure | PAI/Algorithm/ISA runtime pattern and instruction surfaces. | Principal | https://github.com/danielmiessler/Personal_AI_Infrastructure | Core runtime pattern the package installs around. | unreleased |
 | OpenCode | OpenCode configuration and MCP surface. | Template installation | https://github.com/anomalyco/opencode | Receives instruction templates and MCP-related config. | verified |
+| Cursor | Cursor rules and AGENTS.md-compatible project guidance. | Template installation | https://cursor.com/docs/rules | Receives copyable project rules without Claude auth requirements. | referenced |
 | CodeGraph | Local AST-backed code indexing and structural search. | Referenced | https://github.com/colbymchenry/codegraph | Powers structural search and .agents routing rules. | unreleased |
-| Claude Code | AI product surface from Anthropic. | Template installation | Not in source | Receives local instruction templates and configuration. | Not in source |
-| OpenAI Codex CLI | Codex local instruction surface and auth assumptions. | Referenced | https://github.com/openai/codex | Target local instruction/config integration point. | verified |
+| Claude Code | Optional AI product surface from Anthropic. | Optional template installation | Not in source | Receives local instruction templates only when enabled. | optional |
+| OpenAI Codex CLI | Optional Codex local instruction surface. | Optional template installation | https://github.com/openai/codex | Receives local instruction templates only when enabled. | verified |
 | peon-ping | Local voice notification pattern and script surface. | Referenced | https://github.com/PeonPing/peon-ping | Maps Algorithm phases to local sound packs. | unreleased |
 | ripgrep | Fast file/content search utility. | Referenced | https://github.com/BurntSushi/ripgrep | Fallback search patterns alongside structural indexing. | verified |
 | Bun | High-performance JavaScript runtime. | Optional | https://github.com/oven-sh/bun | Runs local Pulse compatibility server on localhost:31337. | verified |
@@ -182,9 +188,9 @@ graph LR
 - source-reference: manifest.json
 - source-count: 6
 - source-note: README.md, CHANGELOG.md, CONTRIBUTING.md, CREDITS.md, ISA.md, SECURITY.md
-- generated-at: 2026-06-13T15:29:03+0000
+- generated-at: 2026-06-15T14:31:04+0000
 - notebook-id: f113fd7b-0524-4cec-915d-f712c410242c
-- generation-command: python3 /Users/sheshnarayaniyer/.craft-agent/workspaces/my-workspace/skills/mvp-roadmap-orchestrator/run_mvp_pipeline.py --project-dir . --project-name 'temperance-engine' --owner 'Thoughtseed' --asset report --asset mind-map --asset data-table --output-root .readme-notebooklm
+- generation-command: READMEREBUILD_PIPELINE=/path/to/run_mvp_pipeline.py bash scripts/rebuild-readme.sh 'temperance-engine' 'Thoughtseed'
 - continuity-mode: merge-queue refresh workflow
 - follow-up-target: readme-continuity-refresh
 - workflow-reference: .github/workflows/readme-auto-refresh.yml
@@ -201,7 +207,8 @@ flowchart TB
 
     subgraph SafeInstall[Backup-first installation]
         I --> B[Timestamped backups]
-        I --> T[Claude / Codex / OpenCode templates]
+        I --> T[OpenCode / Cursor templates]
+        I --> OPT[Optional Claude / Codex templates]
         I --> P[Pulse compatibility server]
         I --> R[Skill resolver shim]
         I --> G[CodeGraph routing rules]
@@ -258,6 +265,8 @@ flowchart TB
 - Backs up existing target files before writing.
 - Uses `$HOME` and user-overridable environment variables.
 - Does not scan `~/.agents/skill-clusters/skills` wholesale.
+- Installs OpenCode and Cursor templates by default.
+- Keeps Claude Code and Codex templates opt-in; no Claude subscription or Anthropic auth is required.
 - Disables Augment in the OpenCode template because home and `.agents` retrieval can be blocked.
 - Does not install or vendor voice packs.
 
@@ -267,6 +276,10 @@ flowchart TB
 ./install.sh --skip-voice
 ./install.sh --with-voice
 ./install.sh --dry-run
+./install.sh --with-claude
+./install.sh --with-codex
+./install.sh --skip-opencode
+./install.sh --skip-cursor
 ```
 
 Useful environment variables:
@@ -275,9 +288,22 @@ Useful environment variables:
 PAI_HOME="$HOME/.claude"
 CODEX_HOME="$HOME/.codex"
 OPENCODE_HOME="$HOME/.config/opencode"
+CURSOR_HOME="$HOME/.cursor"
 AGENTS_HOME="$HOME/.agents"
 TEMPERANCE_BACKUP_DIR="$HOME/.temperance_engine/backups"
 ```
+
+## Cursor Project Setup
+
+Cursor support is intentionally project-local. The installer places copyable templates under `$CURSOR_HOME/templates`; teams can then version them inside each project:
+
+```bash
+cp "$CURSOR_HOME/templates/temperance-engine.AGENTS.md" /path/to/project/AGENTS.md
+mkdir -p /path/to/project/.cursor/rules
+cp "$CURSOR_HOME/templates/temperance-engine.rules.mdc" /path/to/project/.cursor/rules/temperance-engine.mdc
+```
+
+Cursor's current rules documentation covers Project, Team, and User Rules plus `AGENTS.md`; this repo ships both a portable `AGENTS.md` template and a Cursor project-rule template.
 
 ## Documentation
 
@@ -315,6 +341,7 @@ Suggested listing metadata:
 - [CodeGraph](https://github.com/colbymchenry/codegraph)
 - [peon-ping](https://github.com/PeonPing/peon-ping)
 - [OpenCode](https://github.com/anomalyco/opencode)
+- [Cursor Rules](https://cursor.com/docs/rules)
 - [OpenAI Codex CLI](https://github.com/openai/codex)
 - [GitHub CLI](https://github.com/cli/cli)
 - [Bun](https://github.com/oven-sh/bun)

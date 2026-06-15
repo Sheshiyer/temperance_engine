@@ -23,20 +23,69 @@ check_file "$ROOT/CREDITS.md"
 check_file "$ROOT/UPSTREAM.md"
 check_file "$ROOT/skills.sh.json"
 check_file "$ROOT/skills/temperance-engine/SKILL.md"
+check_file "$ROOT/templates/AGENTS.md"
+check_file "$ROOT/templates/opencode.AGENTS.md"
+check_file "$ROOT/templates/cursor.AGENTS.md"
+check_file "$ROOT/templates/cursor.rules.mdc"
+check_file "$ROOT/templates/codex.AGENTS.md"
+check_file "$ROOT/templates/CLAUDE.md.template"
 check_file "$ROOT/assets/banner.png"
 check_file "$ROOT/assets/icon.png"
 
+check_shell_syntax() {
+  script="$1"
+  shebang=""
+  IFS= read -r shebang < "$script" || true
+
+  case "$shebang" in
+    *bash*)
+      if ! command -v bash >/dev/null 2>&1; then
+        printf 'bash required to lint %s\n' "$script" >&2
+        fail=1
+        return
+      fi
+      bash -n "$script"
+      printf 'syntax ok: %s (bash)\n' "$script"
+      ;;
+    *)
+      sh -n "$script"
+      printf 'syntax ok: %s (sh)\n' "$script"
+      ;;
+  esac
+}
+
 for script in "$ROOT"/*.sh "$ROOT/scripts"/*.sh; do
-  sh -n "$script"
-  printf 'syntax ok: %s\n' "$script"
+  check_shell_syntax "$script"
 done
 
-user_path_pattern="/""Users""/"
-if grep -R "$user_path_pattern" "$ROOT/install.sh" "$ROOT/verify.sh" "$ROOT/scripts" "$ROOT/templates" >/dev/null 2>&1; then
-  printf '%s\n' "hard-coded local user path found in install surface" >&2
+private_home_pattern="/""Users""/"
+private_volume_pattern="/""Volumes""/madara"
+private_craft_pattern="$(printf '.%s' 'craft-agent')"
+if grep -R -n -I -F \
+  -e "$private_home_pattern" \
+  -e "$private_volume_pattern" \
+  -e "$private_craft_pattern" \
+  "$ROOT/README.md" \
+  "$ROOT/.readme-notebooklm" \
+  "$ROOT/.github" \
+  "$ROOT/docs" \
+  "$ROOT/scripts" \
+  "$ROOT/templates" \
+  "$ROOT/package" \
+  "$ROOT/skills" \
+  "$ROOT/CHANGELOG.md" \
+  "$ROOT/CONTRIBUTING.md" \
+  "$ROOT/CREDITS.md" \
+  "$ROOT/ISA.md" \
+  "$ROOT/SECURITY.md" \
+  "$ROOT/UPSTREAM.md" \
+  "$ROOT/install.sh" \
+  "$ROOT/uninstall.sh" \
+  "$ROOT/verify.sh" >/dev/null 2>&1; then
+  printf '%s\n' "private local path found in public/install surface" >&2
   fail=1
 else
-  printf '%s\n' "ok: no hard-coded local user path in install surface"
+  printf '%s\n' "ok: no private local path in public/install surface"
 fi
 
 if grep -q "assets/banner.png" "$ROOT/README.md" && grep -q "skills.sh" "$ROOT/README.md"; then
@@ -50,6 +99,17 @@ if grep -q "Thoughtseed Labs" "$ROOT/README.md" && grep -q "Personal_AI_Infrastr
   printf '%s\n' "ok: README and credits include requested attribution"
 else
   printf '%s\n' "README or credits missing requested attribution" >&2
+  fail=1
+fi
+
+if grep -q "OpenCode/Cursor-first" "$ROOT/README.md" \
+  && grep -q "does not require Claude Code" "$ROOT/README.md" \
+  && grep -q -- "--with-claude" "$ROOT/README.md" \
+  && grep -q -- "--with-codex" "$ROOT/README.md" \
+  && grep -q "Claude Code, Claude Pro/Max, Anthropic auth" "$ROOT/templates/cursor.rules.mdc"; then
+  printf '%s\n' "ok: OpenCode/Cursor-first docs keep Claude and Codex optional"
+else
+  printf '%s\n' "OpenCode/Cursor-first optional Claude/Codex guidance missing" >&2
   fail=1
 fi
 

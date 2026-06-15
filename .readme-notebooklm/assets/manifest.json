@@ -8,43 +8,43 @@
       "id": "7181df91-42c8-4002-b224-634bd78abc51",
       "title": "README.md",
       "status": "2",
-      "input": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/README.md"
+      "input": "README.md"
     },
     {
       "id": "059b9c90-7b89-48fb-985b-20192e2e6a09",
       "title": "CHANGELOG.md",
       "status": "2",
-      "input": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/CHANGELOG.md"
+      "input": "CHANGELOG.md"
     },
     {
       "id": "8cd44212-c422-4702-a746-87d65f2b037d",
       "title": "CONTRIBUTING.md",
       "status": "2",
-      "input": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/CONTRIBUTING.md"
+      "input": "CONTRIBUTING.md"
     },
     {
       "id": "af817125-6db9-49ad-b3d3-d1a2383beca3",
       "title": "CREDITS.md",
       "status": "2",
-      "input": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/CREDITS.md"
+      "input": "CREDITS.md"
     },
     {
       "id": "060f8557-1935-4c3c-b83f-9c9fc4a14774",
       "title": "ISA.md",
       "status": "2",
-      "input": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/ISA.md"
+      "input": "ISA.md"
     },
     {
       "id": "784eb8ba-d283-412a-b92d-6bcb2c81f2f7",
       "title": "SECURITY.md",
       "status": "2",
-      "input": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/SECURITY.md"
+      "input": "SECURITY.md"
     }
   ],
   "failed_sources": [],
   "assets": {
-    "report": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/.readme-notebooklm/assets/notebooklm-report.md",
-    "mind-map": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/.readme-notebooklm/assets/notebooklm-mind-map.json",
-    "data-table": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/.readme-notebooklm/assets/notebooklm-data-table.csv"
+    "report": ".readme-notebooklm/assets/notebooklm-report.md",
+    "mind-map": ".readme-notebooklm/assets/notebooklm-mind-map.json",
+    "data-table": ".readme-notebooklm/assets/notebooklm-data-table.csv"
   }
 }

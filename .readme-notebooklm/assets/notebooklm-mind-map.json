@@ -101,6 +101,9 @@
             "name": "No private memory or credentials"
           },
           {
+            "name": "No required Claude auth or model gate"
+          },
+          {
             "name": "Generalized $HOME paths"
           },
           {
@@ -129,13 +132,16 @@
         "name": "Upstream Integrations",
         "children": [
           {
-            "name": "Claude Code (Anthropic)"
-          },
-          {
             "name": "OpenCode"
           },
           {
-            "name": "OpenAI Codex CLI"
+            "name": "Cursor"
+          },
+          {
+            "name": "Claude Code optional"
+          },
+          {
+            "name": "OpenAI Codex CLI optional"
           },
           {
             "name": "GitHub CLI"

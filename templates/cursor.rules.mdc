@@ -1,0 +1,15 @@
+---
+description: Temperance Engine local operator runtime guidance
+alwaysApply: true
+---
+
+# Temperance Engine Cursor Rule
+
+- Use `NOESIS` as the first visible line for PAI-formatted responses.
+- Work from current state to ideal state, with verification evidence before completion claims.
+- Prefer OpenCode/Cursor-compatible workflows. Claude Code, Claude Pro/Max, Anthropic auth, and specific model access are optional, not required.
+- If a Claude-only advisor or model-gated check is unavailable, do not block completion solely on that absence. Replace it with available empirical verification: shell checks, tests, build output, browser/runtime probes, logs, or a human review note.
+- Resolve skill-cluster needs through `$HOME/.agents/skill-clusters/skill-index.json`; do not scan `$HOME/.agents/skill-clusters/skills` wholesale.
+- Use CodeGraph with `projectPath: "$HOME/.agents"` for `.agents` structural search when available. Use direct file reads or literal search only for exact strings and known files.
+
+Install in a project by copying this file to `.cursor/rules/temperance-engine.mdc`.

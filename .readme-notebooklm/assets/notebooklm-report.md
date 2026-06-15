@@ -10,10 +10,10 @@ The engine integrates high-profile upstream patterns, most notably Daniel Miessl
 | Feature | Description |
 | :--- | :--- |
 | **Developer** | Thoughtseed Labs |
-| **Core Function** | One-time installer for local PAI operator runtimes |
+| **Core Function** | One-time installer for OpenCode/Cursor-first local PAI operator runtimes |
 | **Primary Platforms** | macOS (primary), Linux/other (with voice skipped) |
 | **Philosophy** | Privacy-first, backup-first, and POSIX-shell compatible |
-| **Key Integrations** | PAI, CodeGraph, peon-ping, OpenCode, OpenAI Codex CLI |
+| **Key Integrations** | PAI, OpenCode, Cursor, CodeGraph, peon-ping, optional Claude/Codex |
 
 ---
 
@@ -34,6 +34,8 @@ The engine acts as a "public installer wrapper" rather than a standalone applica
 | Integration Type | Project | Role in Runtime |
 | :--- | :--- | :--- |
 | **Principal** | Personal AI Infrastructure (PAI) | Inspiration for Algorithm/ISA runtime patterns. |
+| **Primary Editor Surface** | OpenCode | Receives default local instruction templates. |
+| **Primary Editor Surface** | Cursor | Receives copyable `AGENTS.md` and project-rule templates. |
 | **Structural Search** | CodeGraph | Provides AST-backed code indexing and search. |
 | **Voice Feedback** | peon-ping | Maps Algorithm phases to local sound notifications. |
 | **Runtime** | Bun | Powers the optional Pulse compatibility server. |
@@ -68,6 +70,7 @@ The project treats its `README.md` as a "generated, versioned artifact" rather t
 
 ### Installation and Verification
 *   **Use Dry-Runs:** Before mutating live configurations, users should execute `./install.sh --dry-run` to see intended changes and backup actions.
+*   **Default Editor Surface:** OpenCode and Cursor templates are installed by default. Claude Code, Claude Pro/Max, Anthropic auth, Codex auth, and specific model access are not required.
 *   **Platform Specifics:** Voice integration is enabled by default only on macOS and requires a local `peon-ping` script at `~/.claude/hooks/peon-ping/peon.sh`. Non-macOS users should expect voice features to be skipped automatically.
 *   **Post-Install Validation:** Run `./verify.sh` to ensure all required files, shell syntax, and paths are correctly configured without hard-coded local usernames.
 

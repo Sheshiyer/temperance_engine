@@ -1,8 +1,8 @@
 ---
 project: temperance_engine
 effort: E4
-phase: verify
-progress: 18/18
+phase: complete
+progress: 27/27
 mode: public-package
 ---
 
@@ -50,6 +50,15 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - [x] ISC-16: Upstream GitHub repos are linked from credits or upstream docs.
 - [x] ISC-17: Banner image exists.
 - [x] ISC-18: Icon image exists.
+- [x] ISC-19: Shell verification uses each script's declared interpreter.
+- [x] ISC-20: Public/install surfaces contain no private local path patterns.
+- [x] ISC-21: README rebuild pipeline path is configurable, not hard-coded to a local user path.
+- [x] ISC-22: NotebookLM asset manifest stores repo-relative paths.
+- [x] ISC-23: Default installer skips Claude template and Pulse server unless `--with-claude` is passed.
+- [x] ISC-24: Default installer skips Codex template unless `--with-codex` is passed.
+- [x] ISC-25: OpenCode and Cursor templates are installed by default.
+- [x] ISC-26: Cursor ships both `AGENTS.md` guidance and `.cursor/rules/*.mdc` guidance.
+- [x] ISC-27: Public docs state no Claude Pro/Max, Anthropic auth, or specific model is required.
 
 ## Test Strategy
 
@@ -73,6 +82,15 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | ISC-16 | text | upstream repo links are present | match | grep |
 | ISC-17 | file | `assets/banner.png` exists | present | test |
 | ISC-18 | file | `assets/icon.png` exists | present | test |
+| ISC-19 | shell | root scripts and `scripts/*.sh` lint with declared shell | zero errors | sh/bash -n |
+| ISC-20 | text | public/install surfaces contain no private local path denylist patterns | zero matches | grep |
+| ISC-21 | text | `scripts/rebuild-readme.sh` uses `READMEREBUILD_PIPELINE` | match | grep |
+| ISC-22 | text | `.readme-notebooklm/assets/manifest.json` uses repo-relative paths | zero private-path matches | grep |
+| ISC-23 | shell | default dry-run reports Claude template and Pulse server skipped | match | install dry-run |
+| ISC-24 | shell | default dry-run reports Codex template skipped | match | install dry-run |
+| ISC-25 | shell | default dry-run reports OpenCode and Cursor template writes | match | install dry-run |
+| ISC-26 | file | Cursor AGENTS and rules templates exist | present | test |
+| ISC-27 | text | README and Cursor rule state Claude auth/model access is optional | match | grep |
 
 ## Features
 
@@ -81,6 +99,8 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | Installer scripts | ISC-1..ISC-7 | none | no |
 | Documentation | ISC-8..ISC-12 | none | yes |
 | Verification script | all | installer docs | no |
+| Public path hygiene | ISC-20..ISC-22 | README assets | yes |
+| OpenCode/Cursor defaults | ISC-23..ISC-27 | installer templates | yes |
 
 ## Decisions
 
@@ -89,6 +109,9 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - Generalize paths through `$HOME` and override variables.
 - Treat skills.sh readiness as a skill-card plus metadata layer, not a separate installer fork.
 - Link only upstream GitHub repositories verified through `gh repo view`; leave CodeGraph as a referenced local CLI without inventing an unverified repo URL.
+- 2026-06-15: Preserve Bash for Bash-declared maintenance scripts and make verification interpreter-aware instead of forcing every `.sh` file through POSIX `sh`.
+- 2026-06-15: Treat generated README/NotebookLM metadata as public surface; store repo-relative paths and configurable commands rather than local machine provenance.
+- 2026-06-15: Make the public installer OpenCode/Cursor-first. Claude, Codex, Pulse compatibility, Claude auth, and model-specific advisor paths are optional rather than required gates.
 
 ## Verification
 
@@ -98,3 +121,9 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - `./install.sh --dry-run --skip-voice` completed without mutating live config and showed backup-first writes.
 - `codex-gpt-image` generated `assets/banner.png` and `assets/icon.png` through Codex OAuth.
 - `gh repo view` verified links for OpenCode, Codex CLI, GitHub CLI, Bun, and ripgrep.
+- 2026-06-15: `./verify.sh` passed with interpreter-aware shell linting and reported `ok: no private local path in public/install surface`.
+- 2026-06-15: `./install.sh --dry-run --skip-voice` passed and ended with `Install flow complete`.
+- 2026-06-15: The private-path denylist scan across tracked files returned no matches.
+- 2026-06-15: `bash scripts/readme-continuity-check.sh HEAD HEAD` passed.
+- 2026-06-15: `./install.sh --dry-run --skip-voice` proved default mode skips Claude/Pulse and Codex while installing OpenCode/Cursor templates.
+- 2026-06-15: `./install.sh --dry-run --skip-voice --with-claude --with-codex` proved optional Claude/Pulse and Codex surfaces can still be requested explicitly.

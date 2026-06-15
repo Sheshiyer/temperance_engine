@@ -8,6 +8,7 @@ Use `NOESIS` as the first visible line for PAI-formatted responses.
 - Treat criteria as the verification surface.
 - Keep handoff manual unless the user explicitly enables automation.
 - Keep local PAI files under `${PAI_HOME:-$HOME/.claude}`.
+- Do not require Claude Code, Claude Pro/Max, Anthropic auth, Codex auth, or a specific model. If a Claude-only advisor is unavailable, skip that advisor and verify through OpenCode, Cursor, shell checks, tests, logs, or human review notes.
 
 ## Skill Cluster Resolution
 

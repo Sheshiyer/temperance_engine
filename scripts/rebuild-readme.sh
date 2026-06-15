@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="${TEMPERANCE_ROOT:-$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}"
-PIPELINE="/Users/sheshnarayaniyer/.craft-agent/workspaces/my-workspace/skills/mvp-roadmap-orchestrator/run_mvp_pipeline.py"
+PIPELINE="${READMEREBUILD_PIPELINE:-}"
 README_PATH="$ROOT/README.md"
 ASSET_DIR="$ROOT/.readme-notebooklm/assets"
 PROJECT_NAME="${1:-$(basename "$ROOT")}" \
@@ -27,19 +27,26 @@ else
       exit 1
     fi
   else
-    python3 "$PIPELINE" \
-      --project-dir "$ROOT" \
-      --project-name "$PROJECT_NAME" \
-      --owner "$OWNER" \
-      --asset report --asset mind-map --asset data-table \
-      --output-root "$ROOT/.readme-notebooklm" \
-      >/tmp/readme-pipeline.log 2>&1 || {
-        echo "NotebookLM pipeline failed; reusing existing assets if available." >&2
-        cat /tmp/readme-pipeline.log >&2
-        if [[ "$FORCE_UPDATE" == "1" ]]; then
-          exit 1
-        fi
-      }
+    if [[ -z "$PIPELINE" || ! -f "$PIPELINE" ]]; then
+      echo "READMEREBUILD_PIPELINE is not set to a readable pipeline; reusing existing assets." >&2
+      if [[ "$FORCE_UPDATE" == "1" ]]; then
+        exit 1
+      fi
+    else
+      python3 "$PIPELINE" \
+        --project-dir "$ROOT" \
+        --project-name "$PROJECT_NAME" \
+        --owner "$OWNER" \
+        --asset report --asset mind-map --asset data-table \
+        --output-root "$ROOT/.readme-notebooklm" \
+        >/tmp/readme-pipeline.log 2>&1 || {
+          echo "NotebookLM pipeline failed; reusing existing assets if available." >&2
+          cat /tmp/readme-pipeline.log >&2
+          if [[ "$FORCE_UPDATE" == "1" ]]; then
+            exit 1
+          fi
+        }
+    fi
   fi
 fi
 
@@ -60,6 +67,7 @@ README_PATH = Path(sys.argv[1])
 ASSET_DIR = Path(sys.argv[2])
 OWNER = sys.argv[3]
 PROJECT_NAME = sys.argv[4]
+ROOT = README_PATH.parent
 
 manifest_path = ASSET_DIR / "manifest.json"
 report_path = ASSET_DIR / "notebooklm-report.md"
@@ -75,6 +83,31 @@ if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except Exception:
         manifest = {}
+
+
+def public_path(value):
+    if not isinstance(value, str) or not value:
+        return value
+
+    path = Path(value)
+    if not path.is_absolute():
+        return value
+
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.name
+
+
+if manifest:
+    for source in manifest.get("sources", []):
+        if isinstance(source, dict) and "input" in source:
+            source["input"] = public_path(source["input"])
+    assets = manifest.get("assets", {})
+    if isinstance(assets, dict):
+        for key, value in list(assets.items()):
+            assets[key] = public_path(value)
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
 def clean_text(path: Path) -> str:
@@ -243,7 +276,7 @@ metadata = [
     f"- source-note: {source_names}",
     f"- generated-at: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z')}",
     f"- notebook-id: {manifest.get('notebook', {}).get('id', 'unknown')}",
-    "- generation-command: python3 /Users/sheshnarayaniyer/.craft-agent/workspaces/my-workspace/skills/mvp-roadmap-orchestrator/run_mvp_pipeline.py --project-dir . --project-name '" + PROJECT_NAME + "' --owner '" + OWNER + "' --asset report --asset mind-map --asset data-table --output-root .readme-notebooklm",
+    "- generation-command: READMEREBUILD_PIPELINE=/path/to/run_mvp_pipeline.py bash scripts/rebuild-readme.sh '" + PROJECT_NAME + "' '" + OWNER + "'",
     "- continuity-mode: merge-queue refresh workflow",
     "- follow-up-target: readme-continuity-refresh",
     "- workflow-reference: .github/workflows/readme-auto-refresh.yml",

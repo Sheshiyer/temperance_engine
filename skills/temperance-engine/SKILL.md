@@ -1,6 +1,6 @@
 ---
 name: "Temperance Engine"
-description: "Install a local PAI operator runtime with skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first .agents search."
+description: "Install an OpenCode/Cursor-first local PAI operator runtime with optional Claude/Codex compatibility, skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first .agents search."
 category: "Developer Tooling"
 platforms:
   - macOS
@@ -9,6 +9,7 @@ platforms:
 tags:
   - pai
   - opencode
+  - cursor
   - codex
   - codegraph
   - skills
@@ -24,12 +25,14 @@ banner: "../../assets/banner.png"
 
 # Temperance Engine
 
-Temperance Engine installs a reviewable local AI-operator runtime pattern: PAI-style instruction surfaces, guarded Algorithm flow, skill-cluster routing, optional peon-ping phase sounds, and CodeGraph-first structural search for `.agents`.
+Temperance Engine installs a reviewable OpenCode/Cursor-first local AI-operator runtime pattern: PAI-style instruction surfaces, guarded Algorithm flow, skill-cluster routing, optional peon-ping phase sounds, and CodeGraph-first structural search for `.agents`.
 
 ## What This Skill Helps With
 
 - Set up PAI-style `NOESIS` instruction templates.
-- Install a local Pulse compatibility server on `localhost:31337`.
+- Install OpenCode and Cursor-compatible project guidance by default.
+- Optionally install Claude/Codex compatibility templates when explicitly requested.
+- Optionally install a local Pulse compatibility server on `localhost:31337`.
 - Reference local peon-ping voice packs without bundling audio.
 - Preserve skill-cluster startup debloat through `skill-index.json` routing.
 - Route `.agents` structural lookup through CodeGraph instead of blocked home-directory semantic retrieval.
@@ -50,7 +53,13 @@ cd temperance_engine
 ./install.sh --dry-run
 ./install.sh --skip-voice
 ./install.sh --with-voice
+./install.sh --with-claude
+./install.sh --with-codex
+./install.sh --skip-opencode
+./install.sh --skip-cursor
 ```
+
+Default install does not require Claude Code, Claude Pro/Max, Anthropic auth, Codex auth, or a specific model.
 
 ## Voice Behavior
 
@@ -86,4 +95,4 @@ The verifier checks required files, shell syntax, documentation presence, and ab
 
 ## Credits
 
-Temperance Engine is built by Thoughtseed Labs and links upstream surfaces in `CREDITS.md` and `UPSTREAM.md`. It credits Personal AI Infrastructure, CodeGraph, peon-ping, OpenCode, Codex CLI, GitHub CLI, Bun, ripgrep, Claude Code surfaces, and skills.sh without vendoring private or unclear-license assets.
+Temperance Engine is built by Thoughtseed Labs and links upstream surfaces in `CREDITS.md` and `UPSTREAM.md`. It credits Personal AI Infrastructure, CodeGraph, peon-ping, OpenCode, Cursor, optional Codex CLI and Claude Code surfaces, GitHub CLI, Bun, ripgrep, and skills.sh without vendoring private or unclear-license assets.
