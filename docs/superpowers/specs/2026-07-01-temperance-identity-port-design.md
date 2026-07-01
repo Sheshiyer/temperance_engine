@@ -66,7 +66,8 @@ the temp root on exit.
 
 1. **File landing.** After a real `install.sh --skip-voice --with-claude --with-codex --with-gsd`
    into the sandbox, assert each expected destination exists:
-   `$AGENTS_HOME`-adjacent `~/AGENTS.md`, `$PAI_HOME/CLAUDE.md.template`,
+   `$HOME/AGENTS.md` (sandbox `HOME`; written by `install-pai.sh` as `$HOME/AGENTS.md`),
+   `$PAI_HOME/CLAUDE.md.template`,
    `$PAI_HOME/PAI/PULSE/compat-server.ts`, `$CODEX_HOME/hooks/skill_cluster_resolver.mjs`,
    `$OPENCODE_HOME/AGENTS.md`, `$OPENCODE_HOME/opencode.json`, `$CODEX_HOME/AGENTS.md`,
    `$CURSOR_HOME/templates/temperance-engine.AGENTS.md`,
