@@ -8,6 +8,7 @@ CLAUDE_MODE=skip
 CODEX_MODE=skip
 OPENCODE_MODE=install
 CURSOR_MODE=install
+GSD_MODE=skip
 
 for arg in "$@"; do
   case "$arg" in
@@ -22,8 +23,10 @@ for arg in "$@"; do
     --skip-opencode) OPENCODE_MODE=skip ;;
     --with-cursor) CURSOR_MODE=install ;;
     --skip-cursor) CURSOR_MODE=skip ;;
+    --with-gsd) GSD_MODE=install ;;
+    --skip-gsd) GSD_MODE=skip ;;
     -h|--help)
-      printf '%s\n' "Usage: ./install.sh [--dry-run] [--skip-voice|--with-voice] [--with-claude|--skip-claude] [--with-codex|--skip-codex] [--with-opencode|--skip-opencode] [--with-cursor|--skip-cursor]"
+      printf '%s\n' "Usage: ./install.sh [--dry-run] [--skip-voice|--with-voice] [--with-claude|--skip-claude] [--with-codex|--skip-codex] [--with-opencode|--skip-opencode] [--with-cursor|--skip-cursor] [--with-gsd|--skip-gsd]"
       exit 0
       ;;
     *)
@@ -40,6 +43,7 @@ export TEMPERANCE_CLAUDE_MODE="$CLAUDE_MODE"
 export TEMPERANCE_CODEX_MODE="$CODEX_MODE"
 export TEMPERANCE_OPENCODE_MODE="$OPENCODE_MODE"
 export TEMPERANCE_CURSOR_MODE="$CURSOR_MODE"
+export TEMPERANCE_GSD_MODE="$GSD_MODE"
 export PAI_HOME="${PAI_HOME:-$HOME/.claude}"
 export CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 export OPENCODE_HOME="${OPENCODE_HOME:-$HOME/.config/opencode}"
@@ -58,11 +62,13 @@ printf '%s\n' "CLAUDE_MODE=$CLAUDE_MODE"
 printf '%s\n' "CODEX_MODE=$CODEX_MODE"
 printf '%s\n' "OPENCODE_MODE=$OPENCODE_MODE"
 printf '%s\n' "CURSOR_MODE=$CURSOR_MODE"
+printf '%s\n' "GSD_MODE=$GSD_MODE"
 
 sh "$ROOT_DIR/scripts/install-pai.sh"
 sh "$ROOT_DIR/scripts/install-skill-clusters.sh"
 sh "$ROOT_DIR/scripts/install-peon-ping.sh"
 sh "$ROOT_DIR/scripts/install-codegraph.sh"
+sh "$ROOT_DIR/scripts/install-gsd.sh"
 sh "$ROOT_DIR/scripts/configure-opencode.sh"
 sh "$ROOT_DIR/scripts/verify-install.sh"
 

@@ -19,6 +19,12 @@ check_file "$ROOT/docs/pai-flow.md"
 check_file "$ROOT/docs/skill-clusters.md"
 check_file "$ROOT/docs/peon-ping-packs.md"
 check_file "$ROOT/docs/codegraph-routing.md"
+check_file "$ROOT/docs/parallel-dispatch.md"
+check_file "$ROOT/scripts/install-gsd.sh"
+check_file "$ROOT/package/hooks/ParallelDispatchContext.hook.sh"
+check_file "$ROOT/scripts/apply-identity.sh"
+check_file "$ROOT/tests/sandbox-install.sh"
+check_file "$ROOT/tests/identity-tool.sh"
 check_file "$ROOT/CREDITS.md"
 check_file "$ROOT/UPSTREAM.md"
 check_file "$ROOT/skills.sh.json"
@@ -54,7 +60,8 @@ check_shell_syntax() {
   esac
 }
 
-for script in "$ROOT"/*.sh "$ROOT/scripts"/*.sh; do
+for script in "$ROOT"/*.sh "$ROOT/scripts"/*.sh "$ROOT/tests"/*.sh; do
+  [ -f "$script" ] || continue
   check_shell_syntax "$script"
 done
 
