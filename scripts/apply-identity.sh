@@ -45,6 +45,16 @@ strip_block() {
   ' "$1"
 }
 
+identity_backup() {
+  ib_target="$1"
+  [ -e "$ib_target" ] || return 0
+  ib_stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  ib_slug=$(printf '%s' "$ib_target" | sed 's#^/##; s#/#__#g')
+  ib_dir="${TEMPERANCE_BACKUP_DIR:-$HOME/.temperance_engine/backups}/$ib_stamp"
+  mkdir -p "$ib_dir"
+  cp "$ib_target" "$ib_dir/$ib_slug"
+}
+
 apply_one() {
   target="$1"
   if [ ! -f "$target" ]; then
@@ -58,7 +68,7 @@ apply_one() {
       identity_block
       ;;
     apply)
-      backup_file "$target"
+      identity_backup "$target"
       tmp="$target.temperance.tmp"
       { identity_block; strip_block "$target"; } > "$tmp"
       mv "$tmp" "$target"
@@ -66,7 +76,7 @@ apply_one() {
       ;;
     remove)
       if grep -qF "$START" "$target"; then
-        backup_file "$target"
+        identity_backup "$target"
         tmp="$target.temperance.tmp"
         strip_block "$target" > "$tmp"
         mv "$tmp" "$target"
