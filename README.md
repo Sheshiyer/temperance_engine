@@ -280,6 +280,7 @@ flowchart TB
 ./install.sh --with-codex
 ./install.sh --skip-opencode
 ./install.sh --skip-cursor
+./install.sh --with-gsd
 ```
 
 Useful environment variables:
@@ -309,10 +310,15 @@ Cursor's current rules documentation covers Project, Team, and User Rules plus `
 
 - `skills/temperance-engine/SKILL.md` is the skills.sh-ready skill card.
 - `docs/architecture.md` explains the runtime model.
+- `docs/architecture/architecture.html` is the visual architecture overview (business context, data flow, pipeline, layers, deployment).
+- `docs/architecture/system-internals.html` documents the mechanics of every installed script and service.
+- `docs/architecture/integration-map.html` shows which seams are real code paths versus reference-only documentation.
+- `docs/architecture/session-trace.html` walks through one concrete install-to-session example.
 - `docs/pai-flow.md` explains how PAI phases work.
 - `docs/skill-clusters.md` explains skill-cluster routing.
 - `docs/peon-ping-packs.md` explains voice pack mapping.
 - `docs/codegraph-routing.md` explains CodeGraph indexing and search rules.
+- `docs/parallel-dispatch.md` explains when to use parallel agent dispatch vs GSD execute-phase/workstreams.
 - `docs/rollback.md` explains backups and recovery.
 - `UPSTREAM.md` links the relevant upstream GitHub repos and docs.
 - `assets/` contains generated public-facing banner and icon assets.

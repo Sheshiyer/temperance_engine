@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperance Engine - Integration Map</title>
+<style>
+  :root {
+    --data: #4299e1; --processing: #ed8936; --ai: #9f7aea; --success: #48bb78;
+    --private: #718096; --ink: #1a202c; --muted: #4a5568; --line: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; }
+  h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 10px; }
+  h1 small { display: block; font-weight: 400; font-size: 15px; opacity: 0.9; margin-top: 8px; }
+  h2 { border-bottom: 3px solid var(--line); padding-bottom: 8px; }
+  .section { margin: 36px 0; }
+  .callout { background: #fffaf0; border: 1px solid #fbd38d; border-left: 5px solid var(--processing); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
+  .callout strong { color: #9c4221; }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; justify-content: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 10px 0; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f7fafc; }
+  code { background: #edf2f7; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
+  .badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; color: white; }
+  .badge.wired { background: var(--success); }
+  .badge.ref { background: var(--private); }
+</style>
+</head>
+<body>
+
+<h1>Integration Map
+  <small>Where the stitched-together systems actually connect &mdash; and where they deliberately don't</small>
+</h1>
+
+<div class="callout">
+  <strong>Reading this doc.</strong> Every seam below is labeled <span class="badge wired">WIRED</span> (a real code path in this repo reads/writes/calls the other system) or <span class="badge ref">REFERENCE ONLY</span> (docs point at it; nothing in this repo's code touches it). Confusing the two is the most common misunderstanding about this runtime.
+</div>
+
+<div class="section">
+  <h2>1. The Backbone: 7-Phase Loop</h2>
+  <p>Observe &rarr; Think &rarr; Plan &rarr; Build &rarr; Execute &rarr; Verify &rarr; Learn is the spine everything else attaches to. It is defined once, in <code>docs/pai-flow.md</code>, as a convention the agent follows &mdash; there is no state machine or enforcement code for it in this repo. Every other seam below is something that <em>can</em> happen at a specific phase, not something the loop itself triggers.</p>
+</div>
+
+<div class="section">
+  <h2>2. Voice Seam <span class="badge wired">WIRED</span> &mdash; the only fully live code path</h2>
+  <svg viewBox="0 0 1080 160" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker></defs>
+    <g font-size="11.5" text-anchor="middle" fill="white">
+      <rect x="10" y="40" width="190" height="70" rx="8" fill="#9f7aea"/>
+      <text x="105" y="70">Agent emits text</text>
+      <text x="105" y="86" font-size="10">"Entering the Execute phase."</text>
+
+      <rect x="245" y="40" width="190" height="70" rx="8" fill="#ed8936"/>
+      <text x="340" y="65">POST /notify</text>
+      <text x="340" y="82" font-size="10">compat-server.ts</text>
+      <text x="340" y="96" font-size="10">:31337</text>
+
+      <rect x="480" y="40" width="190" height="70" rx="8" fill="#ed8936"/>
+      <text x="575" y="65">phaseFromMessage()</text>
+      <text x="575" y="82" font-size="10">substring match</text>
+      <text x="575" y="96" font-size="10">&rarr; "execute"</text>
+
+      <rect x="715" y="40" width="170" height="70" rx="8" fill="#4299e1"/>
+      <text x="800" y="65">phasePacks table</text>
+      <text x="800" y="82" font-size="10">execute &rarr; nier-2b</text>
+
+      <rect x="920" y="40" width="150" height="70" rx="8" fill="#48bb78"/>
+      <text x="995" y="65">Bun.spawn</text>
+      <text x="995" y="82" font-size="10">peon.sh --pack</text>
+      <text x="995" y="96" font-size="10">nier-2b</text>
+    </g>
+    <g stroke="#666" stroke-width="2">
+      <path d="M200,75 L243,75" marker-end="url(#a1)"/>
+      <path d="M435,75 L478,75" marker-end="url(#a1)"/>
+      <path d="M670,75 L713,75" marker-end="url(#a1)"/>
+      <path d="M885,75 L918,75" marker-end="url(#a1)"/>
+    </g>
+    <text x="540" y="140" text-anchor="middle" font-size="11" fill="#4a5568">Fails open at every stage: no bun &rarr; {played:false}; no peon.sh &rarr; guidance only; no message match &rarr; {played:false, forwarded:false}</text>
+  </svg>
+</div>
+
+<div class="section">
+  <h2>3. Search / Discovery Seam <span class="badge ref">REFERENCE ONLY</span> &mdash; two parallel systems, never cross-referenced</h2>
+  <table>
+    <tr><th>System</th><th>Index file</th><th>Consumer</th><th>Installed hook?</th></tr>
+    <tr><td>CodeGraph</td><td><code>$AGENTS_HOME/.codegraph</code></td><td>Any agent, via <code>codegraph_*</code> tools or CLI</td><td>No &mdash; <code>install-codegraph.sh</code> only runs <code>codegraph init -i</code> once</td></tr>
+    <tr><td>Skill clusters</td><td><code>$AGENTS_HOME/skill-clusters/skill-index.json</code></td><td>Codex, via the resolver hook</td><td>Yes &mdash; <code>skill_cluster_resolver.mjs</code> in <code>$CODEX_HOME/hooks/</code></td></tr>
+  </table>
+  <p>These never call each other. Code-structure questions route to CodeGraph; skill-discovery questions route to the skill-index. Claude and OpenCode get the same routing rules as plain doc conventions (<code>docs/codegraph-routing.md</code>, <code>docs/skill-clusters.md</code>) with no installed hook enforcing them &mdash; only Codex gets an actual hook file.</p>
+</div>
+
+<div class="section">
+  <h2>4. Planning / Preference Seam <span class="badge ref">SEPARATE BY DESIGN</span> + <span class="badge wired">one read-only bridge</span></h2>
+  <div class="callout">
+    <strong>Decision (ISA.md, 2026-07-01):</strong> Temperance Engine owns exactly one preference store &mdash; its own <code>ISA.md</code>. GSD config and PAI steering/memory stay fully external and untouched:
+  </div>
+  <table>
+    <tr><th>Layer</th><th>Scope</th><th>Storage</th><th>Authoritative for</th></tr>
+    <tr><td>PAI steering + memory</td><td>Operator-level, every project/session</td><td><code>AISTEERINGRULES.md</code>, <code>USER/OPINIONS.md</code>, <code>MEMORY/LEARNING/*</code></td><td>How the agent behaves as itself, loaded first at harness <code>SessionStart</code> &mdash; private, never shipped by Temperance Engine</td></tr>
+    <tr><td>GSD workflow config</td><td>GSD-workflow-level, one project or global default</td><td><code>.planning/config.json</code> + <code>~/.gsd/defaults.json</code></td><td>How GSD's own commands execute &mdash; re-read fresh every <code>gsd:*</code> invocation; GSD is external, referenced only via <code>--with-gsd</code></td></tr>
+    <tr><td>Temperance's own ISA.md</td><td>Artifact-level, one project</td><td><code>ISA.md</code> Decisions/Criteria</td><td>Why this specific codebase is built the way it is &mdash; this repo's own system of record</td></tr>
+  </table>
+  <p><strong>The one deliberate bridge:</strong> <code>ParallelDispatchContext.hook.sh</code> reads GSD's <code>.planning/config.json</code> (<code>model_profile</code>, <code>workflow.auto_advance</code>) <em>read-only</em>, purely to enrich its own advisory output. It never writes to that file, never overrides GSD's own fresh read of it, and never reads PAI's steering rules, memory, or this project's <code>ISA.md</code> &mdash; those three stay exactly as separate as the table above says they should.</p>
+</div>
+
+<div class="section">
+  <h2>5. Parallel-Dispatch Seam <span class="badge ref">REFERENCE ONLY</span> (hook) + <span class="badge wired">WIRED</span> (docs cross-link)</h2>
+  <svg viewBox="0 0 1080 220" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker></defs>
+    <g font-size="11" text-anchor="middle" fill="white">
+      <rect x="10" y="70" width="180" height="80" rx="8" fill="#4299e1"/>
+      <text x="100" y="100">Execute phase</text>
+      <text x="100" y="118" font-size="9.5">reached in the loop</text>
+
+      <rect x="235" y="70" width="220" height="80" rx="8" fill="#718096"/>
+      <text x="345" y="95">ParallelDispatchContext</text>
+      <text x="345" y="110">.hook.sh</text>
+      <text x="345" y="126" font-size="9.5">(only if user wired it manually)</text>
+
+      <rect x="500" y="70" width="220" height="80" rx="8" fill="#ed8936"/>
+      <text x="610" y="100">docs/parallel-dispatch.md</text>
+      <text x="610" y="118" font-size="9.5">decision tree consulted</text>
+
+      <rect x="765" y="20" width="150" height="70" rx="8" fill="#9f7aea"/>
+      <text x="840" y="48">GSD execute-phase</text>
+      <text x="840" y="64" font-size="9.5">/ workstreams</text>
+      <text x="840" y="78" font-size="9.5">(if installed + plan-shaped)</text>
+
+      <rect x="765" y="140" width="150" height="70" rx="8" fill="#48bb78"/>
+      <text x="840" y="168">superpowers</text>
+      <text x="840" y="184" font-size="9.5">dispatch skill</text>
+      <text x="840" y="198" font-size="9.5">(otherwise)</text>
+    </g>
+    <g stroke="#666" stroke-width="2">
+      <path d="M190,110 L233,110" marker-end="url(#a2)"/>
+      <path d="M455,110 L498,110" marker-end="url(#a2)"/>
+      <path d="M720,95 L763,72" marker-end="url(#a2)"/>
+      <path d="M720,125 L763,158" marker-end="url(#a2)"/>
+    </g>
+  </svg>
+  <p>The hook only <em>informs</em> &mdash; it never calls either mechanism. The decision to use GSD vs. superpowers dispatch vs. plain sequential work is always made by the agent reading the doc, never automated.</p>
+</div>
+
+<div class="section">
+  <h2>6. What Is Explicitly Not Stitched</h2>
+  <table>
+    <tr><th>Gap</th><th>Why it's left this way</th></tr>
+    <tr><td>No hook calls into GSD or superpowers automatically</td><td>Automating the judgment call would duplicate GSD's own wave-dependency logic and the superpowers skill's own guardrails &mdash; the decision needs codebase-specific context a hook can't have.</td></tr>
+    <tr><td>No shared state file between Pulse server, skill resolver, CodeGraph, GSD, and ISA.md</td><td>Each was built independently for a narrow purpose; unifying them into one state store would be new architecture this repo doesn't need yet.</td></tr>
+    <tr><td><code>verify.sh</code> only checks Temperance's own install surface</td><td>It does not and cannot verify GSD's correctness, superpowers' behavior, or the live PAI runtime &mdash; those are out of this repo's ownership boundary per <code>ISA.md</code> Out of Scope.</td></tr>
+  </table>
+</div>
+
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>session-trace.html</code> (concrete walkthrough).</p>
+
+</body>
+</html>
