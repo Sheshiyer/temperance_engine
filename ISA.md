@@ -2,7 +2,7 @@
 project: temperance_engine
 effort: E4
 phase: complete
-progress: 27/27
+progress: 34/34
 mode: public-package
 ---
 
@@ -59,6 +59,13 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - [x] ISC-25: OpenCode and Cursor templates are installed by default.
 - [x] ISC-26: Cursor ships both `AGENTS.md` guidance and `.cursor/rules/*.mdc` guidance.
 - [x] ISC-27: Public docs state no Claude Pro/Max, Anthropic auth, or specific model is required.
+- [x] ISC-28: `docs/parallel-dispatch.md` documents when to use superpowers:dispatching-parallel-agents vs GSD execute-phase/workstreams vs subagent-driven-development.
+- [x] ISC-29: `docs/pai-flow.md` Execute phase references `docs/parallel-dispatch.md`.
+- [x] ISC-30: `package/hooks/ParallelDispatchContext.hook.sh` exists and is advisory-only (never blocks, never triggers dispatch).
+- [x] ISC-31: `--with-gsd` install flag exists, default OFF, and prints a reference-only note without vendoring GSD.
+- [x] ISC-32: Temperance Engine owns exactly one preference store (`ISA.md`); GSD config and PAI steering/memory stay fully external and untouched except one read-only display read in `ParallelDispatchContext.hook.sh`, which never writes to `config.json`.
+- [x] ISC-33: `tests/sandbox-install.sh` asserts installer layering in an isolated sandbox (real install, backups, dry-run safety, restore-from-backup, hook behavior, GSD gating) and never touches the real home directory.
+- [x] ISC-34: `scripts/apply-identity.sh` attaches the Temperance identity block to the operator `AGENTS.md` surfaces: dry-run default, backup-first, idempotent, and reversible (`--remove`), proven by `tests/identity-tool.sh`.
 
 ## Test Strategy
 
@@ -91,6 +98,13 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | ISC-25 | shell | default dry-run reports OpenCode and Cursor template writes | match | install dry-run |
 | ISC-26 | file | Cursor AGENTS and rules templates exist | present | test |
 | ISC-27 | text | README and Cursor rule state Claude auth/model access is optional | match | grep |
+| ISC-28 | file | `docs/parallel-dispatch.md` exists | present | test |
+| ISC-29 | text | `docs/pai-flow.md` references `parallel-dispatch.md` | match | grep |
+| ISC-30 | text | hook file never calls `exit 1` and contains no dispatch/Task invocation | zero matches | grep |
+| ISC-31 | shell | default dry-run has no GSD install output; `--with-gsd` dry-run prints reference note | match | install dry-run |
+| ISC-32 | text | hook contains no write/redirect (`>`, `>>`) targeting `config.json` | zero matches | grep |
+| ISC-33 | shell | `sh tests/sandbox-install.sh` exits 0 with all assertions PASS | zero failures | run harness |
+| ISC-34 | shell | `sh tests/identity-tool.sh` exits 0; tool has no unconditional write path and a `--remove` mode | zero failures | run test + grep |
 
 ## Features
 
@@ -101,6 +115,31 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | Verification script | all | installer docs | no |
 | Public path hygiene | ISC-20..ISC-22 | README assets | yes |
 | OpenCode/Cursor defaults | ISC-23..ISC-27 | installer templates | yes |
+| Parallel-dispatch guidance | ISC-28..ISC-31 | PAI flow docs, install.sh flags | yes |
+| Single preference store | ISC-32 | parallel-dispatch guidance | no |
+| Layering test harness | ISC-33 | installer scripts | no |
+| Identity port tool | ISC-34 | operator AGENTS.md surfaces | no |
+
+## Architecture
+
+<!-- arch-assets:start -->
+
+_Auto-maintained by `ArchitectureAssetsSync.hook.ts` on release events._  
+_Last refreshed: 2026-06-22T01:11:11.274Z_
+
+| Asset | Status | How it's generated |
+|---|---|---|
+| [`docs/architecture/SERVICES.md`](docs/architecture/SERVICES.md) | ✅ current | auto (file scan) |
+| [`docs/architecture/DEPENDENCY-GRAPH.md`](docs/architecture/DEPENDENCY-GRAPH.md) | ✅ current | auto (file scan) |
+| [`docs/architecture/architecture.html`](docs/architecture/architecture.html) | ✅ current (generated 2026-07-01) | manual (LLM skill) |
+| [`docs/architecture/system-internals.html`](docs/architecture/system-internals.html) | ✅ current (generated 2026-07-01) | manual (LLM skill) |
+| [`docs/architecture/integration-map.html`](docs/architecture/integration-map.html) | ✅ current (generated 2026-07-01) | manual (LLM skill) |
+| [`docs/architecture/session-trace.html`](docs/architecture/session-trace.html) | ✅ current (generated 2026-07-01) | manual (LLM skill) |
+| [`docs/architecture/notebooklm-prompt.md`](docs/architecture/notebooklm-prompt.md) | ⬜ not yet generated | manual (LLM skill) |
+
+**To refresh LLM-generated assets:** invoke `/refresh-architecture` in any Claude Code session.
+
+<!-- arch-assets:end -->
 
 ## Decisions
 
@@ -112,6 +151,9 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - 2026-06-15: Preserve Bash for Bash-declared maintenance scripts and make verification interpreter-aware instead of forcing every `.sh` file through POSIX `sh`.
 - 2026-06-15: Treat generated README/NotebookLM metadata as public surface; store repo-relative paths and configurable commands rather than local machine provenance.
 - 2026-06-15: Make the public installer OpenCode/Cursor-first. Claude, Codex, Pulse compatibility, Claude auth, and model-specific advisor paths are optional rather than required gates.
+- 2026-07-01: Record parallel-dispatch strategy as ISA-tracked decisions (ISC-28..ISC-31) rather than a new config file; GSD stays an opt-in thin reference (`--with-gsd`, default OFF) never vendored, and the shipped hook is advisory-only with no auto-triggered dispatch.
+- 2026-07-01: Decide Temperance Engine owns exactly one preference store, `ISA.md`. GSD config and PAI steering/memory remain fully external and out of scope; no separate precedence doc. The only cross-system touch is the hook's read-only `config.json` display read, enforced structurally (no write path exists in the script) rather than documented in prose.
+- 2026-07-01: Port the runtime identity to live operator surfaces as an attached, reversible `<!-- temperance:identity -->` block (live-is-truth), never a content replacement; prove the installer layering first with an isolated sandbox harness that pins the Pulse port and cannot touch the real home directory.
 
 ## Verification
 
