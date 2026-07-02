@@ -1,27 +1,85 @@
-# Integrated System Hardening — Design (SP2 + SP3 + SP5 + SP1)
+# Temperance Engine as Always-On Enrichment Layer — Design (SP0 primary; SP1–SP5 supporting)
 
 Date: 2026-07-02
 Status: Approved design pending user review, pre-implementation
 Branch: temperance-identity-port
 
+## Primary objective (SP0)
+
+**Every prompt, every harness (Claude Code / OpenCode / Codex), unconditionally, is run through the Temperance Engine before the model produces a meaningful response** — regardless of whether the user mentions "PAI" or any skill. The chat is not a direct conversation with the model; it is the input signal that drives the harness. The model always resolves against a Temperance-shaped context (classified, ISA/Algorithm-framed, skill-routed, memory-loaded, dispatch-prepared), never the raw prompt. This is the goal; everything below (SP1–SP5) is the plumbing that makes it reliable and consistent.
+
 ## Context
 
-A six-seam read-only audit of the live Mac mini runtime produced **36 gap findings**; a follow-up discovery pass found **~20 integrations** beyond the core stack (a second voice server, dead launchd jobs, secret sprawl, ~12 MCP servers, failing telemetry). The full scope is ~50 items across 7 sub-projects. This spec covers the four the user chose to do now, sequenced by risk:
+A six-seam read-only audit of the live Mac mini runtime produced **36 gap findings**; a follow-up discovery pass found **~20 integrations** beyond the core stack (a second voice server, dead launchd jobs, secret sprawl, ~12 MCP servers, failing telemetry). The full scope is ~50 items across 7 sub-projects. This spec covers SP0 (primary) plus the supporting sub-projects, sequenced by dependency then risk:
 
-1. **SP2 — Repo hardening** (temperance_engine; zero live risk; sandbox-tested; extends PR #2)
-2. **SP5 — Dead-weight sweep** (live, low-risk, reversible)
-3. **SP3 — Secrets & config hygiene** (live, sensitive; de-plaintext by us, rotation by user)
-4. **SP1 — Voice reconciliation** (live, behavioral)
+1. **SP0 — Universal enrichment layer** (repo core + three live adapters) — the objective
+2. **SP4 — Codex parity** (G5/G12/G13/G17) — **prerequisite** for the Codex adapter of SP0
+3. **SP2 — Repo hardening** (temperance_engine; zero live risk; sandbox-tested; extends PR #2)
+4. **SP5 — Dead-weight sweep** (live, low-risk, reversible)
+5. **SP3 — Secrets & config hygiene** (live, sensitive; de-plaintext by us, rotation by user)
+6. **SP1 — Voice reconciliation** (live, behavioral)
 
-Deferred to later sub-projects (out of scope here): **SP4** codex parity (G5/G12/G13/G17), **SP6** PAI↔GSD arbitration (G9/G8/G21/G23), **SP7** skill-cluster USB single-point-of-failure (G10/G24/G25).
+Deferred (out of scope here): **SP6** PAI↔GSD arbitration (G9/G8/G21/G23), **SP7** skill-cluster USB single-point-of-failure (G10/G24/G25). (SP4 was previously deferred; SP0 promotes it to a prerequisite.)
 
 ## Locked decisions
 
+- **SP0 is the primary objective**; SP1–SP5 are supporting plumbing.
+- **Enrichment depth: full** — every turn does classify → frame (ISA/Algorithm) → route (skill-clusters) → load (memory) → dispatch-prep, injected before the model.
+- **Architecture: one shared `temperance-enrich` module, called per-turn by three thin adapters** (no daemon, no SPOF, anti-drift by construction). Index-reads only; hard latency budget.
+- **Unconditional**: no keyword/skill gate; runs on every prompt on all three surfaces.
+- **Mechanical boundary**: the layer enriches/routes/frames the context the model responds to; it does not replace the model. "Before it hits the model" = the model always opens on Temperance-shaped context, never the raw prompt.
+- **Voice: no spoken TTS needed** — peon-ping canned packs are acceptable for completion; confirmed retire ElevenLabs `:8888`.
 - **Voice target: peon-ping canonical, retire ElevenLabs `:8888`.** Revive peon-ping on `:31337`, launchd-persisted; point phase + completion signals at it; unload the ElevenLabs VoiceServer launchd job and stop using its key.
-  - **TRADEOFF (confirm at review):** peon-ping plays canned mp3 sound *packs*, not spoken text. Retiring ElevenLabs means the Stop-hook "completion" signal becomes a peon pack sound, not a spoken summary. If spoken completions matter, choose "keep ElevenLabs as-is" instead.
+  - **TRADEOFF (confirmed):** peon-ping plays canned mp3 sound *packs*, not spoken text; the completion signal becomes a peon pack sound. User confirmed spoken completions are not needed.
 - **Live changes are backup-first and reversible**; nothing touches the committed identity-port work or PAI methodology content.
 - **Secret ROTATION is the user's action** — we remove plaintext and wildcard allowlists; the user rotates the exposed tokens.
 - **Auth-required MCPs** (Higgsfield, PostHog, Supabase, claude.ai connectors) are left for the user to authorize via `/mcp` / connector settings — not touched here except where they generate dead-weight noise (SP5).
+
+---
+
+## SP0 — Universal Temperance enrichment layer (primary)
+
+Goal: on every turn, on all three harnesses, unconditionally, the prompt is enriched by one shared Temperance core before the model responds.
+
+### Architecture — one brain, three thin nerves
+
+- **`temperance-enrich` core** — a bun module, new repo artifact under `package/enrich/`, installed to `~/.claude/PAI/enrich/`. Signature: `enrich({prompt, cwd, surface}) -> contextBlock`. Pipeline stages, each a small pure function reading a pre-built index (never a scan):
+  1. **classify** — mode/tier (port the existing `PromptProcessing.hook.ts` logic; it becomes a stage of the core).
+  2. **frame** — map the classification to an ISA/Algorithm cue.
+  3. **route** — resolve relevant skill-clusters from `~/.agents/skill-clusters/skill-index.json` (read, keyword-match; never enumerate `skills/`).
+  4. **load** — pull relevant memory hits from the project `MEMORY.md` index.
+  5. **dispatch-prep** — the `ParallelDispatchContext` `.planning/` check (fold that hook's logic in).
+- **Output contract** — a single injectable block the adapters emit as UserPromptSubmit additional context:
+  ```
+  <temperance-context>
+  mode/tier: <MINIMAL|NATIVE|ALGORITHM> / <E1..E5>
+  frame: <ISA/Algorithm cue for this class of work>
+  skills: <resolved cluster pointers, or "none">
+  memory: <relevant MEMORY.md hits, or "none">
+  dispatch: <parallelizable? active .planning/workstream state, or "n/a">
+  </temperance-context>
+  ```
+- **Three thin adapters** (normalize I/O, call the core, emit the block):
+  - **Claude Code** — upgrade `PromptProcessing.hook.ts` (UserPromptSubmit) to call the core instead of only classifying.
+  - **Codex** — same hook wired in `~/.codex/hooks.json` UserPromptSubmit (requires **SP4** parity).
+  - **OpenCode** — `~/.config/opencode/plugins/pai-portable-hooks.ts` calls the core on its prompt hook.
+
+### Constraints
+
+- **Latency budget**: full enrichment must complete in a few hundred ms. Enforced by index-reads-only (skill-index, MEMORY.md, `.planning/` stat) and a lean core; the enrich call must fail-open (on error or timeout, emit a minimal classify-only block and never block the turn).
+- **Unconditional & identical**: no keyword gate; the three adapters must produce byte-equivalent core output for the same `{prompt, cwd}` (differing only in the `surface` field). A cross-surface parity test asserts this.
+- **Anti-drift**: adapters contain no enrichment logic — only I/O normalization. All logic lives in the one core.
+
+### Verification
+
+- Unit: each stage returns expected output for fixture prompts.
+- Parity: the same fixture prompt through all three adapters yields identical core output (surface aside).
+- Latency: core p95 under budget on a representative prompt set.
+- Live smoke: a fresh Claude / Codex / OpenCode session shows the `<temperance-context>` block on an arbitrary prompt that never mentions PAI.
+
+### Rollback
+
+- Core is additive; each adapter change is backup-first. Reverting an adapter to its prior file restores that surface. The classify-only fallback means a broken core degrades to today's behavior, never worse.
 
 ---
 
@@ -95,16 +153,21 @@ Rollback: `--remove` for identity is separate; for voice, restore the ElevenLabs
 
 ## Sequencing & gates
 
-1. **SP2** fully (repo, no gate) → commit to PR #2 branch.
-2. **SP5** (live, low-risk) → per-file backup; a single go/no-go before the batch of live edits.
-3. **SP3** (live, sensitive) → go/no-go before edits; then user rotates flagged tokens.
-4. **SP1** (live, behavioral) → go/no-go before retiring `:8888` and repointing voice.
+Dependency-ordered; each live step gates before its first write.
+
+1. **SP0 core** (`temperance-enrich` module + unit/parity/latency tests) — repo, no gate, sandbox-tested → commit to PR #2 branch.
+2. **SP2** repo hardening (installer guard, backup fix, packaged voice, template command) — repo, no gate.
+3. **SP4** codex parity (de-fork `~/.codex/hooks`, fix dead peon.sh reg, close event gaps) — live, **prerequisite for the Codex adapter**; go/no-go before edits.
+4. **SP0 adapters** wired live (Claude → Codex → OpenCode), each backup-first with the classify-only fallback in place → go/no-go before the first adapter write; verify the `<temperance-context>` block appears on a PAI-free prompt on each surface.
+5. **SP5** dead-weight sweep — live, low-risk; single go/no-go for the batch.
+6. **SP3** secrets hygiene — live, sensitive; go/no-go; then user rotates flagged tokens.
+7. **SP1** voice reconciliation — live, behavioral; go/no-go before retiring `:8888`.
 
 Each live sub-project stops for explicit approval before its first write, consistent with the surgical/reversible discipline used for the identity port.
 
 ## Non-goals
 
-- SP4 / SP6 / SP7 (deferred).
+- SP6 / SP7 (deferred).
 - Rotating secrets (user action).
 - Authorizing the dead auth-required MCPs (user via `/mcp`).
 - Any change to committed identity-port work, PAI methodology content, GSD internals, or skill-cluster contents.
