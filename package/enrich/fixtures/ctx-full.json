@@ -1,0 +1,17 @@
+{
+  "input": { "prompt": "refactor the auth hook and migrate all files", "cwd": "/tmp/proj", "surface": "claude" },
+  "isaPath": "/tmp/proj/ISA.md",
+  "isa": {
+    "principles": "- Paths must be generalized through $HOME and environment variables.\n- Prefer pure functions; isolate I/O to a single resolver.",
+    "constraints": "- Installer must create backups before modifying local config.\n- Non-macOS devices must be able to skip voice.",
+    "outOfScope": "Bundling private memory, credentials, backups, or proprietary voice packs is out of scope.",
+    "antiCriteria": "Anti: never scan ~/.agents/skill-clusters/skills wholesale at startup.\nAnti: never write file bodies into the context block; pointers only."
+  },
+  "memory": {
+    "worked": "/home/tester/.claude/MEMORY/LEARNING/REFLECTIONS/2026-07-01_enrichment.md",
+    "failed": "/home/tester/.claude/MEMORY/LEARNING/FAILURES/2026-06-30_hook-timeout.md",
+    "open": "/tmp/proj/MEMORY.md"
+  },
+  "planningPresent": true,
+  "planningState": "phase 2 of 4 in progress"
+}
