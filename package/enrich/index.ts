@@ -19,9 +19,10 @@ import { guardrails } from './stages/guardrails';
 import { isaPointer } from './stages/isaPointer';
 import { memory } from './stages/memory';
 import { dispatch } from './stages/dispatch';
+import { routing } from './stages/routing';
 
 // Fixed stage order. Implementers own one entry each; the order is frozen here.
-const STAGES: Stage[] = [classify, intent, guardrails, isaPointer, memory, dispatch];
+const STAGES: Stage[] = [classify, intent, guardrails, isaPointer, memory, dispatch, routing];
 
 const OPEN = '<temperance-context>';
 const CLOSE = '</temperance-context>';
