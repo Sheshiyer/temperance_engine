@@ -88,25 +88,25 @@ declare -A MODEL_CATALOG=(
 # Routing Rules
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Priority order for each task type (first available backend wins)
+# Priority order for each task type (Command Code primary, others fallback)
 declare -A ROUTING_PRIORITY=(
-  # Fast iteration - prefer Grok or DeepSeek
-  ["fast"]="grok:grok-composer-2.5-fast command-code:deepseek/deepseek-v4-flash kimi:kimi-code/kimi-for-coding"
+  # Fast iteration - DeepSeek Flash primary, Grok fallback
+  ["fast"]="command-code:deepseek/deepseek-v4-flash grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
   
-  # Long-horizon coding - prefer Kimi (direct for 262K) or via Command Code
-  ["long-horizon"]="kimi:kimi-code/kimi-for-coding command-code:moonshotai/Kimi-K2.7-Code command-code:Qwen/Qwen3.7-Max"
+  # Long-horizon coding - Kimi K2.7 via Command Code primary, direct Kimi fallback
+  ["long-horizon"]="command-code:moonshotai/Kimi-K2.7-Code kimi:kimi-code/kimi-for-coding command-code:Qwen/Qwen3.7-Max"
   
-  # Complex reasoning - prefer NVIDIA Nemotron or Claude Fable
-  ["reasoning"]="nvidia:nvidia/nemotron-3-ultra-550b command-code:claude-fable-5 command-code:deepseek/deepseek-v4-pro"
+  # Complex reasoning - Claude Fable primary, NVIDIA fallback
+  ["reasoning"]="command-code:claude-fable-5 command-code:deepseek/deepseek-v4-pro nvidia:nvidia/nemotron-3-ultra-550b"
   
-  # Validation/review - fresh perspective
-  ["validation"]="grok:grok-build command-code:google/gemini-3.5-flash command-code:claude-sonnet-5"
+  # Validation/review - Gemini Flash primary, Grok fallback
+  ["validation"]="command-code:google/gemini-3.5-flash grok:grok-build command-code:claude-sonnet-5"
   
-  # Creative/exploratory
-  ["creative"]="grok:grok-composer-2.5-fast command-code:claude-sonnet-5 kimi:kimi-code/kimi-for-coding"
+  # Creative/exploratory - Sonnet primary, Grok fallback
+  ["creative"]="command-code:claude-sonnet-5 grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
   
-  # Default balanced
-  ["balanced"]="command-code:claude-sonnet-5 grok:grok-build kimi:kimi-code/kimi-for-coding"
+  # Default balanced - Sonnet primary
+  ["balanced"]="command-code:claude-sonnet-5 grok:grok-build kimi:kimi-code/kimi-for-coding nvidia:nvidia/llama-3.3-nemotron-super-49b"
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
