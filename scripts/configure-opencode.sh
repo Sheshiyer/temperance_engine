@@ -29,7 +29,7 @@ fi
 
 if test "${TEMPERANCE_CODEX_MODE:-skip}" = "install"; then
   ensure_dir "$CODEX_HOME"
-  install_file "$TEMPERANCE_ROOT/templates/codex.AGENTS.md" "$CODEX_HOME/AGENTS.md"
+  install_operator_file "$TEMPERANCE_ROOT/templates/codex.AGENTS.md" "$CODEX_HOME/AGENTS.md"
 else
   say "Codex template skipped; pass --with-codex to install it."
 fi
