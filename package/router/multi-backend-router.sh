@@ -14,6 +14,17 @@
 #   ./multi-backend-router.sh --execute "task description"
 #   ./multi-backend-router.sh --backend kimi "task description"
 #   ./multi-backend-router.sh --list-backends
+#   ./multi-backend-router.sh --timeout 120 --execute "task description"
+#
+# Latency Characteristics:
+#   Backend         Startup    Simple Task    Complex Task    Recommended Timeout
+#   command-code    ~10s       15-20s         30-120s         180s for complex
+#   kimi            ~3s        10-15s         30-60s          120s
+#   grok            ~5s        10-15s         20-40s          90s
+#   nvidia (API)    ~1s        5-10s          15-30s          60s
+#
+# Note: command-code has higher latency due to agentic execution model.
+# For time-critical tasks, prefer kimi or grok.
 
 set -euo pipefail
 

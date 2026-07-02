@@ -88,6 +88,17 @@ The agent sees the `routing:` line and knows which backend/model to use when del
 | **grok** | `~/.grok/bin/grok` | grok-composer-2.5-fast | Fast iteration |
 | **nvidia** | API | Nemotron Ultra | Deep reasoning |
 
+### Latency Characteristics
+
+| Backend | Startup | Simple Task | Complex Task | Recommended Timeout |
+|---------|---------|-------------|--------------|---------------------|
+| `command-code` | ~10s | 15-20s | 30-120s | 180s |
+| `kimi` | ~3s | 10-15s | 30-60s | 120s |
+| `grok` | ~5s | 10-15s | 20-40s | 90s |
+| `nvidia` | ~1s | 5-10s | 15-30s | 60s |
+
+**Note:** command-code has higher latency due to its agentic execution model. For time-critical simple tasks, prefer `kimi` or `grok`.
+
 ## Check Status
 
 ```bash
