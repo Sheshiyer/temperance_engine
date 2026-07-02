@@ -43,20 +43,22 @@ Goal: on every turn, on all three harnesses, unconditionally, the prompt is enri
 
 ### Architecture — one brain, three thin nerves
 
-- **`temperance-enrich` core** — a bun module, new repo artifact under `package/enrich/`, installed to `~/.claude/PAI/enrich/`. Signature: `enrich({prompt, cwd, surface}) -> contextBlock`. Pipeline stages, each a small pure function reading a pre-built index (never a scan):
-  1. **classify** — mode/tier (port the existing `PromptProcessing.hook.ts` logic; it becomes a stage of the core).
-  2. **frame** — map the classification to an ISA/Algorithm cue.
-  3. **route** — resolve relevant skill-clusters from `~/.agents/skill-clusters/skill-index.json` (read, keyword-match; never enumerate `skills/`).
-  4. **load** — pull relevant memory hits from the project `MEMORY.md` index.
-  5. **dispatch-prep** — the `ParallelDispatchContext` `.planning/` check (fold that hook's logic in).
-- **Output contract** — a single injectable block the adapters emit as UserPromptSubmit additional context:
+- **`temperance-enrich` core** — a bun module, new repo artifact under `package/enrich/`, installed to `~/.claude/PAI/enrich/`. Signature: `enrich({prompt, cwd, surface}) -> contextBlock`. Refined via prior-art pass (Conducty + ECC + live PAI philosophy — see the priorart briefs). Work resolution first: read `MEMORY/STATE/current-work.json` for the active workstream slug (fallback: cwd/nearest `ISA.md`); all ISA/memory reads key off that slug. Pipeline stages, each a small pure function reading a pre-built index (never a scan), each fail-open to an empty field:
+  1. **classify** — emit `MODE | TIER | REASON | SOURCE` verbatim from the existing `PromptProcessing.hook.ts` classifier (it becomes a stage of the core; already precomputed).
+  2. **intent** — one-sentence objective echo + explicit/implied not-wants (folded into the classifier pass; the OBSERVE "Intent Echo"; ECC's "pass the why, not the query"). Highest-leverage field.
+  3. **guardrails** — from the resolved ISA: `## Principles` / `## Constraints` / `## Out of Scope` + one inline `Anti:` criterion. This is the "temperance" — the do-not-overreach binding. (Conducty's no-go-zones.)
+  4. **isa_pointer** — path only (not contents) to the resolved ISA, so the model pulls Goal/Criteria/Test-Strategy on demand. (Durable-state-not-session-cache; llms.txt pattern.)
+  5. **memory** — tri-state pointers (worked-with-evidence / failed / open) via `CONTEXT_ROUTING.md` topic→path over `MEMORY/LEARNING`+`KNOWLEDGE`; pointers, not bodies.
+  6. **dispatch** *(conditional)* — emit a DISPATCH line only when `.planning/` is present (`ParallelDispatchContext` logic); omit otherwise.
+- **Output contract** — a single injectable block the adapters emit as UserPromptSubmit additional context (dropped `skills` per YAGNI — the cluster resolver already handles selection; a degraded field carries `SOURCE: fail-safe`):
   ```
   <temperance-context>
-  mode/tier: <MINIMAL|NATIVE|ALGORITHM> / <E1..E5>
-  frame: <ISA/Algorithm cue for this class of work>
-  skills: <resolved cluster pointers, or "none">
-  memory: <relevant MEMORY.md hits, or "none">
-  dispatch: <parallelizable? active .planning/workstream state, or "n/a">
+  mode/tier: <MINIMAL|NATIVE|ALGORITHM> / <E1..E5> | reason: <…> | source: <classifier|fail-safe>
+  intent: <one-sentence objective> | not: <explicit/implied not-wants>
+  guardrails: <key Principle/Constraint/Out-of-Scope> | anti: <one Anti-criterion>
+  isa: <path to resolved ISA, or "none">
+  memory: worked=<ptr|none> failed=<ptr|none> open=<ptr|none>
+  [dispatch: <parallelizable? active workstream state>   # only when .planning/ present]
   </temperance-context>
   ```
 - **Three thin adapters** (normalize I/O, call the core, emit the block):
