@@ -73,7 +73,8 @@ export const routing: Stage = (ctx) => {
       return { line: '', degraded: false }; // No external backends available
     }
     
-    const taskType = classifyTaskType(ctx.prompt);
+    const prompt = ctx.input?.prompt || '';
+    const taskType = classifyTaskType(prompt);
     const preferred = getPreferred(taskType);
     
     return { 
