@@ -5,7 +5,7 @@ set -eu
 
 say "Installing PAI instruction templates"
 
-install_file "$TEMPERANCE_ROOT/templates/AGENTS.md" "$HOME/AGENTS.md"
+install_operator_file "$TEMPERANCE_ROOT/templates/AGENTS.md" "$HOME/AGENTS.md"
 
 if test "${TEMPERANCE_CLAUDE_MODE:-skip}" = "install"; then
   ensure_dir "$PAI_HOME"

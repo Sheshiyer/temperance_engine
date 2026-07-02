@@ -7,7 +7,7 @@ say "Installing editor templates"
 
 if test "${TEMPERANCE_OPENCODE_MODE:-install}" = "install"; then
   ensure_dir "$OPENCODE_HOME"
-  install_file "$TEMPERANCE_ROOT/templates/opencode.AGENTS.md" "$OPENCODE_HOME/AGENTS.md"
+  install_operator_file "$TEMPERANCE_ROOT/templates/opencode.AGENTS.md" "$OPENCODE_HOME/AGENTS.md"
 
   if test -f "$OPENCODE_HOME/opencode.json"; then
     say "Existing OpenCode config found. Review templates/opencode.json.patch.json and merge manually."
@@ -20,7 +20,7 @@ fi
 
 if test "${TEMPERANCE_CURSOR_MODE:-install}" = "install"; then
   ensure_dir "$CURSOR_HOME/templates"
-  install_file "$TEMPERANCE_ROOT/templates/cursor.AGENTS.md" "$CURSOR_HOME/templates/temperance-engine.AGENTS.md"
+  install_operator_file "$TEMPERANCE_ROOT/templates/cursor.AGENTS.md" "$CURSOR_HOME/templates/temperance-engine.AGENTS.md"
   install_file "$TEMPERANCE_ROOT/templates/cursor.rules.mdc" "$CURSOR_HOME/templates/temperance-engine.rules.mdc"
   say "Cursor templates installed under $CURSOR_HOME/templates. Copy them into a project as AGENTS.md or .cursor/rules/temperance-engine.mdc."
 else

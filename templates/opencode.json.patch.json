@@ -7,7 +7,7 @@
     },
     "codegraph": {
       "type": "local",
-      "command": ["codegraph", "mcp"],
+      "command": ["codegraph", "serve"],
       "enabled": true
     }
   }
