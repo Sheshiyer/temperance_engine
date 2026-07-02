@@ -105,26 +105,61 @@ All adapters:
 
 ### 3. Task-Model Router (`package/router/`)
 
-Routes ISCs (Ideal State Criteria) to optimal executors based on complexity signals.
+Routes tasks to optimal backends and models based on complexity signals.
 
-**Decision factors:**
-- `needsToolUse`: Does the task require file reads, searches, edits?
-- `isExtraction`: Is it a one-shot extraction/classification?
-- `isLongHorizon`: Does it span 5+ files or require refactoring?
-- `needsCoordination`: Do multiple agents need to collaborate?
-- `isArchitectural`: Is it system design without coding?
-- `isValidation`: Is it review/validation work?
+**Backends supported:**
+| Backend | CLI | Models | Strengths |
+|---------|-----|--------|-----------|
+| `command-code` | `command-code` | 35 models | Versatile, many providers |
+| `kimi` | `kimi` | K2.7 Code | 262K context, long-horizon coding |
+| `grok` | `~/.grok/bin/grok` | grok-composer-2.5-fast, grok-build | Fast iteration, fresh perspective |
+| `nvidia` | NVIDIA API | Nemotron Ultra/Super | Reasoning, efficient |
+
+**Task types & routing:**
+| Task Type | Triggers | Primary Backend | Fallback |
+|-----------|----------|-----------------|----------|
+| `fast` | "quick", "simple", "minor" | grok | command-code |
+| `long-horizon` | "refactor", "migrate", "redesign" | kimi | command-code (Kimi K2.7) |
+| `reasoning` | "analyze", "debug", "explain" | nvidia | command-code (Fable) |
+| `validation` | "review", "verify", "audit" | grok (build) | command-code (Gemini) |
+| `creative` | "brainstorm", "explore", "design" | grok | command-code |
+| `inline` | "extract", "list" (no tool use) | inline (current session) | - |
+| `balanced` | Default | command-code | kimi |
 
 **Usage:**
 ```bash
-# Route a single task
-./package/router/route-task.sh "implement auth middleware"
+# Route a single task (human output)
+./package/router/multi-backend-router.sh "implement auth middleware"
 
 # Get JSON output
-./package/router/route-task.sh --json "implement auth middleware"
+./package/router/multi-backend-router.sh --json "refactor the database layer"
 
 # Generate execution command
-./package/router/route-task.sh --command "refactor the database layer"
+./package/router/multi-backend-router.sh --command "implement auth"
+
+# Execute directly
+./package/router/multi-backend-router.sh --execute "quick fix: update comment"
+
+# Force specific backend
+./package/router/multi-backend-router.sh --backend kimi "long coding task"
+
+# List available backends
+./package/router/multi-backend-router.sh --list-backends
+
+# List all models in catalog
+./package/router/multi-backend-router.sh --list-models
+```
+
+**Parallel dispatch:**
+```bash
+# Compare task across multiple backends
+./package/router/parallel-backend-dispatch.sh "implement auth middleware"
+
+# Force specific backends
+./package/router/parallel-backend-dispatch.sh --backends "kimi,grok" "refactor API"
+
+# Use all available backends
+./package/router/parallel-backend-dispatch.sh --all "analyze architecture"
 ```
 
 ### 4. Conductor Integration (`package/conductor/`)
@@ -152,16 +187,36 @@ Integrates the router into the conductor loop's Execute phase.
 
 `[P]` marks tasks for parallel execution.
 
-## Model Catalog (Command Code)
+## Model Catalog
 
+### Command Code (35 models)
 | Model | Tier | Strength | Use Case |
 |-------|------|----------|----------|
 | `deepseek/deepseek-v4-flash` | fast | Speed | Fast iteration, standard coding |
+| `deepseek/deepseek-v4-pro` | deep | Reasoning | Complex analysis |
 | `moonshotai/Kimi-K2.7-Code` | deep | Long-horizon | Large refactors, 1M context |
 | `claude-sonnet-5` | balanced | Balance | Default, general work |
 | `claude-fable-5` | premium | Reasoning | Complex analysis |
 | `google/gemini-3.5-flash` | fast | Parallel | Validation, fresh perspective |
 | `Qwen/Qwen3.7-Max` | deep | Frontier | Cutting-edge coding |
+| `gpt-5.5` | premium | General | General tasks |
+
+### Kimi CLI (Direct)
+| Model | Tier | Strength | Use Case |
+|-------|------|----------|----------|
+| `kimi-code/kimi-for-coding` | deep | Coding | 262K context, long-horizon coding |
+
+### Grok CLI
+| Model | Tier | Strength | Use Case |
+|-------|------|----------|----------|
+| `grok-composer-2.5-fast` | fast | Creative | Fast iteration, exploratory |
+| `grok-build` | balanced | Coding | Validation, fresh perspective |
+
+### NVIDIA API
+| Model | Tier | Strength | Use Case |
+|-------|------|----------|----------|
+| `nvidia/nemotron-3-ultra-550b` | premium | Reasoning | Complex analysis |
+| `nvidia/llama-3.3-nemotron-super-49b` | balanced | Efficient | Cost-effective reasoning |
 
 ## Delegation Patterns
 

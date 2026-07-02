@@ -18,8 +18,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-ROUTER="$REPO_ROOT/package/router/route-task.sh"
-PARALLEL_DISPATCH="$REPO_ROOT/scripts/parallel-dispatch.sh"
+ROUTER="$REPO_ROOT/package/router/multi-backend-router.sh"
+PARALLEL_DISPATCH="$REPO_ROOT/package/router/parallel-backend-dispatch.sh"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Parse arguments
@@ -107,26 +107,26 @@ route_and_dispatch() {
   while IFS='|' read -r task_id is_parallel desc; do
     [[ -z "$desc" ]] && continue
     
-    # Route the task
+    # Route the task via multi-backend router
     local routing
-    routing=$("$ROUTER" --json "$desc" 2>/dev/null || echo '{"executor":"command-code","model":"claude-sonnet-5","reason":"fallback"}')
+    routing=$("$ROUTER" --json "$desc" 2>/dev/null || echo '{"task_type":"balanced","backend":"command-code","model":"claude-sonnet-5"}')
     
-    local executor model reason
-    executor=$(echo "$routing" | grep -o '"executor": "[^"]*"' | cut -d'"' -f4 || echo "command-code")
-    model=$(echo "$routing" | grep -o '"model": "[^"]*"' | cut -d'"' -f4 || echo "")
-    reason=$(echo "$routing" | grep -o '"reason": "[^"]*"' | cut -d'"' -f4 || echo "")
+    local task_type backend model
+    task_type=$(echo "$routing" | jq -r '.task_type // "balanced"')
+    backend=$(echo "$routing" | jq -r '.backend // "command-code"')
+    model=$(echo "$routing" | jq -r '.model // "claude-sonnet-5"')
     
     echo "[$task_id] $desc"
-    echo "  → Executor: $executor"
-    [[ -n "$model" ]] && echo "  → Model: $model"
-    echo "  → Reason: $reason"
+    echo "  → Task type: $task_type"
+    echo "  → Backend: $backend"
+    echo "  → Model: $model"
     echo ""
     
     # Collect for dispatch
     if [[ "$is_parallel" == "true" ]]; then
-      parallel_tasks+=("$task_id|$executor|$model|$desc")
+      parallel_tasks+=("$task_id|$backend|$model|$desc")
     else
-      sequential_tasks+=("$task_id|$executor|$model|$desc")
+      sequential_tasks+=("$task_id|$backend|$model|$desc")
     fi
   done <<< "$tasks_output"
   
@@ -149,21 +149,32 @@ route_and_dispatch() {
     mkdir -p "$results_dir"
     
     for task_entry in "${parallel_tasks[@]}"; do
-      IFS='|' read -r task_id executor model desc <<< "$task_entry"
+      IFS='|' read -r task_id backend model desc <<< "$task_entry"
       
-      case "$executor" in
+      echo "[parallel:$task_id] Starting via $backend: $desc"
+      
+      case "$backend" in
         command-code)
-          local cmd=(
-            command-code
-            -p "$desc"
-            --model "${model:-claude-sonnet-5}"
-            --max-turns 10
-            --trust
-            --skip-onboarding
-          )
-          
-          echo "[parallel:$task_id] Starting: $desc"
-          ("${cmd[@]}" > "$results_dir/$task_id.log" 2>&1; echo "exit:$?" >> "$results_dir/$task_id.log") &
+          (command-code -p "$desc" --model "${model:-claude-sonnet-5}" --max-turns 10 --trust --skip-onboarding > "$results_dir/$task_id.log" 2>&1; echo "exit:$?" >> "$results_dir/$task_id.log") &
+          pids+=($!)
+          ;;
+        
+        kimi)
+          (kimi --print --yolo --model "${model:-kimi-code/kimi-for-coding}" -p "$desc" > "$results_dir/$task_id.log" 2>&1; echo "exit:$?" >> "$results_dir/$task_id.log") &
+          pids+=($!)
+          ;;
+        
+        grok)
+          ("$HOME/.grok/bin/grok" --model "${model:-grok-composer-2.5-fast}" --always-approve "$desc" > "$results_dir/$task_id.log" 2>&1; echo "exit:$?" >> "$results_dir/$task_id.log") &
+          pids+=($!)
+          ;;
+        
+        nvidia)
+          (curl -s https://integrate.api.nvidia.com/v1/chat/completions \
+            -H "Authorization: Bearer $NVIDIA_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"model\": \"${model:-nvidia/nemotron-3-ultra-550b}\", \"messages\": [{\"role\": \"user\", \"content\": \"$desc\"}], \"max_tokens\": 4096}" \
+            | jq -r '.choices[0].message.content // .error.message // "Error"' > "$results_dir/$task_id.log" 2>&1; echo "exit:$?" >> "$results_dir/$task_id.log") &
           pids+=($!)
           ;;
         
@@ -172,7 +183,7 @@ route_and_dispatch() {
           ;;
         
         *)
-          echo "[parallel:$task_id] Unknown executor: $executor"
+          echo "[parallel:$task_id] Unknown backend: $backend"
           ;;
       esac
     done
@@ -201,11 +212,11 @@ route_and_dispatch() {
     echo "=== Sequential Execution (${#sequential_tasks[@]} tasks) ==="
     
     for task_entry in "${sequential_tasks[@]}"; do
-      IFS='|' read -r task_id executor model desc <<< "$task_entry"
+      IFS='|' read -r task_id backend model desc <<< "$task_entry"
       
-      echo "[sequential:$task_id] Executing: $desc"
+      echo "[sequential:$task_id] Executing via $backend: $desc"
       
-      case "$executor" in
+      case "$backend" in
         command-code)
           command-code \
             -p "$desc" \
@@ -213,6 +224,25 @@ route_and_dispatch() {
             --max-turns 10 \
             --trust \
             --skip-onboarding \
+            || echo "[sequential:$task_id] Failed with exit code $?"
+          ;;
+        
+        kimi)
+          kimi --print --yolo --model "${model:-kimi-code/kimi-for-coding}" -p "$desc" \
+            || echo "[sequential:$task_id] Failed with exit code $?"
+          ;;
+        
+        grok)
+          "$HOME/.grok/bin/grok" --model "${model:-grok-composer-2.5-fast}" --always-approve "$desc" \
+            || echo "[sequential:$task_id] Failed with exit code $?"
+          ;;
+        
+        nvidia)
+          curl -s https://integrate.api.nvidia.com/v1/chat/completions \
+            -H "Authorization: Bearer $NVIDIA_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"model\": \"${model:-nvidia/nemotron-3-ultra-550b}\", \"messages\": [{\"role\": \"user\", \"content\": \"$desc\"}], \"max_tokens\": 4096}" \
+            | jq -r '.choices[0].message.content // .error.message // "Error"' \
             || echo "[sequential:$task_id] Failed with exit code $?"
           ;;
         
@@ -229,7 +259,7 @@ route_and_dispatch() {
           ;;
         
         *)
-          echo "[sequential:$task_id] Unknown executor: $executor"
+          echo "[sequential:$task_id] Unknown backend: $backend"
           ;;
       esac
       
