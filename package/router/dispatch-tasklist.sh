@@ -40,6 +40,7 @@ dispatch_backend(){ # backend task model outfile -> exit code
 DRY_RUN=false; TASKS_FILE=""; OUT=""; FOREGROUND=false; MAX_TURNS="${MAX_TURNS:-10}"
 CONCURRENCY="${CONCURRENCY:-4}"
 TIMEOUT="${TIMEOUT:-0}"   # per-task watchdog timeout in seconds; 0 = off
+WORKTREE=false; ALLOW_DIRTY=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tasks) TASKS_FILE="$2"; shift 2 ;;
@@ -49,12 +50,25 @@ while [[ $# -gt 0 ]]; do
     --max-turns) MAX_TURNS="$2"; shift 2 ;;
     --concurrency) CONCURRENCY="$2"; shift 2 ;;
     --timeout) TIMEOUT="$2"; shift 2 ;;
+    --worktree) WORKTREE=true; shift ;;
+    --allow-dirty) ALLOW_DIRTY=true; shift ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
 
 [[ -z "$OUT" ]] && OUT="$(mktemp -d)"
 mkdir -p "$OUT"
+RUNTAG="$(basename "$OUT")"
+
+# Dirty-tree guard: worktrees check out HEAD only, so uncommitted changes in
+# the caller's tree would silently be left behind — refuse rather than run
+# tasks against stale state. Runs synchronously, before any dispatch fork.
+if $WORKTREE && ! $ALLOW_DIRTY; then
+  if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+    echo "refusing --worktree on a dirty tree (use --allow-dirty)" >&2
+    exit 3
+  fi
+fi
 
 [[ -x "$ROUTER" ]] || { echo "EXTERNAL_RAIL_UNAVAILABLE" >&2; echo "router not found: $ROUTER" >&2; exit 2; }
 command -v jq >/dev/null || { echo "jq required" >&2; exit 1; }
@@ -86,12 +100,16 @@ route_task() { # id task backend model  -> echoes "backend<TAB>model"
   "$ROUTER" "${args[@]}" -- "$task"
 }
 
-# --- per-task metadata + dispatch wrapper (W4) ---
-write_meta(){ # id task backend model exit dur status  -> atomic
+# --- per-task metadata + dispatch wrapper (W4; W7 adds worktree/diff_path) ---
+write_meta(){ # id task backend model exit dur status [worktree] [diff_path]  -> atomic
   local f="$OUT/$1.meta.json"
+  local wt="${8:-}" dp="${9:-}"
   jq -n --arg id "$1" --arg task "$2" --arg b "$3" --arg m "$4" \
         --argjson ex "$5" --argjson d "$6" --arg st "$7" \
-    '{id:$id,task:$task,backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,worktree:null,diff_path:null}' \
+        --arg wt "$wt" --arg dp "$dp" \
+    '{id:$id,task:$task,backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
+      worktree:(if $wt=="" then null else $wt end),
+      diff_path:(if $dp=="" then null else $dp end)}' \
     > "$f.tmp" && mv -f "$f.tmp" "$f"
 }
 
@@ -115,8 +133,17 @@ exec_task(){ # backend task model outfile
 
 run_one(){ # id task rb rm
   local id="$1" task="$2" rb="$3" rm="$4" start end dur ex
+  local branch="" diffp=""
   start=$(date +%s)
   TASK_WT=""   # default: no worktree (W7 sets this before this block)
+  if $WORKTREE; then
+    branch="te-dispatch/${RUNTAG}/${id}"
+    TASK_WT="$OUT/wt-$id"
+    if ! git worktree add -q -b "$branch" "$TASK_WT" HEAD 2>/dev/null; then
+      write_meta "$id" "$task" "$rb" "$rm" 1 0 "failed" "" ""
+      return
+    fi
+  fi
   if (( TIMEOUT > 0 )); then
     local sentinel="$OUT/.$id.watchdog"
     exec_task "$rb" "$task" "$rm" "$OUT/$id.out" & local bpid=$!
@@ -141,7 +168,13 @@ run_one(){ # id task rb rm
   end=$(date +%s); dur=$((end-start))
   local st="ok"
   if (( ex == 124 )); then st="timeout"; elif (( ex != 0 )); then st="failed"; fi
-  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st"
+  if [[ -n "$TASK_WT" ]]; then
+    diffp="$OUT/$id.diff"
+    ( cd "$TASK_WT" && git add -A && git diff --cached ) > "$diffp" 2>/dev/null
+    git worktree remove --force "$TASK_WT" 2>/dev/null
+    git branch -D "$branch" 2>/dev/null
+  fi
+  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp"
 }
 
 # --- dispatch loop + wait + assembly (W5: runs foreground or backgrounded) ---

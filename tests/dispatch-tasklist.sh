@@ -100,4 +100,18 @@ check "own exit>=128 exit code preserved" "130" \
   "$(jq -r '.tasks[0].exit' "$run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code"
 
+# worktree mode against a scratch git repo
+tmpgit=$(mktemp -d); ( cd "$tmpgit" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit" && printf '%s' '[{"id":"WT","task":"refactor all","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "worktree task ran" "ok" "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+check "worktree recorded" "true" "$(jq -r '.tasks[0].worktree != null' "$run/index.json" 2>/dev/null)"
+# dirty tree refused without --allow-dirty
+( cd "$tmpgit" && echo dirty > f.txt && printf '%s' '[{"id":"D","task":"x","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --out "$(mktemp -d)" --tasks - >/dev/null 2>&1 )
+check "dirty tree refused" "3" "$?"   # convention: exit 3 = dirty-tree guard
+rm -f "$DIR/tests/fixtures/command-code"
+
 exit $fail
