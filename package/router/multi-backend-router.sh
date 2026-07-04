@@ -453,9 +453,13 @@ main() {
         exit 0
         ;;
       -h|--help) usage; exit 0 ;;
+      --) shift; break ;;
       *) desc="$1"; shift ;;
     esac
   done
+
+  # If "--" ended option parsing, any remaining positional arg is the description.
+  if [[ $# -gt 0 && -z "$desc" ]]; then desc="$1"; fi
 
   if [[ -z "$desc" ]]; then
     usage

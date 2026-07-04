@@ -19,7 +19,7 @@ ROUTER="${TEMPERANCE_ROUTER:-$SCRIPT_DIR/multi-backend-router.sh}"
 # --- backend execution (argv arrays; task text is always ONE literal arg) ---
 run_command_code(){ command-code -p "$1" --model "$2" --max-turns "${MAX_TURNS:-10}" --trust --skip-onboarding >"$3" 2>&1; }
 run_kimi(){ kimi --print --yolo --model "$2" -p "$1" >"$3" 2>&1; }
-run_grok(){ "$HOME/.grok/bin/grok" --model "$2" --always-approve "$1" >"$3" 2>&1; }
+run_grok(){ "$HOME/.grok/bin/grok" --model "$2" --always-approve -- "$1" >"$3" 2>&1; }
 run_nvidia(){
   curl -s https://integrate.api.nvidia.com/v1/chat/completions \
     -H "Authorization: Bearer ${NVIDIA_API_KEY:-}" -H "Content-Type: application/json" \
@@ -79,7 +79,7 @@ route_task() { # id task backend model  -> echoes "backend<TAB>model"
   local task="$2" backend="$3" model="$4" args=(--route-only)
   [[ -n "$backend" && "$backend" != "auto" ]] && args+=(--backend "$backend")
   [[ -n "$model"   && "$model"   != "auto" ]] && args+=(--model "$model")
-  "$ROUTER" "${args[@]}" "$task"
+  "$ROUTER" "${args[@]}" -- "$task"
 }
 
 # iterate tasks

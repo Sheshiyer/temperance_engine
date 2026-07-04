@@ -43,4 +43,10 @@ check "task text passed literally (no eval)" 'run $(touch /tmp/pwned) and say "d
 [[ -e /tmp/pwned ]] && { echo "FAIL - injection executed!"; fail=1; rm -f /tmp/pwned; }
 rm -f "$DIR/tests/fixtures/command-code"
 
+# flag-like task text must NOT be interpreted as router flags
+# ("--help" exactly matches the router's -h|--help case unless "--" ends option parsing)
+out=$(printf '%s' '[{"id":"F1","task":"--help"}]' | "$W" --dry-run --tasks - 2>/dev/null)
+check "flag-like task -> dispatch (not swallowed as --help)" \
+  "F1 command-code claude-sonnet-5" "$out"
+
 exit $fail
