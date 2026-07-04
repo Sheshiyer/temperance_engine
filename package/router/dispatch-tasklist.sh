@@ -118,15 +118,23 @@ run_one(){ # id task rb rm
   start=$(date +%s)
   TASK_WT=""   # default: no worktree (W7 sets this before this block)
   if (( TIMEOUT > 0 )); then
+    local sentinel="$OUT/.$id.watchdog"
     exec_task "$rb" "$task" "$rm" "$OUT/$id.out" & local bpid=$!
-    ( sleep "$TIMEOUT"; kill_tree "$bpid" ) & local wpid=$!
+    ( sleep "$TIMEOUT"; touch "$sentinel"; kill_tree "$bpid" ) & local wpid=$!
     if wait "$bpid" 2>/dev/null; then ex=0; else ex=$?; fi
     # kill_tree (not plain kill): the watchdog subshell's own `sleep` child
     # would otherwise survive `kill "$wpid"` as an orphan when the task
     # finishes before the timeout fires.
     kill_tree "$wpid"; wait "$wpid" 2>/dev/null
-    # a SIGTERM-caused exit (>=128) after our watchdog fired == timeout
-    if (( ex >= 128 )); then ex=124; fi
+    # Real timeout iff the watchdog actually fired (sentinel touched before
+    # kill_tree). A task that exits >=128 on its own (segfault, explicit
+    # `exit 130`) before the watchdog fires must keep its true exit code —
+    # exit-code magnitude alone can't distinguish "we killed it" from
+    # "it killed itself the same way."
+    if [[ -e "$sentinel" ]]; then
+      ex=124
+      rm -f "$sentinel"
+    fi
   else
     exec_task "$rb" "$task" "$rm" "$OUT/$id.out"; ex=$?
   fi

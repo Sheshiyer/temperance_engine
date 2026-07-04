@@ -89,4 +89,15 @@ check "timed-out task status" "timeout" "$(jq -r '.tasks[0].status' "$run/index.
 check "timed-out task exit" "124" "$(jq -r '.tasks[0].exit' "$run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code"
 
+# Task that exits >=128 on its own WITH --timeout must NOT be misclassified as timeout
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+printf '%s' '[{"id":"E130","task":"EXIT=130 self-exit","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --timeout 10 --out "$run" --tasks - >/dev/null 2>&1
+check "own exit>=128 with --timeout -> failed (not timeout)" "failed" \
+  "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+check "own exit>=128 exit code preserved" "130" \
+  "$(jq -r '.tasks[0].exit' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
 exit $fail
