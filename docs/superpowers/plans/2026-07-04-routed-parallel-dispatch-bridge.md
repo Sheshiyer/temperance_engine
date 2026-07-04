@@ -70,7 +70,7 @@ $OUT/SUMMARY.md          # small, agent-facing triage view
 
 ---
 
-## Task R1: Router `--route-only` selection mode + backend override
+## Task 1 (R1): Router `--route-only` selection mode + backend override
 
 **Files:**
 - Modify: `package/router/multi-backend-router.sh` (`detect_backends()` ~L37; `main()` arg loop ~L411; add `route_only()` + `--model`)
@@ -184,7 +184,7 @@ git commit -m "feat(router): add --route-only selection mode + TEMPERANCE_BACKEN
 
 ---
 
-## Task R2: Router safe JSON encoding (`--json` output + nvidia body)
+## Task 2 (R2): Router safe JSON encoding (`--json` output + nvidia body)
 
 **Files:**
 - Modify: `package/router/multi-backend-router.sh` (`output_json()` ~L323; `execute_route()` nvidia branch ~L301)
@@ -270,7 +270,7 @@ git commit -m "fix(router): build --json output and nvidia body with jq (kill JS
 
 ---
 
-## Task R3: Router honest inline exit code + display-only guard
+## Task 3 (R3): Router honest inline exit code + display-only guard
 
 **Files:**
 - Modify: `package/router/multi-backend-router.sh` (`main()` inline branch ~L443; `generate_command()` ~L232)
@@ -331,7 +331,7 @@ git commit -m "fix(router): inline --execute returns exit 3; mark generate_comma
 
 ---
 
-## Task W1: Wrapper skeleton — resolve router, validate batch, `--dry-run`
+## Task 4 (W1): Wrapper skeleton — resolve router, validate batch, `--dry-run`
 
 **Files:**
 - Create: `package/router/dispatch-tasklist.sh`
@@ -466,7 +466,7 @@ git commit -m "feat(dispatch): wrapper skeleton — resolve router, validate bat
 
 ---
 
-## Task W2: Wrapper task classification (auto / forced / inline / unavailable)
+## Task 5 (W2): Wrapper task classification (auto / forced / inline / unavailable)
 
 **Files:**
 - Modify: `package/router/dispatch-tasklist.sh` (routing loop)
@@ -522,7 +522,7 @@ git commit -m "feat(dispatch): classify tasks into dispatch/skipped/unavailable"
 
 ---
 
-## Task W3: Safe backend execution + injection regression
+## Task 6 (W3): Safe backend execution + injection regression
 
 **Files:**
 - Modify: `package/router/dispatch-tasklist.sh` (add `run_*` argv functions + execution)
@@ -611,7 +611,7 @@ git commit -m "feat(dispatch): argv backend execution + injection regression (mo
 
 ---
 
-## Task W4: Concurrency cap + atomic meta + index.json + SUMMARY.md
+## Task 7 (W4): Concurrency cap + atomic meta + index.json + SUMMARY.md
 
 **Files:**
 - Modify: `package/router/dispatch-tasklist.sh`
@@ -710,7 +710,7 @@ git commit -m "feat(dispatch): concurrency cap, atomic meta, assembled index.jso
 
 ---
 
-## Task W5: Background execution + poll contract
+## Task 8 (W5): Background execution + poll contract
 
 **Files:**
 - Modify: `package/router/dispatch-tasklist.sh`
@@ -770,7 +770,7 @@ git commit -m "feat(dispatch): background-by-default with run-dir poll; --foregr
 
 ---
 
-## Task W6: Portable per-task watchdog timeout
+## Task 9 (W6): Portable per-task watchdog timeout
 
 **Files:**
 - Modify: `package/router/dispatch-tasklist.sh`
@@ -853,7 +853,7 @@ git commit -m "feat(dispatch): portable per-task watchdog timeout with descendan
 
 ---
 
-## Task W7: Worktree isolation
+## Task 10 (W7): Worktree isolation
 
 **Files:**
 - Modify: `package/router/dispatch-tasklist.sh`
@@ -947,7 +947,7 @@ git commit -m "feat(dispatch): opt-in worktree isolation with per-task branch + 
 
 ---
 
-## Task W8: Fail-open marker end-to-end
+## Task 11 (W8): Fail-open marker end-to-end
 
 **Files:**
 - Modify: `package/router/dispatch-tasklist.sh`
@@ -1005,7 +1005,7 @@ git commit -m "feat(dispatch): emit EXTERNAL_RAIL_UNAVAILABLE + exit 2 when exte
 
 ---
 
-## Task I1: The orchestration skill + installer
+## Task 12 (I1): The orchestration skill + installer
 
 **Files:**
 - Create: `skills/temperance-parallel-dispatch/SKILL.md`
@@ -1092,7 +1092,7 @@ git commit -m "feat(skill): temperance-parallel-dispatch protocol + backup-first
 
 ---
 
-## Task I2: Wire `temperance-batch` CLI symlink
+## Task 13 (I2): Wire `temperance-batch` CLI symlink
 
 **Files:**
 - Modify: `scripts/wire-multi-backend.sh` (install + status + revert)
@@ -1145,7 +1145,7 @@ git commit -m "feat(wire): expose dispatch-tasklist.sh as temperance-batch (back
 
 ---
 
-## Task I3: Update the parallel-dispatch decision doc
+## Task 14 (I3): Update the parallel-dispatch decision doc
 
 **Files:**
 - Modify: `docs/parallel-dispatch.md`
