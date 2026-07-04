@@ -38,4 +38,8 @@ else
   echo "FAIL - nvidia body invalid JSON"; fail=1
 fi
 
+# --execute on an inline-classified task must NOT masquerade as success
+TEMPERANCE_BACKENDS="command-code" "$R" --execute "summarize these bullet points" >/dev/null 2>&1
+check "inline --execute exit code" "3" "$?"
+
 exit $fail

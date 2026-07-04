@@ -262,10 +262,11 @@ route_only() {
 # ─────────────────────────────────────────────────────────────────────────────
 
 generate_command() {
+  echo "# DISPLAY ONLY -- never eval; use --route-only + argv execution instead"
   local route="$1"
   local desc="$2"
   local max_turns="${3:-10}"
-  
+
   local backend="${route%%:*}"
   local model="${route#*:}"
   
@@ -474,12 +475,14 @@ main() {
   if [[ "$task_type" == "inline" ]]; then
     if $json; then
       echo '{"task_type": "inline", "executor": "inline", "reason": "one-shot extraction, no external dispatch"}'
+      exit 0
     else
       echo "Task type:    inline"
       echo "Executor:     inline (handle in current session)"
       echo "Reason:       one-shot extraction, no external dispatch needed"
+      $execute && exit 3   # signal 'not executed' to programmatic callers
+      exit 0
     fi
-    exit 0
   fi
   
   # Select route
