@@ -64,5 +64,13 @@ for ((i=0; i<n; i++)); do
   backend=$(echo "$raw" | jq -r ".[$i].backend // \"auto\"")
   model=$(echo "$raw"   | jq -r ".[$i].model // \"auto\"")
   IFS=$'\t' read -r rb rm < <(route_task "$id" "$task" "$backend" "$model")
-  if $DRY_RUN; then echo "$id $rb $rm"; fi
+  status="dispatch"
+  case "$rb" in
+    inline) status="skipped:inline" ;;
+    none)   status="unavailable" ;;
+  esac
+  if $DRY_RUN; then
+    if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
+    continue
+  fi
 done

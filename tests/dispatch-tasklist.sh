@@ -23,4 +23,12 @@ check "dup id rejected" "1" "$?"
 out=$(printf '%s' '[{"id":"T1","task":"refactor the entire module"}]' | "$W" --dry-run --tasks - 2>/dev/null)
 check "dry-run routes T1 to command-code" "T1 command-code moonshotai/Kimi-K2.7-Code" "$out"
 
+# inline task is marked skipped:inline in dry-run
+out=$(printf '%s' '[{"id":"S1","task":"summarize these points"}]' | "$W" --dry-run --tasks - 2>/dev/null)
+check "inline -> skipped" "S1 skipped:inline" "$out"
+
+# with zero backends, a coding task is unavailable
+out=$(printf '%s' '[{"id":"U1","task":"refactor everything"}]' | TEMPERANCE_BACKENDS="" "$W" --dry-run --tasks - 2>/dev/null)
+check "zero backends -> unavailable" "U1 unavailable" "$out"
+
 exit $fail
