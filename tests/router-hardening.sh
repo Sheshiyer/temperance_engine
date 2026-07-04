@@ -23,4 +23,19 @@ check "route-only inline" "inline	-" "$out"
 out=$(TEMPERANCE_BACKENDS="command-code" "$R" --route-only --backend command-code --model gpt-5.5 "quick fix")
 check "route-only forced backend+model" "command-code	gpt-5.5" "$out"
 
+# --json with a task containing a double quote and newline is still valid JSON
+tricky=$'say "hello"\nand run $(id)'
+if TEMPERANCE_BACKENDS="command-code" "$R" --json "$tricky" | jq -e . >/dev/null 2>&1; then
+  echo "ok - --json valid for quote/newline task"
+else
+  echo "FAIL - --json produced invalid JSON for tricky task"; fail=1
+fi
+
+# nvidia body helper builds valid JSON with a quote in the task
+if body=$("$R" --emit-nvidia-body "nvidia/x" 'he said "hi"') && echo "$body" | jq -e '.messages[0].content' >/dev/null 2>&1; then
+  echo "ok - nvidia body valid JSON"
+else
+  echo "FAIL - nvidia body invalid JSON"; fail=1
+fi
+
 exit $fail

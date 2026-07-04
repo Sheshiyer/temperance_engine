@@ -309,6 +309,11 @@ EOF
 # Execution
 # ─────────────────────────────────────────────────────────────────────────────
 
+nvidia_body() {  # model, desc  -> stdout JSON
+  jq -n --arg m "$1" --arg c "$2" \
+    '{model:$m, messages:[{role:"user", content:$c}], max_tokens:4096}'
+}
+
 execute_route() {
   local route="$1"
   local desc="$2"
@@ -332,13 +337,9 @@ execute_route() {
     
     nvidia)
       curl -s https://integrate.api.nvidia.com/v1/chat/completions \
-        -H "Authorization: Bearer $NVIDIA_API_KEY" \
-        -H "Content-Type: application/json" \
-        -d "{
-          \"model\": \"$model\",
-          \"messages\": [{\"role\": \"user\", \"content\": \"$desc\"}],
-          \"max_tokens\": 4096
-        }" | jq -r '.choices[0].message.content // .error.message // "Error"'
+        -H "Authorization: Bearer $NVIDIA_API_KEY" -H "Content-Type: application/json" \
+        -d "$(nvidia_body "$model" "$desc")" \
+        | jq -r '.choices[0].message.content // .error.message // "Error"'
       ;;
     
     *)
@@ -353,29 +354,15 @@ execute_route() {
 # ─────────────────────────────────────────────────────────────────────────────
 
 output_json() {
-  local desc="$1"
-  local task_type="$2"
-  local route="$3"
-  local backend="${route%%:*}"
-  local model="${route#*:}"
+  local desc="$1" task_type="$2" route="$3"
+  local backend="${route%%:*}" model="${route#*:}"
   local info="${MODEL_CATALOG[$route]:-unknown:unknown:unknown}"
-  local tier="${info%%:*}"
-  local rest="${info#*:}"
-  local strength="${rest%%:*}"
-  local context="${rest#*:}"
-  
-  cat << EOF
-{
-  "task": "$desc",
-  "task_type": "$task_type",
-  "backend": "$backend",
-  "model": "$model",
-  "tier": "$tier",
-  "strength": "$strength",
-  "context_window": "$context",
-  "available_backends": "$(detect_backends)"
-}
-EOF
+  local tier="${info%%:*}" rest="${info#*:}"
+  local strength="${rest%%:*}" context="${rest#*:}"
+  jq -n --arg task "$desc" --arg tt "$task_type" --arg b "$backend" --arg m "$model" \
+        --arg tier "$tier" --arg s "$strength" --arg c "$context" --arg avail "$(detect_backends)" \
+    '{task:$task, task_type:$tt, backend:$b, model:$m, tier:$tier, strength:$s,
+      context_window:$c, available_backends:$avail}'
 }
 
 output_human() {
@@ -452,6 +439,7 @@ main() {
       --route-only) route_only_mode=true; shift ;;
       --model) FORCE_MODEL="$2"; shift 2 ;;
       --backend) FORCE_BACKEND="$2"; shift 2 ;;
+      --emit-nvidia-body) nvidia_body "$2" "$3"; exit 0 ;;
       --list-backends)
         echo "Available backends: $(detect_backends)"
         exit 0
