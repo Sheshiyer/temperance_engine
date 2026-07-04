@@ -35,8 +35,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ─────────────────────────────────────────────────────────────────────────────
 
 detect_backends() {
+  if [[ -n "${TEMPERANCE_BACKENDS+x}" ]]; then
+    # Caller supplied the list (may be empty = none). Skip the ~10s status probe.
+    echo "${TEMPERANCE_BACKENDS}"
+    return
+  fi
   local backends=()
-  
+
   # Command Code
   if command -v command-code &>/dev/null; then
     if command-code status 2>&1 | grep -q "Authenticated"; then
@@ -226,6 +231,33 @@ select_route() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Route-Only Selection (programmatic; no command generation/execution)
+# ─────────────────────────────────────────────────────────────────────────────
+
+route_only() {
+  local desc="$1"
+  local task_type
+  task_type=$(analyze_task_type "$desc")
+  if [[ "$task_type" == "inline" ]]; then
+    printf 'inline\t-\n'; return
+  fi
+  local avail
+  avail=$(detect_backends)
+  if [[ -z "${avail// }" ]]; then
+    printf 'none\t-\n'; return
+  fi
+  local route
+  route=$(select_route "$task_type" "$FORCE_BACKEND")
+  local backend="${route%%:*}" model="${route#*:}"
+  [[ -n "$FORCE_MODEL" ]] && model="$FORCE_MODEL"
+  # Guard the phantom fallback: if selected backend is not actually available, report none.
+  if ! echo " $avail " | grep -q " $backend "; then
+    printf 'none\t-\n'; return
+  fi
+  printf '%s\t%s\n' "$backend" "$model"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Command Generation
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -381,6 +413,8 @@ OPTIONS:
   --command           Generate execution command (don't execute)
   --execute           Execute the routed task
   --backend <name>    Force specific backend (command-code, kimi, grok, nvidia)
+  --model <name>      Force specific model (used with --route-only)
+  --route-only        Print "BACKEND<TAB>MODEL" and exit (for programmatic callers)
   --list-backends     List available backends and exit
   --list-models       List all models in catalog
   -h, --help          Show this help
@@ -405,15 +439,19 @@ main() {
   local json=false
   local command=false
   local execute=false
-  local force_backend=""
+  local route_only_mode=false
+  declare -g FORCE_BACKEND=""
+  declare -g FORCE_MODEL=""
   local desc=""
-  
+
   while [[ $# -gt 0 ]]; do
     case $1 in
       --json) json=true; shift ;;
       --command) command=true; shift ;;
       --execute) execute=true; shift ;;
-      --backend) force_backend="$2"; shift 2 ;;
+      --route-only) route_only_mode=true; shift ;;
+      --model) FORCE_MODEL="$2"; shift 2 ;;
+      --backend) FORCE_BACKEND="$2"; shift 2 ;;
       --list-backends)
         echo "Available backends: $(detect_backends)"
         exit 0
@@ -429,12 +467,17 @@ main() {
       *) desc="$1"; shift ;;
     esac
   done
-  
+
   if [[ -z "$desc" ]]; then
     usage
     exit 1
   fi
-  
+
+  if $route_only_mode; then
+    route_only "$desc"
+    exit 0
+  fi
+
   # Analyze task
   local task_type
   task_type=$(analyze_task_type "$desc")
@@ -453,7 +496,7 @@ main() {
   
   # Select route
   local route
-  route=$(select_route "$task_type" "$force_backend")
+  route=$(select_route "$task_type" "$FORCE_BACKEND")
   
   if $json; then
     output_json "$desc" "$task_type" "$route"
