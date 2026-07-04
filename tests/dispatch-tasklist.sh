@@ -80,4 +80,13 @@ for _ in $(seq 1 20); do [[ -f "$run/index.json" ]] && break; sleep 0.5; done
 check "bg task eventually ok" "1" "$(jq -r '.summary.ok' "$run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code"
 
+# per-task watchdog timeout: a slow task killed after --timeout S -> status=timeout, exit=124
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+printf '%s' '[{"id":"TO","task":"SLEEP=5 refactor","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --timeout 1 --out "$run" --tasks - >/dev/null 2>&1
+check "timed-out task status" "timeout" "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+check "timed-out task exit" "124" "$(jq -r '.tasks[0].exit' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
 exit $fail

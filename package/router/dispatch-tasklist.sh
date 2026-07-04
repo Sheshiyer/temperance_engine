@@ -39,6 +39,7 @@ dispatch_backend(){ # backend task model outfile -> exit code
 
 DRY_RUN=false; TASKS_FILE=""; OUT=""; FOREGROUND=false; MAX_TURNS="${MAX_TURNS:-10}"
 CONCURRENCY="${CONCURRENCY:-4}"
+TIMEOUT="${TIMEOUT:-0}"   # per-task watchdog timeout in seconds; 0 = off
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tasks) TASKS_FILE="$2"; shift 2 ;;
@@ -47,6 +48,7 @@ while [[ $# -gt 0 ]]; do
     --foreground) FOREGROUND=true; shift ;;
     --max-turns) MAX_TURNS="$2"; shift 2 ;;
     --concurrency) CONCURRENCY="$2"; shift 2 ;;
+    --timeout) TIMEOUT="$2"; shift 2 ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -93,12 +95,44 @@ write_meta(){ # id task backend model exit dur status  -> atomic
     > "$f.tmp" && mv -f "$f.tmp" "$f"
 }
 
+# kill_tree PID — kill a process and all its descendants (portable, no setsid;
+# macOS has no GNU timeout/gtimeout). Recursively walks pgrep -P before killing
+# the parent so children don't get orphaned and outlive the watchdog.
+kill_tree(){
+  local p="$1" c
+  for c in $(pgrep -P "$p" 2>/dev/null); do kill_tree "$c"; done
+  kill -TERM "$p" 2>/dev/null
+}
+
+# Single execution seam so timeout (W6) and worktree (W7) compose without
+# either wrapping the other's command. TASK_WT is set per-task by run_one
+# (empty unless --worktree); W7 fills it in.
+TASK_WT=""
+exec_task(){ # backend task model outfile
+  if [[ -n "$TASK_WT" ]]; then ( cd "$TASK_WT" && dispatch_backend "$1" "$2" "$3" "$4" )
+  else dispatch_backend "$1" "$2" "$3" "$4"; fi
+}
+
 run_one(){ # id task rb rm
   local id="$1" task="$2" rb="$3" rm="$4" start end dur ex
   start=$(date +%s)
-  dispatch_backend "$rb" "$task" "$rm" "$OUT/$id.out"; ex=$?
+  TASK_WT=""   # default: no worktree (W7 sets this before this block)
+  if (( TIMEOUT > 0 )); then
+    exec_task "$rb" "$task" "$rm" "$OUT/$id.out" & local bpid=$!
+    ( sleep "$TIMEOUT"; kill_tree "$bpid" ) & local wpid=$!
+    if wait "$bpid" 2>/dev/null; then ex=0; else ex=$?; fi
+    # kill_tree (not plain kill): the watchdog subshell's own `sleep` child
+    # would otherwise survive `kill "$wpid"` as an orphan when the task
+    # finishes before the timeout fires.
+    kill_tree "$wpid"; wait "$wpid" 2>/dev/null
+    # a SIGTERM-caused exit (>=128) after our watchdog fired == timeout
+    if (( ex >= 128 )); then ex=124; fi
+  else
+    exec_task "$rb" "$task" "$rm" "$OUT/$id.out"; ex=$?
+  fi
   end=$(date +%s); dur=$((end-start))
-  local st="ok"; [[ $ex -ne 0 ]] && st="failed"
+  local st="ok"
+  if (( ex == 124 )); then st="timeout"; elif (( ex != 0 )); then st="failed"; fi
   write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st"
 }
 
