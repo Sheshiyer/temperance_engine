@@ -104,7 +104,31 @@ check_status() {
     echo "   [NOT INSTALLED] ~/.local/bin/temperance-route"
   fi
   echo ""
-  
+
+  # Dispatch CLI
+  if [[ -L "$HOME/.local/bin/temperance-dispatch" ]]; then
+    local target
+    target=$(readlink "$HOME/.local/bin/temperance-dispatch")
+    echo "   [INSTALLED] ~/.local/bin/temperance-dispatch → $target"
+  elif [[ -f "$HOME/.local/bin/temperance-dispatch" ]]; then
+    echo "   [INSTALLED] ~/.local/bin/temperance-dispatch (file, not symlink)"
+  else
+    echo "   [NOT INSTALLED] ~/.local/bin/temperance-dispatch"
+  fi
+  echo ""
+
+  # Batch CLI
+  if [[ -L "$HOME/.local/bin/temperance-batch" ]]; then
+    local target
+    target=$(readlink "$HOME/.local/bin/temperance-batch")
+    echo "   [INSTALLED] ~/.local/bin/temperance-batch → $target"
+  elif [[ -f "$HOME/.local/bin/temperance-batch" ]]; then
+    echo "   [INSTALLED] ~/.local/bin/temperance-batch (file, not symlink)"
+  else
+    echo "   [NOT INSTALLED] ~/.local/bin/temperance-batch"
+  fi
+  echo ""
+
   # Claude Code
   echo "2. CLAUDE CODE"
   if [[ -d "$HOME/.claude/PAI/enrich" ]]; then
@@ -203,6 +227,7 @@ revert() {
   # Remove symlinks we created
   [[ -L "$HOME/.local/bin/temperance-route" ]] && rm -f "$HOME/.local/bin/temperance-route" && log "Removed: ~/.local/bin/temperance-route"
   [[ -L "$HOME/.local/bin/temperance-dispatch" ]] && rm -f "$HOME/.local/bin/temperance-dispatch" && log "Removed: ~/.local/bin/temperance-dispatch"
+  [[ -L "$HOME/.local/bin/temperance-batch" ]] && rm -f "$HOME/.local/bin/temperance-batch" && log "Removed: ~/.local/bin/temperance-batch"
   [[ -L "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh" ]] && rm -f "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh" && log "Removed: OpenCode hook symlink"
   
   # Restore backed up files
@@ -230,6 +255,7 @@ install() {
   mkdir -p "$HOME/.local/bin"
   symlink "$REPO_ROOT/package/router/multi-backend-router.sh" "$HOME/.local/bin/temperance-route"
   symlink "$REPO_ROOT/package/router/parallel-backend-dispatch.sh" "$HOME/.local/bin/temperance-dispatch"
+  symlink "$REPO_ROOT/package/router/dispatch-tasklist.sh" "$HOME/.local/bin/temperance-batch"
   
   # Check if ~/.local/bin is in PATH
   if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
