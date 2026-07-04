@@ -186,6 +186,39 @@ run_one(){ # id task rb rm
   write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp"
 }
 
+# --- pre-classify every task (routing only, no dispatch) so we can fail-open
+# synchronously BEFORE the foreground/background fork (W5). Results are cached
+# in parallel arrays, indexed by task position, so run_batch's loop below
+# doesn't re-invoke the router per task.
+n=$(echo "$raw" | jq 'length')
+declare -a ROUTE_BACKEND ROUTE_MODEL ROUTE_STATUS
+any_dispatch=false
+for ((i=0; i<n; i++)); do
+  id=$(echo "$raw"   | jq -r ".[$i].id")
+  task=$(echo "$raw" | jq -r ".[$i].task")
+  backend=$(echo "$raw" | jq -r ".[$i].backend // \"auto\"")
+  model=$(echo "$raw"   | jq -r ".[$i].model // \"auto\"")
+  IFS=$'\t' read -r rb rm < <(route_task "$id" "$task" "$backend" "$model")
+  status="dispatch"
+  case "$rb" in
+    inline) status="skipped:inline" ;;
+    none)   status="unavailable" ;;
+  esac
+  [[ "$status" == "dispatch" ]] && any_dispatch=true
+  ROUTE_BACKEND[i]="$rb"; ROUTE_MODEL[i]="$rm"; ROUTE_STATUS[i]="$status"
+done
+
+# Phantom-route guard (spec sec 9.G16): if nothing classified as dispatch AND
+# no backend was ever detected, there is no external rail at all — fail open
+# synchronously so the caller (skill) sends every task to a Claude subagent
+# instead of silently exiting 0 having done no external work. --dry-run is a
+# pure classification preview (never dispatches anything anyway) so it stays
+# exempt: it must keep printing per-task routing lines for the caller to read.
+if ! $DRY_RUN && ! $any_dispatch && [[ -z "${AVAIL// }" ]]; then
+  echo "EXTERNAL_RAIL_UNAVAILABLE" >&2
+  exit 2
+fi
+
 # --- dispatch loop + wait + assembly (W5: runs foreground or backgrounded) ---
 run_batch(){
   # Force-cleanup outstanding worktrees on any exit (SIGINT/SIGTERM/normal).
@@ -204,19 +237,12 @@ run_batch(){
       done
     fi
   ' EXIT INT TERM
-  # iterate tasks
-  n=$(echo "$raw" | jq 'length')
+  # iterate tasks, reusing the pre-classification pass's cached routes so the
+  # router is never invoked twice for the same task.
   for ((i=0; i<n; i++)); do
     id=$(echo "$raw"   | jq -r ".[$i].id")
     task=$(echo "$raw" | jq -r ".[$i].task")
-    backend=$(echo "$raw" | jq -r ".[$i].backend // \"auto\"")
-    model=$(echo "$raw"   | jq -r ".[$i].model // \"auto\"")
-    IFS=$'\t' read -r rb rm < <(route_task "$id" "$task" "$backend" "$model")
-    status="dispatch"
-    case "$rb" in
-      inline) status="skipped:inline" ;;
-      none)   status="unavailable" ;;
-    esac
+    rb="${ROUTE_BACKEND[i]}" rm="${ROUTE_MODEL[i]}" status="${ROUTE_STATUS[i]}"
     if $DRY_RUN; then
       if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
       continue

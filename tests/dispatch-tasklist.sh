@@ -150,4 +150,14 @@ fi
 check "SIGTERM during --worktree leaves no leftover worktree" "0" "$leftover"
 rm -f "$DIR/tests/fixtures/command-code"
 
+# unresolved router -> marker + exit 2
+err=$(printf '%s' '[{"id":"X","task":"y"}]' | TEMPERANCE_ROUTER=/nonexistent "$W" --tasks - 2>&1 >/dev/null)
+check "router missing -> exit 2" "2" "$?"
+echo "$err" | grep -q EXTERNAL_RAIL_UNAVAILABLE && echo "ok - marker on stderr" || { echo "FAIL - no marker"; fail=1; }
+
+# zero backends AND all tasks unavailable -> marker + exit 2 (nothing external could run)
+printf '%s' '[{"id":"X","task":"refactor all"}]' | TEMPERANCE_BACKENDS="" "$W" --foreground --tasks - >/dev/null 2>&1
+check "zero backends -> exit 2" "2" "$?"
+
+echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail
