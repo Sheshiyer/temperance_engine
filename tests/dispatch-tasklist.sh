@@ -114,4 +114,40 @@ check "worktree recorded" "true" "$(jq -r '.tasks[0].worktree != null' "$run/ind
 check "dirty tree refused" "3" "$?"   # convention: exit 3 = dirty-tree guard
 rm -f "$DIR/tests/fixtures/command-code"
 
+# W7 leak-safety: trap cleans up worktrees on interrupt of an in-flight batch.
+# NOTE: POSIX/bash sets SIGINT to SIG_IGN for asynchronous (backgrounded, "cmd &")
+# commands run from a non-interactive, non-job-control shell, and a `trap ... INT`
+# inside that command cannot override a disposition that was already SIG_IGN at
+# shell startup. Since this test must background the wrapper ("$W" ... &) to be
+# able to signal it mid-run, a literal SIGINT here would be silently swallowed by
+# the wrapper regardless of the trap and would not exercise the fix. SIGTERM does
+# not have this exemption and is also the realistic CI-cancellation / OOM-kill
+# signal named in the fix brief, so it is used here as the deterministic proxy for
+# "batch process is interrupted mid-run". The trap itself is still installed on
+# EXIT INT TERM in dispatch-tasklist.sh so a real interactive Ctrl-C (delivered to
+# a foreground process group, not a single backgrounded PID) is also covered.
+# flakes if the signal races the fork; retry once acceptable
+sigterm_leftover() {
+  tmpgit=$(mktemp -d); ( cd "$tmpgit" && git init -q && git commit -q --allow-empty -m init )
+  ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+  run=$(mktemp -d)
+  (
+    cd "$tmpgit"
+    printf '%s' '[{"id":"SLOW","task":"SLEEP=5 something","backend":"command-code","model":"x"}]' \
+      | "$W" --foreground --worktree --out "$run" --tasks - >/dev/null 2>&1 &
+    wrapper_pid=$!
+    sleep 1
+    kill -TERM "$wrapper_pid" 2>/dev/null
+    wait "$wrapper_pid" 2>/dev/null
+  )
+  sleep 0.5
+  cd "$tmpgit" && git worktree list | grep -c "wt-SLOW" || true
+}
+leftover="$(sigterm_leftover)"
+if [[ "$leftover" != "0" ]]; then
+  leftover="$(sigterm_leftover)"   # retry once — signal timing can race the fork
+fi
+check "SIGTERM during --worktree leaves no leftover worktree" "0" "$leftover"
+rm -f "$DIR/tests/fixtures/command-code"
+
 exit $fail

@@ -171,14 +171,39 @@ run_one(){ # id task rb rm
   if [[ -n "$TASK_WT" ]]; then
     diffp="$OUT/$id.diff"
     ( cd "$TASK_WT" && git add -A && git diff --cached ) > "$diffp" 2>/dev/null
-    git worktree remove --force "$TASK_WT" 2>/dev/null
-    git branch -D "$branch" 2>/dev/null
+    if git worktree remove --force "$TASK_WT" 2>/dev/null; then
+      git branch -D "$branch" 2>/dev/null || true
+    else
+      # Retry with double-force (handles locked worktrees)
+      if git worktree remove --force --force "$TASK_WT" 2>/dev/null; then
+        git branch -D "$branch" 2>/dev/null || true
+      else
+        # Real leak — record it so the batch's SUMMARY tells the truth
+        printf '%s\t%s\t%s\n' "$id" "$TASK_WT" "$branch" >> "$OUT/.leaks"
+      fi
+    fi
   fi
   write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp"
 }
 
 # --- dispatch loop + wait + assembly (W5: runs foreground or backgrounded) ---
 run_batch(){
+  # Force-cleanup outstanding worktrees on any exit (SIGINT/SIGTERM/normal).
+  # Only relevant when --worktree is active; harmless otherwise (glob no-match).
+  trap '
+    if $WORKTREE; then
+      for _d in "$OUT"/wt-*; do
+        [[ -d "$_d" ]] || continue
+        git worktree remove --force --force "$_d" 2>/dev/null || true
+      done
+      # Branches: prune orphans that our RUNTAG owns
+      git worktree prune 2>/dev/null || true
+      # Delete our RUNTAG-scoped branches whose worktree is now gone
+      git for-each-ref --format="%(refname:short)" "refs/heads/te-dispatch/$RUNTAG/*" 2>/dev/null | while read -r _b; do
+        git branch -D "$_b" 2>/dev/null || true
+      done
+    fi
+  ' EXIT INT TERM
   # iterate tasks
   n=$(echo "$raw" | jq 'length')
   for ((i=0; i<n; i++)); do
@@ -217,6 +242,18 @@ run_batch(){
     { echo "# Dispatch run: $OUT"; echo
       jq -r '.tasks[] | "- [\(.status)] \(.id) (\(.backend):\(.model)) exit=\(.exit) \(.duration_s)s"' "$OUT/index.json"
     } > "$OUT/SUMMARY.md"
+    if [[ -s "$OUT/.leaks" ]]; then
+      {
+        echo ""
+        echo "## Leaked worktrees (manual cleanup required)"
+        echo ""
+        while IFS=$'\t' read -r lid lwt lbranch; do
+          echo "- $lid: worktree \`$lwt\` on branch \`$lbranch\`"
+        done < "$OUT/.leaks"
+        echo ""
+        echo 'Clean up manually: `git worktree remove --force --force <path>` then `git branch -D <branch>`.'
+      } >> "$OUT/SUMMARY.md"
+    fi
     echo "$OUT"
   fi
 }
