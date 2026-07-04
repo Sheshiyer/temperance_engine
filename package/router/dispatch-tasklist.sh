@@ -38,6 +38,7 @@ dispatch_backend(){ # backend task model outfile -> exit code
 }
 
 DRY_RUN=false; TASKS_FILE=""; OUT=""; FOREGROUND=false; MAX_TURNS="${MAX_TURNS:-10}"
+CONCURRENCY="${CONCURRENCY:-4}"
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tasks) TASKS_FILE="$2"; shift 2 ;;
@@ -45,6 +46,7 @@ while [[ $# -gt 0 ]]; do
     --dry-run) DRY_RUN=true; shift ;;
     --foreground) FOREGROUND=true; shift ;;
     --max-turns) MAX_TURNS="$2"; shift 2 ;;
+    --concurrency) CONCURRENCY="$2"; shift 2 ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -82,6 +84,24 @@ route_task() { # id task backend model  -> echoes "backend<TAB>model"
   "$ROUTER" "${args[@]}" -- "$task"
 }
 
+# --- per-task metadata + dispatch wrapper (W4) ---
+write_meta(){ # id task backend model exit dur status  -> atomic
+  local f="$OUT/$1.meta.json"
+  jq -n --arg id "$1" --arg task "$2" --arg b "$3" --arg m "$4" \
+        --argjson ex "$5" --argjson d "$6" --arg st "$7" \
+    '{id:$id,task:$task,backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,worktree:null,diff_path:null}' \
+    > "$f.tmp" && mv -f "$f.tmp" "$f"
+}
+
+run_one(){ # id task rb rm
+  local id="$1" task="$2" rb="$3" rm="$4" start end dur ex
+  start=$(date +%s)
+  dispatch_backend "$rb" "$task" "$rm" "$OUT/$id.out"; ex=$?
+  end=$(date +%s); dur=$((end-start))
+  local st="ok"; [[ $ex -ne 0 ]] && st="failed"
+  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st"
+}
+
 # iterate tasks
 n=$(echo "$raw" | jq 'length')
 for ((i=0; i<n; i++)); do
@@ -99,8 +119,26 @@ for ((i=0; i<n; i++)); do
     if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
     continue
   fi
-  if [[ "$status" == "dispatch" ]]; then
-    # W3: sequential, foreground execution only. Concurrency/backgrounding is W4/W5.
-    dispatch_backend "$rb" "$task" "$rm" "$OUT/$id.out"
-  fi
+  case "$status" in
+    dispatch)
+      while (( $(jobs -rp | wc -l) >= CONCURRENCY )); do wait -n; done
+      run_one "$id" "$task" "$rb" "$rm" &
+      ;;
+    *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" ;;
+  esac
 done
+
+wait
+if ! $DRY_RUN; then
+  jq -s --arg dir "$OUT" '{run_dir:$dir, tasks:., summary:{
+     ok:(map(select(.status=="ok"))|length),
+     failed:(map(select(.status=="failed"))|length),
+     timeout:(map(select(.status=="timeout"))|length),
+     skipped:(map(select(.status|startswith("skipped")))|length),
+     unavailable:(map(select(.status=="unavailable"))|length)}}' \
+     "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json"
+  { echo "# Dispatch run: $OUT"; echo
+    jq -r '.tasks[] | "- [\(.status)] \(.id) (\(.backend):\(.model)) exit=\(.exit) \(.duration_s)s"' "$OUT/index.json"
+  } > "$OUT/SUMMARY.md"
+  echo "$OUT"
+fi

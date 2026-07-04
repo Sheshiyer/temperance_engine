@@ -49,4 +49,20 @@ out=$(printf '%s' '[{"id":"F1","task":"--help"}]' | "$W" --dry-run --tasks - 2>/
 check "flag-like task -> dispatch (not swallowed as --help)" \
   "F1 command-code claude-sonnet-5" "$out"
 
+# concurrency cap + atomic meta + index.json + SUMMARY.md
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+printf '%s' '[{"id":"A","task":"refactor all files","backend":"command-code","model":"x"},
+             {"id":"B","task":"refactor all files","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+# index.json valid + 2 ok tasks
+ok=$(jq -r '.summary.ok' "$run/index.json" 2>/dev/null)
+check "index.json summary.ok" "2" "$ok"
+# per-task meta present + status ok
+st=$(jq -r '.status' "$run/A.meta.json" 2>/dev/null)
+check "A meta status ok" "ok" "$st"
+# SUMMARY.md exists
+[[ -f "$run/SUMMARY.md" ]] && echo "ok - SUMMARY.md written" || { echo "FAIL - no SUMMARY.md"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
 exit $fail
