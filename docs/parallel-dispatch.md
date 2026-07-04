@@ -15,7 +15,10 @@ Two or more independent tasks in the Execute phase can often run at once instead
    - YES: GSD `workstreams` (`.planning/workstreams/<name>/`), if GSD is installed.
    - NO: continue.
 3. Are there 2+ independent tasks, no shared state, no sequential dependency, and you want them done within the current session (ephemeral, not a persisted plan)?
-   - YES: use `superpowers:dispatching-parallel-agents`.
+   - YES: continue.
+3b. Of the independent ephemeral tasks, are some self-contained coding/refactor/validation tasks (describable fully in a prompt, no need for this live session's context)?
+    - YES: use the `temperance-parallel-dispatch` skill. It splits the batch — Claude-rail tasks go to `superpowers:dispatching-parallel-agents` (the Claude-subagent primitive), external-rail tasks go to `temperance-batch`, which routes each to command-code/kimi/grok.
+    - NO: use `superpowers:dispatching-parallel-agents` directly (all Claude subagents).
 4. Are there independent tasks from a written implementation plan you want executed with review checkpoints, still in the current session?
    - YES: use `superpowers:subagent-driven-development`.
 5. Is there any shared mutable state (same files, same branch, same directory) between the tasks?
@@ -27,6 +30,7 @@ Two or more independent tasks in the Execute phase can often run at once instead
 |---|---|---|---|---|
 | `superpowers:dispatching-parallel-agents` | none (caller must avoid overlap) | ephemeral (this session) | no | ad hoc independent subtasks |
 | `superpowers:subagent-driven-development` | none | ephemeral (this session) | no | executing a plan already written this session |
+| `temperance-parallel-dispatch` (+`temperance-batch`) | opt-in worktree per external task | ephemeral (run dir) | no | mixed batch: some tasks on external backends, some Claude subagents |
 | GSD `execute-phase` | git worktree per plan | persisted in `.planning/` | yes | a phase with multiple `PLAN.md` files and declared dependencies |
 | GSD `workstreams` | separate `.planning/workstreams/<name>/` namespace | persisted, long-lived | yes | multiple parallel milestones/features over many sessions |
 
