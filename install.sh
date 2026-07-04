@@ -69,6 +69,19 @@ printf '%s\n' "GSD_MODE=$GSD_MODE"
 printf '%s\n' "FORCE=$FORCE"
 
 sh "$ROOT_DIR/scripts/install-pai.sh"
+
+# Install temperance-parallel-dispatch skill (backup-first)
+if test "${TEMPERANCE_CLAUDE_MODE:-skip}" = "install"; then
+  SKILL_SRC="$ROOT_DIR/skills/temperance-parallel-dispatch"
+  SKILL_DST="$HOME/.claude/skills/temperance-parallel-dispatch"
+  if test -d "$SKILL_SRC"; then
+    if test -e "$SKILL_DST"; then cp -R "$SKILL_DST" "$SKILL_DST.bak.$(date +%Y%m%d_%H%M%S)"; fi
+    mkdir -p "$HOME/.claude/skills"
+    cp -R "$SKILL_SRC" "$SKILL_DST"
+    printf '%s\n' "[install] temperance-parallel-dispatch skill -> $SKILL_DST"
+  fi
+fi
+
 sh "$ROOT_DIR/scripts/install-skill-clusters.sh"
 sh "$ROOT_DIR/scripts/install-peon-ping.sh"
 sh "$ROOT_DIR/scripts/install-codegraph.sh"
