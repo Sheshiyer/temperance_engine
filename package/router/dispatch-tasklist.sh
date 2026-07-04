@@ -16,15 +16,41 @@ self_path() {
 SCRIPT_DIR="$(self_path)"
 ROUTER="${TEMPERANCE_ROUTER:-$SCRIPT_DIR/multi-backend-router.sh}"
 
-DRY_RUN=false; TASKS_FILE=""; OUT=""
+# --- backend execution (argv arrays; task text is always ONE literal arg) ---
+run_command_code(){ command-code -p "$1" --model "$2" --max-turns "${MAX_TURNS:-10}" --trust --skip-onboarding >"$3" 2>&1; }
+run_kimi(){ kimi --print --yolo --model "$2" -p "$1" >"$3" 2>&1; }
+run_grok(){ "$HOME/.grok/bin/grok" --model "$2" --always-approve "$1" >"$3" 2>&1; }
+run_nvidia(){
+  curl -s https://integrate.api.nvidia.com/v1/chat/completions \
+    -H "Authorization: Bearer ${NVIDIA_API_KEY:-}" -H "Content-Type: application/json" \
+    -d "$(jq -n --arg m "$2" --arg c "$1" '{model:$m,messages:[{role:"user",content:$c}],max_tokens:4096}')" \
+    | jq -r '.choices[0].message.content // .error.message // "Error"' >"$3" 2>&1
+}
+
+dispatch_backend(){ # backend task model outfile -> exit code
+  case "$1" in
+    command-code) run_command_code "$2" "$3" "$4" ;;
+    kimi) run_kimi "$2" "$3" "$4" ;;
+    grok) run_grok "$2" "$3" "$4" ;;
+    nvidia) run_nvidia "$2" "$3" "$4" ;;
+    *) echo "unknown backend: $1" >"$4"; return 1 ;;
+  esac
+}
+
+DRY_RUN=false; TASKS_FILE=""; OUT=""; FOREGROUND=false; MAX_TURNS="${MAX_TURNS:-10}"
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tasks) TASKS_FILE="$2"; shift 2 ;;
     --out) OUT="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --foreground) FOREGROUND=true; shift ;;
+    --max-turns) MAX_TURNS="$2"; shift 2 ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
+
+[[ -z "$OUT" ]] && OUT="$(mktemp -d)"
+mkdir -p "$OUT"
 
 [[ -x "$ROUTER" ]] || { echo "EXTERNAL_RAIL_UNAVAILABLE" >&2; echo "router not found: $ROUTER" >&2; exit 2; }
 command -v jq >/dev/null || { echo "jq required" >&2; exit 1; }
@@ -72,5 +98,9 @@ for ((i=0; i<n; i++)); do
   if $DRY_RUN; then
     if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
     continue
+  fi
+  if [[ "$status" == "dispatch" ]]; then
+    # W3: sequential, foreground execution only. Concurrency/backgrounding is W4/W5.
+    dispatch_backend "$rb" "$task" "$rm" "$OUT/$id.out"
   fi
 done

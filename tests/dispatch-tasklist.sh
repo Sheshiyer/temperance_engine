@@ -31,4 +31,16 @@ check "inline -> skipped" "S1 skipped:inline" "$out"
 out=$(printf '%s' '[{"id":"U1","task":"refactor everything"}]' | TEMPERANCE_BACKENDS="" "$W" --dry-run --tasks - 2>/dev/null)
 check "zero backends -> unavailable" "U1 unavailable" "$out"
 
+# injection regression: task text with $(), quotes, apostrophe, newline round-trips literally
+chmod +x "$DIR/tests/fixtures/mock-backend"
+export PATH="$DIR/tests/fixtures:$PATH"
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+payload='[{"id":"INJ","task":"run $(touch /tmp/pwned) and say \"don'\''t\" now","backend":"command-code","model":"x"}]'
+printf '%s' "$payload" | "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+got=$(sed -n '/MOCK_OUTPUT_START/,/MOCK_OUTPUT_END/p' "$run/INJ.out" | sed '1d;$d')
+check "task text passed literally (no eval)" 'run $(touch /tmp/pwned) and say "don'\''t" now' "$got"
+[[ -e /tmp/pwned ]] && { echo "FAIL - injection executed!"; fail=1; rm -f /tmp/pwned; }
+rm -f "$DIR/tests/fixtures/command-code"
+
 exit $fail
