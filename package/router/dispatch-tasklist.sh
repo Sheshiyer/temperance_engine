@@ -102,43 +102,63 @@ run_one(){ # id task rb rm
   write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st"
 }
 
-# iterate tasks
-n=$(echo "$raw" | jq 'length')
-for ((i=0; i<n; i++)); do
-  id=$(echo "$raw"   | jq -r ".[$i].id")
-  task=$(echo "$raw" | jq -r ".[$i].task")
-  backend=$(echo "$raw" | jq -r ".[$i].backend // \"auto\"")
-  model=$(echo "$raw"   | jq -r ".[$i].model // \"auto\"")
-  IFS=$'\t' read -r rb rm < <(route_task "$id" "$task" "$backend" "$model")
-  status="dispatch"
-  case "$rb" in
-    inline) status="skipped:inline" ;;
-    none)   status="unavailable" ;;
-  esac
-  if $DRY_RUN; then
-    if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
-    continue
-  fi
-  case "$status" in
-    dispatch)
-      while (( $(jobs -rp | wc -l) >= CONCURRENCY )); do wait -n; done
-      run_one "$id" "$task" "$rb" "$rm" &
-      ;;
-    *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" ;;
-  esac
-done
+# --- dispatch loop + wait + assembly (W5: runs foreground or backgrounded) ---
+run_batch(){
+  # iterate tasks
+  n=$(echo "$raw" | jq 'length')
+  for ((i=0; i<n; i++)); do
+    id=$(echo "$raw"   | jq -r ".[$i].id")
+    task=$(echo "$raw" | jq -r ".[$i].task")
+    backend=$(echo "$raw" | jq -r ".[$i].backend // \"auto\"")
+    model=$(echo "$raw"   | jq -r ".[$i].model // \"auto\"")
+    IFS=$'\t' read -r rb rm < <(route_task "$id" "$task" "$backend" "$model")
+    status="dispatch"
+    case "$rb" in
+      inline) status="skipped:inline" ;;
+      none)   status="unavailable" ;;
+    esac
+    if $DRY_RUN; then
+      if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
+      continue
+    fi
+    case "$status" in
+      dispatch)
+        while (( $(jobs -rp | wc -l) >= CONCURRENCY )); do wait -n; done
+        run_one "$id" "$task" "$rb" "$rm" &
+        ;;
+      *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" ;;
+    esac
+  done
 
-wait
-if ! $DRY_RUN; then
-  jq -s --arg dir "$OUT" '{run_dir:$dir, tasks:., summary:{
-     ok:(map(select(.status=="ok"))|length),
-     failed:(map(select(.status=="failed"))|length),
-     timeout:(map(select(.status=="timeout"))|length),
-     skipped:(map(select(.status|startswith("skipped")))|length),
-     unavailable:(map(select(.status=="unavailable"))|length)}}' \
-     "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json"
-  { echo "# Dispatch run: $OUT"; echo
-    jq -r '.tasks[] | "- [\(.status)] \(.id) (\(.backend):\(.model)) exit=\(.exit) \(.duration_s)s"' "$OUT/index.json"
-  } > "$OUT/SUMMARY.md"
+  wait
+  if ! $DRY_RUN; then
+    jq -s --arg dir "$OUT" '{run_dir:$dir, tasks:., summary:{
+       ok:(map(select(.status=="ok"))|length),
+       failed:(map(select(.status=="failed"))|length),
+       timeout:(map(select(.status=="timeout"))|length),
+       skipped:(map(select(.status|startswith("skipped")))|length),
+       unavailable:(map(select(.status=="unavailable"))|length)}}' \
+       "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json"
+    { echo "# Dispatch run: $OUT"; echo
+      jq -r '.tasks[] | "- [\(.status)] \(.id) (\(.backend):\(.model)) exit=\(.exit) \(.duration_s)s"' "$OUT/index.json"
+    } > "$OUT/SUMMARY.md"
+    echo "$OUT"
+  fi
+}
+
+# --dry-run must stay foreground: it prints per-task classification lines
+# synchronously for the caller to consume; it cannot be backgrounded.
+if $FOREGROUND || $DRY_RUN; then
+  run_batch
+else
+  # Background the job INSIDE the subshell (not the subshell itself) so it
+  # fully detaches from this script's job table. Backgrounding the subshell
+  # from here (`( run_batch ... ) & disown`) still ties its lifetime to this
+  # process for command-substitution callers: `$(...)` blocks until every
+  # fd/job reachable from this script's job control has settled, so a
+  # caller capturing our output would otherwise stall until run_batch
+  # finishes. Redirect all three streams so the detached job never blocks
+  # on stdin (already fully consumed into $raw) or leaks output.
+  ( run_batch </dev/null >/dev/null 2>&1 & )
   echo "$OUT"
 fi

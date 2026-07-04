@@ -65,4 +65,19 @@ check "A meta status ok" "ok" "$st"
 [[ -f "$run/SUMMARY.md" ]] && echo "ok - SUMMARY.md written" || { echo "FAIL - no SUMMARY.md"; fail=1; }
 rm -f "$DIR/tests/fixtures/command-code"
 
+# background-by-default: prints run dir fast, task completes eventually
+# (uses a slow mock so blocking vs backgrounding is actually observable)
+ln -sf slow-mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+start=$(date +%s)
+printed=$(printf '%s' '[{"id":"BG","task":"refactor all","backend":"command-code","model":"x"}]' \
+  | "$W" --out "$run" --tasks - 2>/dev/null)   # default backgrounds
+elapsed=$(( $(date +%s) - start ))
+check "background prints run dir" "$run" "$printed"
+[[ $elapsed -le 3 ]] && echo "ok - returns fast (${elapsed}s)" || { echo "FAIL - blocked ${elapsed}s"; fail=1; }
+# wait for completion then verify
+for _ in $(seq 1 20); do [[ -f "$run/index.json" ]] && break; sleep 0.5; done
+check "bg task eventually ok" "1" "$(jq -r '.summary.ok' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
 exit $fail

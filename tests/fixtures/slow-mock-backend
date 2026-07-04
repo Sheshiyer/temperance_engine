@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Slow variant of mock-backend: sleeps briefly before responding so tests can
+# observe whether the caller returns before or after task completion.
+sleep 4
+prompt=""; prev=""
+for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
+[[ -z "$prompt" ]] && prompt="${!#}"
+printf 'MOCK_OUTPUT_START\n%s\nMOCK_OUTPUT_END\n' "$prompt"
