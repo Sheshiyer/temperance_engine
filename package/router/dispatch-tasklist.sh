@@ -40,7 +40,7 @@ dispatch_backend(){ # backend task model outfile -> exit code
 DRY_RUN=false; TASKS_FILE=""; OUT=""; FOREGROUND=false; MAX_TURNS="${MAX_TURNS:-10}"
 CONCURRENCY="${CONCURRENCY:-4}"
 TIMEOUT="${TIMEOUT:-0}"   # per-task watchdog timeout in seconds; 0 = off
-WORKTREE=false; ALLOW_DIRTY=false
+WORKTREE=false; ALLOW_DIRTY=false; APPLY_WORKTREE=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tasks) TASKS_FILE="$2"; shift 2 ;;
@@ -52,6 +52,7 @@ while [[ $# -gt 0 ]]; do
     --timeout) TIMEOUT="$2"; shift 2 ;;
     --worktree) WORKTREE=true; shift ;;
     --allow-dirty) ALLOW_DIRTY=true; shift ;;
+    --apply-worktree) APPLY_WORKTREE=true; shift ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -146,8 +147,20 @@ write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [at
     '{id:$id,task:$task,backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
       worktree:(if $wt=="" then null else $wt end),
       diff_path:(if $dp=="" then null else $dp end),
-      attempts:$attempts}' \
+      attempts:$attempts,
+      merged:null}' \
     > "$f.tmp" && mv -f "$f.tmp" "$f"
+}
+
+# set_merged: id merged_value("true"|"false") -> patch the .meta.json's
+# `merged` field in place (jq-built, atomic). Only invoked from the
+# post-run --apply-worktree pass, and only for tasks that actually went
+# through worktree capture -- so `merged` stays `null` for everything else
+# (non-worktree tasks, or any run without --apply-worktree), per the schema.
+set_merged(){ # id merged("true"|"false")
+  local f="$OUT/$1.meta.json"
+  [[ -f "$f" ]] || return 0
+  jq --argjson mv "$2" '.merged = $mv' "$f" > "$f.tmp" && mv -f "$f.tmp" "$f"
 }
 
 # attempt_record: backend model exit dur status -> one jq-built attempt object
@@ -163,6 +176,136 @@ kill_tree(){
   local p="$1" c
   for c in $(pgrep -P "$p" 2>/dev/null); do kill_tree "$c"; done
   kill -TERM "$p" 2>/dev/null
+}
+
+# diff_files: diff_path -> one file path per line touched by that diff.
+# Parses `diff --git a/X b/X` headers rather than shelling out to
+# `git apply --numstat` so it works even on an empty/whitespace-only diff
+# (numstat on an empty file errors on some git versions) and needs no cwd.
+diff_files(){ # diff_path
+  grep -E '^diff --git ' "$1" 2>/dev/null | sed -E 's#^diff --git a/(.*) b/.*#\1#'
+}
+
+# apply_worktree_merges: post-run, opt-in (--apply-worktree only) safe-path
+# auto-merge of captured worktree diffs into the caller's cwd (issue #7).
+# Runs AFTER index.json exists so it can read each task's final status +
+# diff_path from one source of truth. Fail-open throughout: any apply
+# failure leaves the <id>.diff file on disk and marks that task merged:false,
+# never touching the cwd for that task.
+apply_worktree_merges(){
+  local idx="$OUT/index.json"
+  [[ -f "$idx" ]] || return 0
+
+  # Candidates: worktree tasks that finished ok and have a non-empty diff.
+  # (failed/timeout/skipped worktree tasks have nothing safe to apply.)
+  local -a cand_ids=()
+  while IFS= read -r cid; do
+    [[ -n "$cid" ]] && cand_ids+=("$cid")
+  done < <(jq -r '.tasks[] | select(.worktree != null and .diff_path != null and .status=="ok") | .id' "$idx")
+
+  (( ${#cand_ids[@]} == 0 )) && return 0
+
+  # Build id -> diff_path map and file->[]ids overlap map.
+  declare -A DIFF_OF=()
+  declare -A FILES_OF=()      # id -> space-joined file list
+  declare -A TOUCHERS_OF=()   # file -> space-joined id list (for overlap + report)
+  local cid dpath f
+  for cid in "${cand_ids[@]}"; do
+    dpath="$(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | .diff_path' "$idx")"
+    DIFF_OF["$cid"]="$dpath"
+    [[ -s "$dpath" ]] || continue   # empty diff: nothing to apply, nothing to conflict
+    local files; files="$(diff_files "$dpath")"
+    FILES_OF["$cid"]="$(printf '%s' "$files" | tr '\n' ' ')"
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      TOUCHERS_OF["$f"]="${TOUCHERS_OF["$f"]:-} $cid"
+    done <<< "$files"
+  done
+
+  # Conflict set: any file touched by >1 task marks ALL its touchers conflicted.
+  declare -A CONFLICTED=()
+  declare -A CONFLICT_FILES_OF_TASK=()   # id -> space-joined conflicting file list
+  local file touchers count
+  for file in "${!TOUCHERS_OF[@]}"; do
+    touchers="${TOUCHERS_OF[$file]}"
+    count=$(wc -w <<< "$touchers")
+    if (( count > 1 )); then
+      for cid in $touchers; do
+        CONFLICTED["$cid"]=1
+        CONFLICT_FILES_OF_TASK["$cid"]="${CONFLICT_FILES_OF_TASK[$cid]:-} $file"
+      done
+    fi
+  done
+
+  local -a applied=() conflicted_report=() apply_failed=()
+  for cid in "${cand_ids[@]}"; do
+    dpath="${DIFF_OF[$cid]}"
+    if [[ -n "${CONFLICTED[$cid]:-}" ]]; then
+      set_merged "$cid" false
+      conflicted_report+=("$cid:${CONFLICT_FILES_OF_TASK[$cid]}")
+      continue
+    fi
+    if [[ ! -s "$dpath" ]]; then
+      # Empty diff (no changes): nothing to apply, but it was eligible and
+      # non-conflicted -- treat as not-applied rather than a failure.
+      set_merged "$cid" false
+      continue
+    fi
+    if git apply --check "$dpath" 2>/dev/null; then
+      if git apply "$dpath" 2>/dev/null; then
+        set_merged "$cid" true
+        applied+=("$cid")
+      else
+        set_merged "$cid" false
+        apply_failed+=("$cid")
+      fi
+    else
+      set_merged "$cid" false
+      apply_failed+=("$cid")
+    fi
+  done
+
+  # --- MERGE-REPORT.md ---
+  {
+    echo "# Worktree merge report: $OUT"
+    echo
+    echo "## Applied (merged:true)"
+    if (( ${#applied[@]} > 0 )); then
+      for cid in "${applied[@]}"; do echo "- $cid: ${FILES_OF[$cid]}"; done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo "## Conflicted (same file touched by multiple tasks; NOT applied)"
+    if (( ${#conflicted_report[@]} > 0 )); then
+      for entry in "${conflicted_report[@]}"; do
+        cid="${entry%%:*}"; local flist="${entry#*:}"
+        echo "- $cid: shared file(s):$flist"
+      done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo "## Apply failures (git apply --check or apply failed; diff kept)"
+    if (( ${#apply_failed[@]} > 0 )); then
+      for cid in "${apply_failed[@]}"; do echo "- $cid: ${DIFF_OF[$cid]}"; done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo 'Hand-integrate remaining diffs with: `git apply <path-to-diff>` (after resolving conflicts manually).'
+  } > "$OUT/MERGE-REPORT.md"
+
+  # --- SUMMARY.md addendum ---
+  {
+    echo ""
+    echo "## Worktree merge"
+    echo ""
+    echo "- applied: ${#applied[@]}"
+    echo "- conflicted: ${#conflicted_report[@]}"
+    echo "- apply-failed: ${#apply_failed[@]}"
+    echo "See \`MERGE-REPORT.md\` for details."
+  } >> "$OUT/SUMMARY.md"
 }
 
 # Single execution seam so timeout (W6) and worktree (W7) compose without
@@ -383,6 +526,9 @@ run_batch(){
         echo ""
         echo 'Clean up manually: `git worktree remove --force --force <path>` then `git branch -D <branch>`.'
       } >> "$OUT/SUMMARY.md"
+    fi
+    if $WORKTREE && $APPLY_WORKTREE; then
+      apply_worktree_merges
     fi
     echo "$OUT"
   fi
