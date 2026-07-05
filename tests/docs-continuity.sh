@@ -40,4 +40,13 @@ grep -q "open-gsd/gsd-core" "$DIR/CREDITS.md" && echo "ok - CREDITS credits gsd-
   || { echo "FAIL - CREDITS.md missing open-gsd/gsd-core"; fail=1; }
 grep -q "@opengsd/gsd-core" "$DIR/scripts/install-gsd.sh" && echo "ok - install-gsd points at gsd-core npx" \
   || { echo "FAIL - install-gsd.sh missing gsd-core npx guidance"; fail=1; }
+
+# --- A+F Task 5: ISA additive criteria ---
+grep -qi "7-phase decision table" "$DIR/ISA.md" && echo "ok - ISA has unified-table criterion" \
+  || { echo "FAIL - ISA.md missing unified 7-phase table criterion"; fail=1; }
+grep -qi "recommended-default" "$DIR/ISA.md" && grep -q "gsd-core" "$DIR/ISA.md" \
+  && echo "ok - ISA has gsd-core recommended-default criterion" \
+  || { echo "FAIL - ISA.md missing gsd-core recommended-default criterion"; fail=1; }
+grep -qi "redirect stub" "$DIR/ISA.md" && echo "ok - ISA has retirement criterion" \
+  || { echo "FAIL - ISA.md missing retirement criterion"; fail=1; }
 exit $fail
