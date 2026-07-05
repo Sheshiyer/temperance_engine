@@ -50,6 +50,12 @@ grep -qi "recommended-default" "$DIR/ISA.md" && grep -q "gsd-core" "$DIR/ISA.md"
 grep -qi "redirect stub" "$DIR/ISA.md" && echo "ok - ISA has retirement criterion" \
   || { echo "FAIL - ISA.md missing retirement criterion"; fail=1; }
 
+# --- #6: unified router invariant is documented ---
+grep -q 'classify-task\.sh' "$DIR/ISA.md" && echo "ok - ISA has classify-task.sh invariant" \
+  || { echo "FAIL - ISA missing classify-task.sh invariant"; fail=1; }
+grep -q -- '--verdict' "$DIR/ISA.md" && echo "ok - ISA has --verdict invariant" \
+  || { echo "FAIL - ISA missing --verdict"; fail=1; }
+
 # --- A+F Task 6: skill-clusters documented as the discovery layer ---
 grep -qi "discovery/lazy-load layer" "$DIR/docs/skill-clusters.md" \
   && echo "ok - skill-clusters.md names its unified-flow role" \
