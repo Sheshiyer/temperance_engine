@@ -82,4 +82,18 @@ check "route-only-with-fallbacks: inline task -> single inline line" "inline	-" 
 out=$(TEMPERANCE_BACKENDS="" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
 check "route-only-with-fallbacks: zero backends -> single none line" "none	-" "$out"
 
+# --- #6 unification: classifier is now sourced from classify-task.sh ---
+# Parity: MBR's task classification must equal the shared classifier's for a corpus.
+CT="$(dirname "$R")/classify-task.sh"
+for t in "refactor the auth module" "quick refactor the module" "debug this" \
+         "audit the code" "brainstorm ideas" "fix typo" "summarize this text" "do the thing"; do
+  via_ct="$("$CT" "$t" | cut -f1)"
+  # MBR --json exposes .task_type; use it as MBR's classification of record.
+  via_mbr="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json "$t" | jq -r '.task_type')"
+  check "parity[$t]" "$via_ct" "$via_mbr"
+done
+# quick refactor must classify as long-horizon in MBR too (proves shared ordering)
+qr="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json 'quick refactor the module' | jq -r '.task_type')"
+check "MBR quick-refactor=long-horizon" "long-horizon" "$qr"
+
 exit $fail

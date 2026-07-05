@@ -33,6 +33,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Single source of task-type classification + command-code type->model primary
+# (issue #6). classify-task.sh is POSIX sh and only defines functions when
+# sourced (its CLI dispatch is guarded by $0), so this does not run anything.
+# shellcheck source=classify-task.sh
+. "$SCRIPT_DIR/classify-task.sh"
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Backend Detection
 # ─────────────────────────────────────────────────────────────────────────────
@@ -111,75 +117,28 @@ declare -A MODEL_CATALOG=(
 # per backend, no same-backend duplicates). nvidia is intentionally excluded
 # from automatic priority selection -- it remains reachable via `--backend
 # nvidia` (see run_nvidia/execute_route + MODEL_CATALOG, both left intact).
-declare -A ROUTING_PRIORITY=(
-  # Fast iteration - DeepSeek Flash primary, Grok fallback, Kimi fallback
-  ["fast"]="command-code:deepseek/deepseek-v4-flash grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
-
-  # Long-horizon coding - Kimi K2.7 via Command Code primary, Grok fallback, direct Kimi fallback
-  ["long-horizon"]="command-code:moonshotai/Kimi-K2.7-Code grok:grok-build kimi:kimi-code/kimi-for-coding"
-
-  # Complex reasoning - Claude Fable primary, Grok fallback, Kimi fallback
-  ["reasoning"]="command-code:claude-fable-5 grok:grok-build kimi:kimi-code/kimi-for-coding"
-
-  # Validation/review - Gemini Flash primary, Grok fallback, Kimi fallback
-  ["validation"]="command-code:google/gemini-3.5-flash grok:grok-build kimi:kimi-code/kimi-for-coding"
-
-  # Creative/exploratory - Sonnet primary, Grok fallback, Kimi fallback
-  ["creative"]="command-code:claude-sonnet-5 grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
-
-  # Default balanced - Sonnet primary, Grok fallback, Kimi fallback
-  ["balanced"]="command-code:claude-sonnet-5 grok:grok-build kimi:kimi-code/kimi-for-coding"
+# grok/kimi fallback tails per task type (command-code primary is derived from
+# classify-task.sh's model_for_type, so the type->model catalog has ONE source).
+declare -A ROUTING_FALLBACK_TAILS=(
+  ["fast"]="grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
+  ["long-horizon"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["reasoning"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["validation"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["creative"]="grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
+  ["balanced"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
 )
+declare -A ROUTING_PRIORITY=()
+for _rt in fast long-horizon reasoning validation creative balanced; do
+  ROUTING_PRIORITY["$_rt"]="$(model_for_type "$_rt") ${ROUTING_FALLBACK_TAILS[$_rt]}"
+done
+unset _rt
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Complexity Analysis
 # ─────────────────────────────────────────────────────────────────────────────
 
 analyze_task_type() {
-  local desc="$1"
-  local lower_desc
-  lower_desc=$(echo "$desc" | tr '[:upper:]' '[:lower:]')
-  
-  # Long-horizon
-  if echo "$lower_desc" | grep -qE '\b(refactor|rewrite|migrate|redesign|overhaul|restructure|entire|all files|across.*files)\b'; then
-    echo "long-horizon"
-    return
-  fi
-  
-  # Reasoning
-  if echo "$lower_desc" | grep -qE '\b(analyze|debug|diagnose|explain|understand|reason|think|complex|difficult)\b'; then
-    echo "reasoning"
-    return
-  fi
-  
-  # Validation
-  if echo "$lower_desc" | grep -qE '\b(validate|verify|review|check|audit|test|ensure|confirm)\b'; then
-    echo "validation"
-    return
-  fi
-  
-  # Creative
-  if echo "$lower_desc" | grep -qE '\b(brainstorm|creative|design|explore|imagine|ideate|alternative)\b'; then
-    echo "creative"
-    return
-  fi
-  
-  # Fast (simple tasks)
-  if echo "$lower_desc" | grep -qE '\b(quick|simple|small|minor|tweak|fix typo|update comment)\b'; then
-    echo "fast"
-    return
-  fi
-  
-  # Check for extraction (inline)
-  if echo "$lower_desc" | grep -qE '\b(extract|classify|summarize|list|identify|find|count)\b'; then
-    if ! echo "$lower_desc" | grep -qE '\b(read|search|grep|edit|write|run|execute|test|build|compile)\b'; then
-      echo "inline"
-      return
-    fi
-  fi
-  
-  # Default
-  echo "balanced"
+  classify_task_type "$1"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
