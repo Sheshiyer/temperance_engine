@@ -48,7 +48,10 @@ strip_block() {
 identity_backup() {
   ib_target="$1"
   [ -e "$ib_target" ] || return 0
-  ib_stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  # Include PID so same-second re-apply/remove keeps distinct backups per invocation.
+  # macOS `date` has no portable sub-second format; PID+timestamp is portable and
+  # collision-proof for the fast re-apply/remove workflows this tool is meant to make safe.
+  ib_stamp="$(date -u +%Y%m%dT%H%M%SZ)-$$"
   ib_slug=$(printf '%s' "$ib_target" | sed 's#^/##; s#/#__#g')
   ib_dir="${TEMPERANCE_BACKUP_DIR:-$HOME/.temperance_engine/backups}/$ib_stamp"
   mkdir -p "$ib_dir"

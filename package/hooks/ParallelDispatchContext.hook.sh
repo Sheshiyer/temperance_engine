@@ -3,10 +3,17 @@
 #
 # Not auto-registered by install.sh. To use it, add it to your own
 # ~/.claude/settings.json under hooks.SessionStart yourself (this installer
-# never writes into settings.json JSON structure it doesn't own):
+# never writes into settings.json JSON structure it doesn't own). Point the
+# command at wherever THIS file actually lives on your machine -- either the
+# clone (recommended if you may `git pull` updates), or a copy you placed
+# under your PAI hooks dir:
 #
 #   { "hooks": [ { "type": "command",
-#       "command": "$PAI_HOME/hooks/ParallelDispatchContext.hook.sh" } ] }
+#       "command": "/absolute/path/to/temperance_engine/package/hooks/ParallelDispatchContext.hook.sh"
+#   } ] }
+#
+# The installer does not copy this hook anywhere, so `$PAI_HOME/hooks/...`
+# will NOT resolve unless you cp the file there yourself first.
 #
 # Checks (read-only, no side effects):
 #   - .planning/ present in cwd           -> GSD-managed project

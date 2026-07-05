@@ -15,7 +15,11 @@ jobs:
           fetch-depth: 0
 
       - name: Validate README continuity for PRs
+        # /bin/bash on macos-latest runners is stock 3.2 (no `mapfile`, no `${arr[@]}`
+        # under `set -u` on empty arrays). Invoke homebrew's bash 5.x explicitly
+        # (preinstalled on macos-latest at /opt/homebrew/bin/bash) rather than relying
+        # on PATH ordering for the inner `bash` call.
         run: |
-          bash scripts/readme-continuity-check.sh \
+          /opt/homebrew/bin/bash scripts/readme-continuity-check.sh \
             "${{ github.event.pull_request.base.sha }}" \
             "${{ github.event.pull_request.head.sha }}"
