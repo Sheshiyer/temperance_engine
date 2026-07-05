@@ -1,8 +1,23 @@
 #!/usr/bin/env bash
 # Mock command-code/kimi/grok: print the prompt passed via -p (or last arg) verbatim.
+# Symlink this file to different basenames (command-code, kimi, ...) to mock
+# multiple backends in one test. Two exit-control tokens are honored in the
+# prompt text:
+#   EXIT=N           -- exit N regardless of which backend name we were
+#                        invoked as (legacy, single-backend tests).
+#   <base>_EXIT=N     -- exit N ONLY when invoked as basename <base> (e.g.
+#                        "command-code_EXIT=1 kimi_EXIT=0 do stuff" lets a
+#                        single task payload drive per-backend fallback-chain
+#                        tests: the command-code attempt exits 1, the kimi
+#                        attempt on the SAME task exits 0).
+base="$(basename "$0")"
 prompt=""; prev=""
 for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
 [[ -z "$prompt" ]] && prompt="${!#}"
+if [[ "$prompt" == *"${base}_EXIT="* ]]; then
+  n="${prompt#*${base}_EXIT=}"; n="${n%% *}"
+  exit "$n"
+fi
 if [[ "$prompt" == *EXIT=* ]]; then n="${prompt#*EXIT=}"; n="${n%% *}"; exit "$n"; fi
 if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
 printf 'MOCK_OUTPUT_START\n%s\nMOCK_OUTPUT_END\n' "$prompt"

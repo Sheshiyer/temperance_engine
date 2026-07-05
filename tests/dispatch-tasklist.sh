@@ -279,5 +279,52 @@ check "task text with embedded newline round-trips literally" "$expected" "$got"
 [[ -e /tmp/pwned2 ]] && { echo "FAIL - injection executed!"; fail=1; rm -f /tmp/pwned2; }
 rm -f "$DIR/tests/fixtures/command-code"
 
+# --- fallback chain (#8): per-task cc -> grok -> kimi fallback -------------
+# grok is not PATH-mockable (invoked via absolute $HOME/.grok/bin/grok), so
+# the execution-level fallback tests below use only command-code + kimi
+# (both bareword/PATH-invoked -> mockable). grok ordering is covered at the
+# router level in tests/router-hardening.sh.
+
+# (a) primary fails, fallback succeeds: command-code exits 1, kimi exits 0
+# on the SAME task payload -> overall status=ok, attempts length 2,
+# attempts[0] failed/command-code, final top-level backend=kimi.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+printf '%s' '[{"id":"FB1","task":"command-code_EXIT=1 kimi_EXIT=0 do stuff"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+check "fallback success: top-level status=ok" "ok" "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+check "fallback success: top-level backend=kimi (final attempt)" "kimi" "$(jq -r '.tasks[0].backend' "$run/index.json" 2>/dev/null)"
+check "fallback success: attempts length 2" "2" "$(jq -r '.tasks[0].attempts | length' "$run/index.json" 2>/dev/null)"
+check "fallback success: attempts[0].backend=command-code" "command-code" "$(jq -r '.tasks[0].attempts[0].backend' "$run/index.json" 2>/dev/null)"
+check "fallback success: attempts[0].status=failed" "failed" "$(jq -r '.tasks[0].attempts[0].status' "$run/index.json" 2>/dev/null)"
+check "fallback success: attempts[1].backend=kimi" "kimi" "$(jq -r '.tasks[0].attempts[1].backend' "$run/index.json" 2>/dev/null)"
+check "fallback success: attempts[1].status=ok" "ok" "$(jq -r '.tasks[0].attempts[1].status' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
+# (b) all backends fail: command-code exits 1, kimi exits 1 -> status=failed,
+# attempts length 2 (list exhausted).
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+printf '%s' '[{"id":"FB2","task":"command-code_EXIT=1 kimi_EXIT=1 do stuff"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+check "fallback all-fail: status=failed" "failed" "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+check "fallback all-fail: attempts length 2" "2" "$(jq -r '.tasks[0].attempts | length' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
+# (c) timeout -> NO fallback attempted: a slow task with --timeout 1 and 2
+# backends available -> status=timeout, attempts length 1 (first attempt
+# only; the watchdog kill stops the chain rather than advancing to kimi).
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+printf '%s' '[{"id":"FB3","task":"SLEEP=5 refactor"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --timeout 1 --out "$run" --tasks - >/dev/null 2>&1
+check "fallback timeout: status=timeout" "timeout" "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+check "fallback timeout: attempts length 1 (no fallback)" "1" "$(jq -r '.tasks[0].attempts | length' "$run/index.json" 2>/dev/null)"
+check "fallback timeout: attempts[0].status=timeout" "timeout" "$(jq -r '.tasks[0].attempts[0].status' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail

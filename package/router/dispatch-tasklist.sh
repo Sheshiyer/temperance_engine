@@ -120,17 +120,40 @@ route_task() { # id task backend model  -> echoes "backend<TAB>model"
   "$ROUTER" "${args[@]}" -- "$task"
 }
 
+# route_fallbacks: id task backend model -> echoes "backend<TAB>model" lines,
+# one per backend in the task-type's priority order, filtered to available
+# backends (issue #8 fallback chain: command-code -> grok -> kimi). Same
+# --backend/--model override convention as route_task: a forced backend
+# collapses the chain to that single backend (handled by the router itself).
+route_fallbacks() { # id task backend model  -> echoes "backend<TAB>model" lines
+  local task="$2" backend="$3" model="$4" args=(--route-only-with-fallbacks)
+  [[ -n "$backend" && "$backend" != "auto" ]] && args+=(--backend "$backend")
+  [[ -n "$model"   && "$model"   != "auto" ]] && args+=(--model "$model")
+  "$ROUTER" "${args[@]}" -- "$task"
+}
+
 # --- per-task metadata + dispatch wrapper (W4; W7 adds worktree/diff_path) ---
-write_meta(){ # id task backend model exit dur status [worktree] [diff_path]  -> atomic
+# attempts (issue #8) is additive: a JSON array of {backend,model,exit,
+# duration_s,status} built with jq, one entry per fallback attempt. Top-level
+# backend/model/exit/duration_s/status always reflect the FINAL attempt, so
+# existing consumers reading only those fields are unaffected.
+write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [attempts_json]  -> atomic
   local f="$OUT/$1.meta.json"
-  local wt="${8:-}" dp="${9:-}"
+  local wt="${8:-}" dp="${9:-}" attempts="${10:-[]}"
   jq -n --arg id "$1" --arg task "$2" --arg b "$3" --arg m "$4" \
         --argjson ex "$5" --argjson d "$6" --arg st "$7" \
-        --arg wt "$wt" --arg dp "$dp" \
+        --arg wt "$wt" --arg dp "$dp" --argjson attempts "$attempts" \
     '{id:$id,task:$task,backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
       worktree:(if $wt=="" then null else $wt end),
-      diff_path:(if $dp=="" then null else $dp end)}' \
+      diff_path:(if $dp=="" then null else $dp end),
+      attempts:$attempts}' \
     > "$f.tmp" && mv -f "$f.tmp" "$f"
+}
+
+# attempt_record: backend model exit dur status -> one jq-built attempt object
+attempt_record(){ # backend model exit dur status -> JSON object on stdout
+  jq -n --arg b "$1" --arg m "$2" --argjson ex "$3" --argjson d "$4" --arg st "$5" \
+    '{backend:$b, model:$m, exit:$ex, duration_s:$d, status:$st}'
 }
 
 # kill_tree PID — kill a process and all its descendants (portable, no setsid;
@@ -151,23 +174,16 @@ exec_task(){ # backend task model outfile
   else dispatch_backend "$1" "$2" "$3" "$4"; fi
 }
 
-run_one(){ # id task rb rm
-  local id="$1" task="$2" rb="$3" rm="$4" start end dur ex
-  local branch="" diffp=""
+# run_attempt: one backend/model attempt of a task, under the same
+# watchdog-timeout logic that existed pre-fallback-chain. Echoes "exit<TAB>dur"
+# on stdout; the task's own stdout/stderr still go to $outfile as before.
+run_attempt(){ # backend task model outfile timeout  -> echoes "ex<TAB>dur"
+  local backend="$1" task="$2" model="$3" outfile="$4" tmo="$5" start end dur ex
   start=$(date +%s)
-  TASK_WT=""   # default: no worktree (W7 sets this before this block)
-  if $WORKTREE; then
-    branch="te-dispatch/${RUNTAG}/${id}"
-    TASK_WT="$OUT/wt-$id"
-    if ! git worktree add -q -b "$branch" "$TASK_WT" HEAD 2>/dev/null; then
-      write_meta "$id" "$task" "$rb" "$rm" 1 0 "failed" "" ""
-      return
-    fi
-  fi
-  if (( TIMEOUT > 0 )); then
-    local sentinel="$OUT/.$id.watchdog"
-    exec_task "$rb" "$task" "$rm" "$OUT/$id.out" & local bpid=$!
-    ( sleep "$TIMEOUT"; touch "$sentinel"; kill_tree "$bpid" ) & local wpid=$!
+  if (( tmo > 0 )); then
+    local sentinel="$outfile.watchdog"
+    exec_task "$backend" "$task" "$model" "$outfile" & local bpid=$!
+    ( sleep "$tmo"; touch "$sentinel"; kill_tree "$bpid" ) & local wpid=$!
     if wait "$bpid" 2>/dev/null; then ex=0; else ex=$?; fi
     # kill_tree (not plain kill): the watchdog subshell's own `sleep` child
     # would otherwise survive `kill "$wpid"` as an orphan when the task
@@ -183,11 +199,73 @@ run_one(){ # id task rb rm
       rm -f "$sentinel"
     fi
   else
-    exec_task "$rb" "$task" "$rm" "$OUT/$id.out"; ex=$?
+    exec_task "$backend" "$task" "$model" "$outfile"; ex=$?
   fi
   end=$(date +%s); dur=$((end-start))
-  local st="ok"
-  if (( ex == 124 )); then st="timeout"; elif (( ex != 0 )); then st="failed"; fi
+  printf '%s\t%s\n' "$ex" "$dur"
+}
+
+run_one(){ # id task rb rm [reqb] [reqm]
+  local id="$1" task="$2" rb="$3" rm="$4"
+  # reqb/reqm: the RAW task-level backend/model override ("auto" if unset in
+  # the task JSON) -- used only to ask route_fallbacks for the chain with the
+  # same override semantics as the original route_task call. Falls back to
+  # "auto" for any caller that doesn't pass them (keeps run_one callable with
+  # its pre-#8 4-arg signature).
+  local reqb="${5:-auto}" reqm="${6:-auto}"
+  local branch="" diffp=""
+  TASK_WT=""   # default: no worktree (W7 sets this before this block)
+  if $WORKTREE; then
+    branch="te-dispatch/${RUNTAG}/${id}"
+    TASK_WT="$OUT/wt-$id"
+    if ! git worktree add -q -b "$branch" "$TASK_WT" HEAD 2>/dev/null; then
+      write_meta "$id" "$task" "$rb" "$rm" 1 0 "failed" "" "" "[]"
+      return
+    fi
+  fi
+
+  # Fallback chain (#8): try each backend:model the router hands back, in
+  # order. The pre-classified $rb/$rm (chosen route) is always attempt #1 --
+  # route_fallbacks independently re-derives the SAME task-type's priority
+  # list, so it always starts with $rb/$rm too, but re-deriving here (rather
+  # than trusting rb/rm alone) is what gives us the rest of the chain to fall
+  # back to. exit 0 -> stop (ok). exit 124 (timeout) -> stop, NO fallback:
+  # a per-attempt timeout means the task itself is too slow, not a
+  # backend-health signal, so trying another backend would just repeat the
+  # same wait. Any other non-zero exit -> record failed, advance to the next
+  # backend in the chain. Chain exhausted with no success -> status=failed
+  # using the LAST attempt's exit code.
+  local -a fb_backends=() fb_models=()
+  while IFS=$'\t' read -r fbk fmk; do
+    [[ -z "$fbk" || "$fbk" == "none" || "$fbk" == "inline" ]] && continue
+    fb_backends+=("$fbk"); fb_models+=("$fmk")
+  done < <(route_fallbacks "$id" "$task" "$reqb" "$reqm")
+  # Guard: if the router's fallback listing came back empty (e.g. a forced
+  # backend that's unavailable), still attempt the pre-classified route once
+  # so behavior degrades to the pre-#8 single-attempt path rather than
+  # silently doing nothing.
+  if (( ${#fb_backends[@]} == 0 )); then
+    fb_backends=("$rb"); fb_models=("$rm")
+  fi
+
+  local attempts_json="[]"
+  local ex=1 dur=0 st="failed" fbk fmk
+  local i
+  for ((i=0; i<${#fb_backends[@]}; i++)); do
+    fbk="${fb_backends[i]}"; fmk="${fb_models[i]}"
+    IFS=$'\t' read -r ex dur < <(run_attempt "$fbk" "$task" "$fmk" "$OUT/$id.out" "$TIMEOUT")
+    if (( ex == 124 )); then st="timeout"
+    elif (( ex != 0 )); then st="failed"
+    else st="ok"
+    fi
+    attempts_json=$(jq -c --argjson prev "$attempts_json" --argjson rec "$(attempt_record "$fbk" "$fmk" "$ex" "$dur" "$st")" \
+      -n '$prev + [$rec]')
+    rb="$fbk"; rm="$fmk"   # top-level fields track the FINAL attempt
+    if [[ "$st" == "ok" ]]; then break; fi
+    if [[ "$st" == "timeout" ]]; then break; fi   # no fallback on timeout
+    # st == "failed": advance to next backend in the chain, if any.
+  done
+
   if [[ -n "$TASK_WT" ]]; then
     diffp="$OUT/$id.diff"
     ( cd "$TASK_WT" && git add -A && git diff --cached ) > "$diffp" 2>/dev/null
@@ -203,7 +281,7 @@ run_one(){ # id task rb rm
       fi
     fi
   fi
-  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp"
+  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp" "$attempts_json"
 }
 
 # --- pre-classify every task (routing only, no dispatch) so we can fail-open
@@ -211,7 +289,7 @@ run_one(){ # id task rb rm
 # in parallel arrays, indexed by task position, so run_batch's loop below
 # doesn't re-invoke the router per task.
 n=$(echo "$raw" | jq 'length')
-declare -a ROUTE_BACKEND ROUTE_MODEL ROUTE_STATUS
+declare -a ROUTE_BACKEND ROUTE_MODEL ROUTE_STATUS REQ_BACKEND REQ_MODEL
 any_dispatch=false
 for ((i=0; i<n; i++)); do
   id=$(echo "$raw"   | jq -r ".[$i].id")
@@ -226,6 +304,11 @@ for ((i=0; i<n; i++)); do
   esac
   [[ "$status" == "dispatch" ]] && any_dispatch=true
   ROUTE_BACKEND[i]="$rb"; ROUTE_MODEL[i]="$rm"; ROUTE_STATUS[i]="$status"
+  # Cache the RAW task-level backend/model override (may be "auto") -- needed
+  # by run_one to ask route_fallbacks for the full chain using the same
+  # override semantics as the initial route_task call, rather than forcing
+  # the chain down to the single already-resolved backend (rb).
+  REQ_BACKEND[i]="$backend"; REQ_MODEL[i]="$model"
 done
 
 # Phantom-route guard (spec sec 9.G16): if nothing classified as dispatch AND
@@ -263,6 +346,7 @@ run_batch(){
     id=$(echo "$raw"   | jq -r ".[$i].id")
     task=$(echo "$raw" | jq -r ".[$i].task")
     rb="${ROUTE_BACKEND[i]}" rm="${ROUTE_MODEL[i]}" status="${ROUTE_STATUS[i]}"
+    reqb="${REQ_BACKEND[i]}" reqm="${REQ_MODEL[i]}"
     if $DRY_RUN; then
       if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
       continue
@@ -270,7 +354,7 @@ run_batch(){
     case "$status" in
       dispatch)
         while (( $(jobs -rp | wc -l) >= CONCURRENCY )); do wait -n; done
-        run_one "$id" "$task" "$rb" "$rm" &
+        run_one "$id" "$task" "$rb" "$rm" "$reqb" "$reqm" &
         ;;
       *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" ;;
     esac
