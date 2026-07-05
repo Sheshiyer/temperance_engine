@@ -1,0 +1,230 @@
+{
+  "columns": [
+    {
+      "key": "Project Name",
+      "label": "Project Name",
+      "type": "text"
+    },
+    {
+      "key": "Description",
+      "label": "Description",
+      "type": "text"
+    },
+    {
+      "key": "Integration Type",
+      "label": "Integration Type",
+      "type": "text"
+    },
+    {
+      "key": "Upstream URL",
+      "label": "Upstream URL",
+      "type": "text"
+    },
+    {
+      "key": "Role in Runtime",
+      "label": "Role in Runtime",
+      "type": "text"
+    },
+    {
+      "key": "Status",
+      "label": "Status",
+      "type": "text"
+    },
+    {
+      "key": "Source",
+      "label": "Source",
+      "type": "text"
+    }
+  ],
+  "rows": [
+    {
+      "Project Name": "Personal AI Infrastructure (PAI)",
+      "Description": "Principal upstream inspiration for the PAI/Algorithm/ISA runtime pattern. Provides live infrastructure for AI assistance, memory, and instruction surfaces.",
+      "Integration Type": "Principal / Template installation",
+      "Upstream URL": "https://github.com/danielmiessler/Personal_AI_Infrastructure",
+      "Role in Runtime": "Core machine-specific runtime flow and execution logic; steering and memory (fully external).",
+      "Status": "verified / unreleased",
+      "Source": "[1], [2], [3], [4]"
+    },
+    {
+      "Project Name": "OpenCode",
+      "Description": "Open-source coding assistant environment and configuration surface with routing context and MCP support.",
+      "Integration Type": "Template installation / Referenced",
+      "Upstream URL": "https://github.com/anomalyco/opencode",
+      "Role in Runtime": "Primary coding interface template; receives instruction templates and config; provides hooks with routing context.",
+      "Status": "verified / referenced",
+      "Source": "[1], [2], [3], [5]"
+    },
+    {
+      "Project Name": "command-code",
+      "Description": "Primary, versatile backend supporting 35 models and an agentic execution model.",
+      "Integration Type": "Principal",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Primary backend for versatile tasks.",
+      "Status": "verified",
+      "Source": "[5]"
+    },
+    {
+      "Project Name": "CodeGraph",
+      "Description": "Local AST-backed code indexing, analysis, and structural search tool.",
+      "Integration Type": "Principal / Referenced",
+      "Upstream URL": "https://github.com/colbymchenry/codegraph",
+      "Role in Runtime": "Powers structural search, .agents routing rules, and runtime logic guidance.",
+      "Status": "verified / unreleased / referenced",
+      "Source": "[1], [2], [3], [4]"
+    },
+    {
+      "Project Name": "peon-ping",
+      "Description": "Local voice notification pattern, sound pack mapping, and runtime signaling tool.",
+      "Integration Type": "Principal / Referenced",
+      "Upstream URL": "https://github.com/PeonPing/peon-ping",
+      "Role in Runtime": "Maps Algorithm phases to local sound packs; manages agent communication pings.",
+      "Status": "verified / unreleased",
+      "Source": "[1], [2], [3], [4]"
+    },
+    {
+      "Project Name": "Cursor",
+      "Description": "AI-powered code editor with agent and project rule guidance surfaces.",
+      "Integration Type": "Template installation / Referenced",
+      "Upstream URL": "https://cursor.com/docs/rules",
+      "Role in Runtime": "Ships AGENTS.md and .cursor/rules guidance by default without Claude auth requirements.",
+      "Status": "verified / referenced",
+      "Source": "[1], [2], [3]"
+    },
+    {
+      "Project Name": "Bun",
+      "Description": "High-performance JavaScript runtime and package manager.",
+      "Integration Type": "Referenced / Optional",
+      "Upstream URL": "https://github.com/oven-sh/bun",
+      "Role in Runtime": "Used for building scripts and running the local Pulse compatibility server on localhost:31337.",
+      "Status": "verified",
+      "Source": "[1], [2], [3]"
+    },
+    {
+      "Project Name": "GitHub CLI (gh)",
+      "Description": "Official CLI for interacting with GitHub repositories and publishing workflows.",
+      "Integration Type": "Referenced / Optional",
+      "Upstream URL": "https://github.com/cli/cli",
+      "Role in Runtime": "Used for verifying upstream links, repository creation, and optional publishing operations.",
+      "Status": "verified / optional",
+      "Source": "[1], [2], [3]"
+    },
+    {
+      "Project Name": "ripgrep",
+      "Description": "Fast line-oriented search tool for file and text patterns.",
+      "Integration Type": "Referenced",
+      "Upstream URL": "https://github.com/BurntSushi/ripgrep",
+      "Role in Runtime": "Dependency for efficient text searching and literal search patterns alongside structural indexing.",
+      "Status": "verified / referenced",
+      "Source": "[1], [2], [3]"
+    },
+    {
+      "Project Name": "OpenAI Codex CLI",
+      "Description": "Local instruction, hook, and image generation surfaces.",
+      "Integration Type": "Optional template installation / Referenced",
+      "Upstream URL": "https://github.com/openai/codex",
+      "Role in Runtime": "Receives local instruction templates and provides image generation for assets when enabled.",
+      "Status": "verified / optional",
+      "Source": "[1], [2], [3]"
+    },
+    {
+      "Project Name": "Pulse server",
+      "Description": "Compatibility server for runtime communication and Pulse-based operations.",
+      "Integration Type": "Principal / Template installation",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Optional compatibility layer for runtime communication; skipped by default in standard install.",
+      "Status": "verified / optional",
+      "Source": "[1], [4]"
+    },
+    {
+      "Project Name": "skill-cluster",
+      "Description": "Routing and resolution system for skill-based agent capabilities.",
+      "Integration Type": "Principal",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Handles skill-cluster routing and resolver logic for agent skills.",
+      "Status": "verified",
+      "Source": "[1]"
+    },
+    {
+      "Project Name": "superpowers",
+      "Description": "Runtime capability enhancements.",
+      "Integration Type": "Principal",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Runtime core component.",
+      "Status": "verified",
+      "Source": "[4]"
+    },
+    {
+      "Project Name": "kimi",
+      "Description": "Long-horizon coding specialist utilizing the K2.7 Code (262K) model.",
+      "Integration Type": "Principal",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Long-horizon coding and time-critical simple tasks.",
+      "Status": "verified",
+      "Source": "[5]"
+    },
+    {
+      "Project Name": "grok",
+      "Description": "Fast iteration tool located at ~/.grok/bin/grok.",
+      "Integration Type": "Principal",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Fast iteration and time-critical simple tasks.",
+      "Status": "verified",
+      "Source": "[5]"
+    },
+    {
+      "Project Name": "nvidia",
+      "Description": "API-based backend featuring Nemotron Ultra for deep reasoning.",
+      "Integration Type": "Principal",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Deep reasoning tasks.",
+      "Status": "verified",
+      "Source": "[5]"
+    },
+    {
+      "Project Name": "ParallelDispatchContext",
+      "Description": "System for parallel task dispatching.",
+      "Integration Type": "Principal",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Hook-based parallel execution.",
+      "Status": "unreleased",
+      "Source": "[4]"
+    },
+    {
+      "Project Name": "Enrichment core",
+      "Description": "Automatic task classification system.",
+      "Integration Type": "Referenced",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Automatic task classification.",
+      "Status": "verified",
+      "Source": "[5]"
+    },
+    {
+      "Project Name": "Claude Code",
+      "Description": "Optional AI product surface from Anthropic.",
+      "Integration Type": "Optional template installation",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Receives local instruction templates only when enabled; optional compatibility target.",
+      "Status": "optional",
+      "Source": "[2], [3]"
+    },
+    {
+      "Project Name": "Claude",
+      "Description": "Anthropic AI model templates and model-specific advisor paths.",
+      "Integration Type": "Template installation",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "Optional advisor path and template provider; skipped by default.",
+      "Status": "optional",
+      "Source": "[1]"
+    },
+    {
+      "Project Name": "GSD (Get Stuff Done)",
+      "Description": "External workstream and task management system or configuration framework.",
+      "Integration Type": "Referenced",
+      "Upstream URL": "Not in source",
+      "Role in Runtime": "External configuration via read-only config.json; remains fully external to Temperance.",
+      "Status": "optional",
+      "Source": "[1], [4]"
+    }
+  ]
+}
