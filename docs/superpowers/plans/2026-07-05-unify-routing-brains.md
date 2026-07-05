@@ -12,7 +12,7 @@
 
 - `classify-task.sh` is **POSIX sh** (`#!/usr/bin/env sh`), no bashisms — it must run under `/bin/sh`, macOS system bash 3.2, and homebrew bash 5.x. It must NOT call `set -e`/`set -u`/`set -o pipefail` (it is sourced into MBR and must not mutate MBR's shell options).
 - No Node/`bun` dependency in any bash path. `routing.ts` may exec `classify-task.sh` (a shell script), but the bash dispatch path must never require Node.
-- JSON only via `jq` (never string-interpolated). No absolute `/Users/...` paths — use `$HOME`/env/`SCRIPT_DIR`.
+- JSON only via `jq` (never string-interpolated). No absolute user-home or machine-specific paths — use `$HOME`/env/`SCRIPT_DIR`.
 - **command-code is the sole auto-preferred external backend.** grok/kimi remain reachable only via MBR's `--backend` and the dispatch fallback chain; never auto-preferred. `nvidia` never appears in `--route-only-with-fallbacks`.
 - `claude-subagent` = the no-external-backend fallback (reinterprets MBR's `none` sentinel). No new positive "needs-session" classifier.
 - **Preserve byte-for-byte:** `--route-only` (C1), `--route-only-with-fallbacks` incl. nvidia-absent (C2), `--list-backends` (C3), the `routing:` line + trailing `| skill=temperance-parallel-dispatch` + empty zero-backend branch (C6). `--json` may only gain an additive `.verdict` key.
