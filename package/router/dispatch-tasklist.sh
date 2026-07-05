@@ -40,7 +40,7 @@ dispatch_backend(){ # backend task model outfile -> exit code
 DRY_RUN=false; TASKS_FILE=""; OUT=""; FOREGROUND=false; MAX_TURNS="${MAX_TURNS:-10}"
 CONCURRENCY="${CONCURRENCY:-4}"
 TIMEOUT="${TIMEOUT:-0}"   # per-task watchdog timeout in seconds; 0 = off
-WORKTREE=false; ALLOW_DIRTY=false
+WORKTREE=false; ALLOW_DIRTY=false; APPLY_WORKTREE=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tasks) TASKS_FILE="$2"; shift 2 ;;
@@ -52,6 +52,7 @@ while [[ $# -gt 0 ]]; do
     --timeout) TIMEOUT="$2"; shift 2 ;;
     --worktree) WORKTREE=true; shift ;;
     --allow-dirty) ALLOW_DIRTY=true; shift ;;
+    --apply-worktree) APPLY_WORKTREE=true; shift ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -146,8 +147,42 @@ write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [at
     '{id:$id,task:$task,backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
       worktree:(if $wt=="" then null else $wt end),
       diff_path:(if $dp=="" then null else $dp end),
-      attempts:$attempts}' \
+      attempts:$attempts,
+      merged:null}' \
     > "$f.tmp" && mv -f "$f.tmp" "$f"
+}
+
+# set_merged: id merged_value("true"|"false") -> patch the .meta.json's
+# `merged` field in place (jq-built, atomic). Only invoked from the
+# post-run --apply-worktree pass, and only for tasks that actually went
+# through worktree capture -- so `merged` stays `null` for everything else
+# (non-worktree tasks, or any run without --apply-worktree), per the schema.
+set_merged(){ # id merged("true"|"false")
+  local f="$OUT/$1.meta.json"
+  [[ -f "$f" ]] || return 0
+  jq --argjson mv "$2" '.merged = $mv' "$f" > "$f.tmp" && mv -f "$f.tmp" "$f"
+}
+
+# build_index_json: (re)assemble $OUT/index.json from the current
+# $OUT/*.meta.json files, atomically. Single source of truth for the
+# aggregation shape so both the original post-dispatch write and the
+# post-merge refresh (Codex review finding P2b) use the exact same jq --
+# no hand-edited/duplicated field lists to drift out of sync.
+#
+# P2b: index.json is first written before apply_worktree_merges runs;
+# set_merged only patches each per-task .meta.json, so without this refresh
+# index.json's .tasks[].merged stays null even after the merge pass sets
+# true/false in the metas. apply_worktree_merges calls this again at its END
+# (after every set_merged call) so callers reading the aggregate see the
+# real merged state.
+build_index_json(){
+  jq -s --arg dir "$OUT" '{run_dir:$dir, tasks:., summary:{
+     ok:(map(select(.status=="ok"))|length),
+     failed:(map(select(.status=="failed"))|length),
+     timeout:(map(select(.status=="timeout"))|length),
+     skipped:(map(select(.status|startswith("skipped")))|length),
+     unavailable:(map(select(.status=="unavailable"))|length)}}' \
+     "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json"
 }
 
 # attempt_record: backend model exit dur status -> one jq-built attempt object
@@ -163,6 +198,366 @@ kill_tree(){
   local p="$1" c
   for c in $(pgrep -P "$p" 2>/dev/null); do kill_tree "$c"; done
   kill -TERM "$p" 2>/dev/null
+}
+
+# diff_files: diff_path -> one file path per line touched by that diff.
+# Parses the patch text directly rather than shelling out to
+# `git apply --numstat` so it works even on an empty/whitespace-only diff
+# (numstat on an empty file errors on some git versions) and needs no cwd.
+#
+# Reviewer finding (#7 follow-up): a naive `diff --git a/X b/Y` header parse
+# that only captures the a/ side silently drops the DESTINATION of a
+# rename/copy (git emits `diff --git a/orig.txt b/shared.txt` for a pure
+# rename, with no other line mentioning shared.txt in some cases). That let a
+# rename-to-shared.txt and a separate write-to-shared.txt slip past overlap
+# detection as non-conflicting, which broke the feature's core safety
+# guarantee. Fix: union every per-path line the patch format can produce --
+# each of these lines carries exactly one unambiguous path, so there's no
+# space-splitting ambiguity:
+#   rename from / rename to / copy from / copy to   (rename & copy patches)
+#   --- a/X / +++ b/X                                (content hunks; skip /dev/null)
+# ...plus a header fallback that captures BOTH a/ and b/ sides (covers
+# mode-only or binary diffs that have no ---/+++ hunk lines at all). Adding
+# extra/duplicate keys can only make overlap detection MORE conservative
+# (more likely to flag a conflict), never less -- that's the safe direction,
+# so the union is intentional. Output is sorted + deduped; one path per line,
+# same newline-separated contract callers already rely on.
+#
+# Codex review finding (P2a): for a filename containing a SPACE, git appends
+# a TAB then metadata after the path on `---`/`+++` lines (e.g.
+# "+++ b/shared file.txt<TAB>..."), but the corresponding `rename from`/
+# `rename to`/`copy from`/`copy to` lines carry NO such tab. Left unstripped,
+# that produces two DIFFERENT overlap keys for the same file ("shared
+# file.txt<TAB>..." vs "shared file.txt"), so a rename-to and a write-to the
+# same spaced filename are missed as an overlap. Fix: strip everything from
+# the first literal tab onward on every extracted line before the
+# dequote/prefix-strip step. `rename from/to`, `copy from/to`, and the
+# `diff --git` header never carry a tab suffix, so this strip is a no-op for
+# them and only affects `---`/`+++` lines -- safe to apply unconditionally.
+diff_files(){ # diff_path
+  {
+    grep -E '^rename from ' "$1" 2>/dev/null | sed -E 's#^rename from ##'
+    grep -E '^rename to '   "$1" 2>/dev/null | sed -E 's#^rename to ##'
+    grep -E '^copy from '   "$1" 2>/dev/null | sed -E 's#^copy from ##'
+    grep -E '^copy to '     "$1" 2>/dev/null | sed -E 's#^copy to ##'
+    grep -E '^--- '         "$1" 2>/dev/null | sed -E 's#^--- ##'
+    grep -E '^\+\+\+ '      "$1" 2>/dev/null | sed -E 's#^\+\+\+ ##'
+    # Header fallback: split `diff --git a/X b/Y` (plain) or
+    # `diff --git "a/X" "b/Y"` (quoted) into its two path tokens, one per
+    # line, so both sides feed the same per-line dequote/prefix-strip below.
+    grep -E '^diff --git '  "$1" 2>/dev/null \
+      | sed -E 's#^diff --git ("[^"]*"|[^ ]+) ("[^"]*"|[^ ]+)$#\1\n\2#'
+  } | sed -E $'s/\t.*$//' \
+    | while IFS= read -r _p; do dequote_path "$_p"; done \
+    | sed -E 's#^(a/|b/)##' \
+    | grep -v -E '^(/dev/null)?$' \
+    | sort -u
+}
+
+# dequote_path: best-effort decode of a single git-quoted path token (e.g.
+# "caf\303\251.txt" for non-ASCII/special-char filenames). Overlap SAFETY
+# never depends on this decoding succeeding -- both sides of a rename/copy
+# produce the identical key whether quoted-and-decoded or left raw, so a
+# decode miss can only affect MERGE-REPORT readability, never correctness.
+# Always falls back to the raw token on any doubt; never errors, never
+# drops a path.
+dequote_path(){
+  local p="$1" inner decoded
+  if [[ "$p" == \"*\" && "$p" == *\" && ${#p} -ge 2 ]]; then
+    inner="${p:1:-1}"
+    decoded="$(printf '%b' "$inner" 2>/dev/null)"
+    [[ -n "$decoded" ]] && { printf '%s\n' "$decoded"; return; }
+  fi
+  printf '%s\n' "$p"
+}
+
+# apply_worktree_merges: post-run, opt-in (--apply-worktree only) safe-path
+# auto-merge of captured worktree diffs into the caller's cwd (issue #7).
+# Runs AFTER index.json exists so it can read each task's final status +
+# diff_path from one source of truth. Fail-open throughout: any apply
+# failure leaves the <id>.diff file on disk and marks that task merged:false,
+# never touching the cwd for that task.
+#
+# Codex review finding (P1): `git apply --check` / `git apply` must run
+# root-relative, not cwd-relative. The captured diffs are produced by
+# `git -C $wt diff --cached`, so their paths are root-relative. If this
+# wrapper is invoked from a SUBDIRECTORY of the repo, running plain
+# `git apply` there makes git treat the root-rooted paths as outside cwd --
+# it prints "Skipped patch '...'" and exits 0, so both --check and apply
+# "succeed" with NO file changes, and set_merged records a false merged:true.
+# Fix: resolve the repo root ONCE here and run both --check and apply via
+# `git -C "$root"`. $dpath is always absolute ($OUT is absolute), so -C does
+# not affect how it's read. Fail-open: if root can't be resolved, do not
+# apply anything -- every candidate is marked merged:false and the report
+# notes the reason, rather than risk a repeat of the silent-success bug.
+apply_worktree_merges(){
+  local idx="$OUT/index.json"
+  [[ -f "$idx" ]] || return 0
+
+  local root; root="$(git rev-parse --show-toplevel 2>/dev/null)"
+
+  # OVERLAP UNIVERSE vs APPLY SET (Codex review finding P1, #7 follow-up):
+  # these are two deliberately different sets.
+  #
+  # The OVERLAP UNIVERSE is every worktree task with a non-empty captured
+  # diff, REGARDLESS of status (ok/failed/timeout) and regardless of
+  # fallback. Any captured diff is a competing output for the files it
+  # touches, whether or not the task that produced it ultimately succeeded --
+  # so it must count toward overlap detection.
+  #
+  # Why: run_one (#7/#8) captures the worktree diff UNCONDITIONALLY for every
+  # worktree task via `git add -A && git diff --cached`, before checking
+  # final status. A task whose backend WRITES a file and THEN exits nonzero
+  # ends up status=failed with a NON-EMPTY diff that touched a real file. If
+  # the candidate filter required status=="ok", that diff -- and the files it
+  # touched -- would be invisible to the overlap map below, so a DIFFERENT,
+  # single-attempt ok task touching the SAME file would be wrongly seen as
+  # non-overlapping and auto-applied over the failed task's competing output.
+  # That breaks the non-overlap safety contract this feature exists to
+  # provide (same class of bug as the fallback-candidacy fix below, just for
+  # status instead of attempt count).
+  #
+  # Codex review finding (P1, composing with #8 fallback chain): run_one
+  # reuses the SAME worktree across every fallback attempt for a task, and
+  # captures the diff ONCE at the end. So a task that fell back (primary
+  # backend wrote/failed, a later backend succeeded) can finish status=ok
+  # with a captured diff that contains BOTH the failed attempt's edits and
+  # the successful attempt's edits -- there is no way to tell them apart from
+  # the diff alone. Auto-applying that combined diff would leak a failed
+  # backend's partial edits into the caller's live tree.
+  #
+  # Codex review finding (P1, review-fix regression): an earlier version of
+  # this fix excluded fallback tasks from the universe HERE, before the
+  # TOUCHERS_OF overlap map below was built, which let a fallback task's
+  # touched files fall out of the overlap universe entirely. Same class of
+  # bug as the failed/timeout case above -- fixed the same way, by keeping
+  # the task in the universe and deciding whether to APPLY it separately.
+  #
+  # The APPLY SET is the strict subset actually written to the caller's
+  # tree: status=="ok" AND single-attempt (not fallback) AND not conflicted
+  # AND the diff applies cleanly. Everything else in the universe stays out
+  # of the caller's tree: non-ok tasks are never candidates for merged:true
+  # or merged:false (they were never "held back" from applying -- they were
+  # never eligible to apply at all), so their `merged` stays null, same as
+  # any non-worktree task. `[[ -s "$dpath" ]]` below already drops empty
+  # diffs, so a task that failed before writing anything doesn't poison
+  # overlap either.
+  local -a cand_ids=()
+  declare -A IS_FALLBACK=() STATUS_OF=()
+  local cid attempts_len st
+  while IFS=$'\t' read -r cid st; do
+    [[ -n "$cid" ]] || continue
+    STATUS_OF["$cid"]="$st"
+    attempts_len="$(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | (.attempts | length)' "$idx")"
+    if [[ "$attempts_len" =~ ^[0-9]+$ ]] && (( attempts_len > 1 )); then
+      IS_FALLBACK["$cid"]=1
+    fi
+    cand_ids+=("$cid")
+  done < <(jq -r '.tasks[] | select(.worktree != null and .diff_path != null) | [.id, .status] | @tsv' "$idx")
+
+  if (( ${#cand_ids[@]} == 0 )); then
+    return 0
+  fi
+
+  # Build id -> diff_path map and file->[]ids overlap map.
+  declare -A DIFF_OF=()
+  declare -A FILES_OF=()      # id -> space-joined file list
+  declare -A TOUCHERS_OF=()   # file -> space-joined id list (for overlap + report)
+  local cid dpath f
+  for cid in "${cand_ids[@]}"; do
+    dpath="$(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | .diff_path' "$idx")"
+    DIFF_OF["$cid"]="$dpath"
+    [[ -s "$dpath" ]] || continue   # empty diff: nothing to apply, nothing to conflict
+    local files; files="$(diff_files "$dpath")"
+    FILES_OF["$cid"]="$(printf '%s' "$files" | tr '\n' ' ')"
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      TOUCHERS_OF["$f"]="${TOUCHERS_OF["$f"]:-} $cid"
+    done <<< "$files"
+  done
+
+  # Conflict set: any file touched by >1 task marks ALL its touchers conflicted.
+  declare -A CONFLICTED=()
+  declare -A CONFLICT_FILES_OF_TASK=()   # id -> space-joined conflicting file list
+  local file touchers count
+  for file in "${!TOUCHERS_OF[@]}"; do
+    touchers="${TOUCHERS_OF[$file]}"
+    count=$(wc -w <<< "$touchers")
+    if (( count > 1 )); then
+      for cid in $touchers; do
+        CONFLICTED["$cid"]=1
+        CONFLICT_FILES_OF_TASK["$cid"]="${CONFLICT_FILES_OF_TASK[$cid]:-} $file"
+      done
+    fi
+  done
+
+  local -a applied=() conflicted_report=() apply_failed=() fallback_skip=() not_applied_nonok=()
+  local root_unresolved=false
+  if [[ -z "$root" ]]; then
+    root_unresolved=true
+  fi
+  # Decision order per task in the overlap universe (st = status, isfb =
+  # fallback flag). Only status=="ok", single-attempt, non-conflicted tasks
+  # ever reach the apply step -- everything else is held back or left as a
+  # non-candidate, per the universe/apply-set split documented above.
+  for cid in "${cand_ids[@]}"; do
+    dpath="${DIFF_OF[$cid]}"
+    st="${STATUS_OF[$cid]:-}"
+    if [[ -n "${CONFLICTED[$cid]:-}" ]]; then
+      if [[ "$st" == "ok" ]]; then
+        # An ok task that overlaps another universe member (ok, fallback, or
+        # failed/timeout) is held back -- it WAS eligible to apply, so
+        # merged:false (not null), reported as a conflict.
+        set_merged "$cid" false
+        conflicted_report+=("$cid:${CONFLICT_FILES_OF_TASK[$cid]}")
+      else
+        # A non-ok (failed/timeout) task's diff poisoned overlap for others,
+        # but the task itself was never a merge candidate -- it was neither
+        # applied nor "held back" from applying (there was nothing to hold
+        # back: it never had a chance to apply). Leave merged as the null
+        # write_meta already recorded; do not call set_merged. Note it for
+        # transparency in the report instead.
+        not_applied_nonok+=("$cid:${CONFLICT_FILES_OF_TASK[$cid]}")
+      fi
+      continue
+    fi
+    if [[ "$st" != "ok" ]]; then
+      # Non-ok (failed/timeout), non-conflicted: still never a merge
+      # candidate. merged stays null (never applied, never "held back").
+      not_applied_nonok+=("$cid:")
+      continue
+    fi
+    if [[ -n "${IS_FALLBACK[$cid]:-}" ]]; then
+      # Non-overlapping fallback task: still not safe to auto-apply (see
+      # the fallback-chain comment above cand_ids) -- skip it, distinctly
+      # from a conflict.
+      set_merged "$cid" false
+      fallback_skip+=("$cid")
+      continue
+    fi
+    if [[ ! -s "$dpath" ]]; then
+      # Empty diff (no changes): nothing to apply, but it was eligible and
+      # non-conflicted -- treat as not-applied rather than a failure.
+      set_merged "$cid" false
+      continue
+    fi
+    if $root_unresolved; then
+      # Fail-open (P1): repo root could not be resolved -- applying via cwd
+      # risks the silent-success bug this fix closes, so do not apply
+      # anything; record as an apply failure (diff stays on disk).
+      set_merged "$cid" false
+      apply_failed+=("$cid")
+      continue
+    fi
+    if git -C "$root" apply --check "$dpath" 2>/dev/null; then
+      if git -C "$root" apply "$dpath" 2>/dev/null; then
+        set_merged "$cid" true
+        applied+=("$cid")
+      else
+        set_merged "$cid" false
+        apply_failed+=("$cid")
+      fi
+    else
+      set_merged "$cid" false
+      apply_failed+=("$cid")
+    fi
+  done
+
+  # --- MERGE-REPORT.md ---
+  {
+    echo "# Worktree merge report: $OUT"
+    echo
+    if $root_unresolved; then
+      echo "## WARNING: repo root unresolvable"
+      echo
+      echo "\`git rev-parse --show-toplevel\` failed, so no diffs were applied"
+      echo "(fail-open). All candidates below are recorded under Apply failures."
+      echo
+    fi
+    echo "## Applied (merged:true)"
+    if (( ${#applied[@]} > 0 )); then
+      for cid in "${applied[@]}"; do echo "- $cid: ${FILES_OF[$cid]}"; done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo "## Conflicted (same file touched by multiple tasks; NOT applied)"
+    if (( ${#conflicted_report[@]} > 0 )); then
+      for entry in "${conflicted_report[@]}"; do
+        cid="${entry%%:*}"; local flist="${entry#*:}"
+        echo "- $cid: shared file(s):$flist"
+      done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo "## Apply failures (git apply --check or apply failed; diff kept)"
+    if (( ${#apply_failed[@]} > 0 )); then
+      for cid in "${apply_failed[@]}"; do echo "- $cid: ${DIFF_OF[$cid]}"; done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo "## Skipped: fallback attempts (apply manually after review)"
+    echo
+    if (( ${#fallback_skip[@]} > 0 )); then
+      echo "These tasks needed a fallback backend (attempts > 1) before"
+      echo "succeeding. The captured worktree diff may contain edits from"
+      echo "BOTH the failed attempt(s) and the successful one -- not safe to"
+      echo "auto-apply. Review the diff by hand before applying it."
+      echo
+      for cid in "${fallback_skip[@]}"; do
+        echo "- $cid: $(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | .diff_path' "$idx")"
+      done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo "## Not applied (failed/timeout -- output present, blocks overlap)"
+    echo
+    if (( ${#not_applied_nonok[@]} > 0 )); then
+      echo "These worktree tasks did NOT finish ok (status=failed or"
+      echo "status=timeout), so they were never merge candidates (merged"
+      echo "stays null, same as any non-worktree task). Their captured diff"
+      echo "is still a real, non-empty output, so it still counts toward"
+      echo "overlap detection -- any ok task sharing a file with one of"
+      echo "these is held back under Conflicted above, even though the task"
+      echo "listed here itself was never a candidate to apply."
+      echo
+      for entry in "${not_applied_nonok[@]}"; do
+        cid="${entry%%:*}"; local flist="${entry#*:}"
+        if [[ -n "$flist" ]]; then
+          echo "- $cid (status=${STATUS_OF[$cid]:-unknown}): shared file(s):$flist"
+        else
+          echo "- $cid (status=${STATUS_OF[$cid]:-unknown}): ${DIFF_OF[$cid]}"
+        fi
+      done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo 'Hand-integrate remaining diffs with: `git apply <path-to-diff>` (after resolving conflicts manually).'
+  } > "$OUT/MERGE-REPORT.md"
+
+  # --- SUMMARY.md addendum ---
+  {
+    echo ""
+    echo "## Worktree merge"
+    echo ""
+    echo "- applied: ${#applied[@]}"
+    echo "- conflicted: ${#conflicted_report[@]}"
+    echo "- apply-failed: ${#apply_failed[@]}"
+    echo "- skipped-fallback: ${#fallback_skip[@]}"
+    echo "See \`MERGE-REPORT.md\` for details."
+  } >> "$OUT/SUMMARY.md"
+
+  # P2b: regenerate index.json now that every set_merged call above has
+  # landed, so the aggregate's .tasks[].merged matches the per-task metas
+  # instead of the stale null from the pre-merge write. Done at the END
+  # (not the start) of this function -- apply_worktree_merges itself reads
+  # index.json for candidates before this point, so regenerating earlier
+  # would risk reading a half-updated file mid-pass.
+  build_index_json
 }
 
 # Single execution seam so timeout (W6) and worktree (W7) compose without
@@ -362,13 +757,7 @@ run_batch(){
 
   wait
   if ! $DRY_RUN; then
-    jq -s --arg dir "$OUT" '{run_dir:$dir, tasks:., summary:{
-       ok:(map(select(.status=="ok"))|length),
-       failed:(map(select(.status=="failed"))|length),
-       timeout:(map(select(.status=="timeout"))|length),
-       skipped:(map(select(.status|startswith("skipped")))|length),
-       unavailable:(map(select(.status=="unavailable"))|length)}}' \
-       "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json"
+    build_index_json
     { echo "# Dispatch run: $OUT"; echo
       jq -r '.tasks[] | "- [\(.status)] \(.id) (\(.backend):\(.model)) exit=\(.exit) \(.duration_s)s"' "$OUT/index.json"
     } > "$OUT/SUMMARY.md"
@@ -383,6 +772,9 @@ run_batch(){
         echo ""
         echo 'Clean up manually: `git worktree remove --force --force <path>` then `git branch -D <branch>`.'
       } >> "$OUT/SUMMARY.md"
+    fi
+    if $WORKTREE && $APPLY_WORKTREE; then
+      apply_worktree_merges
     fi
     echo "$OUT"
   fi

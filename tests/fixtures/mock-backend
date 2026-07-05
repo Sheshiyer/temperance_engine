@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Mock command-code/kimi/grok: print the prompt passed via -p (or last arg) verbatim.
 # Symlink this file to different basenames (command-code, kimi, ...) to mock
-# multiple backends in one test. Two exit-control tokens are honored in the
-# prompt text:
+# multiple backends in one test. Exit-control and file-write tokens are
+# honored in the prompt text:
 #   EXIT=N           -- exit N regardless of which backend name we were
 #                        invoked as (legacy, single-backend tests).
 #   <base>_EXIT=N     -- exit N ONLY when invoked as basename <base> (e.g.
@@ -10,14 +10,87 @@
 #                        single task payload drive per-backend fallback-chain
 #                        tests: the command-code attempt exits 1, the kimi
 #                        attempt on the SAME task exits 0).
+#   WRITE=<relpath>:<content> -- create <relpath> (relative to cwd) containing
+#                        <content>, so worktree-mode tests can produce a real
+#                        `git diff --cached` instead of an empty one. Content
+#                        runs to the next space, so keep it a single token
+#                        (e.g. "WRITE=fileA.txt:hello-from-A"). Parent dirs
+#                        are created as needed. Applied AFTER the SLEEP token
+#                        but BEFORE the exit-code check, so a nonzero EXIT can
+#                        model a backend that writes output and then fails
+#                        (see the overlap-universe note below).
+#                        To include a literal space in <relpath> or <content>
+#                        (e.g. testing overlap-detection on filenames with
+#                        spaces), wrap the WHOLE spec in braces:
+#                        "WRITE={shared file.txt:some content} do work" --
+#                        everything between the first '{' and the matching
+#                        trailing '}' is taken verbatim, spaces included.
+#                        Unbraced specs keep the original space-terminated
+#                        behavior (fully backward compatible).
+#   MOVE=<src>:<dst>  -- `mv <src> <dst>` relative to cwd, so worktree-mode
+#                        tests can produce a real rename in `git diff --cached`
+#                        (rename from/to headers) instead of a plain add/del.
+#                        Applied in the same relative order as WRITE (after
+#                        exit/sleep tokens); if both WRITE and MOVE are present
+#                        WRITE runs first so a MOVE can act on a freshly
+#                        written file within the same task. Same brace
+#                        convention as WRITE applies: "MOVE={orig.txt:shared
+#                        file.txt} do work" for a spaced destination.
+#
+# Overlap-universe fix (#7 follow-up, Codex P1): a backend that WRITES a file
+# and THEN exits nonzero must still be reproducible by this mock, so
+# apply_worktree_merges tests can prove a failed task's captured diff still
+# poisons overlap detection. So WRITE/MOVE are now applied BEFORE the
+# exit-code check (previously a nonzero EXIT short-circuited before
+# WRITE/MOVE ran at all, which could never model "wrote then failed"). The
+# exit itself still happens right after, so every existing nonzero-exit
+# scenario that does NOT pair EXIT with WRITE/MOVE on the SAME backend is
+# byte-for-byte unaffected (no existing test does) -- this only ADDS the
+# capacity to write-then-fail; it never changes behavior for
+# write-and-succeed or fail-with-no-write, both already covered above.
 base="$(basename "$0")"
 prompt=""; prev=""
 for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
 [[ -z "$prompt" ]] && prompt="${!#}"
+if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
+# extract_spec: prompt token -> echoes the spec text on stdout. If the text
+# right after "<token>=" is "{", reads verbatim up to the matching "}" (so
+# the spec may contain spaces); otherwise falls back to the original
+# space-terminated extraction (backward compatible with unbraced specs).
+extract_spec(){
+  local p="$1" tok="$2" rest
+  rest="${p#*${tok}=}"
+  if [[ "$rest" == \{* ]]; then
+    rest="${rest#\{}"
+    printf '%s\n' "${rest%%\}*}"
+  else
+    printf '%s\n' "${rest%% *}"
+  fi
+}
+if [[ "$prompt" == *WRITE=* ]]; then
+  spec="$(extract_spec "$prompt" WRITE)"
+  relpath="${spec%%:*}"; content="${spec#*:}"
+  if [[ -n "$relpath" ]]; then
+    mkdir -p "$(dirname "$relpath")" 2>/dev/null
+    printf '%s\n' "$content" > "$relpath"
+  fi
+fi
+if [[ "$prompt" == *MOVE=* ]]; then
+  mspec="$(extract_spec "$prompt" MOVE)"
+  msrc="${mspec%%:*}"; mdst="${mspec#*:}"
+  if [[ -n "$msrc" && -n "$mdst" && -e "$msrc" ]]; then
+    mkdir -p "$(dirname "$mdst")" 2>/dev/null
+    mv "$msrc" "$mdst"
+  fi
+fi
+# Exit-token handling: checked AFTER WRITE/MOVE (see comment above) so a
+# nonzero exit can still model "wrote/moved, then failed". A ZERO code falls
+# through to the success-output printf below, same as before.
 if [[ "$prompt" == *"${base}_EXIT="* ]]; then
   n="${prompt#*${base}_EXIT=}"; n="${n%% *}"
-  exit "$n"
+  [[ "$n" != "0" ]] && exit "$n"
+elif [[ "$prompt" == *EXIT=* ]]; then
+  n="${prompt#*EXIT=}"; n="${n%% *}"
+  [[ "$n" != "0" ]] && exit "$n"
 fi
-if [[ "$prompt" == *EXIT=* ]]; then n="${prompt#*EXIT=}"; n="${n%% *}"; exit "$n"; fi
-if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
 printf 'MOCK_OUTPUT_START\n%s\nMOCK_OUTPUT_END\n' "$prompt"

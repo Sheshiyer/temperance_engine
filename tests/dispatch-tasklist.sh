@@ -326,5 +326,270 @@ check "fallback timeout: attempts length 1 (no fallback)" "1" "$(jq -r '.tasks[0
 check "fallback timeout: attempts[0].status=timeout" "timeout" "$(jq -r '.tasks[0].attempts[0].status' "$run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
 
+# --- worktree auto-merge (#7): --apply-worktree opt-in safe-path merge -----
+
+# (a) non-overlapping auto-apply: task A writes fileA.txt, task B writes
+# fileB.txt (distinct files) -> after the run, BOTH files exist in the
+# caller cwd, both metas merged:true, MERGE-REPORT lists both applied.
+tmpgit_am1=$(mktemp -d); ( cd "$tmpgit_am1" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am1" && printf '%s' '[{"id":"AMA","task":"WRITE=fileA.txt:hello-A do work","backend":"command-code","model":"x"},
+             {"id":"AMB","task":"WRITE=fileB.txt:hello-B do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "auto-merge: fileA.txt applied to cwd" "hello-A" "$(cat "$tmpgit_am1/fileA.txt" 2>/dev/null)"
+check "auto-merge: fileB.txt applied to cwd" "hello-B" "$(cat "$tmpgit_am1/fileB.txt" 2>/dev/null)"
+check "auto-merge: AMA merged:true" "true" "$(jq -r '.merged' "$run/AMA.meta.json" 2>/dev/null)"
+check "auto-merge: AMB merged:true" "true" "$(jq -r '.merged' "$run/AMB.meta.json" 2>/dev/null)"
+[[ -f "$run/MERGE-REPORT.md" ]] && echo "ok - MERGE-REPORT.md written" || { echo "FAIL - no MERGE-REPORT.md"; fail=1; }
+grep -q "AMA" "$run/MERGE-REPORT.md" 2>/dev/null && grep -q "AMB" "$run/MERGE-REPORT.md" 2>/dev/null \
+  && echo "ok - MERGE-REPORT lists both applied tasks" || { echo "FAIL - MERGE-REPORT missing applied task(s)"; fail=1; }
+grep -q "Worktree merge" "$run/SUMMARY.md" 2>/dev/null && echo "ok - SUMMARY.md has Worktree merge section" || { echo "FAIL - SUMMARY.md missing Worktree merge section"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (b) overlapping conflict: two tasks both write the SAME file with different
+# content -> NEITHER is applied (shared.txt absent or unchanged in cwd),
+# both metas merged:false, MERGE-REPORT lists the conflict with the shared file.
+tmpgit_am2=$(mktemp -d); ( cd "$tmpgit_am2" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am2" && printf '%s' '[{"id":"CFA","task":"WRITE=shared.txt:from-A do work","backend":"command-code","model":"x"},
+             {"id":"CFB","task":"WRITE=shared.txt:from-B do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "auto-merge conflict: shared.txt absent from cwd" "" "$(cat "$tmpgit_am2/shared.txt" 2>/dev/null)"
+check "auto-merge conflict: CFA merged:false" "false" "$(jq -r '.merged' "$run/CFA.meta.json" 2>/dev/null)"
+check "auto-merge conflict: CFB merged:false" "false" "$(jq -r '.merged' "$run/CFB.meta.json" 2>/dev/null)"
+grep -qi "shared.txt" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT lists conflicted shared file" || { echo "FAIL - MERGE-REPORT missing conflict file"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (c) opt-out default: --worktree WITHOUT --apply-worktree -> nothing applied
+# to cwd, metas merged:null, diffs still captured (proves the safety default).
+tmpgit_am3=$(mktemp -d); ( cd "$tmpgit_am3" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am3" && printf '%s' '[{"id":"NOA","task":"WRITE=fileC.txt:hello-C do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "opt-out default: fileC.txt NOT applied to cwd" "" "$(cat "$tmpgit_am3/fileC.txt" 2>/dev/null)"
+check "opt-out default: NOA merged:null" "null" "$(jq -r '.merged' "$run/NOA.meta.json" 2>/dev/null)"
+[[ -s "$run/NOA.diff" ]] && echo "ok - diff still captured without --apply-worktree" || { echo "FAIL - diff missing"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (d) rename-vs-write overlap (reviewer finding on #7): task X renames
+# orig.txt -> shared.txt, task Y writes shared.txt directly (different
+# content). diff_files() must record BOTH sides of the rename (orig.txt AND
+# shared.txt) so the overlap map catches shared.txt being touched by two
+# tasks. Expected: NEITHER applied -- cwd keeps orig.txt with its original
+# content and gets no shared.txt; both metas merged:false; MERGE-REPORT shows
+# a conflict (not an apply-failure) for the shared file.
+tmpgit_am4=$(mktemp -d)
+( cd "$tmpgit_am4" && git init -q && printf '%s\n' "original content" > orig.txt && git add -A && git commit -q -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am4" && printf '%s' '[{"id":"RNX","task":"MOVE=orig.txt:shared.txt do work","backend":"command-code","model":"x"},
+             {"id":"RNY","task":"WRITE=shared.txt:from-Y do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "rename-overlap: orig.txt still present with original content" "original content" "$(cat "$tmpgit_am4/orig.txt" 2>/dev/null)"
+check "rename-overlap: shared.txt NOT created in cwd" "" "$(cat "$tmpgit_am4/shared.txt" 2>/dev/null)"
+check "rename-overlap: RNX merged:false" "false" "$(jq -r '.merged' "$run/RNX.meta.json" 2>/dev/null)"
+check "rename-overlap: RNY merged:false" "false" "$(jq -r '.merged' "$run/RNY.meta.json" 2>/dev/null)"
+grep -qi "shared.txt" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT lists rename/write conflict on shared.txt" || { echo "FAIL - MERGE-REPORT missing rename/write conflict"; fail=1; }
+sed -n '/## Apply failures/,/^$/p' "$run/MERGE-REPORT.md" 2>/dev/null | grep -q "RNX\|RNY" \
+  && { echo "FAIL - rename/write pair mislabeled as apply-failed instead of conflicted"; fail=1; } \
+  || echo "ok - rename/write pair not mislabeled as apply-failed"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (e) P1 regression (Codex review on #7 PR): invoking the wrapper from a
+# SUBDIRECTORY of the repo must still apply root-relative, not cwd-relative.
+# Pre-fix, `git apply` runs in the caller's cwd, treats the root-rooted patch
+# paths as outside cwd, prints "Skipped patch" and exits 0 -- so merged:true
+# gets recorded with NO file actually written at the repo root (silent false
+# success). Task writes a ROOT-level file; wrapper is invoked from "sub/".
+tmpgit_am5=$(mktemp -d); ( cd "$tmpgit_am5" && git init -q && git commit -q --allow-empty -m init )
+mkdir -p "$tmpgit_am5/sub"
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am5/sub" && printf '%s' '[{"id":"SUBW","task":"WRITE=rootfile.txt:hello-root do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "subdir invoke: rootfile.txt applied at repo root" "hello-root" "$(cat "$tmpgit_am5/rootfile.txt" 2>/dev/null)"
+check "subdir invoke: SUBW merged:true" "true" "$(jq -r '.merged' "$run/SUBW.meta.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (f) P2a regression (Codex review on #7 PR): overlap detection must catch a
+# rename-vs-write collision even when the shared filename contains a SPACE.
+# `+++ b/shared file.txt<TAB>...` carries a trailing tab+metadata that
+# `rename to shared file.txt` does not, so unless diff_files() strips the
+# tab suffix, the two forms produce DIFFERENT overlap keys and the conflict
+# is missed. Task X renames orig.txt -> "shared file.txt"; task Y writes
+# "shared file.txt" directly. Expected: BOTH merged:false, NEITHER applied
+# (orig.txt intact, no "shared file.txt" at root), MERGE-REPORT shows the
+# conflict.
+tmpgit_am6=$(mktemp -d)
+( cd "$tmpgit_am6" && git init -q && printf '%s\n' "original content" > orig.txt && git add -A && git commit -q -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am6" && printf '%s' '[{"id":"SPX","task":"MOVE={orig.txt:shared file.txt} do work","backend":"command-code","model":"x"},
+             {"id":"SPY","task":"WRITE={shared file.txt:different} do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "spaced-filename overlap: orig.txt still present with original content" "original content" "$(cat "$tmpgit_am6/orig.txt" 2>/dev/null)"
+check "spaced-filename overlap: 'shared file.txt' NOT created in cwd" "" "$(cat "$tmpgit_am6/shared file.txt" 2>/dev/null)"
+check "spaced-filename overlap: SPX merged:false" "false" "$(jq -r '.merged' "$run/SPX.meta.json" 2>/dev/null)"
+check "spaced-filename overlap: SPY merged:false" "false" "$(jq -r '.merged' "$run/SPY.meta.json" 2>/dev/null)"
+grep -qi "shared file.txt" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT lists spaced-filename conflict" || { echo "FAIL - MERGE-REPORT missing spaced-filename conflict"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (g) P2b regression (Codex review on #7 PR): index.json must be regenerated
+# after the merge pass so its aggregate .tasks[].merged reflects the same
+# values set_merged wrote into the per-task .meta.json files, instead of
+# staying null (index.json is written BEFORE apply_worktree_merges runs).
+tmpgit_am7=$(mktemp -d); ( cd "$tmpgit_am7" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am7" && printf '%s' '[{"id":"IDXA","task":"WRITE=fileIdxA.txt:hello-idxA do work","backend":"command-code","model":"x"},
+             {"id":"IDXB","task":"WRITE=fileIdxB.txt:hello-idxB do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "index.json refresh: IDXA index merged == meta merged" "$(jq -r '.merged' "$run/IDXA.meta.json" 2>/dev/null)" "$(jq -r '.tasks[] | select(.id=="IDXA") | .merged' "$run/index.json" 2>/dev/null)"
+check "index.json refresh: IDXB index merged == meta merged" "$(jq -r '.merged' "$run/IDXB.meta.json" 2>/dev/null)" "$(jq -r '.tasks[] | select(.id=="IDXB") | .merged' "$run/index.json" 2>/dev/null)"
+check "index.json refresh: IDXA index merged is true (not null)" "true" "$(jq -r '.tasks[] | select(.id=="IDXA") | .merged' "$run/index.json" 2>/dev/null)"
+check "index.json refresh: IDXB index merged is true (not null)" "true" "$(jq -r '.tasks[] | select(.id=="IDXB") | .merged' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (h) P1 regression (Codex review on #7 PR, composing with #8 fallback chain):
+# run_one reuses the SAME worktree across ALL fallback attempts for a task,
+# and captures the diff ONCE at the end via `git add -A && git diff --cached`.
+# So a task that falls back (primary backend writes/fails, fallback backend
+# succeeds) can have its captured diff contain BOTH attempts' edits -- yet
+# still finish status=ok. Auto-applying that combined diff would leak a
+# failed backend's partial edits into the caller's live tree. Fix: exclude
+# any worktree task with (.attempts|length) > 1 from auto-apply, regardless
+# of final status; mark it merged:false (not null) and list it in
+# MERGE-REPORT.md under a dedicated fallback-skip section instead.
+#
+# Task F: command-code (primary) exits 1 -> falls back to kimi, which exits 0
+# and writes good.txt. Expect (.attempts|length) >= 2 and status=ok, but
+# NOT applied. Task N: single-attempt task writing distinct file normalfile.txt
+# -> proves non-fallback tasks still auto-apply (no regression).
+tmpgit_am8=$(mktemp -d); ( cd "$tmpgit_am8" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+( cd "$tmpgit_am8" && printf '%s' '[{"id":"FBW","task":"command-code_EXIT=1 kimi_EXIT=0 WRITE=good.txt:ok do stuff"},
+             {"id":"NRM","task":"WRITE=normalfile.txt:hello-normal do work","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "fallback-skip: FBW attempts length >= 2" "true" "$(jq -r '(.attempts|length) >= 2' "$run/FBW.meta.json" 2>/dev/null)"
+check "fallback-skip: FBW status=ok" "ok" "$(jq -r '.status' "$run/FBW.meta.json" 2>/dev/null)"
+check "fallback-skip: FBW merged:false (not applied despite status=ok)" "false" "$(jq -r '.merged' "$run/FBW.meta.json" 2>/dev/null)"
+check "fallback-skip: good.txt NOT applied to cwd" "" "$(cat "$tmpgit_am8/good.txt" 2>/dev/null)"
+check "fallback-skip: FBW index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="FBW") | .merged' "$run/index.json" 2>/dev/null)"
+check "fallback-skip: NRM attempts length == 1 (no fallback)" "1" "$(jq -r '.attempts | length' "$run/NRM.meta.json" 2>/dev/null)"
+check "fallback-skip: NRM merged:true (single-attempt still auto-applies)" "true" "$(jq -r '.merged' "$run/NRM.meta.json" 2>/dev/null)"
+check "fallback-skip: normalfile.txt applied to cwd" "hello-normal" "$(cat "$tmpgit_am8/normalfile.txt" 2>/dev/null)"
+grep -q "Skipped: fallback attempts" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT has fallback-skip section" || { echo "FAIL - MERGE-REPORT missing fallback-skip section"; fail=1; }
+sed -n '/## Skipped: fallback attempts/,/^## /p' "$run/MERGE-REPORT.md" 2>/dev/null | grep -q "FBW" && echo "ok - MERGE-REPORT lists FBW under fallback-skip" || { echo "FAIL - MERGE-REPORT does not list FBW under fallback-skip"; fail=1; }
+grep -q "^- skipped-fallback: 1$" "$run/SUMMARY.md" 2>/dev/null && echo "ok - SUMMARY.md records skipped-fallback: 1" || { echo "FAIL - SUMMARY.md missing skipped-fallback count"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
+# (i) P1 regression (Codex review on #7 PR review-fix): the fix in (h) excluded
+# fallback tasks from the overlap/conflict candidate set (cand_ids) entirely,
+# BEFORE the TOUCHERS_OF overlap map was built. Consequence: a fallback
+# task's touched files no longer poison the overlap map, so a DIFFERENT,
+# single-attempt task that touches the SAME file is now seen as
+# non-overlapping and gets auto-applied -- overwriting a file that had a
+# competing (fallback) task output. That breaks the non-overlap safety
+# contract this feature exists to provide.
+#
+# Fix: fallback tasks must stay in the overlap UNIVERSE (their files still
+# populate TOUCHERS_OF/CONFLICTED) but must never be applied. Decision order
+# per candidate: conflicted (incl. via a fallback task) -> fallback-skip ->
+# empty-diff -> apply.
+#
+# Task F: falls back (command-code exits 1, kimi exits 0) and writes
+# shared.txt with content "from-F". Task N: single attempt, writes
+# shared.txt with DIFFERENT content "from-N". Since both tasks touch
+# shared.txt, it must be treated as an overlap: BOTH merged:false, and
+# shared.txt must NOT be applied to the caller's repo (absent from cwd).
+# RED against pre-fix HEAD: N is auto-applied (merged:true, shared.txt
+# present with "from-N") while F is fallback-skipped -- the overlap is
+# missed because F was removed from the candidate set before TOUCHERS_OF
+# was built.
+tmpgit_am9=$(mktemp -d); ( cd "$tmpgit_am9" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+( cd "$tmpgit_am9" && printf '%s' '[{"id":"FOV","task":"command-code_EXIT=1 kimi_EXIT=0 WRITE=shared.txt:from-F do stuff"},
+             {"id":"NOV","task":"WRITE=shared.txt:from-N do work","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "fallback-overlap: FOV attempts length >= 2" "true" "$(jq -r '(.attempts|length) >= 2' "$run/FOV.meta.json" 2>/dev/null)"
+check "fallback-overlap: FOV status=ok" "ok" "$(jq -r '.status' "$run/FOV.meta.json" 2>/dev/null)"
+check "fallback-overlap: FOV merged:false" "false" "$(jq -r '.merged' "$run/FOV.meta.json" 2>/dev/null)"
+check "fallback-overlap: NOV merged:false (was wrongly true pre-fix)" "false" "$(jq -r '.merged' "$run/NOV.meta.json" 2>/dev/null)"
+check "fallback-overlap: shared.txt NOT applied to cwd" "" "$(cat "$tmpgit_am9/shared.txt" 2>/dev/null)"
+check "fallback-overlap: FOV index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="FOV") | .merged' "$run/index.json" 2>/dev/null)"
+check "fallback-overlap: NOV index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="NOV") | .merged' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
+# (j) P1 regression (Codex review, #7 follow-up): overlap detection excluded
+# FAILED-task diffs entirely (candidate filter required status=="ok"). But
+# run_one captures the worktree diff UNCONDITIONALLY regardless of status --
+# so a task whose backend WRITES a file and THEN exits nonzero ends up
+# status=failed with a NON-EMPTY diff that touched a real file. That diff was
+# invisible to the overlap map, so a DIFFERENT, single-attempt ok task
+# touching the SAME file was seen as non-overlapping and auto-applied over a
+# competing (failed) output -- breaking the non-overlap safety contract.
+#
+# Fix: the overlap UNIVERSE must include every worktree task with a
+# non-empty captured diff, regardless of status (ok/failed/timeout) or
+# fallback. The APPLY SET stays the strict subset: status=="ok" AND
+# single-attempt AND non-conflicted AND applies cleanly.
+#
+# Task Fd: ALL backends fail (command-code_EXIT=1, kimi_EXIT=1), so there is
+# no successful fallback -- status=failed. It writes shared.txt with
+# "from-failed" before failing (mock now writes before honoring a nonzero
+# exit). Task N: single-attempt, ok, writes shared.txt with "from-N".
+#
+# Expected: shared.txt is a real overlap (touched by both Fd and N) -> N must
+# be held back (merged:false, listed as conflicted) and shared.txt must NOT
+# land in the caller's repo. Fd never becomes an apply candidate (status !=
+# ok) -- merged stays null, it is never "applied" or "held back", just noted
+# for transparency. RED against pre-fix HEAD (d7dfb3f): N is wrongly
+# auto-applied (merged:true, shared.txt present with "from-N") because Fd's
+# diff was excluded from the candidate filter (status=="ok" required) before
+# TOUCHERS_OF was ever built.
+tmpgit_am10=$(mktemp -d); ( cd "$tmpgit_am10" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+( cd "$tmpgit_am10" && printf '%s' '[{"id":"FD","task":"command-code_EXIT=1 kimi_EXIT=1 WRITE=shared.txt:from-failed do stuff"},
+             {"id":"N","task":"WRITE=shared.txt:from-N do work","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "failed-shares-file: FD status=failed" "failed" "$(jq -r '.status' "$run/FD.meta.json" 2>/dev/null)"
+[[ -s "$run/FD.diff" ]] && echo "ok - failed-shares-file: FD has non-empty diff" || { echo "FAIL - FD diff empty/missing"; fail=1; }
+check "failed-shares-file: FD merged:null (never a merge candidate)" "null" "$(jq -r '.merged' "$run/FD.meta.json" 2>/dev/null)"
+check "failed-shares-file: N merged:false (held back, overlaps FD)" "false" "$(jq -r '.merged' "$run/N.meta.json" 2>/dev/null)"
+check "failed-shares-file: shared.txt NOT applied to cwd" "" "$(cat "$tmpgit_am10/shared.txt" 2>/dev/null)"
+check "failed-shares-file: N index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="N") | .merged' "$run/index.json" 2>/dev/null)"
+check "failed-shares-file: FD index merged matches meta (null)" "null" "$(jq -r '.tasks[] | select(.id=="FD") | .merged' "$run/index.json" 2>/dev/null)"
+grep -qi "shared.txt" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT mentions shared.txt overlap" || { echo "FAIL - MERGE-REPORT missing shared.txt overlap"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
+# (k) Failed-unique-file control: proves the fix above does NOT over-block --
+# a failed task touching a file NO OTHER task touches must not spuriously
+# poison an unrelated, non-overlapping ok task's auto-apply. Task Fd2: all
+# backends fail, writes ONLY fd2.txt (unique). Task N2: single-attempt ok,
+# writes ONLY n2.txt (unique, distinct from fd2.txt). Expected: N2 still
+# auto-applies (merged:true, n2.txt present); Fd2 merged:null (never a
+# candidate, its failure is irrelevant to N2's file).
+tmpgit_am11=$(mktemp -d); ( cd "$tmpgit_am11" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+( cd "$tmpgit_am11" && printf '%s' '[{"id":"FD2","task":"command-code_EXIT=1 kimi_EXIT=1 WRITE=fd2.txt:from-failed-2 do stuff"},
+             {"id":"N2","task":"WRITE=n2.txt:hello-n2 do work","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "failed-unique-control: FD2 status=failed" "failed" "$(jq -r '.status' "$run/FD2.meta.json" 2>/dev/null)"
+check "failed-unique-control: FD2 merged:null" "null" "$(jq -r '.merged' "$run/FD2.meta.json" 2>/dev/null)"
+check "failed-unique-control: N2 merged:true (not blocked by unrelated failure)" "true" "$(jq -r '.merged' "$run/N2.meta.json" 2>/dev/null)"
+check "failed-unique-control: n2.txt applied to cwd" "hello-n2" "$(cat "$tmpgit_am11/n2.txt" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail
