@@ -59,8 +59,8 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - [x] ISC-25: OpenCode and Cursor templates are installed by default.
 - [x] ISC-26: Cursor ships both `AGENTS.md` guidance and `.cursor/rules/*.mdc` guidance.
 - [x] ISC-27: Public docs state no Claude Pro/Max, Anthropic auth, or specific model is required.
-- [x] ISC-28: `docs/parallel-dispatch.md` documents when to use superpowers:dispatching-parallel-agents vs GSD execute-phase/workstreams vs subagent-driven-development.
-- [x] ISC-29: `docs/pai-flow.md` Execute phase references `docs/parallel-dispatch.md`.
+- [x] ISC-28: `docs/parallel-dispatch.md` documents when to use superpowers:dispatching-parallel-agents vs GSD execute-phase/workstreams vs subagent-driven-development. _(Superseded by ISC-35/ISC-37: this guidance now lives in `docs/pai-flow.md`'s per-phase table + doctrine; `parallel-dispatch.md` is retired to a redirect stub.)_
+- [x] ISC-29: `docs/pai-flow.md` Execute phase references `docs/parallel-dispatch.md`. _(Superseded by ISC-35/ISC-37: the Execute-phase dispatch decision is now in `docs/pai-flow.md` itself; the reference to `parallel-dispatch.md` is a retired-stub pointer, not a delegation.)_
 - [x] ISC-30: `package/hooks/ParallelDispatchContext.hook.sh` exists and is advisory-only (never blocks, never triggers dispatch).
 - [x] ISC-31: `--with-gsd` install flag exists, default OFF, and prints a reference-only note without vendoring GSD.
 - [x] ISC-32: Temperance Engine owns exactly one preference store (`ISA.md`); GSD config and PAI steering/memory stay fully external and untouched except one read-only display read in `ParallelDispatchContext.hook.sh`, which never writes to `config.json`.
@@ -123,7 +123,7 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | Verification script | all | installer docs | no |
 | Public path hygiene | ISC-20..ISC-22 | README assets | yes |
 | OpenCode/Cursor defaults | ISC-23..ISC-27 | installer templates | yes |
-| Parallel-dispatch guidance | ISC-28..ISC-31 | PAI flow docs, install.sh flags | yes |
+| Parallel-dispatch guidance (superseded by ISC-35/37 — folded into pai-flow.md) | ISC-28..ISC-31 | PAI flow docs, install.sh flags | yes |
 | Single preference store | ISC-32 | parallel-dispatch guidance | no |
 | Layering test harness | ISC-33 | installer scripts | no |
 | Identity port tool | ISC-34 | operator AGENTS.md surfaces | no |
