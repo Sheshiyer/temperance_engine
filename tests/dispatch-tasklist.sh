@@ -398,5 +398,60 @@ sed -n '/## Apply failures/,/^$/p' "$run/MERGE-REPORT.md" 2>/dev/null | grep -q 
   || echo "ok - rename/write pair not mislabeled as apply-failed"
 rm -f "$DIR/tests/fixtures/command-code"
 
+# (e) P1 regression (Codex review on #7 PR): invoking the wrapper from a
+# SUBDIRECTORY of the repo must still apply root-relative, not cwd-relative.
+# Pre-fix, `git apply` runs in the caller's cwd, treats the root-rooted patch
+# paths as outside cwd, prints "Skipped patch" and exits 0 -- so merged:true
+# gets recorded with NO file actually written at the repo root (silent false
+# success). Task writes a ROOT-level file; wrapper is invoked from "sub/".
+tmpgit_am5=$(mktemp -d); ( cd "$tmpgit_am5" && git init -q && git commit -q --allow-empty -m init )
+mkdir -p "$tmpgit_am5/sub"
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am5/sub" && printf '%s' '[{"id":"SUBW","task":"WRITE=rootfile.txt:hello-root do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "subdir invoke: rootfile.txt applied at repo root" "hello-root" "$(cat "$tmpgit_am5/rootfile.txt" 2>/dev/null)"
+check "subdir invoke: SUBW merged:true" "true" "$(jq -r '.merged' "$run/SUBW.meta.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (f) P2a regression (Codex review on #7 PR): overlap detection must catch a
+# rename-vs-write collision even when the shared filename contains a SPACE.
+# `+++ b/shared file.txt<TAB>...` carries a trailing tab+metadata that
+# `rename to shared file.txt` does not, so unless diff_files() strips the
+# tab suffix, the two forms produce DIFFERENT overlap keys and the conflict
+# is missed. Task X renames orig.txt -> "shared file.txt"; task Y writes
+# "shared file.txt" directly. Expected: BOTH merged:false, NEITHER applied
+# (orig.txt intact, no "shared file.txt" at root), MERGE-REPORT shows the
+# conflict.
+tmpgit_am6=$(mktemp -d)
+( cd "$tmpgit_am6" && git init -q && printf '%s\n' "original content" > orig.txt && git add -A && git commit -q -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am6" && printf '%s' '[{"id":"SPX","task":"MOVE={orig.txt:shared file.txt} do work","backend":"command-code","model":"x"},
+             {"id":"SPY","task":"WRITE={shared file.txt:different} do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "spaced-filename overlap: orig.txt still present with original content" "original content" "$(cat "$tmpgit_am6/orig.txt" 2>/dev/null)"
+check "spaced-filename overlap: 'shared file.txt' NOT created in cwd" "" "$(cat "$tmpgit_am6/shared file.txt" 2>/dev/null)"
+check "spaced-filename overlap: SPX merged:false" "false" "$(jq -r '.merged' "$run/SPX.meta.json" 2>/dev/null)"
+check "spaced-filename overlap: SPY merged:false" "false" "$(jq -r '.merged' "$run/SPY.meta.json" 2>/dev/null)"
+grep -qi "shared file.txt" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT lists spaced-filename conflict" || { echo "FAIL - MERGE-REPORT missing spaced-filename conflict"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (g) P2b regression (Codex review on #7 PR): index.json must be regenerated
+# after the merge pass so its aggregate .tasks[].merged reflects the same
+# values set_merged wrote into the per-task .meta.json files, instead of
+# staying null (index.json is written BEFORE apply_worktree_merges runs).
+tmpgit_am7=$(mktemp -d); ( cd "$tmpgit_am7" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am7" && printf '%s' '[{"id":"IDXA","task":"WRITE=fileIdxA.txt:hello-idxA do work","backend":"command-code","model":"x"},
+             {"id":"IDXB","task":"WRITE=fileIdxB.txt:hello-idxB do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "index.json refresh: IDXA index merged == meta merged" "$(jq -r '.merged' "$run/IDXA.meta.json" 2>/dev/null)" "$(jq -r '.tasks[] | select(.id=="IDXA") | .merged' "$run/index.json" 2>/dev/null)"
+check "index.json refresh: IDXB index merged == meta merged" "$(jq -r '.merged' "$run/IDXB.meta.json" 2>/dev/null)" "$(jq -r '.tasks[] | select(.id=="IDXB") | .merged' "$run/index.json" 2>/dev/null)"
+check "index.json refresh: IDXA index merged is true (not null)" "true" "$(jq -r '.tasks[] | select(.id=="IDXA") | .merged' "$run/index.json" 2>/dev/null)"
+check "index.json refresh: IDXB index merged is true (not null)" "true" "$(jq -r '.tasks[] | select(.id=="IDXB") | .merged' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail

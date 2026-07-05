@@ -17,13 +17,23 @@
 #                        (e.g. "WRITE=fileA.txt:hello-from-A"). Parent dirs
 #                        are created as needed. Applied AFTER exit/sleep
 #                        tokens so EXIT=N still short-circuits before writing.
+#                        To include a literal space in <relpath> or <content>
+#                        (e.g. testing overlap-detection on filenames with
+#                        spaces), wrap the WHOLE spec in braces:
+#                        "WRITE={shared file.txt:some content} do work" --
+#                        everything between the first '{' and the matching
+#                        trailing '}' is taken verbatim, spaces included.
+#                        Unbraced specs keep the original space-terminated
+#                        behavior (fully backward compatible).
 #   MOVE=<src>:<dst>  -- `mv <src> <dst>` relative to cwd, so worktree-mode
 #                        tests can produce a real rename in `git diff --cached`
 #                        (rename from/to headers) instead of a plain add/del.
 #                        Applied in the same relative order as WRITE (after
 #                        exit/sleep tokens); if both WRITE and MOVE are present
 #                        WRITE runs first so a MOVE can act on a freshly
-#                        written file within the same task.
+#                        written file within the same task. Same brace
+#                        convention as WRITE applies: "MOVE={orig.txt:shared
+#                        file.txt} do work" for a spaced destination.
 base="$(basename "$0")"
 prompt=""; prev=""
 for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
@@ -34,8 +44,22 @@ if [[ "$prompt" == *"${base}_EXIT="* ]]; then
 fi
 if [[ "$prompt" == *EXIT=* ]]; then n="${prompt#*EXIT=}"; n="${n%% *}"; exit "$n"; fi
 if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
+# extract_spec: prompt token -> echoes the spec text on stdout. If the text
+# right after "<token>=" is "{", reads verbatim up to the matching "}" (so
+# the spec may contain spaces); otherwise falls back to the original
+# space-terminated extraction (backward compatible with unbraced specs).
+extract_spec(){
+  local p="$1" tok="$2" rest
+  rest="${p#*${tok}=}"
+  if [[ "$rest" == \{* ]]; then
+    rest="${rest#\{}"
+    printf '%s\n' "${rest%%\}*}"
+  else
+    printf '%s\n' "${rest%% *}"
+  fi
+}
 if [[ "$prompt" == *WRITE=* ]]; then
-  spec="${prompt#*WRITE=}"; spec="${spec%% *}"
+  spec="$(extract_spec "$prompt" WRITE)"
   relpath="${spec%%:*}"; content="${spec#*:}"
   if [[ -n "$relpath" ]]; then
     mkdir -p "$(dirname "$relpath")" 2>/dev/null
@@ -43,7 +67,7 @@ if [[ "$prompt" == *WRITE=* ]]; then
   fi
 fi
 if [[ "$prompt" == *MOVE=* ]]; then
-  mspec="${prompt#*MOVE=}"; mspec="${mspec%% *}"
+  mspec="$(extract_spec "$prompt" MOVE)"
   msrc="${mspec%%:*}"; mdst="${mspec#*:}"
   if [[ -n "$msrc" && -n "$mdst" && -e "$msrc" ]]; then
     mkdir -p "$(dirname "$mdst")" 2>/dev/null

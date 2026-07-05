@@ -163,6 +163,28 @@ set_merged(){ # id merged("true"|"false")
   jq --argjson mv "$2" '.merged = $mv' "$f" > "$f.tmp" && mv -f "$f.tmp" "$f"
 }
 
+# build_index_json: (re)assemble $OUT/index.json from the current
+# $OUT/*.meta.json files, atomically. Single source of truth for the
+# aggregation shape so both the original post-dispatch write and the
+# post-merge refresh (Codex review finding P2b) use the exact same jq --
+# no hand-edited/duplicated field lists to drift out of sync.
+#
+# P2b: index.json is first written before apply_worktree_merges runs;
+# set_merged only patches each per-task .meta.json, so without this refresh
+# index.json's .tasks[].merged stays null even after the merge pass sets
+# true/false in the metas. apply_worktree_merges calls this again at its END
+# (after every set_merged call) so callers reading the aggregate see the
+# real merged state.
+build_index_json(){
+  jq -s --arg dir "$OUT" '{run_dir:$dir, tasks:., summary:{
+     ok:(map(select(.status=="ok"))|length),
+     failed:(map(select(.status=="failed"))|length),
+     timeout:(map(select(.status=="timeout"))|length),
+     skipped:(map(select(.status|startswith("skipped")))|length),
+     unavailable:(map(select(.status=="unavailable"))|length)}}' \
+     "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json"
+}
+
 # attempt_record: backend model exit dur status -> one jq-built attempt object
 attempt_record(){ # backend model exit dur status -> JSON object on stdout
   jq -n --arg b "$1" --arg m "$2" --argjson ex "$3" --argjson d "$4" --arg st "$5" \
@@ -200,6 +222,18 @@ kill_tree(){
 # (more likely to flag a conflict), never less -- that's the safe direction,
 # so the union is intentional. Output is sorted + deduped; one path per line,
 # same newline-separated contract callers already rely on.
+#
+# Codex review finding (P2a): for a filename containing a SPACE, git appends
+# a TAB then metadata after the path on `---`/`+++` lines (e.g.
+# "+++ b/shared file.txt<TAB>..."), but the corresponding `rename from`/
+# `rename to`/`copy from`/`copy to` lines carry NO such tab. Left unstripped,
+# that produces two DIFFERENT overlap keys for the same file ("shared
+# file.txt<TAB>..." vs "shared file.txt"), so a rename-to and a write-to the
+# same spaced filename are missed as an overlap. Fix: strip everything from
+# the first literal tab onward on every extracted line before the
+# dequote/prefix-strip step. `rename from/to`, `copy from/to`, and the
+# `diff --git` header never carry a tab suffix, so this strip is a no-op for
+# them and only affects `---`/`+++` lines -- safe to apply unconditionally.
 diff_files(){ # diff_path
   {
     grep -E '^rename from ' "$1" 2>/dev/null | sed -E 's#^rename from ##'
@@ -213,7 +247,8 @@ diff_files(){ # diff_path
     # line, so both sides feed the same per-line dequote/prefix-strip below.
     grep -E '^diff --git '  "$1" 2>/dev/null \
       | sed -E 's#^diff --git ("[^"]*"|[^ ]+) ("[^"]*"|[^ ]+)$#\1\n\2#'
-  } | while IFS= read -r _p; do dequote_path "$_p"; done \
+  } | sed -E $'s/\t.*$//' \
+    | while IFS= read -r _p; do dequote_path "$_p"; done \
     | sed -E 's#^(a/|b/)##' \
     | grep -v -E '^(/dev/null)?$' \
     | sort -u
@@ -242,9 +277,24 @@ dequote_path(){
 # diff_path from one source of truth. Fail-open throughout: any apply
 # failure leaves the <id>.diff file on disk and marks that task merged:false,
 # never touching the cwd for that task.
+#
+# Codex review finding (P1): `git apply --check` / `git apply` must run
+# root-relative, not cwd-relative. The captured diffs are produced by
+# `git -C $wt diff --cached`, so their paths are root-relative. If this
+# wrapper is invoked from a SUBDIRECTORY of the repo, running plain
+# `git apply` there makes git treat the root-rooted paths as outside cwd --
+# it prints "Skipped patch '...'" and exits 0, so both --check and apply
+# "succeed" with NO file changes, and set_merged records a false merged:true.
+# Fix: resolve the repo root ONCE here and run both --check and apply via
+# `git -C "$root"`. $dpath is always absolute ($OUT is absolute), so -C does
+# not affect how it's read. Fail-open: if root can't be resolved, do not
+# apply anything -- every candidate is marked merged:false and the report
+# notes the reason, rather than risk a repeat of the silent-success bug.
 apply_worktree_merges(){
   local idx="$OUT/index.json"
   [[ -f "$idx" ]] || return 0
+
+  local root; root="$(git rev-parse --show-toplevel 2>/dev/null)"
 
   # Candidates: worktree tasks that finished ok and have a non-empty diff.
   # (failed/timeout/skipped worktree tasks have nothing safe to apply.)
@@ -288,6 +338,10 @@ apply_worktree_merges(){
   done
 
   local -a applied=() conflicted_report=() apply_failed=()
+  local root_unresolved=false
+  if [[ -z "$root" ]]; then
+    root_unresolved=true
+  fi
   for cid in "${cand_ids[@]}"; do
     dpath="${DIFF_OF[$cid]}"
     if [[ -n "${CONFLICTED[$cid]:-}" ]]; then
@@ -301,8 +355,16 @@ apply_worktree_merges(){
       set_merged "$cid" false
       continue
     fi
-    if git apply --check "$dpath" 2>/dev/null; then
-      if git apply "$dpath" 2>/dev/null; then
+    if $root_unresolved; then
+      # Fail-open (P1): repo root could not be resolved -- applying via cwd
+      # risks the silent-success bug this fix closes, so do not apply
+      # anything; record as an apply failure (diff stays on disk).
+      set_merged "$cid" false
+      apply_failed+=("$cid")
+      continue
+    fi
+    if git -C "$root" apply --check "$dpath" 2>/dev/null; then
+      if git -C "$root" apply "$dpath" 2>/dev/null; then
         set_merged "$cid" true
         applied+=("$cid")
       else
@@ -319,6 +381,13 @@ apply_worktree_merges(){
   {
     echo "# Worktree merge report: $OUT"
     echo
+    if $root_unresolved; then
+      echo "## WARNING: repo root unresolvable"
+      echo
+      echo "\`git rev-parse --show-toplevel\` failed, so no diffs were applied"
+      echo "(fail-open). All candidates below are recorded under Apply failures."
+      echo
+    fi
     echo "## Applied (merged:true)"
     if (( ${#applied[@]} > 0 )); then
       for cid in "${applied[@]}"; do echo "- $cid: ${FILES_OF[$cid]}"; done
@@ -356,6 +425,14 @@ apply_worktree_merges(){
     echo "- apply-failed: ${#apply_failed[@]}"
     echo "See \`MERGE-REPORT.md\` for details."
   } >> "$OUT/SUMMARY.md"
+
+  # P2b: regenerate index.json now that every set_merged call above has
+  # landed, so the aggregate's .tasks[].merged matches the per-task metas
+  # instead of the stale null from the pre-merge write. Done at the END
+  # (not the start) of this function -- apply_worktree_merges itself reads
+  # index.json for candidates before this point, so regenerating earlier
+  # would risk reading a half-updated file mid-pass.
+  build_index_json
 }
 
 # Single execution seam so timeout (W6) and worktree (W7) compose without
@@ -555,13 +632,7 @@ run_batch(){
 
   wait
   if ! $DRY_RUN; then
-    jq -s --arg dir "$OUT" '{run_dir:$dir, tasks:., summary:{
-       ok:(map(select(.status=="ok"))|length),
-       failed:(map(select(.status=="failed"))|length),
-       timeout:(map(select(.status=="timeout"))|length),
-       skipped:(map(select(.status|startswith("skipped")))|length),
-       unavailable:(map(select(.status=="unavailable"))|length)}}' \
-       "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json"
+    build_index_json
     { echo "# Dispatch run: $OUT"; echo
       jq -r '.tasks[] | "- [\(.status)] \(.id) (\(.backend):\(.model)) exit=\(.exit) \(.duration_s)s"' "$OUT/index.json"
     } > "$OUT/SUMMARY.md"
