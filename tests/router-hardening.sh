@@ -124,4 +124,14 @@ done
 jv="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json 'refactor the auth module' | jq -r '.verdict')"
 [[ "$jv" == "external" ]] && echo "ok   - json.verdict" || { echo "FAIL - json.verdict: $jv"; fail=1; }
 
+# --- #6: route-task.sh is retired; nothing may reference it ---
+# (excludes this test file itself, which necessarily names the retired
+# script in its own guard text below)
+ROUTER_DIR="$(dirname "$R")"
+REPO_ROOT="$(cd "$ROUTER_DIR/../.." && pwd)"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+refs="$(grep -rln --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=docs 'route-task\.sh' "$REPO_ROOT" | grep -v -F "$SELF" || true)"
+if [[ -z "$refs" ]]; then echo "ok   - no route-task.sh references (code)"; else echo "FAIL - route-task.sh still referenced: $refs"; fail=1; fi
+if [[ -e "$ROUTER_DIR/route-task.sh" ]]; then echo "FAIL - route-task.sh still exists"; fail=1; else echo "ok   - route-task.sh deleted"; fi
+
 exit $fail
