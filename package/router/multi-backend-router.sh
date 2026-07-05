@@ -410,9 +410,18 @@ output_json() {
   local info="${MODEL_CATALOG[$route]:-unknown:unknown:unknown}"
   local tier="${info%%:*}" rest="${info#*:}"
   local strength="${rest%%:*}" context="${rest#*:}"
+  # Detect once, then derive the verdict from the already-selected route rather
+  # than calling verdict_label -> route_only (which would re-run detect_backends,
+  # re-probing `command-code status` ~10s per extra call). output_json is only
+  # reached for non-inline tasks, so the verdict is external unless the selected
+  # backend is not actually available -- matching route_only's phantom-fallback
+  # guard (backend absent from avail => no external route => claude-subagent).
+  local avail; avail="$(detect_backends)"
+  local verdict="external"
+  if ! printf ' %s ' "$avail" | grep -q " $backend "; then verdict="claude-subagent"; fi
   jq -n --arg task "$desc" --arg tt "$task_type" --arg b "$backend" --arg m "$model" \
-        --arg tier "$tier" --arg s "$strength" --arg c "$context" --arg avail "$(detect_backends)" \
-        --arg verdict "$(verdict_label "$desc")" \
+        --arg tier "$tier" --arg s "$strength" --arg c "$context" --arg avail "$avail" \
+        --arg verdict "$verdict" \
     '{task:$task, task_type:$tt, backend:$b, model:$m, tier:$tier, strength:$s,
       context_window:$c, available_backends:$avail, verdict:$verdict}'
 }
