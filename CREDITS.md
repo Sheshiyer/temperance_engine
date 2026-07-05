@@ -5,6 +5,7 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 ## Runtime Surfaces
 
 - [Personal AI Infrastructure](https://github.com/danielmiessler/Personal_AI_Infrastructure) by Daniel Miessler is the principal upstream inspiration for the PAI/Algorithm/ISA runtime pattern this package installs around.
+- [GSD Core](https://github.com/open-gsd/gsd-core) by open-gsd (MIT) is the recommended workflow backbone whose Discuss→Plan→Execute→Verify→Ship phases map onto the PAI flow; referenced, not vendored.
 - [OpenCode](https://github.com/anomalyco/opencode) configuration and MCP surfaces.
 - [Cursor rules](https://cursor.com/docs/rules) and `AGENTS.md` project guidance surfaces.
 - Claude Code and local Claude configuration surfaces are optional compatibility targets. Claude Code is a product surface from Anthropic; this repo only ships opt-in local templates and does not redistribute Claude Code.
@@ -37,6 +38,7 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 | Project | Link | Why it matters |
 |---|---|---|
 | Personal AI Infrastructure | https://github.com/danielmiessler/Personal_AI_Infrastructure | PAI/Algorithm/ISA runtime inspiration. |
+| GSD Core | https://github.com/open-gsd/gsd-core | Recommended workflow backbone; Discuss→Plan→Execute→Verify→Ship maps onto the PAI flow. |
 | CodeGraph | https://github.com/colbymchenry/codegraph | Local AST-backed structural code index. |
 | peon-ping | https://github.com/PeonPing/peon-ping | Local voice notification pattern and script surface. |
 | OpenCode | https://github.com/anomalyco/opencode | OpenCode config and MCP surface. |

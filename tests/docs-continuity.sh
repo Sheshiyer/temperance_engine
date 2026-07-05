@@ -32,4 +32,12 @@ grep -qi "retired" "$DIR/docs/multi-surface-architecture.md" && grep -q "pai-flo
 [ ! -e "$DIR/package/conductor/routed-execute.sh" ] \
   && echo "ok - conductor/routed-execute.sh removed" \
   || { echo "FAIL - package/conductor/routed-execute.sh still present"; fail=1; }
+
+# --- A+F Task 4: gsd-core realignment ---
+grep -q "open-gsd/gsd-core" "$DIR/UPSTREAM.md" && echo "ok - UPSTREAM credits gsd-core" \
+  || { echo "FAIL - UPSTREAM.md missing open-gsd/gsd-core"; fail=1; }
+grep -q "open-gsd/gsd-core" "$DIR/CREDITS.md" && echo "ok - CREDITS credits gsd-core" \
+  || { echo "FAIL - CREDITS.md missing open-gsd/gsd-core"; fail=1; }
+grep -q "@opengsd/gsd-core" "$DIR/scripts/install-gsd.sh" && echo "ok - install-gsd points at gsd-core npx" \
+  || { echo "FAIL - install-gsd.sh missing gsd-core npx guidance"; fail=1; }
 exit $fail

@@ -3,7 +3,7 @@ set -eu
 
 . "${TEMPERANCE_ROOT:?}/scripts/lib.sh"
 
-say "Configuring optional GSD (get-shit-done) reference"
+say "Configuring optional GSD (gsd-core) reference"
 
 if test "${TEMPERANCE_GSD_MODE:-skip}" != "install"; then
   say "GSD reference skipped; pass --with-gsd to print reference guidance."
@@ -12,10 +12,14 @@ fi
 
 GSD_HOME="${GSD_HOME:-$HOME/.claude/get-shit-done}"
 
-if test -d "$GSD_HOME"; then
-  say "GSD detected at $GSD_HOME."
-  say "See docs/parallel-dispatch.md for when to use GSD execute-phase/workstreams vs superpowers dispatch."
+# gsd-core (open-gsd/gsd-core) installs via npx into the project/global; the
+# legacy danielmiessler-lineage path is ~/.claude/get-shit-done. Detect either,
+# so back-compat never regresses. Still detect-only — Temperance never vendors GSD.
+if test -d "$GSD_HOME" || command -v gsd >/dev/null 2>&1; then
+  say "GSD detected (legacy path or gsd-core CLI)."
+  say "See docs/pai-flow.md for how gsd-core phases map onto the PAI 7-phase flow."
 else
-  say "GSD not found at $GSD_HOME. Temperance Engine does not install or vendor GSD."
-  say "See docs/parallel-dispatch.md for guidance; install GSD separately if you want it."
+  say "GSD not found. Temperance Engine does not install or vendor GSD."
+  say "Recommended: install gsd-core with 'npx @opengsd/gsd-core@latest' (open-gsd/gsd-core)."
+  say "See docs/pai-flow.md for the recommended-default flow and its superpowers fallback."
 fi
