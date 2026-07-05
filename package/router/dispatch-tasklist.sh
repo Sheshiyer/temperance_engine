@@ -298,12 +298,47 @@ apply_worktree_merges(){
 
   # Candidates: worktree tasks that finished ok and have a non-empty diff.
   # (failed/timeout/skipped worktree tasks have nothing safe to apply.)
-  local -a cand_ids=()
+  #
+  # Codex review finding (P1, composing with #8 fallback chain): run_one
+  # reuses the SAME worktree across every fallback attempt for a task, and
+  # captures the diff ONCE at the end via `git add -A && git diff --cached`.
+  # So a task that fell back (primary backend wrote/failed, a later backend
+  # succeeded) can finish status=ok with a captured diff that contains BOTH
+  # the failed attempt's edits and the successful attempt's edits -- there is
+  # no way to tell them apart from the diff alone. Auto-applying that combined
+  # diff would leak a failed backend's partial edits into the caller's live
+  # tree, violating the feature's "only auto-apply the safe path" contract.
+  #
+  # Fix (conservative, in-scope): a task that needed fallback is exactly the
+  # "not obviously safe" case, so exclude it from auto-apply entirely --
+  # per #8, a task that succeeds on its first backend has exactly one entry
+  # in attempts[]; a task that fell back has 2+. Such a task is marked
+  # merged:false (never null -- it WAS a worktree task under
+  # --apply-worktree, just deliberately not applied), its diff is left on
+  # disk, and it is listed in MERGE-REPORT.md under its own section so a
+  # human can adjudicate it manually. It never enters the overlap/conflict
+  # candidate set below, so it cannot mask or be masked by another task's
+  # conflict either.
+  local -a cand_ids=() fallback_skip=()
+  local cid attempts_len
   while IFS= read -r cid; do
-    [[ -n "$cid" ]] && cand_ids+=("$cid")
+    [[ -n "$cid" ]] || continue
+    attempts_len="$(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | (.attempts | length)' "$idx")"
+    if [[ "$attempts_len" =~ ^[0-9]+$ ]] && (( attempts_len > 1 )); then
+      set_merged "$cid" false
+      fallback_skip+=("$cid")
+    else
+      cand_ids+=("$cid")
+    fi
   done < <(jq -r '.tasks[] | select(.worktree != null and .diff_path != null and .status=="ok") | .id' "$idx")
 
-  (( ${#cand_ids[@]} == 0 )) && return 0
+  # Note: unlike before this fix, we do NOT early-return here when cand_ids
+  # is empty -- fallback_skip tasks still need set_merged (done above),
+  # MERGE-REPORT.md, the SUMMARY.md addendum, and the final index.json
+  # refresh even if every worktree task fell back and none is auto-appliable.
+  if (( ${#cand_ids[@]} == 0 && ${#fallback_skip[@]} == 0 )); then
+    return 0
+  fi
 
   # Build id -> diff_path map and file->[]ids overlap map.
   declare -A DIFF_OF=()
@@ -412,6 +447,21 @@ apply_worktree_merges(){
       echo "(none)"
     fi
     echo
+    echo "## Skipped: fallback attempts (apply manually after review)"
+    echo
+    if (( ${#fallback_skip[@]} > 0 )); then
+      echo "These tasks needed a fallback backend (attempts > 1) before"
+      echo "succeeding. The captured worktree diff may contain edits from"
+      echo "BOTH the failed attempt(s) and the successful one -- not safe to"
+      echo "auto-apply. Review the diff by hand before applying it."
+      echo
+      for cid in "${fallback_skip[@]}"; do
+        echo "- $cid: $(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | .diff_path' "$idx")"
+      done
+    else
+      echo "(none)"
+    fi
+    echo
     echo 'Hand-integrate remaining diffs with: `git apply <path-to-diff>` (after resolving conflicts manually).'
   } > "$OUT/MERGE-REPORT.md"
 
@@ -423,6 +473,7 @@ apply_worktree_merges(){
     echo "- applied: ${#applied[@]}"
     echo "- conflicted: ${#conflicted_report[@]}"
     echo "- apply-failed: ${#apply_failed[@]}"
+    echo "- skipped-fallback: ${#fallback_skip[@]}"
     echo "See \`MERGE-REPORT.md\` for details."
   } >> "$OUT/SUMMARY.md"
 

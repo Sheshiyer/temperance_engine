@@ -453,5 +453,40 @@ check "index.json refresh: IDXA index merged is true (not null)" "true" "$(jq -r
 check "index.json refresh: IDXB index merged is true (not null)" "true" "$(jq -r '.tasks[] | select(.id=="IDXB") | .merged' "$run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code"
 
+# (h) P1 regression (Codex review on #7 PR, composing with #8 fallback chain):
+# run_one reuses the SAME worktree across ALL fallback attempts for a task,
+# and captures the diff ONCE at the end via `git add -A && git diff --cached`.
+# So a task that falls back (primary backend writes/fails, fallback backend
+# succeeds) can have its captured diff contain BOTH attempts' edits -- yet
+# still finish status=ok. Auto-applying that combined diff would leak a
+# failed backend's partial edits into the caller's live tree. Fix: exclude
+# any worktree task with (.attempts|length) > 1 from auto-apply, regardless
+# of final status; mark it merged:false (not null) and list it in
+# MERGE-REPORT.md under a dedicated fallback-skip section instead.
+#
+# Task F: command-code (primary) exits 1 -> falls back to kimi, which exits 0
+# and writes good.txt. Expect (.attempts|length) >= 2 and status=ok, but
+# NOT applied. Task N: single-attempt task writing distinct file normalfile.txt
+# -> proves non-fallback tasks still auto-apply (no regression).
+tmpgit_am8=$(mktemp -d); ( cd "$tmpgit_am8" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+( cd "$tmpgit_am8" && printf '%s' '[{"id":"FBW","task":"command-code_EXIT=1 kimi_EXIT=0 WRITE=good.txt:ok do stuff"},
+             {"id":"NRM","task":"WRITE=normalfile.txt:hello-normal do work","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "fallback-skip: FBW attempts length >= 2" "true" "$(jq -r '(.attempts|length) >= 2' "$run/FBW.meta.json" 2>/dev/null)"
+check "fallback-skip: FBW status=ok" "ok" "$(jq -r '.status' "$run/FBW.meta.json" 2>/dev/null)"
+check "fallback-skip: FBW merged:false (not applied despite status=ok)" "false" "$(jq -r '.merged' "$run/FBW.meta.json" 2>/dev/null)"
+check "fallback-skip: good.txt NOT applied to cwd" "" "$(cat "$tmpgit_am8/good.txt" 2>/dev/null)"
+check "fallback-skip: FBW index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="FBW") | .merged' "$run/index.json" 2>/dev/null)"
+check "fallback-skip: NRM attempts length == 1 (no fallback)" "1" "$(jq -r '.attempts | length' "$run/NRM.meta.json" 2>/dev/null)"
+check "fallback-skip: NRM merged:true (single-attempt still auto-applies)" "true" "$(jq -r '.merged' "$run/NRM.meta.json" 2>/dev/null)"
+check "fallback-skip: normalfile.txt applied to cwd" "hello-normal" "$(cat "$tmpgit_am8/normalfile.txt" 2>/dev/null)"
+grep -q "Skipped: fallback attempts" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT has fallback-skip section" || { echo "FAIL - MERGE-REPORT missing fallback-skip section"; fail=1; }
+sed -n '/## Skipped: fallback attempts/,/^## /p' "$run/MERGE-REPORT.md" 2>/dev/null | grep -q "FBW" && echo "ok - MERGE-REPORT lists FBW under fallback-skip" || { echo "FAIL - MERGE-REPORT does not list FBW under fallback-skip"; fail=1; }
+grep -q "^- skipped-fallback: 1$" "$run/SUMMARY.md" 2>/dev/null && echo "ok - SUMMARY.md records skipped-fallback: 1" || { echo "FAIL - SUMMARY.md missing skipped-fallback count"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail

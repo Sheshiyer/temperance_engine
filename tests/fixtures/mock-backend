@@ -38,11 +38,23 @@ base="$(basename "$0")"
 prompt=""; prev=""
 for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
 [[ -z "$prompt" ]] && prompt="${!#}"
+# Exit-token handling: a NONZERO code exits immediately (legacy behavior,
+# unchanged). A ZERO code falls through to WRITE/MOVE processing below
+# instead of exiting immediately -- needed so a per-backend token like
+# "kimi_EXIT=0" can both signal success AND let that same successful
+# attempt write a file (e.g. fallback-chain tests where the fallback
+# backend succeeds and produces a real diff). Exiting unconditionally on
+# a 0 here would always short-circuit before WRITE/MOVE ran, which is
+# indistinguishable from the backend having written nothing -- so this
+# only changes behavior for the exit=0 case; every existing nonzero-exit
+# scenario is untouched.
 if [[ "$prompt" == *"${base}_EXIT="* ]]; then
   n="${prompt#*${base}_EXIT=}"; n="${n%% *}"
-  exit "$n"
+  [[ "$n" != "0" ]] && exit "$n"
+elif [[ "$prompt" == *EXIT=* ]]; then
+  n="${prompt#*EXIT=}"; n="${n%% *}"
+  [[ "$n" != "0" ]] && exit "$n"
 fi
-if [[ "$prompt" == *EXIT=* ]]; then n="${prompt#*EXIT=}"; n="${n%% *}"; exit "$n"; fi
 if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
 # extract_spec: prompt token -> echoes the spec text on stdout. If the text
 # right after "<token>=" is "{", reads verbatim up to the matching "}" (so
