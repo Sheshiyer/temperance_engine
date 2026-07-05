@@ -12,10 +12,11 @@ fi
 
 GSD_HOME="${GSD_HOME:-$HOME/.claude/get-shit-done}"
 
-# gsd-core (open-gsd/gsd-core) installs via npx into the project/global; the
-# legacy danielmiessler-lineage path is ~/.claude/get-shit-done. Detect either,
-# so back-compat never regresses. Still detect-only — Temperance never vendors GSD.
-if test -d "$GSD_HOME" || command -v gsd >/dev/null 2>&1; then
+# gsd-core (open-gsd/gsd-core) installs via npx into the project/global; its
+# published bins are `gsd-core`, `gsd-tools`, `gsd_run` (NOT `gsd`). The legacy
+# danielmiessler-lineage path is ~/.claude/get-shit-done. Detect either, so
+# back-compat never regresses. Still detect-only — Temperance never vendors GSD.
+if test -d "$GSD_HOME" || command -v gsd-core >/dev/null 2>&1; then
   say "GSD detected (legacy path or gsd-core CLI)."
   say "See docs/pai-flow.md for how gsd-core phases map onto the PAI 7-phase flow."
 else
