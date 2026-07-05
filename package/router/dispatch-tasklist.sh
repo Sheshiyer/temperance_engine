@@ -58,7 +58,27 @@ done
 
 [[ -z "$OUT" ]] && OUT="$(mktemp -d)"
 mkdir -p "$OUT"
-RUNTAG="$(basename "$OUT")"
+# Sanitize RUNTAG: it flows verbatim into the worktree branch name
+# te-dispatch/$RUNTAG/$id, so any git-illegal char here (space, colon, etc.)
+# would make `git worktree add -b` fail for every task with a generic
+# status=failed/exit=1 and no indication why. Collapse anything outside the
+# git-safe set to '-' so the branch name is always legal regardless of --out.
+# NOTE: `basename` emits a trailing newline; piping it straight into `tr`
+# would convert that newline to a trailing '-' before the outer $(...)
+# strips it. printf '%s' (no trailing newline) into tr avoids that.
+_runtag_base="$(basename "$OUT")"
+RUNTAG="$(printf '%s' "$_runtag_base" | tr -c 'A-Za-z0-9._-' '-')"
+unset _runtag_base
+
+# Repo guard: --worktree requires an actual git repository. Without this
+# check, `git status --porcelain` in a non-repo cwd exits 128 with empty
+# stdout, which the dirty-tree check below would misread as "clean" and
+# proceed — only to have every task fail later at `git worktree add` with a
+# generic error. Fail fast here with a clear message instead.
+if $WORKTREE && ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "--worktree requires a git repository (not inside one)" >&2
+  exit 4
+fi
 
 # Dirty-tree guard: worktrees check out HEAD only, so uncommitted changes in
 # the caller's tree would silently be left behind — refuse rather than run
