@@ -74,8 +74,8 @@ On non-macOS systems, voice installation is skipped automatically. On macOS, voi
 <!-- readme-gen:start:notebooklm-report -->
 ## 🚀 Project Intelligence Snapshot
 
-- Developed by Thoughtseed Labs, **Temperance Engine** is a public packaging repository and one-time installer for OpenCode/Cursor-first local AI-operator runtimes. It addresses configuration sprawl across hidden config directories, optional voice hooks, and search indexes by consolidating those elements into a reviewable, modular framework.
-- The engine integrates Daniel Miessler's Personal AI Infrastructure (PAI) runtime pattern without making Claude Code, Claude Pro/Max, Anthropic auth, or a specific model mandatory. Its core mission is to install safe OpenCode/Cursor-compatible instruction surfaces, reference optional local assets, and verify configurations without leaking private machine state.
+- The Temperance Engine, developed by Thoughtseed Labs, is a comprehensive packaging repository and one-time installer designed for local AI-operator runtimes. It specifically targets environments utilizing **OpenCode** and **Cursor**, providing a modular framework that consolidates scattered configurations, voice hooks, MCP servers, and search indexes into a reviewable, secure system.
+- The project focuses on "Absolute Source Fidelity" and safety, ensuring that the installation process does not leak private machine state, credentials, or proprietary data. By implementing a "backup-first" installation philosophy and utilizing a multi-backend routing system, the Temperance Engine allows operators to maintain local autonomy while benefiting from advanced AI orchestration patterns like the Personal AI Infrastructure (PAI) and CodeGraph structural search.
 - [Read the full report for deeper context](.readme-notebooklm/assets/notebooklm-report.md)
 
 <!-- readme-gen:end:notebooklm-report -->
@@ -85,108 +85,109 @@ On non-macOS systems, voice installation is skipped automatically. On macOS, voi
 ```mermaid
 graph LR
   N001["Temperance Engine"]
-  N002["Core Purpose"]
+  N002["Core Functionality"]
   N001 --> N002
-  N003["Local AI-operator runtime installer"]
+  N003["Multi-backend Routing"]
   N002 --> N003
-  N004["Unified inspectable loop"]
-  N002 --> N004
-  N005["Eliminate configuration sprawl"]
-  N002 --> N005
-  N006["Privacy-first and backup-first"]
-  N002 --> N006
-  N007["Key Components"]
-  N001 --> N007
-  N008["PAI Infrastructure"]
+  N004["temperance-route CLI"]
+  N003 --> N004
+  N005["Automatic Task Classification"]
+  N003 --> N005
+  N006["Model Optimization (DeepSeek, Kimi, Grok, Claude)"]
+  N003 --> N006
+  N007["PAI Integration"]
+  N002 --> N007
+  N008["Algorithm Flow Templates"]
   N007 --> N008
-  N009["Algorithm-driven workflows"]
-  N008 --> N009
-  N010["Instruction surfaces"]
-  N008 --> N010
-  N011["ISA runtime pattern"]
-  N008 --> N011
-  N012["Skill-Cluster Routing"]
-  N007 --> N012
-  N013["Skill discovery via index"]
-  N012 --> N013
-  N014["Prevents startup debloat"]
-  N012 --> N014
-  N015["Active symlinks"]
-  N012 --> N015
-  N016["CodeGraph Search"]
-  N007 --> N016
-  N017["AST-backed indexing"]
-  N016 --> N017
-  N018["Structural lookup for .agents"]
-  N016 --> N018
-  N019["Peon-Ping Voice"]
-  N007 --> N019
-  N020["Phase-based sound notifications"]
+  N009["ISA Preference Store"]
+  N007 --> N009
+  N010["Instruction Surfaces"]
+  N007 --> N010
+  N011["Search & Intelligence"]
+  N002 --> N011
+  N012["CodeGraph AST Indexing"]
+  N011 --> N012
+  N013["ripgrep Fallback Search"]
+  N011 --> N013
+  N014["System Architecture"]
+  N001 --> N014
+  N015["Components"]
+  N014 --> N015
+  N016["Skill-cluster Resolver"]
+  N015 --> N016
+  N017["Pulse Compatibility Server"]
+  N015 --> N017
+  N018["Parallel Dispatch Context"]
+  N015 --> N018
+  N019["Deployment Tools"]
+  N014 --> N019
+  N020["Backup-first Installer"]
   N019 --> N020
-  N021["macOS primary support"]
+  N021["Verification Scripts"]
   N019 --> N021
-  N022["Referenced (not bundled) packs"]
+  N022["Rollback Helpers"]
   N019 --> N022
-  N023["Pulse Compatibility Server"]
-  N007 --> N023
-  N024["Localhost:31337 endpoint"]
+  N023["Safety & Constraints"]
+  N001 --> N023
+  N024["Privacy Boundary (No Memory/Credentials)"]
   N023 --> N024
-  N025["Bun runtime"]
+  N025["Portable Paths ($HOME/Env Vars)"]
   N023 --> N025
-  N026["Safety & Constraints"]
-  N001 --> N026
-  N027["Backup-first install scripts"]
-  N026 --> N027
-  N028["POSIX-shell compatibility"]
-  N026 --> N028
-  N029["No private memory or credentials"]
-  N026 --> N029
-  N030["Generalized $HOME paths"]
-  N026 --> N030
-  N031["Rollback documentation"]
-  N026 --> N031
-  N032["Project Artifacts"]
-  N001 --> N032
-  N033["install.sh & verify.sh"]
-  N032 --> N033
-  N034["README (Generated & versioned)"]
-  N032 --> N034
-  N035["Generated assets (banner/icon)"]
-  N032 --> N035
-  N036["skills.sh skill card"]
-  N032 --> N036
-  N037["Upstream Integrations"]
-  N001 --> N037
-  N038["OpenCode"]
-  N037 --> N038
-  N039["Cursor"]
-  N037 --> N039
-  N040["Claude Code optional"]
-  N037 --> N040
-  N041["OpenAI Codex CLI optional"]
-  N037 --> N041
-  N042["GitHub CLI"]
-  N037 --> N042
-  N043[ripgrep]
-  N037 --> N043
+  N026["Optional Voice (Non-macOS Skip)"]
+  N023 --> N026
+  N027["No Binary Vendoring"]
+  N023 --> N027
+  N028["Supported Platforms"]
+  N001 --> N028
+  N029["OpenCode"]
+  N028 --> N029
+  N030["Cursor Rules (.mdc)"]
+  N028 --> N030
+  N031["Claude Code (Optional)"]
+  N028 --> N031
+  N032["OpenAI Codex CLI (Optional)"]
+  N028 --> N032
+  N033["Project Metadata"]
+  N001 --> N033
+  N034["Author: Thoughtseed Labs"]
+  N033 --> N034
+  N035["License: MIT"]
+  N033 --> N035
+  N036["Version: 0.1.0"]
+  N033 --> N036
+  N037["Documentation: ISA.md & QUICKSTART.md"]
+  N033 --> N037
 ```
 
 <!-- readme-gen:end:notebooklm-mindmap -->
 <!-- readme-gen:start:notebooklm-table -->
 ## 📊 Repository Signals Table
 
-| Project Name | Description | Integration Type | Upstream URL | Role in Runtime | Status |
-| --- | --- | --- | --- | --- | --- |
-| Personal AI Infrastructure | PAI/Algorithm/ISA runtime pattern and instruction surfaces. | Principal | https://github.com/danielmiessler/Personal_AI_Infrastructure | Core runtime pattern the package installs around. | unreleased |
-| OpenCode | OpenCode configuration and MCP surface. | Template installation | https://github.com/anomalyco/opencode | Receives instruction templates and MCP-related config. | verified |
-| Cursor | Cursor rules and AGENTS.md-compatible project guidance. | Template installation | https://cursor.com/docs/rules | Receives copyable project rules without Claude auth requirements. | referenced |
-| CodeGraph | Local AST-backed code indexing and structural search. | Referenced | https://github.com/colbymchenry/codegraph | Powers structural search and .agents routing rules. | unreleased |
-| Claude Code | Optional AI product surface from Anthropic. | Optional template installation | Not in source | Receives local instruction templates only when enabled. | optional |
-| OpenAI Codex CLI | Optional Codex local instruction surface. | Optional template installation | https://github.com/openai/codex | Receives local instruction templates only when enabled. | verified |
-| peon-ping | Local voice notification pattern and script surface. | Referenced | https://github.com/PeonPing/peon-ping | Maps Algorithm phases to local sound packs. | unreleased |
-| ripgrep | Fast file/content search utility. | Referenced | https://github.com/BurntSushi/ripgrep | Fallback search patterns alongside structural indexing. | verified |
-| Bun | High-performance JavaScript runtime. | Optional | https://github.com/oven-sh/bun | Runs local Pulse compatibility server on localhost:31337. | verified |
-| GitHub CLI | Public repo/publishing workflow helper. | Optional | https://github.com/cli/cli | Used for optional repository operations. | verified |
+| Project Name | Description | Integration Type | Upstream URL | Role in Runtime | Status | Source |
+|---|---|---|---|---|---|---|
+| Personal AI Infrastructure (PAI) | Principal upstream inspiration for the PAI/Algorithm/ISA runtime pattern. Provides live infrastructure for AI assistance, memory, and instruction surfaces. | Principal / Template installation | [link](https://github.com/danielmiessler/Personal_AI_Infrastructure) | Core machine-specific runtime flow and execution logic; steering and memory (fully external). | verified / unreleased | [1], [2], [3], [4] |
+| OpenCode | Open-source coding assistant environment and configuration surface with routing context and MCP support. | Template installation / Referenced | [link](https://github.com/anomalyco/opencode) | Primary coding interface template; receives instruction templates and config; provides hooks with routing context. | verified / referenced | [1], [2], [3], [5] |
+| command-code | Primary, versatile backend supporting 35 models and an agentic execution model. | Principal | Not in source | Primary backend for versatile tasks. | verified | [5] |
+| CodeGraph | Local AST-backed code indexing, analysis, and structural search tool. | Principal / Referenced | [link](https://github.com/colbymchenry/codegraph) | Powers structural search, .agents routing rules, and runtime logic guidance. | verified / unreleased / referenced | [1], [2], [3], [4] |
+| peon-ping | Local voice notification pattern, sound pack mapping, and runtime signaling tool. | Principal / Referenced | [link](https://github.com/PeonPing/peon-ping) | Maps Algorithm phases to local sound packs; manages agent communication pings. | verified / unreleased | [1], [2], [3], [4] |
+| Cursor | AI-powered code editor with agent and project rule guidance surfaces. | Template installation / Referenced | [link](https://cursor.com/docs/rules) | Ships AGENTS.md and .cursor/rules guidance by default without Claude auth requirements. | verified / referenced | [1], [2], [3] |
+| Bun | High-performance JavaScript runtime and package manager. | Referenced / Optional | [link](https://github.com/oven-sh/bun) | Used for building scripts and running the local Pulse compatibility server on localhost:31337. | verified | [1], [2], [3] |
+| GitHub CLI (gh) | Official CLI for interacting with GitHub repositories and publishing workflows. | Referenced / Optional | [link](https://github.com/cli/cli) | Used for verifying upstream links, repository creation, and optional publishing operations. | verified / optional | [1], [2], [3] |
+| ripgrep | Fast line-oriented search tool for file and text patterns. | Referenced | [link](https://github.com/BurntSushi/ripgrep) | Dependency for efficient text searching and literal search patterns alongside structural indexing. | verified / referenced | [1], [2], [3] |
+| OpenAI Codex CLI | Local instruction, hook, and image generation surfaces. | Optional template installation / Referenced | [link](https://github.com/openai/codex) | Receives local instruction templates and provides image generation for assets when enabled. | verified / optional | [1], [2], [3] |
+| Pulse server | Compatibility server for runtime communication and Pulse-based operations. | Principal / Template installation | Not in source | Optional compatibility layer for runtime communication; skipped by default in standard install. | verified / optional | [1], [4] |
+| skill-cluster | Routing and resolution system for skill-based agent capabilities. | Principal | Not in source | Handles skill-cluster routing and resolver logic for agent skills. | verified | [1] |
+| superpowers | Runtime capability enhancements. | Principal | Not in source | Runtime core component. | verified | [4] |
+| kimi | Long-horizon coding specialist utilizing the K2.7 Code (262K) model. | Principal | Not in source | Long-horizon coding and time-critical simple tasks. | verified | [5] |
+| grok | Fast iteration tool located at ~/.grok/bin/grok. | Principal | Not in source | Fast iteration and time-critical simple tasks. | verified | [5] |
+| nvidia | API-based backend featuring Nemotron Ultra for deep reasoning. | Principal | Not in source | Deep reasoning tasks. | verified | [5] |
+| ParallelDispatchContext | System for parallel task dispatching. | Principal | Not in source | Hook-based parallel execution. | unreleased | [4] |
+| Enrichment core | Automatic task classification system. | Referenced | Not in source | Automatic task classification. | verified | [5] |
+| Claude Code | Optional AI product surface from Anthropic. | Optional template installation | Not in source | Receives local instruction templates only when enabled; optional compatibility target. | optional | [2], [3] |
+| Claude | Anthropic AI model templates and model-specific advisor paths. | Template installation | Not in source | Optional advisor path and template provider; skipped by default. | optional | [1] |
+| GSD (Get Stuff Done) | External workstream and task management system or configuration framework. | Referenced | Not in source | External configuration via read-only config.json; remains fully external to Temperance. | optional | [1], [4] |
+
+<sub>Full-fidelity JSON for tooling: [`.readme-notebooklm/assets/notebooklm-data-table.json`](./.readme-notebooklm/assets/notebooklm-data-table.json) · CSV: [`.readme-notebooklm/assets/notebooklm-data-table.csv`](./.readme-notebooklm/assets/notebooklm-data-table.csv)</sub>
 
 <!-- readme-gen:end:notebooklm-table -->
 <!-- readme-gen:start:notebooklm-metadata -->
@@ -196,14 +197,14 @@ graph LR
 - manifest-path: .readme-notebooklm/assets/manifest.json
 - source-reference: manifest.json
 - source-count: 6
-- source-note: README.md, CHANGELOG.md, CONTRIBUTING.md, CREDITS.md, ISA.md, SECURITY.md
-- generated-at: 2026-06-15T14:31:04+0000
-- notebook-id: f113fd7b-0524-4cec-915d-f712c410242c
-- generation-command: READMEREBUILD_PIPELINE=/path/to/run_mvp_pipeline.py bash scripts/rebuild-readme.sh 'temperance-engine' 'Thoughtseed'
+- source-note: README.md, CHANGELOG.md, CONTRIBUTING.md, CREDITS.md, ISA.md, QUICKSTART.md
+- generated-at: 2026-07-05T03:59:11+0000
+- notebook-id: a6e54ace-8597-4c34-b679-88cb66af7ccc
+- generation-command: READMEREBUILD_PIPELINE=/path/to/run_mvp_pipeline.py bash scripts/rebuild-readme.sh 'temperance_engine' 'Sheshiyer'
 - continuity-mode: merge-queue refresh workflow
 - follow-up-target: readme-continuity-refresh
 - workflow-reference: .github/workflows/readme-auto-refresh.yml
-- notebooklm-owner: Thoughtseed
+- notebooklm-owner: Sheshiyer
 
 <!-- readme-gen:end:notebooklm-metadata -->
 ## System Flow
