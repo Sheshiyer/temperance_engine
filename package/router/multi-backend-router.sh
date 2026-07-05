@@ -222,6 +222,28 @@ route_only() {
   printf '%s\t%s\n' "$backend" "$model"
 }
 
+# verdict: the unified 3-verdict classification (issue #6). Pure remap of
+# route_only so --verdict and --route-only can never disagree.
+#   inline\t-      -> inline
+#   none\t-        -> claude-subagent   (no external backend => needs live session)
+#   backend\tmodel -> external\tbackend\tmodel
+verdict() {
+  local line b m
+  line=$(route_only "$1")
+  b=${line%%$'\t'*}; m=${line#*$'\t'}
+  case "$b" in
+    inline) printf 'inline\n' ;;
+    none)   printf 'claude-subagent\n' ;;
+    *)      printf 'external\t%s\t%s\n' "$b" "$m" ;;
+  esac
+}
+
+# verdict_label: just the first field of verdict() (inline|external|claude-subagent),
+# for embedding in --json.
+verdict_label() {
+  verdict "$1" | cut -f1
+}
+
 # route_only_with_fallbacks: like route_only, but emits the FULL
 # priority-filtered fallback chain for the task's type -- one
 # "backend<TAB>model" line per backend in ROUTING_PRIORITY order, filtered to
@@ -373,8 +395,9 @@ output_json() {
   local strength="${rest%%:*}" context="${rest#*:}"
   jq -n --arg task "$desc" --arg tt "$task_type" --arg b "$backend" --arg m "$model" \
         --arg tier "$tier" --arg s "$strength" --arg c "$context" --arg avail "$(detect_backends)" \
+        --arg verdict "$(verdict_label "$desc")" \
     '{task:$task, task_type:$tt, backend:$b, model:$m, tier:$tier, strength:$s,
-      context_window:$c, available_backends:$avail}'
+      context_window:$c, available_backends:$avail, verdict:$verdict}'
 }
 
 output_human() {
@@ -418,6 +441,8 @@ OPTIONS:
                       Print the full priority-filtered fallback chain, one
                       "BACKEND<TAB>MODEL" line per available backend, in
                       priority order (for programmatic callers)
+  --verdict           Print the unified verdict: "inline" |
+                      "external<TAB>backend<TAB>model" | "claude-subagent"
   --list-backends     List available backends and exit
   --list-models       List all models in catalog
   -h, --help          Show this help
@@ -444,6 +469,7 @@ main() {
   local execute=false
   local route_only_mode=false
   local route_only_fallbacks_mode=false
+  local verdict_mode=false
   declare -g FORCE_BACKEND=""
   declare -g FORCE_MODEL=""
   local desc=""
@@ -455,6 +481,7 @@ main() {
       --execute) execute=true; shift ;;
       --route-only) route_only_mode=true; shift ;;
       --route-only-with-fallbacks) route_only_fallbacks_mode=true; shift ;;
+      --verdict) verdict_mode=true; shift ;;
       --model) FORCE_MODEL="$2"; shift 2 ;;
       --backend) FORCE_BACKEND="$2"; shift 2 ;;
       --emit-nvidia-body)
@@ -499,6 +526,11 @@ main() {
     exit 0
   fi
 
+  if $verdict_mode; then
+    verdict "$desc"
+    exit 0
+  fi
+
   # Analyze task
   local task_type
   task_type=$(analyze_task_type "$desc")
@@ -506,7 +538,7 @@ main() {
   # Handle inline tasks
   if [[ "$task_type" == "inline" ]]; then
     if $json; then
-      echo '{"task_type": "inline", "executor": "inline", "reason": "one-shot extraction, no external dispatch"}'
+      echo '{"task_type": "inline", "executor": "inline", "verdict": "inline", "reason": "one-shot extraction, no external dispatch"}'
       exit 0
     else
       echo "Task type:    inline"

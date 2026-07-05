@@ -96,4 +96,32 @@ done
 qr="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json 'quick refactor the module' | jq -r '.task_type')"
 check "MBR quick-refactor=long-horizon" "long-horizon" "$qr"
 
+# --- #6 unification: --verdict mode + verdict<->route-only agreement ---
+# inline task -> inline
+v="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --verdict 'summarize this text')"
+[[ "$v" == "inline" ]] && echo "ok   - verdict inline" || { echo "FAIL - verdict inline: $v"; fail=1; }
+# non-trivial + backend available -> external<TAB>command-code<TAB>model
+# (route_only emits the model WITHOUT its "command-code:" prefix, so verdict
+#  carries the bare model in field 3.)
+v="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --verdict 'refactor the auth module')"
+[[ "$v" == "external"$'\t'"command-code"$'\t'"moonshotai/Kimi-K2.7-Code" ]] \
+  && echo "ok   - verdict external" || { echo "FAIL - verdict external: $v"; fail=1; }
+# non-trivial + NO backend -> claude-subagent
+v="$(TEMPERANCE_BACKENDS='' bash "$R" --verdict 'refactor the auth module')"
+[[ "$v" == "claude-subagent" ]] && echo "ok   - verdict claude-subagent" || { echo "FAIL - verdict subagent: $v"; fail=1; }
+# verdict <-> route-only agreement for a corpus
+for t in "summarize this text" "refactor the auth module" "audit the code"; do
+  ro="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --route-only "$t")"
+  vv="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --verdict "$t")"
+  case "$ro" in
+    inline$'\t'-) exp="inline" ;;
+    none$'\t'-)   exp="claude-subagent" ;;
+    *)            exp="external"$'\t'"${ro%%$'\t'*}"$'\t'"${ro#*$'\t'}" ;;
+  esac
+  [[ "$vv" == "$exp" ]] && echo "ok   - agree[$t]" || { echo "FAIL - agree[$t]: ro=$ro v=$vv"; fail=1; }
+done
+# --json carries an additive .verdict
+jv="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json 'refactor the auth module' | jq -r '.verdict')"
+[[ "$jv" == "external" ]] && echo "ok   - json.verdict" || { echo "FAIL - json.verdict: $jv"; fail=1; }
+
 exit $fail
