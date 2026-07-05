@@ -14,12 +14,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install bash 5.x (macos-latest runner ships stock bash 3.2)
+        # scripts/readme-continuity-check.sh uses `mapfile` and `${arr[@]}` under
+        # `set -u`, both bash 4+ constructs. Homebrew's git is preinstalled on
+        # macos-latest but bash is NOT — install it so the script's own
+        # `#!/usr/bin/env bash` shebang resolves to a 4+ binary via PATH (brew's
+        # bin dir is first in the runner's PATH).
+        run: brew install bash
+
       - name: Validate README continuity for PRs
-        # /bin/bash on macos-latest runners is stock 3.2 (no `mapfile`, no `${arr[@]}`
-        # under `set -u` on empty arrays). Invoke homebrew's bash 5.x explicitly
-        # (preinstalled on macos-latest at /opt/homebrew/bin/bash) rather than relying
-        # on PATH ordering for the inner `bash` call.
         run: |
-          /opt/homebrew/bin/bash scripts/readme-continuity-check.sh \
+          ./scripts/readme-continuity-check.sh \
             "${{ github.event.pull_request.base.sha }}" \
             "${{ github.event.pull_request.head.sha }}"
