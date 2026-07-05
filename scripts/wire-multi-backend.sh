@@ -228,6 +228,7 @@ revert() {
   [[ -L "$HOME/.local/bin/temperance-route" ]] && rm -f "$HOME/.local/bin/temperance-route" && log "Removed: ~/.local/bin/temperance-route"
   [[ -L "$HOME/.local/bin/temperance-dispatch" ]] && rm -f "$HOME/.local/bin/temperance-dispatch" && log "Removed: ~/.local/bin/temperance-dispatch"
   [[ -L "$HOME/.local/bin/temperance-batch" ]] && rm -f "$HOME/.local/bin/temperance-batch" && log "Removed: ~/.local/bin/temperance-batch"
+  [[ -L "$HOME/.claude/PAI/router/classify-task.sh" ]] && rm -f "$HOME/.claude/PAI/router/classify-task.sh" && log "Removed: ~/.claude/PAI/router/classify-task.sh"
   [[ -L "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh" ]] && rm -f "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh" && log "Removed: OpenCode hook symlink"
   
   # Restore backed up files
@@ -256,6 +257,12 @@ install() {
   symlink "$REPO_ROOT/package/router/multi-backend-router.sh" "$HOME/.local/bin/temperance-route"
   symlink "$REPO_ROOT/package/router/parallel-backend-dispatch.sh" "$HOME/.local/bin/temperance-dispatch"
   symlink "$REPO_ROOT/package/router/dispatch-tasklist.sh" "$HOME/.local/bin/temperance-batch"
+
+  # Co-locate the shared classifier at the PAI router path so the installed
+  # enrichment hook (enrich/stages/routing.ts) resolves its
+  # ../../router/classify-task.sh sibling instead of failing open to
+  # task=balanced. (routing.ts also honors TEMPERANCE_ROUTER_DIR as an override.)
+  symlink "$REPO_ROOT/package/router/classify-task.sh" "$HOME/.claude/PAI/router/classify-task.sh"
   
   # Check if ~/.local/bin is in PATH
   if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then

@@ -31,7 +31,24 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks so classify-task.sh (sourced below) is found next to the REAL
+# script even when invoked through an installed symlink such as
+# ~/.local/bin/temperance-route (scripts/wire-multi-backend.sh). BSD readlink has
+# no -f, so follow the chain manually.
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _sdir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  case "$_src" in /*) ;; *) _src="$_sdir/$_src" ;; esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
+unset _src _sdir
+
+# Single source of task-type classification + command-code type->model primary
+# (issue #6). classify-task.sh is POSIX sh and only defines functions when
+# sourced (its CLI dispatch is guarded by $0), so this does not run anything.
+# shellcheck source=classify-task.sh
+. "$SCRIPT_DIR/classify-task.sh"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Backend Detection
@@ -111,75 +128,28 @@ declare -A MODEL_CATALOG=(
 # per backend, no same-backend duplicates). nvidia is intentionally excluded
 # from automatic priority selection -- it remains reachable via `--backend
 # nvidia` (see run_nvidia/execute_route + MODEL_CATALOG, both left intact).
-declare -A ROUTING_PRIORITY=(
-  # Fast iteration - DeepSeek Flash primary, Grok fallback, Kimi fallback
-  ["fast"]="command-code:deepseek/deepseek-v4-flash grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
-
-  # Long-horizon coding - Kimi K2.7 via Command Code primary, Grok fallback, direct Kimi fallback
-  ["long-horizon"]="command-code:moonshotai/Kimi-K2.7-Code grok:grok-build kimi:kimi-code/kimi-for-coding"
-
-  # Complex reasoning - Claude Fable primary, Grok fallback, Kimi fallback
-  ["reasoning"]="command-code:claude-fable-5 grok:grok-build kimi:kimi-code/kimi-for-coding"
-
-  # Validation/review - Gemini Flash primary, Grok fallback, Kimi fallback
-  ["validation"]="command-code:google/gemini-3.5-flash grok:grok-build kimi:kimi-code/kimi-for-coding"
-
-  # Creative/exploratory - Sonnet primary, Grok fallback, Kimi fallback
-  ["creative"]="command-code:claude-sonnet-5 grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
-
-  # Default balanced - Sonnet primary, Grok fallback, Kimi fallback
-  ["balanced"]="command-code:claude-sonnet-5 grok:grok-build kimi:kimi-code/kimi-for-coding"
+# grok/kimi fallback tails per task type (command-code primary is derived from
+# classify-task.sh's model_for_type, so the type->model catalog has ONE source).
+declare -A ROUTING_FALLBACK_TAILS=(
+  ["fast"]="grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
+  ["long-horizon"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["reasoning"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["validation"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["creative"]="grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
+  ["balanced"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
 )
+declare -A ROUTING_PRIORITY=()
+for _rt in fast long-horizon reasoning validation creative balanced; do
+  ROUTING_PRIORITY["$_rt"]="$(model_for_type "$_rt") ${ROUTING_FALLBACK_TAILS[$_rt]}"
+done
+unset _rt
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Complexity Analysis
 # ─────────────────────────────────────────────────────────────────────────────
 
 analyze_task_type() {
-  local desc="$1"
-  local lower_desc
-  lower_desc=$(echo "$desc" | tr '[:upper:]' '[:lower:]')
-  
-  # Long-horizon
-  if echo "$lower_desc" | grep -qE '\b(refactor|rewrite|migrate|redesign|overhaul|restructure|entire|all files|across.*files)\b'; then
-    echo "long-horizon"
-    return
-  fi
-  
-  # Reasoning
-  if echo "$lower_desc" | grep -qE '\b(analyze|debug|diagnose|explain|understand|reason|think|complex|difficult)\b'; then
-    echo "reasoning"
-    return
-  fi
-  
-  # Validation
-  if echo "$lower_desc" | grep -qE '\b(validate|verify|review|check|audit|test|ensure|confirm)\b'; then
-    echo "validation"
-    return
-  fi
-  
-  # Creative
-  if echo "$lower_desc" | grep -qE '\b(brainstorm|creative|design|explore|imagine|ideate|alternative)\b'; then
-    echo "creative"
-    return
-  fi
-  
-  # Fast (simple tasks)
-  if echo "$lower_desc" | grep -qE '\b(quick|simple|small|minor|tweak|fix typo|update comment)\b'; then
-    echo "fast"
-    return
-  fi
-  
-  # Check for extraction (inline)
-  if echo "$lower_desc" | grep -qE '\b(extract|classify|summarize|list|identify|find|count)\b'; then
-    if ! echo "$lower_desc" | grep -qE '\b(read|search|grep|edit|write|run|execute|test|build|compile)\b'; then
-      echo "inline"
-      return
-    fi
-  fi
-  
-  # Default
-  echo "balanced"
+  classify_task_type "$1"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -261,6 +231,34 @@ route_only() {
     printf 'none\t-\n'; return
   fi
   printf '%s\t%s\n' "$backend" "$model"
+}
+
+# verdict: the unified 3-verdict classification (issue #6). Pure remap of
+# route_only so --verdict and --route-only can never disagree.
+#   inline\t-      -> inline
+#   none\t-        -> claude-subagent   (no external backend => needs live session)
+#   backend\tmodel -> external\tbackend\tmodel
+# Note: a forced `--backend <name>` that is NOT available makes route_only emit
+# `none\t-`, so --verdict reports `claude-subagent` and exits 0 -- whereas a bare
+# `--route-only` with the same unavailable forced backend exits 1 with an ERROR on
+# stderr. That is intentional (forced backend gone => fall back to the live session)
+# and harmless today (no consumer wires --verdict with a forced backend); revisit
+# this mapping if one ever does.
+verdict() {
+  local line b m
+  line=$(route_only "$1")
+  b=${line%%$'\t'*}; m=${line#*$'\t'}
+  case "$b" in
+    inline) printf 'inline\n' ;;
+    none)   printf 'claude-subagent\n' ;;
+    *)      printf 'external\t%s\t%s\n' "$b" "$m" ;;
+  esac
+}
+
+# verdict_label: just the first field of verdict() (inline|external|claude-subagent),
+# for embedding in --json.
+verdict_label() {
+  verdict "$1" | cut -f1
 }
 
 # route_only_with_fallbacks: like route_only, but emits the FULL
@@ -412,10 +410,20 @@ output_json() {
   local info="${MODEL_CATALOG[$route]:-unknown:unknown:unknown}"
   local tier="${info%%:*}" rest="${info#*:}"
   local strength="${rest%%:*}" context="${rest#*:}"
+  # Detect once, then derive the verdict from the already-selected route rather
+  # than calling verdict_label -> route_only (which would re-run detect_backends,
+  # re-probing `command-code status` ~10s per extra call). output_json is only
+  # reached for non-inline tasks, so the verdict is external unless the selected
+  # backend is not actually available -- matching route_only's phantom-fallback
+  # guard (backend absent from avail => no external route => claude-subagent).
+  local avail; avail="$(detect_backends)"
+  local verdict="external"
+  if ! printf ' %s ' "$avail" | grep -q " $backend "; then verdict="claude-subagent"; fi
   jq -n --arg task "$desc" --arg tt "$task_type" --arg b "$backend" --arg m "$model" \
-        --arg tier "$tier" --arg s "$strength" --arg c "$context" --arg avail "$(detect_backends)" \
+        --arg tier "$tier" --arg s "$strength" --arg c "$context" --arg avail "$avail" \
+        --arg verdict "$verdict" \
     '{task:$task, task_type:$tt, backend:$b, model:$m, tier:$tier, strength:$s,
-      context_window:$c, available_backends:$avail}'
+      context_window:$c, available_backends:$avail, verdict:$verdict}'
 }
 
 output_human() {
@@ -459,6 +467,8 @@ OPTIONS:
                       Print the full priority-filtered fallback chain, one
                       "BACKEND<TAB>MODEL" line per available backend, in
                       priority order (for programmatic callers)
+  --verdict           Print the unified verdict: "inline" |
+                      "external<TAB>backend<TAB>model" | "claude-subagent"
   --list-backends     List available backends and exit
   --list-models       List all models in catalog
   -h, --help          Show this help
@@ -485,6 +495,7 @@ main() {
   local execute=false
   local route_only_mode=false
   local route_only_fallbacks_mode=false
+  local verdict_mode=false
   declare -g FORCE_BACKEND=""
   declare -g FORCE_MODEL=""
   local desc=""
@@ -496,6 +507,7 @@ main() {
       --execute) execute=true; shift ;;
       --route-only) route_only_mode=true; shift ;;
       --route-only-with-fallbacks) route_only_fallbacks_mode=true; shift ;;
+      --verdict) verdict_mode=true; shift ;;
       --model) FORCE_MODEL="$2"; shift 2 ;;
       --backend) FORCE_BACKEND="$2"; shift 2 ;;
       --emit-nvidia-body)
@@ -540,6 +552,11 @@ main() {
     exit 0
   fi
 
+  if $verdict_mode; then
+    verdict "$desc"
+    exit 0
+  fi
+
   # Analyze task
   local task_type
   task_type=$(analyze_task_type "$desc")
@@ -547,7 +564,7 @@ main() {
   # Handle inline tasks
   if [[ "$task_type" == "inline" ]]; then
     if $json; then
-      echo '{"task_type": "inline", "executor": "inline", "reason": "one-shot extraction, no external dispatch"}'
+      echo '{"task_type": "inline", "executor": "inline", "verdict": "inline", "reason": "one-shot extraction, no external dispatch"}'
       exit 0
     else
       echo "Task type:    inline"

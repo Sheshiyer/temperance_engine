@@ -82,4 +82,66 @@ check "route-only-with-fallbacks: inline task -> single inline line" "inline	-" 
 out=$(TEMPERANCE_BACKENDS="" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
 check "route-only-with-fallbacks: zero backends -> single none line" "none	-" "$out"
 
+# --- #6 unification: classifier is now sourced from classify-task.sh ---
+# Parity: MBR's task classification must equal the shared classifier's for a corpus.
+CT="$(dirname "$R")/classify-task.sh"
+for t in "refactor the auth module" "quick refactor the module" "debug this" \
+         "audit the code" "brainstorm ideas" "fix typo" "summarize this text" "do the thing"; do
+  via_ct="$("$CT" "$t" | cut -f1)"
+  # MBR --json exposes .task_type; use it as MBR's classification of record.
+  via_mbr="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json "$t" | jq -r '.task_type')"
+  check "parity[$t]" "$via_ct" "$via_mbr"
+done
+# quick refactor must classify as long-horizon in MBR too (proves shared ordering)
+qr="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json 'quick refactor the module' | jq -r '.task_type')"
+check "MBR quick-refactor=long-horizon" "long-horizon" "$qr"
+
+# --- #6 unification: --verdict mode + verdict<->route-only agreement ---
+# inline task -> inline
+v="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --verdict 'summarize this text')"
+[[ "$v" == "inline" ]] && echo "ok   - verdict inline" || { echo "FAIL - verdict inline: $v"; fail=1; }
+# non-trivial + backend available -> external<TAB>command-code<TAB>model
+# (route_only emits the model WITHOUT its "command-code:" prefix, so verdict
+#  carries the bare model in field 3.)
+v="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --verdict 'refactor the auth module')"
+[[ "$v" == "external"$'\t'"command-code"$'\t'"moonshotai/Kimi-K2.7-Code" ]] \
+  && echo "ok   - verdict external" || { echo "FAIL - verdict external: $v"; fail=1; }
+# non-trivial + NO backend -> claude-subagent
+v="$(TEMPERANCE_BACKENDS='' bash "$R" --verdict 'refactor the auth module')"
+[[ "$v" == "claude-subagent" ]] && echo "ok   - verdict claude-subagent" || { echo "FAIL - verdict subagent: $v"; fail=1; }
+# verdict <-> route-only agreement for a corpus
+for t in "summarize this text" "refactor the auth module" "audit the code"; do
+  ro="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --route-only "$t")"
+  vv="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --verdict "$t")"
+  case "$ro" in
+    inline$'\t'-) exp="inline" ;;
+    none$'\t'-)   exp="claude-subagent" ;;
+    *)            exp="external"$'\t'"${ro%%$'\t'*}"$'\t'"${ro#*$'\t'}" ;;
+  esac
+  [[ "$vv" == "$exp" ]] && echo "ok   - agree[$t]" || { echo "FAIL - agree[$t]: ro=$ro v=$vv"; fail=1; }
+done
+# --json carries an additive .verdict
+jv="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json 'refactor the auth module' | jq -r '.verdict')"
+[[ "$jv" == "external" ]] && echo "ok   - json.verdict" || { echo "FAIL - json.verdict: $jv"; fail=1; }
+
+# --- #6: MBR must source classify-task.sh even when invoked via a symlink ---
+# (scripts/wire-multi-backend.sh installs ~/.local/bin/temperance-route as a
+#  symlink to this router; SCRIPT_DIR must resolve to the REAL dir, not the link's.)
+SYM_TMP="$(mktemp -d)"; ln -s "$R" "$SYM_TMP/temperance-route"
+sym_out="$(TEMPERANCE_BACKENDS='command-code' bash "$SYM_TMP/temperance-route" --route-only 'refactor the auth module' 2>&1)"
+check "MBR via symlink sources classify-task.sh" "command-code	moonshotai/Kimi-K2.7-Code" "$sym_out"
+rm -rf "$SYM_TMP"
+
+# --- #6: route-task.sh is retired; nothing may reference it ---
+# (excludes this test file itself, which necessarily names the retired
+# script in its own guard text below, and ISA.md, whose ISC-39 records the
+# retirement as history -- a documentary mention, not a dangling consumer)
+ROUTER_DIR="$(dirname "$R")"
+REPO_ROOT="$(cd "$ROUTER_DIR/../.." && pwd)"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+ISA_DOC="$REPO_ROOT/ISA.md"
+refs="$(grep -rln --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=docs 'route-task\.sh' "$REPO_ROOT" | grep -v -F "$SELF" | grep -v -F "$ISA_DOC" || true)"
+if [[ -z "$refs" ]]; then echo "ok   - no route-task.sh references (code)"; else echo "FAIL - route-task.sh still referenced: $refs"; fail=1; fi
+if [[ -e "$ROUTER_DIR/route-task.sh" ]]; then echo "FAIL - route-task.sh still exists"; fail=1; else echo "ok   - route-task.sh deleted"; fi
+
 exit $fail
