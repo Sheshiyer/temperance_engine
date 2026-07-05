@@ -13,8 +13,11 @@
 #   ./multi-backend-router.sh --command "task description"
 #   ./multi-backend-router.sh --execute "task description"
 #   ./multi-backend-router.sh --backend kimi "task description"
+#   ./multi-backend-router.sh --model gpt-5.5 --backend command-code "task description"
+#   ./multi-backend-router.sh --route-only "task description"
 #   ./multi-backend-router.sh --list-backends
 #   ./multi-backend-router.sh --timeout 120 --execute "task description"
+#   TEMPERANCE_BACKENDS="command-code kimi" ./multi-backend-router.sh --route-only "task description"
 #
 # Latency Characteristics:
 #   Backend         Startup    Simple Task    Complex Task    Recommended Timeout
@@ -440,7 +443,13 @@ main() {
       --route-only) route_only_mode=true; shift ;;
       --model) FORCE_MODEL="$2"; shift 2 ;;
       --backend) FORCE_BACKEND="$2"; shift 2 ;;
-      --emit-nvidia-body) nvidia_body "$2" "$3"; exit 0 ;;
+      --emit-nvidia-body)
+        if [[ -z "${2:-}" || -z "${3:-}" ]]; then
+          echo "usage: --emit-nvidia-body MODEL DESC" >&2
+          exit 2
+        fi
+        nvidia_body "$2" "$3"; exit 0
+        ;;
       --list-backends)
         echo "Available backends: $(detect_backends)"
         exit 0

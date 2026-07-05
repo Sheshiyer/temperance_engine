@@ -114,6 +114,50 @@ check "worktree recorded" "true" "$(jq -r '.tasks[0].worktree != null' "$run/ind
 check "dirty tree refused" "3" "$?"   # convention: exit 3 = dirty-tree guard
 rm -f "$DIR/tests/fixtures/command-code"
 
+# --worktree requires a real git repository: in a non-git cwd, `git status
+# --porcelain` exits 128 with empty stdout, which the dirty-tree check alone
+# would misread as "clean" and proceed -> every task then fails at
+# `git worktree add` with a generic error. A dedicated repo guard must catch
+# this first with a clear message + a distinct exit code (not 3, which means
+# "dirty tree"; not 1, which is the generic/router-missing code elsewhere).
+tmpnongit=$(mktemp -d)
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+err=$( ( cd "$tmpnongit" && printf '%s' '[{"id":"NG","task":"x","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --out "$(mktemp -d)" --tasks - ) 2>&1 >/dev/null )
+ngec=$?
+check "--worktree outside a repo -> distinct exit code" "4" "$ngec"
+[[ "$ngec" != "3" ]] && echo "ok - not confused with dirty-tree exit 3" || { echo "FAIL - collided with dirty-tree exit code"; fail=1; }
+echo "$err" | grep -qi "requires a git repository" && echo "ok - clear non-repo message on stderr" || { echo "FAIL - no clear non-repo message: $err"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# RUNTAG sanitization: --out with git-illegal chars (space, colon) in its
+# basename must not break the te-dispatch/$RUNTAG/$id branch name. Force a
+# colon into --out's basename and confirm the task still runs (worktree
+# branch created + task completes ok), proving RUNTAG was sanitized before
+# being used in `git worktree add -b`. Uses a fresh, clean repo (the outer
+# $tmpgit was deliberately dirtied by the "dirty tree refused" test above).
+tmpgit_rt=$(mktemp -d); ( cd "$tmpgit_rt" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+badout="$(mktemp -d)/bad out:name"
+mkdir -p "$badout"
+( cd "$tmpgit_rt" && printf '%s' '[{"id":"RT","task":"refactor all","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --out "$badout" --tasks - >/dev/null 2>&1 )
+check "RUNTAG-sanitized --out: task still ok" "ok" "$(jq -r '.tasks[0].status' "$badout/index.json" 2>/dev/null)"
+wt_branch=$(jq -r '.tasks[0].worktree' "$badout/index.json" 2>/dev/null)
+if [[ "$wt_branch" == *[:\ ]* ]]; then
+  echo "FAIL - branch name still contains illegal chars: $wt_branch"; fail=1
+else
+  echo "ok - recorded branch name is git-legal ($wt_branch)"
+fi
+# focused unit check of the sanitization rule itself (same recipe as
+# production: printf '%s' with no trailing newline into tr, avoiding
+# basename's trailing-newline turning into a trailing '-')
+_sanitize_base=$(basename "bad:out name")
+sanitized=$(printf '%s' "$_sanitize_base" | tr -c 'A-Za-z0-9._-' '-')
+check "RUNTAG sanitization strips colon/space" "bad-out-name" "$sanitized"
+rm -f "$DIR/tests/fixtures/command-code"
+rm -rf "$badout"
+
 # W7 leak-safety: trap cleans up worktrees on interrupt of an in-flight batch.
 # NOTE: POSIX/bash sets SIGINT to SIG_IGN for asynchronous (backgrounded, "cmd &")
 # commands run from a non-interactive, non-job-control shell, and a `trap ... INT`
@@ -158,6 +202,82 @@ echo "$err" | grep -q EXTERNAL_RAIL_UNAVAILABLE && echo "ok - marker on stderr" 
 # zero backends AND all tasks unavailable -> marker + exit 2 (nothing external could run)
 printf '%s' '[{"id":"X","task":"refactor all"}]' | TEMPERANCE_BACKENDS="" "$W" --foreground --tasks - >/dev/null 2>&1
 check "zero backends -> exit 2" "2" "$?"
+
+# --- concurrency cap: with a slow mock backend and --concurrency 2, dispatch
+# 4 tasks and assert the number simultaneously in-flight never exceeds 2.
+# Deterministic approach: the mock backend drops a marker file on start and
+# removes it on exit; a background sampler polls the marker dir's file count
+# at a tight interval for the whole run and records the max seen. This avoids
+# timestamp/race flakiness — the marker count is exact at every sample point.
+concslots=$(mktemp -d)
+cat > "$DIR/tests/fixtures/command-code" <<EOF
+#!/usr/bin/env bash
+marker="\$(mktemp "$concslots/slot.XXXXXX")"
+sleep 1
+rm -f "\$marker"
+printf 'MOCK_OUTPUT_START\ndone\nMOCK_OUTPUT_END\n'
+EOF
+chmod +x "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+maxslots=0
+(
+  for _ in $(seq 1 40); do
+    n=$(ls -1 "$concslots" 2>/dev/null | wc -l | tr -d ' ')
+    (( n > maxslots )) && maxslots=$n
+    echo "$maxslots" > "$concslots/.max"
+    sleep 0.1
+  done
+) &
+sampler_pid=$!
+printf '%s' '[{"id":"C1","task":"refactor all 1","backend":"command-code","model":"x"},
+             {"id":"C2","task":"refactor all 2","backend":"command-code","model":"x"},
+             {"id":"C3","task":"refactor all 3","backend":"command-code","model":"x"},
+             {"id":"C4","task":"refactor all 4","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --concurrency 2 --out "$run" --tasks - >/dev/null 2>&1
+kill "$sampler_pid" 2>/dev/null; wait "$sampler_pid" 2>/dev/null
+observed_max=$(cat "$concslots/.max" 2>/dev/null || echo 0)
+if (( observed_max <= 2 )); then cap_ok=true; else cap_ok=false; fi
+check "concurrency cap respected (max in-flight <= 2, observed=$observed_max)" "true" "$cap_ok"
+check "concurrency: all 4 tasks completed ok" "4" "$(jq -r '.summary.ok' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+rm -rf "$concslots"
+
+# --- multi-task background completion: default (background) mode with 3
+# tasks + mock backend -> poll index.json -> assert summary.ok == 3.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+printf '%s' '[{"id":"M1","task":"refactor all 1","backend":"command-code","model":"x"},
+             {"id":"M2","task":"refactor all 2","backend":"command-code","model":"x"},
+             {"id":"M3","task":"refactor all 3","backend":"command-code","model":"x"}]' \
+  | "$W" --out "$run" --tasks - >/dev/null 2>&1   # default backgrounds
+for _ in $(seq 1 40); do [[ -f "$run/index.json" ]] && break; sleep 0.5; done
+check "multi-task background: summary.ok == 3" "3" "$(jq -r '.summary.ok' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# --- non-dry-run write_meta defaults: a skipped:inline task run WITHOUT
+# --dry-run must still get a meta file with worktree:null and diff_path:null,
+# proving the 9-arg write_meta call on the non-dispatch branch defaults
+# correctly (it's called with only 7 args there).
+run=$(mktemp -d)
+printf '%s' '[{"id":"SK","task":"summarize these points"}]' \
+  | "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+check "non-dry-run skipped:inline status" "skipped:inline" "$(jq -r '.status' "$run/SK.meta.json" 2>/dev/null)"
+check "non-dry-run skipped:inline worktree:null" "null" "$(jq -r '.worktree' "$run/SK.meta.json" 2>/dev/null)"
+check "non-dry-run skipped:inline diff_path:null" "null" "$(jq -r '.diff_path' "$run/SK.meta.json" 2>/dev/null)"
+
+# --- injection regression w/ embedded newline byte: extend the hostile task
+# text to also contain an ACTUAL embedded newline (not just $()/quotes/
+# apostrophe) and assert it round-trips literally into <id>.out.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+payload=$(jq -n --arg t $'line one $(touch /tmp/pwned2) and say "don'\''t"\nline two after newline' \
+  '[{id:"INJNL", task:$t, backend:"command-code", model:"x"}]')
+printf '%s' "$payload" | "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+got=$(sed -n '/MOCK_OUTPUT_START/,/MOCK_OUTPUT_END/p' "$run/INJNL.out" | sed '1d;$d')
+expected=$'line one $(touch /tmp/pwned2) and say "don'\''t"\nline two after newline'
+check "task text with embedded newline round-trips literally" "$expected" "$got"
+[[ -e /tmp/pwned2 ]] && { echo "FAIL - injection executed!"; fail=1; rm -f /tmp/pwned2; }
+rm -f "$DIR/tests/fixtures/command-code"
 
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail

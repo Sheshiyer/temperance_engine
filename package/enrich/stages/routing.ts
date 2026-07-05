@@ -1,5 +1,8 @@
 // package/enrich/stages/routing.ts -- SP0 enrichment stage (owner: unit-routing).
-// Emits: "routing: backends=<list> | preferred=<backend>:<model>" 
+// Emits: "routing: backends=<list> | task=<type> | preferred=<backend>:<model> | skill=temperance-parallel-dispatch"
+// The trailing "| skill=..." segment is only appended when backends are available
+// (i.e. on the non-degraded, non-empty branch), giving the orchestrating agent a
+// direct handoff to the parallel-dispatch skill.
 // Pure over ResolvedContext + prompt analysis; fail-open (never throws out of the function).
 import type { Stage } from '../contract';
 import { execSync } from 'child_process';
@@ -51,6 +54,9 @@ function classifyTaskType(prompt: string): string {
   return 'balanced';
 }
 
+/** Skill pointer appended only when backends are available (handoff for orchestrator). */
+const SKILL_POINTER = 'temperance-parallel-dispatch';
+
 /** Get preferred model for task type */
 function getPreferred(taskType: string): string {
   const routing: Record<string, string> = {
@@ -77,9 +83,9 @@ export const routing: Stage = (ctx) => {
     const taskType = classifyTaskType(prompt);
     const preferred = getPreferred(taskType);
     
-    return { 
-      line: `routing: backends=${backends.join(',')} | task=${taskType} | preferred=${preferred}`, 
-      degraded: false 
+    return {
+      line: `routing: backends=${backends.join(',')} | task=${taskType} | preferred=${preferred} | skill=${SKILL_POINTER}`,
+      degraded: false
     };
   } catch {
     return { line: '', degraded: true };

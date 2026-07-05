@@ -75,10 +75,17 @@ if test "${TEMPERANCE_CLAUDE_MODE:-skip}" = "install"; then
   SKILL_SRC="$ROOT_DIR/skills/temperance-parallel-dispatch"
   SKILL_DST="$HOME/.claude/skills/temperance-parallel-dispatch"
   if test -d "$SKILL_SRC"; then
-    if test -e "$SKILL_DST"; then cp -R "$SKILL_DST" "$SKILL_DST.bak.$(date +%Y%m%d_%H%M%S)"; fi
+    BAK=""
+    if test -e "$SKILL_DST"; then
+      BAK="$SKILL_DST.bak.$(date +%Y%m%d_%H%M%S)"
+      cp -R "$SKILL_DST" "$BAK"
+    fi
     mkdir -p "$HOME/.claude/skills"
     cp -R "$SKILL_SRC" "$SKILL_DST"
     printf '%s\n' "[install] temperance-parallel-dispatch skill -> $SKILL_DST"
+    if test -n "$BAK"; then
+      printf '%s\n' "[install] backed up prior skill -> $BAK"
+    fi
   fi
 fi
 

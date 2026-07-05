@@ -42,4 +42,19 @@ fi
 TEMPERANCE_BACKENDS="command-code" "$R" --execute "summarize these bullet points" >/dev/null 2>&1
 check "inline --execute exit code" "3" "$?"
 
+# --emit-nvidia-body with no following args must fail loudly, not emit empty-string JSON
+"$R" --emit-nvidia-body >/dev/null 2>&1
+check "emit-nvidia-body no args exit code" "2" "$?"
+
+# --emit-nvidia-body with only one following arg must also fail loudly
+"$R" --emit-nvidia-body "onlymodel" >/dev/null 2>&1
+check "emit-nvidia-body one arg exit code" "2" "$?"
+
+# --emit-nvidia-body with both args still emits valid JSON
+if body=$("$R" --emit-nvidia-body "m" "d") && echo "$body" | jq -e . >/dev/null 2>&1; then
+  echo "ok - emit-nvidia-body with both args emits valid JSON"
+else
+  echo "FAIL - emit-nvidia-body with both args did not emit valid JSON"; fail=1
+fi
+
 exit $fail
