@@ -527,5 +527,69 @@ check "fallback-overlap: FOV index merged matches meta (false)" "false" "$(jq -r
 check "fallback-overlap: NOV index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="NOV") | .merged' "$run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
 
+# (j) P1 regression (Codex review, #7 follow-up): overlap detection excluded
+# FAILED-task diffs entirely (candidate filter required status=="ok"). But
+# run_one captures the worktree diff UNCONDITIONALLY regardless of status --
+# so a task whose backend WRITES a file and THEN exits nonzero ends up
+# status=failed with a NON-EMPTY diff that touched a real file. That diff was
+# invisible to the overlap map, so a DIFFERENT, single-attempt ok task
+# touching the SAME file was seen as non-overlapping and auto-applied over a
+# competing (failed) output -- breaking the non-overlap safety contract.
+#
+# Fix: the overlap UNIVERSE must include every worktree task with a
+# non-empty captured diff, regardless of status (ok/failed/timeout) or
+# fallback. The APPLY SET stays the strict subset: status=="ok" AND
+# single-attempt AND non-conflicted AND applies cleanly.
+#
+# Task Fd: ALL backends fail (command-code_EXIT=1, kimi_EXIT=1), so there is
+# no successful fallback -- status=failed. It writes shared.txt with
+# "from-failed" before failing (mock now writes before honoring a nonzero
+# exit). Task N: single-attempt, ok, writes shared.txt with "from-N".
+#
+# Expected: shared.txt is a real overlap (touched by both Fd and N) -> N must
+# be held back (merged:false, listed as conflicted) and shared.txt must NOT
+# land in the caller's repo. Fd never becomes an apply candidate (status !=
+# ok) -- merged stays null, it is never "applied" or "held back", just noted
+# for transparency. RED against pre-fix HEAD (d7dfb3f): N is wrongly
+# auto-applied (merged:true, shared.txt present with "from-N") because Fd's
+# diff was excluded from the candidate filter (status=="ok" required) before
+# TOUCHERS_OF was ever built.
+tmpgit_am10=$(mktemp -d); ( cd "$tmpgit_am10" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+( cd "$tmpgit_am10" && printf '%s' '[{"id":"FD","task":"command-code_EXIT=1 kimi_EXIT=1 WRITE=shared.txt:from-failed do stuff"},
+             {"id":"N","task":"WRITE=shared.txt:from-N do work","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "failed-shares-file: FD status=failed" "failed" "$(jq -r '.status' "$run/FD.meta.json" 2>/dev/null)"
+[[ -s "$run/FD.diff" ]] && echo "ok - failed-shares-file: FD has non-empty diff" || { echo "FAIL - FD diff empty/missing"; fail=1; }
+check "failed-shares-file: FD merged:null (never a merge candidate)" "null" "$(jq -r '.merged' "$run/FD.meta.json" 2>/dev/null)"
+check "failed-shares-file: N merged:false (held back, overlaps FD)" "false" "$(jq -r '.merged' "$run/N.meta.json" 2>/dev/null)"
+check "failed-shares-file: shared.txt NOT applied to cwd" "" "$(cat "$tmpgit_am10/shared.txt" 2>/dev/null)"
+check "failed-shares-file: N index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="N") | .merged' "$run/index.json" 2>/dev/null)"
+check "failed-shares-file: FD index merged matches meta (null)" "null" "$(jq -r '.tasks[] | select(.id=="FD") | .merged' "$run/index.json" 2>/dev/null)"
+grep -qi "shared.txt" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT mentions shared.txt overlap" || { echo "FAIL - MERGE-REPORT missing shared.txt overlap"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
+# (k) Failed-unique-file control: proves the fix above does NOT over-block --
+# a failed task touching a file NO OTHER task touches must not spuriously
+# poison an unrelated, non-overlapping ok task's auto-apply. Task Fd2: all
+# backends fail, writes ONLY fd2.txt (unique). Task N2: single-attempt ok,
+# writes ONLY n2.txt (unique, distinct from fd2.txt). Expected: N2 still
+# auto-applies (merged:true, n2.txt present); Fd2 merged:null (never a
+# candidate, its failure is irrelevant to N2's file).
+tmpgit_am11=$(mktemp -d); ( cd "$tmpgit_am11" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+( cd "$tmpgit_am11" && printf '%s' '[{"id":"FD2","task":"command-code_EXIT=1 kimi_EXIT=1 WRITE=fd2.txt:from-failed-2 do stuff"},
+             {"id":"N2","task":"WRITE=n2.txt:hello-n2 do work","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "failed-unique-control: FD2 status=failed" "failed" "$(jq -r '.status' "$run/FD2.meta.json" 2>/dev/null)"
+check "failed-unique-control: FD2 merged:null" "null" "$(jq -r '.merged' "$run/FD2.meta.json" 2>/dev/null)"
+check "failed-unique-control: N2 merged:true (not blocked by unrelated failure)" "true" "$(jq -r '.merged' "$run/N2.meta.json" 2>/dev/null)"
+check "failed-unique-control: n2.txt applied to cwd" "hello-n2" "$(cat "$tmpgit_am11/n2.txt" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail

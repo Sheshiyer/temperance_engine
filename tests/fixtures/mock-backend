@@ -15,8 +15,10 @@
 #                        `git diff --cached` instead of an empty one. Content
 #                        runs to the next space, so keep it a single token
 #                        (e.g. "WRITE=fileA.txt:hello-from-A"). Parent dirs
-#                        are created as needed. Applied AFTER exit/sleep
-#                        tokens so EXIT=N still short-circuits before writing.
+#                        are created as needed. Applied AFTER the SLEEP token
+#                        but BEFORE the exit-code check, so a nonzero EXIT can
+#                        model a backend that writes output and then fails
+#                        (see the overlap-universe note below).
 #                        To include a literal space in <relpath> or <content>
 #                        (e.g. testing overlap-detection on filenames with
 #                        spaces), wrap the WHOLE spec in braces:
@@ -34,27 +36,22 @@
 #                        written file within the same task. Same brace
 #                        convention as WRITE applies: "MOVE={orig.txt:shared
 #                        file.txt} do work" for a spaced destination.
+#
+# Overlap-universe fix (#7 follow-up, Codex P1): a backend that WRITES a file
+# and THEN exits nonzero must still be reproducible by this mock, so
+# apply_worktree_merges tests can prove a failed task's captured diff still
+# poisons overlap detection. So WRITE/MOVE are now applied BEFORE the
+# exit-code check (previously a nonzero EXIT short-circuited before
+# WRITE/MOVE ran at all, which could never model "wrote then failed"). The
+# exit itself still happens right after, so every existing nonzero-exit
+# scenario that does NOT pair EXIT with WRITE/MOVE on the SAME backend is
+# byte-for-byte unaffected (no existing test does) -- this only ADDS the
+# capacity to write-then-fail; it never changes behavior for
+# write-and-succeed or fail-with-no-write, both already covered above.
 base="$(basename "$0")"
 prompt=""; prev=""
 for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
 [[ -z "$prompt" ]] && prompt="${!#}"
-# Exit-token handling: a NONZERO code exits immediately (legacy behavior,
-# unchanged). A ZERO code falls through to WRITE/MOVE processing below
-# instead of exiting immediately -- needed so a per-backend token like
-# "kimi_EXIT=0" can both signal success AND let that same successful
-# attempt write a file (e.g. fallback-chain tests where the fallback
-# backend succeeds and produces a real diff). Exiting unconditionally on
-# a 0 here would always short-circuit before WRITE/MOVE ran, which is
-# indistinguishable from the backend having written nothing -- so this
-# only changes behavior for the exit=0 case; every existing nonzero-exit
-# scenario is untouched.
-if [[ "$prompt" == *"${base}_EXIT="* ]]; then
-  n="${prompt#*${base}_EXIT=}"; n="${n%% *}"
-  [[ "$n" != "0" ]] && exit "$n"
-elif [[ "$prompt" == *EXIT=* ]]; then
-  n="${prompt#*EXIT=}"; n="${n%% *}"
-  [[ "$n" != "0" ]] && exit "$n"
-fi
 if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
 # extract_spec: prompt token -> echoes the spec text on stdout. If the text
 # right after "<token>=" is "{", reads verbatim up to the matching "}" (so
@@ -85,5 +82,15 @@ if [[ "$prompt" == *MOVE=* ]]; then
     mkdir -p "$(dirname "$mdst")" 2>/dev/null
     mv "$msrc" "$mdst"
   fi
+fi
+# Exit-token handling: checked AFTER WRITE/MOVE (see comment above) so a
+# nonzero exit can still model "wrote/moved, then failed". A ZERO code falls
+# through to the success-output printf below, same as before.
+if [[ "$prompt" == *"${base}_EXIT="* ]]; then
+  n="${prompt#*${base}_EXIT=}"; n="${n%% *}"
+  [[ "$n" != "0" ]] && exit "$n"
+elif [[ "$prompt" == *EXIT=* ]]; then
+  n="${prompt#*EXIT=}"; n="${n%% *}"
+  [[ "$n" != "0" ]] && exit "$n"
 fi
 printf 'MOCK_OUTPUT_START\n%s\nMOCK_OUTPUT_END\n' "$prompt"

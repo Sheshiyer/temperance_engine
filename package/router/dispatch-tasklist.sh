@@ -296,52 +296,64 @@ apply_worktree_merges(){
 
   local root; root="$(git rev-parse --show-toplevel 2>/dev/null)"
 
-  # Candidates: worktree tasks that finished ok and have a non-empty diff.
-  # (failed/timeout/skipped worktree tasks have nothing safe to apply.)
+  # OVERLAP UNIVERSE vs APPLY SET (Codex review finding P1, #7 follow-up):
+  # these are two deliberately different sets.
+  #
+  # The OVERLAP UNIVERSE is every worktree task with a non-empty captured
+  # diff, REGARDLESS of status (ok/failed/timeout) and regardless of
+  # fallback. Any captured diff is a competing output for the files it
+  # touches, whether or not the task that produced it ultimately succeeded --
+  # so it must count toward overlap detection.
+  #
+  # Why: run_one (#7/#8) captures the worktree diff UNCONDITIONALLY for every
+  # worktree task via `git add -A && git diff --cached`, before checking
+  # final status. A task whose backend WRITES a file and THEN exits nonzero
+  # ends up status=failed with a NON-EMPTY diff that touched a real file. If
+  # the candidate filter required status=="ok", that diff -- and the files it
+  # touched -- would be invisible to the overlap map below, so a DIFFERENT,
+  # single-attempt ok task touching the SAME file would be wrongly seen as
+  # non-overlapping and auto-applied over the failed task's competing output.
+  # That breaks the non-overlap safety contract this feature exists to
+  # provide (same class of bug as the fallback-candidacy fix below, just for
+  # status instead of attempt count).
   #
   # Codex review finding (P1, composing with #8 fallback chain): run_one
   # reuses the SAME worktree across every fallback attempt for a task, and
-  # captures the diff ONCE at the end via `git add -A && git diff --cached`.
-  # So a task that fell back (primary backend wrote/failed, a later backend
-  # succeeded) can finish status=ok with a captured diff that contains BOTH
-  # the failed attempt's edits and the successful attempt's edits -- there is
-  # no way to tell them apart from the diff alone. Auto-applying that combined
-  # diff would leak a failed backend's partial edits into the caller's live
-  # tree, violating the feature's "only auto-apply the safe path" contract.
-  #
-  # Fix (conservative, in-scope): a task that needed fallback is exactly the
-  # "not obviously safe" case, so it must never be auto-applied -- per #8, a
-  # task that succeeds on its first backend has exactly one entry in
-  # attempts[]; a task that fell back has 2+. Such a task is marked
-  # merged:false (never null -- it WAS a worktree task under
-  # --apply-worktree, just deliberately not applied), its diff is left on
-  # disk, and it is listed in MERGE-REPORT.md under its own section so a
-  # human can adjudicate it manually.
+  # captures the diff ONCE at the end. So a task that fell back (primary
+  # backend wrote/failed, a later backend succeeded) can finish status=ok
+  # with a captured diff that contains BOTH the failed attempt's edits and
+  # the successful attempt's edits -- there is no way to tell them apart from
+  # the diff alone. Auto-applying that combined diff would leak a failed
+  # backend's partial edits into the caller's live tree.
   #
   # Codex review finding (P1, review-fix regression): an earlier version of
-  # this fix excluded fallback tasks from `cand_ids` HERE, before the
-  # TOUCHERS_OF overlap map below was built. That let a fallback task's
-  # touched files fall out of the overlap universe entirely -- so a
-  # DIFFERENT, single-attempt task touching the SAME file was no longer seen
-  # as overlapping and got auto-applied, silently overwriting the file the
-  # fallback task also produced. That breaks the non-overlap safety contract
-  # this feature exists to provide.
+  # this fix excluded fallback tasks from the universe HERE, before the
+  # TOUCHERS_OF overlap map below was built, which let a fallback task's
+  # touched files fall out of the overlap universe entirely. Same class of
+  # bug as the failed/timeout case above -- fixed the same way, by keeping
+  # the task in the universe and deciding whether to APPLY it separately.
   #
-  # Fix: keep every ok worktree task (fallback or not) in `cand_ids` so its
-  # files still populate FILES_OF/TOUCHERS_OF/CONFLICTED below. is_fallback
-  # is now purely a per-task flag consulted at the APPLY DECISION (after
-  # conflict detection), not a filter on candidacy.
+  # The APPLY SET is the strict subset actually written to the caller's
+  # tree: status=="ok" AND single-attempt (not fallback) AND not conflicted
+  # AND the diff applies cleanly. Everything else in the universe stays out
+  # of the caller's tree: non-ok tasks are never candidates for merged:true
+  # or merged:false (they were never "held back" from applying -- they were
+  # never eligible to apply at all), so their `merged` stays null, same as
+  # any non-worktree task. `[[ -s "$dpath" ]]` below already drops empty
+  # diffs, so a task that failed before writing anything doesn't poison
+  # overlap either.
   local -a cand_ids=()
-  declare -A IS_FALLBACK=()
-  local cid attempts_len
-  while IFS= read -r cid; do
+  declare -A IS_FALLBACK=() STATUS_OF=()
+  local cid attempts_len st
+  while IFS=$'\t' read -r cid st; do
     [[ -n "$cid" ]] || continue
+    STATUS_OF["$cid"]="$st"
     attempts_len="$(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | (.attempts | length)' "$idx")"
     if [[ "$attempts_len" =~ ^[0-9]+$ ]] && (( attempts_len > 1 )); then
       IS_FALLBACK["$cid"]=1
     fi
     cand_ids+=("$cid")
-  done < <(jq -r '.tasks[] | select(.worktree != null and .diff_path != null and .status=="ok") | .id' "$idx")
+  done < <(jq -r '.tasks[] | select(.worktree != null and .diff_path != null) | [.id, .status] | @tsv' "$idx")
 
   if (( ${#cand_ids[@]} == 0 )); then
     return 0
@@ -379,18 +391,40 @@ apply_worktree_merges(){
     fi
   done
 
-  local -a applied=() conflicted_report=() apply_failed=() fallback_skip=()
+  local -a applied=() conflicted_report=() apply_failed=() fallback_skip=() not_applied_nonok=()
   local root_unresolved=false
   if [[ -z "$root" ]]; then
     root_unresolved=true
   fi
+  # Decision order per task in the overlap universe (st = status, isfb =
+  # fallback flag). Only status=="ok", single-attempt, non-conflicted tasks
+  # ever reach the apply step -- everything else is held back or left as a
+  # non-candidate, per the universe/apply-set split documented above.
   for cid in "${cand_ids[@]}"; do
     dpath="${DIFF_OF[$cid]}"
+    st="${STATUS_OF[$cid]:-}"
     if [[ -n "${CONFLICTED[$cid]:-}" ]]; then
-      # A fallback task that ALSO overlaps another task is reported here
-      # (accurate: it overlaps) rather than under fallback-skip below.
-      set_merged "$cid" false
-      conflicted_report+=("$cid:${CONFLICT_FILES_OF_TASK[$cid]}")
+      if [[ "$st" == "ok" ]]; then
+        # An ok task that overlaps another universe member (ok, fallback, or
+        # failed/timeout) is held back -- it WAS eligible to apply, so
+        # merged:false (not null), reported as a conflict.
+        set_merged "$cid" false
+        conflicted_report+=("$cid:${CONFLICT_FILES_OF_TASK[$cid]}")
+      else
+        # A non-ok (failed/timeout) task's diff poisoned overlap for others,
+        # but the task itself was never a merge candidate -- it was neither
+        # applied nor "held back" from applying (there was nothing to hold
+        # back: it never had a chance to apply). Leave merged as the null
+        # write_meta already recorded; do not call set_merged. Note it for
+        # transparency in the report instead.
+        not_applied_nonok+=("$cid:${CONFLICT_FILES_OF_TASK[$cid]}")
+      fi
+      continue
+    fi
+    if [[ "$st" != "ok" ]]; then
+      # Non-ok (failed/timeout), non-conflicted: still never a merge
+      # candidate. merged stays null (never applied, never "held back").
+      not_applied_nonok+=("$cid:")
       continue
     fi
     if [[ -n "${IS_FALLBACK[$cid]:-}" ]]; then
@@ -474,6 +508,29 @@ apply_worktree_merges(){
       echo
       for cid in "${fallback_skip[@]}"; do
         echo "- $cid: $(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | .diff_path' "$idx")"
+      done
+    else
+      echo "(none)"
+    fi
+    echo
+    echo "## Not applied (failed/timeout -- output present, blocks overlap)"
+    echo
+    if (( ${#not_applied_nonok[@]} > 0 )); then
+      echo "These worktree tasks did NOT finish ok (status=failed or"
+      echo "status=timeout), so they were never merge candidates (merged"
+      echo "stays null, same as any non-worktree task). Their captured diff"
+      echo "is still a real, non-empty output, so it still counts toward"
+      echo "overlap detection -- any ok task sharing a file with one of"
+      echo "these is held back under Conflicted above, even though the task"
+      echo "listed here itself was never a candidate to apply."
+      echo
+      for entry in "${not_applied_nonok[@]}"; do
+        cid="${entry%%:*}"; local flist="${entry#*:}"
+        if [[ -n "$flist" ]]; then
+          echo "- $cid (status=${STATUS_OF[$cid]:-unknown}): shared file(s):$flist"
+        else
+          echo "- $cid (status=${STATUS_OF[$cid]:-unknown}): ${DIFF_OF[$cid]}"
+        fi
       done
     else
       echo "(none)"
