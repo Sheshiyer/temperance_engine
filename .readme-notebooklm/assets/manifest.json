@@ -1,44 +1,44 @@
 {
   "notebook": {
-    "id": "f113fd7b-0524-4cec-915d-f712c410242c",
-    "title": "MVP Research - temperance-engine"
+    "id": "a6e54ace-8597-4c34-b679-88cb66af7ccc",
+    "title": "MVP Research - Temperance Engine"
   },
   "sources": [
     {
-      "id": "7181df91-42c8-4002-b224-634bd78abc51",
+      "id": "c171c15b-effd-4bc7-9cc4-21082c57dd4c",
       "title": "README.md",
       "status": "2",
       "input": "README.md"
     },
     {
-      "id": "059b9c90-7b89-48fb-985b-20192e2e6a09",
+      "id": "d208aff4-3fa1-492b-9812-7c32be1b643d",
       "title": "CHANGELOG.md",
       "status": "2",
       "input": "CHANGELOG.md"
     },
     {
-      "id": "8cd44212-c422-4702-a746-87d65f2b037d",
+      "id": "68a70388-ed42-49ed-b870-fc2449704b5f",
       "title": "CONTRIBUTING.md",
       "status": "2",
       "input": "CONTRIBUTING.md"
     },
     {
-      "id": "af817125-6db9-49ad-b3d3-d1a2383beca3",
+      "id": "5468887f-14c3-4cf9-9827-2501ba599d00",
       "title": "CREDITS.md",
       "status": "2",
       "input": "CREDITS.md"
     },
     {
-      "id": "060f8557-1935-4c3c-b83f-9c9fc4a14774",
+      "id": "7e7ce78c-52f6-4e54-9d61-9d24329d228b",
       "title": "ISA.md",
       "status": "2",
       "input": "ISA.md"
     },
     {
-      "id": "784eb8ba-d283-412a-b92d-6bcb2c81f2f7",
-      "title": "SECURITY.md",
+      "id": "d3340d08-ffab-43dd-b004-1ae3577320fd",
+      "title": "QUICKSTART.md",
       "status": "2",
-      "input": "SECURITY.md"
+      "input": "QUICKSTART.md"
     }
   ],
   "failed_sources": [],

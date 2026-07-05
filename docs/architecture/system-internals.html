@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperance Engine - System Internals</title>
+<style>
+  :root {
+    --data: #4299e1; --processing: #ed8936; --ai: #9f7aea; --success: #48bb78;
+    --private: #718096; --ink: #1a202c; --muted: #4a5568; --line: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; }
+  h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 10px; }
+  h1 small { display: block; font-weight: 400; font-size: 15px; opacity: 0.9; margin-top: 8px; }
+  h2 { border-bottom: 3px solid var(--line); padding-bottom: 8px; }
+  h3 { color: var(--ink); margin-bottom: 4px; }
+  .section { margin: 36px 0; }
+  .callout { background: #fffaf0; border: 1px solid #fbd38d; border-left: 5px solid var(--processing); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
+  .callout.info { background: #ebf8ff; border-color: #90cdf4; border-left-color: var(--data); }
+  .callout strong { color: #9c4221; }
+  .callout.info strong { color: #2c5282; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; background: #fafafa; }
+  .card h3 { margin-top: 0; font-size: 15px; }
+  .card p { margin: 4px 0; font-size: 13.5px; color: var(--muted); }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 2px 8px; border-radius: 10px; color: white; margin-left: 6px; }
+  .tag.always { background: var(--success); }
+  .tag.gated { background: var(--processing); }
+  .tag.detect { background: var(--ai); }
+  code, pre code { background: #edf2f7; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
+  pre { background: #1a202c; color: #e2e8f0; padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-size: 12.5px; }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 10px 0; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f7fafc; }
+  ul { font-size: 13.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>System Internals
+  <small>How each installed piece of Temperance Engine actually works, mechanically</small>
+</h1>
+
+<div class="callout info">
+  <strong>Scope.</strong> This doc is the mechanics reference: exact flags, env vars, file writes, endpoints, and fallback behavior for every script and service in this repo. For the productization narrative and business context, see <code>architecture.html</code>. For how these pieces connect to each other (and where they don't), see <code>integration-map.html</code>.
+</div>
+
+<div class="section">
+  <h2>1. Install Orchestration State Machine</h2>
+  <p><code>install.sh</code> is a pure flag &rarr; env-var &rarr; script-dispatch pipeline. It never installs anything itself &mdash; every write happens in a downstream <code>scripts/install-*.sh</code>.</p>
+
+  <table>
+    <tr><th>Flag pair</th><th>Var</th><th>Default</th></tr>
+    <tr><td><code>--with-voice</code> / <code>--skip-voice</code></td><td><code>VOICE_MODE</code></td><td><code>auto</code></td></tr>
+    <tr><td><code>--with-claude</code> / <code>--skip-claude</code></td><td><code>CLAUDE_MODE</code></td><td><code>skip</code></td></tr>
+    <tr><td><code>--with-codex</code> / <code>--skip-codex</code></td><td><code>CODEX_MODE</code></td><td><code>skip</code></td></tr>
+    <tr><td><code>--with-opencode</code> / <code>--skip-opencode</code></td><td><code>OPENCODE_MODE</code></td><td><code>install</code></td></tr>
+    <tr><td><code>--with-cursor</code> / <code>--skip-cursor</code></td><td><code>CURSOR_MODE</code></td><td><code>install</code></td></tr>
+    <tr><td><code>--with-gsd</code> / <code>--skip-gsd</code></td><td><code>GSD_MODE</code></td><td><code>skip</code></td></tr>
+    <tr><td><code>--dry-run</code></td><td><code>DRY_RUN</code></td><td><code>0</code></td></tr>
+  </table>
+
+  <p>Each var is exported as <code>TEMPERANCE_&lt;X&gt;_MODE</code>, then the following seven scripts run in this exact, fixed order &mdash; unconditionally invoked (each script decides internally whether to act, based on its own mode var):</p>
+
+  <pre><code>install-pai.sh            # AGENTS.md always; CLAUDE.md + Pulse server gated on CLAUDE_MODE
+install-skill-clusters.sh # Codex resolver hook, always
+install-peon-ping.sh      # voice detection, gated on VOICE_MODE + macOS
+install-codegraph.sh      # codegraph CLI detection + index init
+install-gsd.sh            # detect-only GSD reference, gated on GSD_MODE
+configure-opencode.sh     # OpenCode/Cursor/Codex templates, gated per-surface
+verify-install.sh         # runs LAST, always, and fails the whole install if it fails</code></pre>
+</div>
+
+<div class="section">
+  <h2>2. Shared Primitives (<code>scripts/lib.sh</code>)</h2>
+  <div class="grid">
+    <div class="card"><h3><code>is_dry_run</code></h3><p>Checks <code>TEMPERANCE_DRY_RUN=1</code>. Every mutating primitive below checks this first and substitutes a <code>DRY_RUN: ...</code> print for the real action.</p></div>
+    <div class="card"><h3><code>ensure_dir DIR</code></h3><p><code>mkdir -p</code>, or its dry-run echo.</p></div>
+    <div class="card"><h3><code>backup_file PATH</code></h3><p>No-ops if <code>PATH</code> doesn't exist yet. Otherwise copies it to <code>$TEMPERANCE_BACKUP_DIR/&lt;UTC timestamp&gt;/&lt;basename&gt;</code> before anything overwrites it &mdash; this is the entire rollback mechanism.</p></div>
+    <div class="card"><h3><code>install_file SRC DEST</code></h3><p><code>ensure_dir</code> the parent, <code>backup_file DEST</code>, then <code>cp SRC DEST</code>. Every template write in the repo goes through this one function &mdash; there is no other write path.</p></div>
+  </div>
+  <p>There is no JSON-merge or partial-file-patch primitive anywhere in this codebase. Every install is a whole-file <code>cp</code>; anything that needs manual merging (e.g. an existing <code>opencode.json</code>) is intentionally left to the user with a printed instruction, never auto-merged.</p>
+</div>
+
+<div class="section">
+  <h2>3. Per-Script Internals</h2>
+
+  <h3>install-pai.sh <span class="tag always">AGENTS.md always</span> <span class="tag gated">rest gated on --with-claude</span></h3>
+  <p>Always installs <code>templates/AGENTS.md</code> &rarr; <code>$HOME/AGENTS.md</code>, regardless of any flag. If <code>CLAUDE_MODE=install</code>: creates <code>$PAI_HOME/PAI/PULSE</code> and <code>$PAI_HOME/hooks</code>, installs <code>CLAUDE.md.template</code> and <code>compat-server.ts</code>, then &mdash; if <code>bun</code> is on <code>PATH</code> &mdash; manages a PID lifecycle: reads any existing <code>compat-server.pid</code>, <code>kill -0</code>-checks it's alive, kills it, then <code>nohup bun compat-server.ts &amp;</code>s a fresh instance and writes the new PID. If <code>bun</code> is absent, the server files are installed but nothing is started.</p>
+
+  <h3>install-peon-ping.sh <span class="tag gated">gated on VOICE_MODE + macOS</span></h3>
+  <p>Exits immediately if <code>VOICE_MODE=skip</code>. Exits immediately on any non-Darwin host unless <code>VOICE_MODE=force</code>. Otherwise checks that <code>$PEON_SCRIPT</code> (default <code>$PAI_HOME/hooks/peon-ping/peon.sh</code>) exists <em>and is executable</em> &mdash; if not, it prints guidance and exits 0 (never fails the install). It never writes an audio file; it only confirms the local script is reachable.</p>
+
+  <h3>install-skill-clusters.sh <span class="tag always">resolver hook always installed</span></h3>
+  <p>Always copies <code>skill_cluster_resolver.mjs</code> to <code>$CODEX_HOME/hooks/</code> (Codex-facing only &mdash; Claude/OpenCode get routing docs, not a hook). Separately checks whether <code>$AGENTS_HOME/skill-clusters</code> already exists with a <code>package.json</code>; if so, prints the three verification commands (<code>npm run health/audit-refs/tier</code>) as a hint, but never runs them.</p>
+
+  <h3>install-codegraph.sh <span class="tag detect">detect + conditional init</span></h3>
+  <p>If <code>$AGENTS_HOME</code> exists and the <code>codegraph</code> CLI is on <code>PATH</code>: if <code>$AGENTS_HOME/.codegraph</code> already exists, no-ops; otherwise runs <code>codegraph init -i</code> inside <code>$AGENTS_HOME</code> (or prints the dry-run equivalent). If either precondition is missing, prints a guidance line and does nothing.</p>
+
+  <h3>install-gsd.sh <span class="tag detect">detect + print only, zero writes</span></h3>
+  <p>Gated on <code>GSD_MODE=install</code> (default <code>skip</code>). When active, only checks whether <code>$GSD_HOME</code> (default <code>~/.claude/get-shit-done</code>) exists and prints a one-line pointer to <code>docs/parallel-dispatch.md</code> either way. No <code>ensure_dir</code>, no <code>install_file</code> &mdash; this script cannot mutate anything by construction.</p>
+
+  <h3>configure-opencode.sh <span class="tag gated">per-surface gates</span></h3>
+  <p>OpenCode (default install): writes <code>opencode.AGENTS.md</code> always when enabled, but only writes <code>opencode.json.patch.json</code> as <code>opencode.json</code> if no config exists yet &mdash; otherwise it prints "merge manually" and leaves the existing file untouched. Cursor (default install): always copies both Cursor templates into <code>$CURSOR_HOME/templates</code> as a project-local staging area &mdash; nothing is copied into an actual project automatically. Codex (default skip): writes <code>codex.AGENTS.md</code> only with <code>--with-codex</code>.</p>
+
+  <h3>verify-install.sh <span class="tag always">runs unconditionally, can fail the install</span></h3>
+  <p>Four independent check categories, all must pass or the whole install exits non-zero:</p>
+  <ol>
+    <li><strong>File existence</strong> &mdash; 21 required paths (was 18 before the parallel-dispatch work added 3 more).</li>
+    <li><strong>Shell syntax</strong> &mdash; every <code>*.sh</code> in repo root + <code>scripts/</code> is linted with <code>bash -n</code> or <code>sh -n</code>, chosen by sniffing its shebang line.</li>
+    <li><strong>Private-path denylist</strong> &mdash; greps README, docs, scripts, templates, package, skills, and top-level docs for a small set of local-machine path prefixes (home-directory paths, this author's specific volume mount, a hashed local-agent pattern). Any match fails the build &mdash; including, deliberately, this sentence if it spelled the literal patterns out, which is why they're described rather than quoted here.</li>
+    <li><strong>Content assertions</strong> &mdash; targeted <code>grep -q</code> checks that specific README/credits/Cursor-rule strings exist (banner + skills.sh reference, Thoughtseed Labs + upstream credits, "OpenCode/Cursor-first" + optional-Claude/Codex language).</li>
+  </ol>
+  <p>Deliberately <em>not</em> checked: exact prose wording of the new ISC-28..31 criteria, or <code>docs/parallel-dispatch.md</code> content beyond its existence &mdash; content-assertion grepping is reserved for load-bearing public claims, not every doc, to avoid coupling verification to prose that will get copyedited.</p>
+</div>
+
+<div class="section">
+  <h2>4. Pulse Compatibility Server (<code>compat-server.ts</code>)</h2>
+  <p>A ~65-line Bun HTTP server bound to <code>127.0.0.1:31337</code> (overridable via <code>TEMPERANCE_PULSE_PORT</code>). Two routes:</p>
+  <table>
+    <tr><th>Route</th><th>Behavior</th></tr>
+    <tr><td><code>GET /healthz</code></td><td>Returns <code>{ ok: true, compatibility: true, port }</code>.</td></tr>
+    <tr><td><code>POST /notify</code></td><td>Parses <code>{ message }</code> from the body, lowercases it, and pattern-matches for phase keywords.</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>This is string-sniffing, not a structured protocol.</strong> Phase detection is literally <code>message.includes("entering the " + phase + " phase")</code> for each of the 7 phases, plus special-cased checks for <code>"native mode"</code> and <code>"entering the algorithm"</code>. There is no phase field, no schema &mdash; whatever calls <code>/notify</code> must phrase its message exactly that way or no pack plays (the endpoint still returns <code>200 {ok:true, played:false}</code>, never an error).
+  </div>
+
+  <p>On a phase match, it calls <code>Bun.spawn([peonScript, "--pack", pack, "--category", category])</code> where <code>category</code> is <code>session.start</code> for native/algorithm and <code>task.acknowledge</code> for the 7 named phases. If <code>Bun</code> is undefined (shouldn't happen inside a Bun server, but defensively checked) it returns <code>{played: false, reason: "bun-runtime-required"}</code> instead of throwing.</p>
+
+  <table>
+    <tr><th>Phase</th><th>Pack</th></tr>
+    <tr><td>native</td><td><code>nier-2b</code></td></tr>
+    <tr><td>algorithm</td><td><code>nier-2b</code></td></tr>
+    <tr><td>observe</td><td><code>glados</code></td></tr>
+    <tr><td>think</td><td><code>hal_2001</code></td></tr>
+    <tr><td>plan</td><td><code>jarvis-mk2</code></td></tr>
+    <tr><td>build</td><td><code>peon</code></td></tr>
+    <tr><td>execute</td><td><code>nier-2b</code></td></tr>
+    <tr><td>verify</td><td><code>cortana</code></td></tr>
+    <tr><td>learn</td><td><code>sc_kerrigan</code></td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>5. Skill Resolver Hook (<code>skill_cluster_resolver.mjs</code>)</h2>
+  <p>An ~18-line Node script installed only to <code>$CODEX_HOME/hooks/</code>. Reads <code>$HOME/.agents/skill-clusters/skill-index.json</code> (or <code>$SKILL_CLUSTER_INDEX</code> override); if the file is missing it prints <code>{"continue": true, "temperance": "skill-index-missing", indexPath}</code>, otherwise <code>{"continue": true, "temperance": "skill-index-present", "skills": &lt;count&gt;}</code>. It always prints <code>"continue": true</code> &mdash; this hook can only inform Codex, never block it.</p>
+</div>
+
+<div class="section">
+  <h2>6. Templates &mdash; What Actually Gets Written Where</h2>
+  <table>
+    <tr><th>Template</th><th>Destination</th><th>Installed by</th><th>Gate</th></tr>
+    <tr><td><code>templates/AGENTS.md</code></td><td><code>$HOME/AGENTS.md</code></td><td>install-pai.sh</td><td>always</td></tr>
+    <tr><td><code>templates/CLAUDE.md.template</code></td><td><code>$PAI_HOME/CLAUDE.md.template</code></td><td>install-pai.sh</td><td>--with-claude</td></tr>
+    <tr><td><code>package/pulse-compat/compat-server.ts</code></td><td><code>$PAI_HOME/PAI/PULSE/compat-server.ts</code></td><td>install-pai.sh</td><td>--with-claude</td></tr>
+    <tr><td><code>package/skill-resolvers/skill_cluster_resolver.mjs</code></td><td><code>$CODEX_HOME/hooks/skill_cluster_resolver.mjs</code></td><td>install-skill-clusters.sh</td><td>always</td></tr>
+    <tr><td><code>templates/opencode.AGENTS.md</code></td><td><code>$OPENCODE_HOME/AGENTS.md</code></td><td>configure-opencode.sh</td><td>OpenCode default install</td></tr>
+    <tr><td><code>templates/opencode.json.patch.json</code></td><td><code>$OPENCODE_HOME/opencode.json</code></td><td>configure-opencode.sh</td><td>only if no existing config</td></tr>
+    <tr><td><code>templates/cursor.AGENTS.md</code>, <code>cursor.rules.mdc</code></td><td><code>$CURSOR_HOME/templates/temperance-engine.*</code></td><td>configure-opencode.sh</td><td>Cursor default install (staging only, not project-applied)</td></tr>
+    <tr><td><code>templates/codex.AGENTS.md</code></td><td><code>$CODEX_HOME/AGENTS.md</code></td><td>configure-opencode.sh</td><td>--with-codex</td></tr>
+  </table>
+  <p><code>opencode.json.patch.json</code> disables <code>augment-context-engine</code> and enables the <code>codegraph</code> MCP server by default &mdash; this is the one place the installer expresses an opinion about which retrieval tool to prefer.</p>
+</div>
+
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>integration-map.html</code> (seams) &middot; <code>session-trace.html</code> (concrete walkthrough).</p>
+
+</body>
+</html>

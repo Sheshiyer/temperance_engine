@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Mock command-code/kimi/grok: print the prompt passed via -p (or last arg) verbatim.
+prompt=""; prev=""
+for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
+[[ -z "$prompt" ]] && prompt="${!#}"
+if [[ "$prompt" == *EXIT=* ]]; then n="${prompt#*EXIT=}"; n="${n%% *}"; exit "$n"; fi
+if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
+printf 'MOCK_OUTPUT_START\n%s\nMOCK_OUTPUT_END\n' "$prompt"

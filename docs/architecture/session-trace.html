@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperance Engine - Session Trace</title>
+<style>
+  :root {
+    --data: #4299e1; --processing: #ed8936; --ai: #9f7aea; --success: #48bb78;
+    --private: #718096; --ink: #1a202c; --muted: #4a5568; --line: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; }
+  h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 10px; }
+  h1 small { display: block; font-weight: 400; font-size: 15px; opacity: 0.9; margin-top: 8px; }
+  h2 { border-bottom: 3px solid var(--line); padding-bottom: 8px; }
+  .section { margin: 36px 0; }
+  .callout { background: #fffaf0; border: 1px solid #fbd38d; border-left: 5px solid var(--processing); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
+  .callout strong { color: #9c4221; }
+  .steps { list-style: none; padding: 0; counter-reset: step; }
+  .steps li { counter-increment: step; position: relative; padding: 12px 12px 12px 52px; margin: 8px 0; border: 1px solid var(--line); border-radius: 8px; background: #fafafa; }
+  .steps li::before { content: counter(step); position: absolute; left: 12px; top: 12px; width: 26px; height: 26px; border-radius: 50%; background: var(--data); color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .steps.phase li::before { background: var(--ai); }
+  .steps li b { display: block; margin-bottom: 3px; }
+  .steps li span.detail { font-size: 13px; color: var(--muted); }
+  .phase-pill { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 10px; color: white; background: var(--ai); margin-left: 6px; }
+  code { background: #edf2f7; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
+  pre { background: #1a202c; color: #e2e8f0; padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-size: 12.5px; }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 10px 0; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+  th { background: #f7fafc; }
+</style>
+</head>
+<body>
+
+<h1>Session Trace
+  <small>One concrete walkthrough, from installer flags to a finished Execute phase</small>
+</h1>
+
+<div class="callout">
+  <strong>Worked example.</strong> This traces a single real invocation: <code>./install.sh --with-claude --with-gsd --with-voice</code>, followed by one live session that reaches a parallel-dispatch decision at Execute. Every step cites the exact file/function from <code>system-internals.html</code>.
+</div>
+
+<div class="section">
+  <h2>Part A &mdash; Install</h2>
+  <ol class="steps">
+    <li><b>Flags parsed.</b> <span class="detail"><code>CLAUDE_MODE=install</code>, <code>GSD_MODE=install</code>, <code>VOICE_MODE=force</code> (force needed unless on macOS); all others stay at their defaults (OpenCode/Cursor install, Codex skip).</span></li>
+    <li><b>install-pai.sh runs.</b> <span class="detail"><code>$HOME/AGENTS.md</code> written. Because <code>CLAUDE_MODE=install</code>: <code>$PAI_HOME/PAI/PULSE</code> and <code>$PAI_HOME/hooks</code> created, <code>CLAUDE.md.template</code> and <code>compat-server.ts</code> copied in (each preceded by a timestamped backup of anything already at that path). If <code>bun</code> exists, any stale <code>compat-server.pid</code> process is killed and a fresh server is spawned on <code>:31337</code>.</span></li>
+    <li><b>install-skill-clusters.sh runs.</b> <span class="detail"><code>skill_cluster_resolver.mjs</code> copied to <code>$CODEX_HOME/hooks/</code> unconditionally. If <code>$AGENTS_HOME/skill-clusters/package.json</code> exists, the three verification commands are printed as a hint.</span></li>
+    <li><b>install-peon-ping.sh runs.</b> <span class="detail">Not skipped (voice forced). Checks <code>$PAI_HOME/hooks/peon-ping/peon.sh</code> is executable. If it isn't yet (peon-ping wasn't installed separately), prints guidance and exits 0 &mdash; the install continues either way.</span></li>
+    <li><b>install-codegraph.sh runs.</b> <span class="detail">If <code>$AGENTS_HOME</code> exists and <code>codegraph</code> is on <code>PATH</code>, runs <code>codegraph init -i</code> once (skipped if <code>.codegraph</code> already present).</span></li>
+    <li><b>install-gsd.sh runs.</b> <span class="detail"><code>GSD_MODE=install</code>, so it checks <code>$HOME/.claude/get-shit-done</code>. On this machine it exists &rarr; prints "GSD detected" + a pointer to <code>docs/parallel-dispatch.md</code>. Zero files written.</span></li>
+    <li><b>configure-opencode.sh runs.</b> <span class="detail">OpenCode and Cursor templates land in their default locations; Codex is skipped (not requested).</span></li>
+    <li><b>verify-install.sh runs.</b> <span class="detail">All 21 required files present, all shell scripts lint clean, no private paths found, all content assertions pass &rarr; <code>Temperance Engine verification passed</code>. If any check had failed, <code>install.sh</code> would exit non-zero here &mdash; nothing after this point would print.</span></li>
+    <li><b>Install flow complete.</b> <span class="detail">User is told to restart OpenCode/Cursor to reload instruction surfaces (Claude/Codex only if those optional surfaces were touched).</span></li>
+  </ol>
+</div>
+
+<div class="section">
+  <h2>Part B &mdash; A Live Session Reaching Execute</h2>
+  <ol class="steps phase">
+    <li><b>Session starts.</b><span class="phase-pill">setup</span> <span class="detail">If the user manually wired <code>ParallelDispatchContext.hook.sh</code> into their own <code>~/.claude/settings.json</code> (it is not auto-registered), it checks <code>.planning/</code> in the current project. Say this project has one, with 2 active workstreams and a <code>config.json</code> setting <code>model_profile: "quality"</code> &mdash; the hook injects a <code>&lt;system-reminder&gt;</code> noting all three (read-only) and pointing at <code>docs/parallel-dispatch.md</code>. It never reads PAI's steering rules or writes anything back to <code>config.json</code> &mdash; Temperance Engine's own preference store stays <code>ISA.md</code> alone.</span></li>
+    <li><b>Observe.</b><span class="phase-pill">observe</span> <span class="detail">Agent reads live state. If it emits "Entering the Observe phase." and Pulse is running, <code>compat-server.ts</code> matches <code>phase=observe</code> &rarr; spawns <code>peon.sh --pack glados --category task.acknowledge</code>.</span></li>
+    <li><b>Think.</b><span class="phase-pill">think</span> <span class="detail">Same pattern &rarr; pack <code>hal_2001</code>.</span></li>
+    <li><b>Plan.</b><span class="phase-pill">plan</span> <span class="detail">Pack <code>jarvis-mk2</code>. If the work is GSD-plan-shaped, the agent may separately invoke <code>/gsd:plan-phase</code> here &mdash; that call is entirely external to Temperance Engine; nothing in this repo triggers or is triggered by it.</span></li>
+    <li><b>Build.</b><span class="phase-pill">build</span> <span class="detail">Pack <code>peon</code>. Artifacts get created/edited.</span></li>
+    <li><b>Execute &mdash; the parallel-dispatch decision point.</b><span class="phase-pill">execute</span> <span class="detail">Pack <code>nier-2b</code>. Before running the work, the agent consults <code>docs/parallel-dispatch.md</code>'s decision tree: <code>.planning/</code> exists and there are declared <code>PLAN.md</code> dependencies &rarr; GSD is installed (confirmed at install time) &rarr; use GSD <code>execute-phase</code> (wave-based, worktree-isolated). If instead the tasks were ad hoc and ephemeral with no shared state, the agent would use <code>superpowers:dispatching-parallel-agents</code> instead. If any task shared files/branch with another, everything runs sequentially regardless.</span></li>
+    <li><b>Verify.</b><span class="phase-pill">verify</span> <span class="detail">Pack <code>cortana</code>. If this session were working on Temperance Engine itself, <code>./verify.sh</code> would run here as the fresh-evidence check the Completion Rule requires.</span></li>
+    <li><b>Learn.</b><span class="phase-pill">learn</span> <span class="detail">Pack <code>sc_kerrigan</code>. If this is an ISA-tracked project, decisions and verification evidence get appended to its <code>ISA.md</code> &mdash; exactly the pattern used for ISC-28..31 in this repo's own <code>ISA.md</code>.</span></li>
+  </ol>
+</div>
+
+<div class="section">
+  <h2>Part C &mdash; Failure Modes, Traced</h2>
+  <table>
+    <tr><th>Missing piece</th><th>What actually happens</th></tr>
+    <tr><td><code>bun</code> not installed</td><td>Pulse server files are copied but never started; any <code>/notify</code> POST simply has nowhere to land (connection refused). Session continues normally with no voice.</td></tr>
+    <tr><td><code>peon.sh</code> missing or not executable</td><td><code>compat-server.ts</code> still responds <code>200</code> to <code>/notify</code> with <code>{played: false, reason: "bun-runtime-required"}</code>-style fields; no sound, no error surfaced to the agent.</td></tr>
+    <tr><td>GSD not installed, <code>--with-gsd</code> passed anyway</td><td><code>install-gsd.sh</code> prints the not-found branch; at runtime, <code>docs/parallel-dispatch.md</code>'s decision tree falls through to the superpowers-only branches since GSD-gated options require detecting <code>~/.claude/get-shit-done</code>.</td></tr>
+    <tr><td><code>codegraph</code> CLI not installed</td><td>Structural search guidance in <code>docs/codegraph-routing.md</code> is simply unusable; no fallback is installed automatically (the doc says to use direct file reads/grep instead).</td></tr>
+  </table>
+</div>
+
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>integration-map.html</code> (seams).</p>
+
+</body>
+</html>

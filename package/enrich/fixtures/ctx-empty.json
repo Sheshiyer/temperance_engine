@@ -1,0 +1,8 @@
+{
+  "input": { "prompt": "hi", "cwd": "/tmp/proj", "surface": "claude" },
+  "isaPath": null,
+  "isa": null,
+  "memory": { "worked": null, "failed": null, "open": null },
+  "planningPresent": false,
+  "planningState": null
+}

@@ -12,7 +12,7 @@ Move from current state to ideal state. The ideal state is decomposed into crite
 - Think: identify constraints, hidden requirements, and risks.
 - Plan: choose the smallest safe route to the ideal state.
 - Build: create or edit artifacts.
-- Execute: run the plan against the actual surface.
+- Execute: run the plan against the actual surface. For 2+ independent, non-conflicting tasks, see `docs/parallel-dispatch.md` before choosing sequential vs parallel dispatch.
 - Verify: prove the criteria with fresh evidence.
 - Learn: record decisions, verification, and follow-up constraints.
 

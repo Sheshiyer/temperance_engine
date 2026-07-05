@@ -31,6 +31,8 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 ## What It Installs
 
 - PAI instruction templates for OpenCode, Cursor, and portable `AGENTS.md` use.
+- **Multi-backend routing** via `temperance-route` CLI — automatically selects optimal AI model based on task type (command-code primary with 35 models; kimi, grok, nvidia as fallbacks).
+- **Enrichment context** with automatic task classification — every prompt gets a `<temperance-context>` block with routing hints.
 - Optional templates for Claude Code and Codex when a user explicitly opts in.
 - Optional local Pulse compatibility server on `localhost:31337` when Claude/Pulse compatibility is explicitly enabled.
 - Optional peon-ping phase routing for macOS users with local packs.
@@ -42,6 +44,8 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 
 | Capability | What it does |
 |---|---|
+| **Multi-backend routing** | Routes tasks to optimal backend/model: command-code (35 models), kimi (262K context), grok (fast), nvidia (reasoning). |
+| **Automatic task classification** | Classifies prompts as fast/long-horizon/reasoning/validation/creative and recommends optimal model. |
 | Guarded PAI templates | Installs `NOESIS`-style instruction surfaces without copying private memory. |
 | Pulse compatibility | Provides a tiny local `/notify` and `/healthz` endpoint for phase events. |
 | Optional peon-ping | Maps Algorithm phases to local sound packs without bundling audio files. |
@@ -56,7 +60,12 @@ git clone https://github.com/Sheshiyer/temperance_engine.git
 cd temperance_engine
 ./install.sh
 ./verify.sh
+
+# Optional: Wire multi-backend routing (command-code, kimi, grok, nvidia)
+./scripts/wire-multi-backend.sh
 ```
+
+See [QUICKSTART.md](QUICKSTART.md) for multi-backend routing CLI usage.
 
 Default install is OpenCode/Cursor-first. It does not install Claude Code or Codex templates unless you pass `--with-claude` or `--with-codex`.
 
@@ -280,6 +289,7 @@ flowchart TB
 ./install.sh --with-codex
 ./install.sh --skip-opencode
 ./install.sh --skip-cursor
+./install.sh --with-gsd
 ```
 
 Useful environment variables:
@@ -307,12 +317,19 @@ Cursor's current rules documentation covers Project, Team, and User Rules plus `
 
 ## Documentation
 
+- **[QUICKSTART.md](QUICKSTART.md)** — Multi-backend routing CLI quick reference.
+- `docs/multi-surface-architecture.md` — Complete multi-surface orchestration architecture.
 - `skills/temperance-engine/SKILL.md` is the skills.sh-ready skill card.
 - `docs/architecture.md` explains the runtime model.
+- `docs/architecture/architecture.html` is the visual architecture overview (business context, data flow, pipeline, layers, deployment).
+- `docs/architecture/system-internals.html` documents the mechanics of every installed script and service.
+- `docs/architecture/integration-map.html` shows which seams are real code paths versus reference-only documentation.
+- `docs/architecture/session-trace.html` walks through one concrete install-to-session example.
 - `docs/pai-flow.md` explains how PAI phases work.
 - `docs/skill-clusters.md` explains skill-cluster routing.
 - `docs/peon-ping-packs.md` explains voice pack mapping.
 - `docs/codegraph-routing.md` explains CodeGraph indexing and search rules.
+- `docs/parallel-dispatch.md` explains when to use parallel agent dispatch vs GSD execute-phase/workstreams.
 - `docs/rollback.md` explains backups and recovery.
 - `UPSTREAM.md` links the relevant upstream GitHub repos and docs.
 - `assets/` contains generated public-facing banner and icon assets.

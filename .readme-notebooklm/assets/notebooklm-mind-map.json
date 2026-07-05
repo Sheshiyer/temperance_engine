@@ -3,86 +3,77 @@
     "name": "Temperance Engine",
     "children": [
       {
-        "name": "Core Purpose",
+        "name": "Core Functionality",
         "children": [
           {
-            "name": "Local AI-operator runtime installer"
+            "name": "Multi-backend Routing",
+            "children": [
+              {
+                "name": "temperance-route CLI"
+              },
+              {
+                "name": "Automatic Task Classification"
+              },
+              {
+                "name": "Model Optimization (DeepSeek, Kimi, Grok, Claude)"
+              }
+            ]
           },
           {
-            "name": "Unified inspectable loop"
+            "name": "PAI Integration",
+            "children": [
+              {
+                "name": "Algorithm Flow Templates"
+              },
+              {
+                "name": "ISA Preference Store"
+              },
+              {
+                "name": "Instruction Surfaces"
+              }
+            ]
           },
           {
-            "name": "Eliminate configuration sprawl"
-          },
-          {
-            "name": "Privacy-first and backup-first"
+            "name": "Search & Intelligence",
+            "children": [
+              {
+                "name": "CodeGraph AST Indexing"
+              },
+              {
+                "name": "ripgrep Fallback Search"
+              }
+            ]
           }
         ]
       },
       {
-        "name": "Key Components",
+        "name": "System Architecture",
         "children": [
           {
-            "name": "PAI Infrastructure",
+            "name": "Components",
             "children": [
               {
-                "name": "Algorithm-driven workflows"
+                "name": "Skill-cluster Resolver"
               },
               {
-                "name": "Instruction surfaces"
+                "name": "Pulse Compatibility Server"
               },
               {
-                "name": "ISA runtime pattern"
+                "name": "Parallel Dispatch Context"
               }
             ]
           },
           {
-            "name": "Skill-Cluster Routing",
+            "name": "Deployment Tools",
             "children": [
               {
-                "name": "Skill discovery via index"
+                "name": "Backup-first Installer"
               },
               {
-                "name": "Prevents startup debloat"
+                "name": "Verification Scripts"
               },
               {
-                "name": "Active symlinks"
-              }
-            ]
-          },
-          {
-            "name": "CodeGraph Search",
-            "children": [
-              {
-                "name": "AST-backed indexing"
-              },
-              {
-                "name": "Structural lookup for .agents"
-              }
-            ]
-          },
-          {
-            "name": "Peon-Ping Voice",
-            "children": [
-              {
-                "name": "Phase-based sound notifications"
-              },
-              {
-                "name": "macOS primary support"
-              },
-              {
-                "name": "Referenced (not bundled) packs"
-              }
-            ]
-          },
-          {
-            "name": "Pulse Compatibility Server",
-            "children": [
-              {
-                "name": "Localhost:31337 endpoint"
-              },
-              {
-                "name": "Bun runtime"
+                "name": "Rollback Helpers"
               }
             ]
           }
@@ -92,66 +83,54 @@
         "name": "Safety & Constraints",
         "children": [
           {
-            "name": "Backup-first install scripts"
+            "name": "Privacy Boundary (No Memory/Credentials)"
           },
           {
-            "name": "POSIX-shell compatibility"
+            "name": "Portable Paths ($HOME/Env Vars)"
           },
           {
-            "name": "No private memory or credentials"
+            "name": "Optional Voice (Non-macOS Skip)"
           },
           {
-            "name": "No required Claude auth or model gate"
-          },
-          {
-            "name": "Generalized $HOME paths"
-          },
-          {
-            "name": "Rollback documentation"
+            "name": "No Binary Vendoring"
           }
         ]
       },
       {
-        "name": "Project Artifacts",
-        "children": [
-          {
-            "name": "install.sh & verify.sh"
-          },
-          {
-            "name": "README (Generated & versioned)"
-          },
-          {
-            "name": "Generated assets (banner/icon)"
-          },
-          {
-            "name": "skills.sh skill card"
-          }
-        ]
-      },
-      {
-        "name": "Upstream Integrations",
+        "name": "Supported Platforms",
         "children": [
           {
             "name": "OpenCode"
           },
           {
-            "name": "Cursor"
+            "name": "Cursor Rules (.mdc)"
           },
           {
-            "name": "Claude Code optional"
+            "name": "Claude Code (Optional)"
           },
           {
-            "name": "OpenAI Codex CLI optional"
+            "name": "OpenAI Codex CLI (Optional)"
+          }
+        ]
+      },
+      {
+        "name": "Project Metadata",
+        "children": [
+          {
+            "name": "Author: Thoughtseed Labs"
           },
           {
-            "name": "GitHub CLI"
+            "name": "License: MIT"
           },
           {
-            "name": "ripgrep"
+            "name": "Version: 0.1.0"
+          },
+          {
+            "name": "Documentation: ISA.md & QUICKSTART.md"
           }
         ]
       }
     ]
   },
-  "note_id": "f5580c7f-3778-4751-9d9a-a6f394551614"
+  "note_id": "3b9c0a3d-341a-4b4e-b0ce-4445ac1e35df"
 }

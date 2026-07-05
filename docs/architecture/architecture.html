@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperance Engine - Architecture Overview</title>
+<style>
+  :root {
+    --data: #4299e1;
+    --processing: #ed8936;
+    --ai: #9f7aea;
+    --success: #48bb78;
+    --private: #718096;
+    --ink: #1a202c;
+    --muted: #4a5568;
+    --line: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  h1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  h1 small {
+    display: block;
+    font-weight: 400;
+    font-size: 15px;
+    opacity: 0.9;
+    margin-top: 8px;
+  }
+  h2 {
+    border-bottom: 3px solid var(--line);
+    padding-bottom: 8px;
+    color: var(--ink);
+  }
+  .section { margin: 36px 0; }
+  .callout {
+    background: #fffaf0;
+    border: 1px solid #fbd38d;
+    border-left: 5px solid var(--processing);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 18px 0;
+  }
+  .callout strong { color: #9c4221; }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    background: #fafafa;
+  }
+  .card h3 { margin-top: 0; font-size: 15px; color: var(--ink); }
+  .card p { margin: 4px 0; font-size: 13.5px; color: var(--muted); }
+  .layer {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: white;
+    font-size: 14px;
+  }
+  .layer b { display: block; font-size: 15px; margin-bottom: 4px; }
+  code {
+    background: #edf2f7;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+  th { background: #f7fafc; }
+</style>
+</head>
+<body>
+
+<h1>Temperance Engine
+  <small>A public, backup-first installer for the author's live PAI + GSD + superpowers + CodeGraph + voice runtime</small>
+</h1>
+
+<div class="section">
+  <h2>Business Context</h2>
+  <div class="callout">
+    <strong>This is a productization, not a fresh design.</strong> Temperance Engine did not start from a blank architecture. It is a generalized, path-agnostic, backup-first extraction of the author's own daily-driver Personal AI Infrastructure (PAI) workflow: the 7-phase Observe&rarr;Think&rarr;Plan&rarr;Build&rarr;Execute&rarr;Verify&rarr;Learn loop, GSD's phase-planning/execution lifecycle, superpowers' skill/dispatch patterns, CodeGraph's structural index, skill-cluster routing, and peon-ping voice packs &mdash; all of which run live on the author's machine every day. Every install surface here mirrors a corresponding private, machine-specific piece that stays <em>referenced, never vendored</em> (see <code>UPSTREAM.md</code>).
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h3>Objective</h3>
+      <p>Give another operator a readable, reviewable installer for the same disciplined work loop, without requiring the author's private memory, credentials, or voice packs.</p>
+    </div>
+    <div class="card">
+      <h3>Users</h3>
+      <p>Developers who want an ISA-driven (Ideal State Artifact) PAI-style loop in OpenCode, Cursor, or optionally Claude Code / Codex, with or without GSD/superpowers already installed.</p>
+    </div>
+    <div class="card">
+      <h3>Value</h3>
+      <p>Safe, dry-runnable, backup-first install; optional surfaces stay opt-in; no forced subscription, auth, or specific model.</p>
+    </div>
+    <div class="card">
+      <h3>Metrics</h3>
+      <p>ISA-tracked: 31/31 Ideal State Criteria currently satisfied and verified by <code>./verify.sh</code>.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Data Flow: Personal Runtime &rarr; Public Product</h2>
+  <svg viewBox="0 0 1080 300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+      </marker>
+    </defs>
+
+    <rect x="10" y="90" width="220" height="120" rx="10" fill="#718096"/>
+    <text x="120" y="120" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Author's Live Runtime</text>
+    <text x="120" y="142" text-anchor="middle" fill="white" font-size="11">CLAUDE.md, PAI/, MEMORY/</text>
+    <text x="120" y="158" text-anchor="middle" fill="white" font-size="11">hooks/*.hook.ts</text>
+    <text x="120" y="174" text-anchor="middle" fill="white" font-size="11">GSD, superpowers, CodeGraph</text>
+    <text x="120" y="190" text-anchor="middle" fill="white" font-size="11">skill-clusters, peon-ping</text>
+    <text x="120" y="225" text-anchor="middle" fill="#4a5568" font-size="11" font-style="italic">(private, not shipped)</text>
+
+    <path d="M232,150 L288,150" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="290" y="90" width="220" height="120" rx="10" fill="#ed8936"/>
+    <text x="400" y="125" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Productization</text>
+    <text x="400" y="150" text-anchor="middle" fill="white" font-size="11">Generalize $HOME paths</text>
+    <text x="400" y="166" text-anchor="middle" fill="white" font-size="11">Strip private/local state</text>
+    <text x="400" y="182" text-anchor="middle" fill="white" font-size="11">Reference-not-vendor rule</text>
+    <text x="400" y="198" text-anchor="middle" fill="white" font-size="11">Backup-first install scripts</text>
+
+    <path d="M512,150 L568,150" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="570" y="90" width="220" height="120" rx="10" fill="#48bb78"/>
+    <text x="680" y="125" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Temperance Engine</text>
+    <text x="680" y="150" text-anchor="middle" fill="white" font-size="11">install.sh + scripts/install-*.sh</text>
+    <text x="680" y="166" text-anchor="middle" fill="white" font-size="11">docs/, templates/, ISA.md</text>
+    <text x="680" y="182" text-anchor="middle" fill="white" font-size="11">public, reviewable repo</text>
+    <text x="680" y="207" text-anchor="middle" fill="#f0fff4" font-size="11" font-style="italic">(this repo)</text>
+
+    <path d="M792,150 L848,150" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="850" y="90" width="220" height="120" rx="10" fill="#4299e1"/>
+    <text x="960" y="120" text-anchor="middle" fill="white" font-size="14" font-weight="bold">User's Machine</text>
+    <text x="960" y="145" text-anchor="middle" fill="white" font-size="11">OpenCode / Cursor-first runtime</text>
+    <text x="960" y="161" text-anchor="middle" fill="white" font-size="11">optional Claude / Codex / voice</text>
+    <text x="960" y="177" text-anchor="middle" fill="white" font-size="11">optional GSD reference</text>
+    <text x="960" y="193" text-anchor="middle" fill="white" font-size="11">7-phase loop + parallel-dispatch guide</text>
+  </svg>
+  <div class="legend">
+    <span><span class="swatch" style="background:#718096"></span>Private source (not shipped)</span>
+    <span><span class="swatch" style="background:#ed8936"></span>Generalization step</span>
+    <span><span class="swatch" style="background:#48bb78"></span>Public artifact (this repo)</span>
+    <span><span class="swatch" style="background:#4299e1"></span>Installed result</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Processing Pipeline: <code>install.sh</code> Orchestration</h2>
+  <svg viewBox="0 0 1160 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+      </marker>
+    </defs>
+    <!-- 7 stages -->
+    <g font-size="10.5" fill="white" text-anchor="middle">
+      <rect x="10"  y="70" width="140" height="70" rx="8" fill="#ed8936"/>
+      <text x="80" y="100">install-pai.sh</text>
+      <text x="80" y="116" font-size="9">$PAI_HOME + hooks/</text>
+
+      <rect x="175" y="70" width="140" height="70" rx="8" fill="#ed8936"/>
+      <text x="245" y="100">install-skill-</text>
+      <text x="245" y="112">clusters.sh</text>
+
+      <rect x="340" y="70" width="140" height="70" rx="8" fill="#ed8936"/>
+      <text x="410" y="100">install-peon-</text>
+      <text x="410" y="112">ping.sh</text>
+
+      <rect x="505" y="70" width="140" height="70" rx="8" fill="#ed8936"/>
+      <text x="575" y="100">install-</text>
+      <text x="575" y="112">codegraph.sh</text>
+
+      <rect x="670" y="70" width="140" height="70" rx="8" fill="#9f7aea"/>
+      <text x="740" y="100">install-gsd.sh</text>
+      <text x="740" y="116" font-size="9">new: thin ref</text>
+
+      <rect x="835" y="70" width="140" height="70" rx="8" fill="#4299e1"/>
+      <text x="905" y="94">configure-</text>
+      <text x="905" y="106">opencode.sh</text>
+
+      <rect x="1000" y="70" width="140" height="70" rx="8" fill="#48bb78"/>
+      <text x="1070" y="100">verify-</text>
+      <text x="1070" y="112">install.sh</text>
+    </g>
+    <g stroke="#666" stroke-width="2">
+      <path d="M150,105 L173,105" marker-end="url(#arrow2)"/>
+      <path d="M315,105 L338,105" marker-end="url(#arrow2)"/>
+      <path d="M480,105 L503,105" marker-end="url(#arrow2)"/>
+      <path d="M645,105 L668,105" marker-end="url(#arrow2)"/>
+      <path d="M810,105 L833,105" marker-end="url(#arrow2)"/>
+      <path d="M975,105 L998,105" marker-end="url(#arrow2)"/>
+    </g>
+    <text x="580" y="30" text-anchor="middle" font-size="13" fill="#4a5568">Every stage reads flags exported by <tspan font-family="monospace">install.sh</tspan>; all writes go through <tspan font-family="monospace">backup_file</tspan> / <tspan font-family="monospace">ensure_dir</tspan> in <tspan font-family="monospace">scripts/lib.sh</tspan></text>
+    <text x="740" y="180" text-anchor="middle" font-size="11" fill="#4a5568">install-gsd.sh performs zero writes &mdash; detect + print only</text>
+  </svg>
+</div>
+
+<div class="section">
+  <h2>System Architecture (Layered)</h2>
+  <div class="layer" style="background:#4299e1;">
+    <b>Templates &amp; Docs (data layer)</b>
+    templates/AGENTS.md, templates/cursor.*, templates/codex.AGENTS.md, templates/CLAUDE.md.template &middot; docs/pai-flow.md, docs/skill-clusters.md, docs/peon-ping-packs.md, docs/codegraph-routing.md, docs/parallel-dispatch.md
+  </div>
+  <div class="layer" style="background:#ed8936;">
+    <b>Install Orchestration (processing layer)</b>
+    install.sh (flag parsing, env export) &middot; scripts/install-*.sh (one script per surface) &middot; scripts/lib.sh (say / ensure_dir / backup_file / install_file)
+  </div>
+  <div class="layer" style="background:#9f7aea;">
+    <b>Optional Services (services layer)</b>
+    Pulse compatibility server (voice, --with-voice) &middot; CodeGraph CLI (structural index) &middot; GSD reference (--with-gsd, detect-only) &middot; skill-cluster resolver
+  </div>
+  <div class="layer" style="background:#48bb78;">
+    <b>Runtime Loop (output layer)</b>
+    Observe &rarr; Think &rarr; Plan &rarr; Build &rarr; <b style="text-decoration:underline;">Execute</b> &rarr; Verify &rarr; Learn, with the Execute phase now routed through <code>docs/parallel-dispatch.md</code>'s decision tree (superpowers dispatch vs GSD execute-phase/workstreams) and an advisory-only <code>ParallelDispatchContext.hook.sh</code> for situational awareness
+  </div>
+</div>
+
+<div class="section">
+  <h2>Features</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Functional</h3>
+      <p>Backup-first, dry-runnable install</p>
+      <p>Opt-in surfaces (Claude, Codex, voice, GSD)</p>
+      <p>ISA-driven verification (31 ISC)</p>
+      <p>Parallel-dispatch decision guide wired into Execute phase</p>
+    </div>
+    <div class="card">
+      <h3>Non-Functional</h3>
+      <p>No private local paths in any public/install surface (enforced by grep denylist in <code>verify-install.sh</code>)</p>
+      <p>Portable across <code>$HOME</code> and override env vars</p>
+      <p>Works without Claude Code, Claude Pro/Max, or Anthropic auth</p>
+      <p>macOS-friendly, not macOS-required</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Deployment</h2>
+  <table>
+    <tr><th>Model</th><td>One-time local shell installer, run directly from a cloned repo</td></tr>
+    <tr><th>Prerequisites</th><td><code>sh</code> (required); <code>bun</code>, <code>node</code>, <code>codegraph</code> CLI (optional, feature-gated)</td></tr>
+    <tr><th>Workflow</th><td><code>git clone</code> &rarr; <code>./install.sh [--with-claude] [--with-codex] [--with-gsd] [--skip-voice]</code> &rarr; <code>./verify.sh</code></td></tr>
+    <tr><th>Rollback</th><td>Timestamped backups under <code>$TEMPERANCE_BACKUP_DIR</code>; see <code>docs/rollback.md</code></td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Deep Dives</h2>
+  <div class="grid">
+    <div class="card">
+      <h3><a href="system-internals.html">system-internals.html</a></h3>
+      <p>Component-by-component mechanics: exact flags, env vars, file writes, endpoints, and fallback behavior for every script and service.</p>
+    </div>
+    <div class="card">
+      <h3><a href="integration-map.html">integration-map.html</a></h3>
+      <p>Which seams are real code paths versus documentation-only references, including the three parallel (non-integrated) preference layers.</p>
+    </div>
+    <div class="card">
+      <h3><a href="session-trace.html">session-trace.html</a></h3>
+      <p>A concrete install-to-session walkthrough, phase by phase, with failure modes traced.</p>
+    </div>
+  </div>
+</div>
+
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Generated for Temperance Engine via <code>architecture-diagram-creator</code>. Source of truth: <code>ISA.md</code>, <code>docs/pai-flow.md</code>, <code>docs/parallel-dispatch.md</code>, <code>UPSTREAM.md</code>.</p>
+
+</body>
+</html>

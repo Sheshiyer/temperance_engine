@@ -1,17 +1,17 @@
-# temperance-engine — Prefilled PRD
+# Temperance Engine — Prefilled PRD
 
 # PRD Template
 
 ## 1. Document Control
 - PRD Version: 0.1
 - Status: Draft / Review / Approved / Superseded
-- Owner: Thoughtseed
+- Owner: Sheshiyer
 - Contributors: Product, Engineering, Design, Ops
-- Last Updated: 2026-06-13
+- Last Updated: 2026-07-05
 - Related Decision Log IDs: DEC-001, DEC-002
 
 ## 2. Problem & Opportunity
-- Problem statement: Developed by Thoughtseed Labs, **Temperance Engine** is a comprehensive public packaging repository and one-time installer designed to standardize and secure local AI-operator runtimes. The project addresses the problem of "configuration sprawl"—the fragmentation of local AI-agent setups across hidden directories, voice hooks, and search indexes—by consolidating these elements into a reviewable, modular framework.
+- Problem statement: The Temperance Engine, developed by Thoughtseed Labs, is a comprehensive packaging repository and one-time installer designed for local AI-operator runtimes. It specifically targets environments utilizing **OpenCode** and **Cursor**, providing a modular framework that consolidates scattered configurations, voice hooks, MCP servers, and search indexes into a reviewable, secure system.
 - Who is affected: Primary target users experiencing the current workflow friction.
 - Current workaround: Manual or fragmented process with inconsistent outcomes.
 - Business impact: Slower adoption, lower conversion, and higher execution overhead.
@@ -32,9 +32,9 @@
 
 ## 5. Scope
 ### In Scope (MVP)
-- **Safe Defaults:** The installer uses `$HOME` and user-overridable environment variables to prevent leaking machine-specific data
-- **Secret Management:** The `SECURITY.md` guidelines strictly forbid the commitment of API keys, model tokens, or private memory folders
-- **Local Network:** The Pulse compatibility server is restricted to `127.0.0.1:31337` to ensure local-only JSON POST operations
+- **Backup-First Operations:** Every write operation is preceded by the creation of timestamped backups, ensuring full reversibility
+- **command-code:** Primary and versatile, supporting 35 models but with higher latency (~10s startup)
+- **kimi:** Optimized for long-horizon coding with a 262K context window
 
 ### Out of Scope (This Cycle)
 - Advanced integrations not required for first user value
@@ -45,7 +45,7 @@
 ### Assumptions
 | ID | Assumption | Confidence (H/M/L) | Validation Plan | Status |
 |---|---|---|---|---|
-| A-1 | **Safe Defaults:** The installer uses `$HOME` and user-overridable environment variables to prevent leaking machine-specific data | M | Validate via POC + surveys | Unvalidated |
+| A-1 | **Backup-First Operations:** Every write operation is preceded by the creation of timestamped backups, ensuring full reversibility | M | Validate via POC + surveys | Unvalidated |
 
 ### Dependencies
 | ID | Dependency | Owner | Risk if Delayed | Mitigation |
@@ -56,9 +56,9 @@
 ### Functional Requirements
 | ID | Requirement | Priority (MoSCoW) | Acceptance Criteria |
 |---|---|---|---|
-| FR-1 | **Safe Defaults:** The installer uses `$HOME` and user-overridable environment variables to prevent leaking machine-specific data | Must | User can complete this flow with testable success criteria |
-| FR-2 | **Secret Management:** The `SECURITY.md` guidelines strictly forbid the commitment of API keys, model tokens, or private memory folders | Should | User can complete this flow with testable success criteria |
-| FR-3 | **Local Network:** The Pulse compatibility server is restricted to `127.0.0.1:31337` to ensure local-only JSON POST operations | Should | User can complete this flow with testable success criteria |
+| FR-1 | **Backup-First Operations:** Every write operation is preceded by the creation of timestamped backups, ensuring full reversibility | Must | User can complete this flow with testable success criteria |
+| FR-2 | **command-code:** Primary and versatile, supporting 35 models but with higher latency (~10s startup) | Should | User can complete this flow with testable success criteria |
+| FR-3 | **kimi:** Optimized for long-horizon coding with a 262K context window | Should | User can complete this flow with testable success criteria |
 
 ### Non-Functional Requirements
 | ID | Requirement | Target |
@@ -91,7 +91,7 @@
 - Timebox: 1 sprint (2 weeks)
 - Success criteria: Improvement in activation leading metrics and positive qualitative feedback.
 - Failure criteria: No measurable uplift after controlled rollout.
-- Decision date: 2026-06-13
+- Decision date: 2026-07-05
 - Decision outcome: Go / No-Go / Pivot
 
 ## 12. Release Plan
