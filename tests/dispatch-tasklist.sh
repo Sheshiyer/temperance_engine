@@ -488,5 +488,44 @@ sed -n '/## Skipped: fallback attempts/,/^## /p' "$run/MERGE-REPORT.md" 2>/dev/n
 grep -q "^- skipped-fallback: 1$" "$run/SUMMARY.md" 2>/dev/null && echo "ok - SUMMARY.md records skipped-fallback: 1" || { echo "FAIL - SUMMARY.md missing skipped-fallback count"; fail=1; }
 rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
 
+# (i) P1 regression (Codex review on #7 PR review-fix): the fix in (h) excluded
+# fallback tasks from the overlap/conflict candidate set (cand_ids) entirely,
+# BEFORE the TOUCHERS_OF overlap map was built. Consequence: a fallback
+# task's touched files no longer poison the overlap map, so a DIFFERENT,
+# single-attempt task that touches the SAME file is now seen as
+# non-overlapping and gets auto-applied -- overwriting a file that had a
+# competing (fallback) task output. That breaks the non-overlap safety
+# contract this feature exists to provide.
+#
+# Fix: fallback tasks must stay in the overlap UNIVERSE (their files still
+# populate TOUCHERS_OF/CONFLICTED) but must never be applied. Decision order
+# per candidate: conflicted (incl. via a fallback task) -> fallback-skip ->
+# empty-diff -> apply.
+#
+# Task F: falls back (command-code exits 1, kimi exits 0) and writes
+# shared.txt with content "from-F". Task N: single attempt, writes
+# shared.txt with DIFFERENT content "from-N". Since both tasks touch
+# shared.txt, it must be treated as an overlap: BOTH merged:false, and
+# shared.txt must NOT be applied to the caller's repo (absent from cwd).
+# RED against pre-fix HEAD: N is auto-applied (merged:true, shared.txt
+# present with "from-N") while F is fallback-skipped -- the overlap is
+# missed because F was removed from the candidate set before TOUCHERS_OF
+# was built.
+tmpgit_am9=$(mktemp -d); ( cd "$tmpgit_am9" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+ln -sf mock-backend "$DIR/tests/fixtures/kimi"
+run=$(mktemp -d)
+( cd "$tmpgit_am9" && printf '%s' '[{"id":"FOV","task":"command-code_EXIT=1 kimi_EXIT=0 WRITE=shared.txt:from-F do stuff"},
+             {"id":"NOV","task":"WRITE=shared.txt:from-N do work","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_BACKENDS="command-code kimi" "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "fallback-overlap: FOV attempts length >= 2" "true" "$(jq -r '(.attempts|length) >= 2' "$run/FOV.meta.json" 2>/dev/null)"
+check "fallback-overlap: FOV status=ok" "ok" "$(jq -r '.status' "$run/FOV.meta.json" 2>/dev/null)"
+check "fallback-overlap: FOV merged:false" "false" "$(jq -r '.merged' "$run/FOV.meta.json" 2>/dev/null)"
+check "fallback-overlap: NOV merged:false (was wrongly true pre-fix)" "false" "$(jq -r '.merged' "$run/NOV.meta.json" 2>/dev/null)"
+check "fallback-overlap: shared.txt NOT applied to cwd" "" "$(cat "$tmpgit_am9/shared.txt" 2>/dev/null)"
+check "fallback-overlap: FOV index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="FOV") | .merged' "$run/index.json" 2>/dev/null)"
+check "fallback-overlap: NOV index merged matches meta (false)" "false" "$(jq -r '.tasks[] | select(.id=="NOV") | .merged' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
+
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail

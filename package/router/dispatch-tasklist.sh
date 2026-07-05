@@ -310,33 +310,40 @@ apply_worktree_merges(){
   # tree, violating the feature's "only auto-apply the safe path" contract.
   #
   # Fix (conservative, in-scope): a task that needed fallback is exactly the
-  # "not obviously safe" case, so exclude it from auto-apply entirely --
-  # per #8, a task that succeeds on its first backend has exactly one entry
-  # in attempts[]; a task that fell back has 2+. Such a task is marked
+  # "not obviously safe" case, so it must never be auto-applied -- per #8, a
+  # task that succeeds on its first backend has exactly one entry in
+  # attempts[]; a task that fell back has 2+. Such a task is marked
   # merged:false (never null -- it WAS a worktree task under
   # --apply-worktree, just deliberately not applied), its diff is left on
   # disk, and it is listed in MERGE-REPORT.md under its own section so a
-  # human can adjudicate it manually. It never enters the overlap/conflict
-  # candidate set below, so it cannot mask or be masked by another task's
-  # conflict either.
-  local -a cand_ids=() fallback_skip=()
+  # human can adjudicate it manually.
+  #
+  # Codex review finding (P1, review-fix regression): an earlier version of
+  # this fix excluded fallback tasks from `cand_ids` HERE, before the
+  # TOUCHERS_OF overlap map below was built. That let a fallback task's
+  # touched files fall out of the overlap universe entirely -- so a
+  # DIFFERENT, single-attempt task touching the SAME file was no longer seen
+  # as overlapping and got auto-applied, silently overwriting the file the
+  # fallback task also produced. That breaks the non-overlap safety contract
+  # this feature exists to provide.
+  #
+  # Fix: keep every ok worktree task (fallback or not) in `cand_ids` so its
+  # files still populate FILES_OF/TOUCHERS_OF/CONFLICTED below. is_fallback
+  # is now purely a per-task flag consulted at the APPLY DECISION (after
+  # conflict detection), not a filter on candidacy.
+  local -a cand_ids=()
+  declare -A IS_FALLBACK=()
   local cid attempts_len
   while IFS= read -r cid; do
     [[ -n "$cid" ]] || continue
     attempts_len="$(jq -r --arg id "$cid" '.tasks[] | select(.id==$id) | (.attempts | length)' "$idx")"
     if [[ "$attempts_len" =~ ^[0-9]+$ ]] && (( attempts_len > 1 )); then
-      set_merged "$cid" false
-      fallback_skip+=("$cid")
-    else
-      cand_ids+=("$cid")
+      IS_FALLBACK["$cid"]=1
     fi
+    cand_ids+=("$cid")
   done < <(jq -r '.tasks[] | select(.worktree != null and .diff_path != null and .status=="ok") | .id' "$idx")
 
-  # Note: unlike before this fix, we do NOT early-return here when cand_ids
-  # is empty -- fallback_skip tasks still need set_merged (done above),
-  # MERGE-REPORT.md, the SUMMARY.md addendum, and the final index.json
-  # refresh even if every worktree task fell back and none is auto-appliable.
-  if (( ${#cand_ids[@]} == 0 && ${#fallback_skip[@]} == 0 )); then
+  if (( ${#cand_ids[@]} == 0 )); then
     return 0
   fi
 
@@ -372,7 +379,7 @@ apply_worktree_merges(){
     fi
   done
 
-  local -a applied=() conflicted_report=() apply_failed=()
+  local -a applied=() conflicted_report=() apply_failed=() fallback_skip=()
   local root_unresolved=false
   if [[ -z "$root" ]]; then
     root_unresolved=true
@@ -380,8 +387,18 @@ apply_worktree_merges(){
   for cid in "${cand_ids[@]}"; do
     dpath="${DIFF_OF[$cid]}"
     if [[ -n "${CONFLICTED[$cid]:-}" ]]; then
+      # A fallback task that ALSO overlaps another task is reported here
+      # (accurate: it overlaps) rather than under fallback-skip below.
       set_merged "$cid" false
       conflicted_report+=("$cid:${CONFLICT_FILES_OF_TASK[$cid]}")
+      continue
+    fi
+    if [[ -n "${IS_FALLBACK[$cid]:-}" ]]; then
+      # Non-overlapping fallback task: still not safe to auto-apply (see
+      # the fallback-chain comment above cand_ids) -- skip it, distinctly
+      # from a conflict.
+      set_merged "$cid" false
+      fallback_skip+=("$cid")
       continue
     fi
     if [[ ! -s "$dpath" ]]; then
