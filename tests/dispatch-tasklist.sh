@@ -374,5 +374,29 @@ check "opt-out default: NOA merged:null" "null" "$(jq -r '.merged' "$run/NOA.met
 [[ -s "$run/NOA.diff" ]] && echo "ok - diff still captured without --apply-worktree" || { echo "FAIL - diff missing"; fail=1; }
 rm -f "$DIR/tests/fixtures/command-code"
 
+# (d) rename-vs-write overlap (reviewer finding on #7): task X renames
+# orig.txt -> shared.txt, task Y writes shared.txt directly (different
+# content). diff_files() must record BOTH sides of the rename (orig.txt AND
+# shared.txt) so the overlap map catches shared.txt being touched by two
+# tasks. Expected: NEITHER applied -- cwd keeps orig.txt with its original
+# content and gets no shared.txt; both metas merged:false; MERGE-REPORT shows
+# a conflict (not an apply-failure) for the shared file.
+tmpgit_am4=$(mktemp -d)
+( cd "$tmpgit_am4" && git init -q && printf '%s\n' "original content" > orig.txt && git add -A && git commit -q -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am4" && printf '%s' '[{"id":"RNX","task":"MOVE=orig.txt:shared.txt do work","backend":"command-code","model":"x"},
+             {"id":"RNY","task":"WRITE=shared.txt:from-Y do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "rename-overlap: orig.txt still present with original content" "original content" "$(cat "$tmpgit_am4/orig.txt" 2>/dev/null)"
+check "rename-overlap: shared.txt NOT created in cwd" "" "$(cat "$tmpgit_am4/shared.txt" 2>/dev/null)"
+check "rename-overlap: RNX merged:false" "false" "$(jq -r '.merged' "$run/RNX.meta.json" 2>/dev/null)"
+check "rename-overlap: RNY merged:false" "false" "$(jq -r '.merged' "$run/RNY.meta.json" 2>/dev/null)"
+grep -qi "shared.txt" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT lists rename/write conflict on shared.txt" || { echo "FAIL - MERGE-REPORT missing rename/write conflict"; fail=1; }
+sed -n '/## Apply failures/,/^$/p' "$run/MERGE-REPORT.md" 2>/dev/null | grep -q "RNX\|RNY" \
+  && { echo "FAIL - rename/write pair mislabeled as apply-failed instead of conflicted"; fail=1; } \
+  || echo "ok - rename/write pair not mislabeled as apply-failed"
+rm -f "$DIR/tests/fixtures/command-code"
+
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail

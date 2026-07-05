@@ -179,11 +179,61 @@ kill_tree(){
 }
 
 # diff_files: diff_path -> one file path per line touched by that diff.
-# Parses `diff --git a/X b/X` headers rather than shelling out to
+# Parses the patch text directly rather than shelling out to
 # `git apply --numstat` so it works even on an empty/whitespace-only diff
 # (numstat on an empty file errors on some git versions) and needs no cwd.
+#
+# Reviewer finding (#7 follow-up): a naive `diff --git a/X b/Y` header parse
+# that only captures the a/ side silently drops the DESTINATION of a
+# rename/copy (git emits `diff --git a/orig.txt b/shared.txt` for a pure
+# rename, with no other line mentioning shared.txt in some cases). That let a
+# rename-to-shared.txt and a separate write-to-shared.txt slip past overlap
+# detection as non-conflicting, which broke the feature's core safety
+# guarantee. Fix: union every per-path line the patch format can produce --
+# each of these lines carries exactly one unambiguous path, so there's no
+# space-splitting ambiguity:
+#   rename from / rename to / copy from / copy to   (rename & copy patches)
+#   --- a/X / +++ b/X                                (content hunks; skip /dev/null)
+# ...plus a header fallback that captures BOTH a/ and b/ sides (covers
+# mode-only or binary diffs that have no ---/+++ hunk lines at all). Adding
+# extra/duplicate keys can only make overlap detection MORE conservative
+# (more likely to flag a conflict), never less -- that's the safe direction,
+# so the union is intentional. Output is sorted + deduped; one path per line,
+# same newline-separated contract callers already rely on.
 diff_files(){ # diff_path
-  grep -E '^diff --git ' "$1" 2>/dev/null | sed -E 's#^diff --git a/(.*) b/.*#\1#'
+  {
+    grep -E '^rename from ' "$1" 2>/dev/null | sed -E 's#^rename from ##'
+    grep -E '^rename to '   "$1" 2>/dev/null | sed -E 's#^rename to ##'
+    grep -E '^copy from '   "$1" 2>/dev/null | sed -E 's#^copy from ##'
+    grep -E '^copy to '     "$1" 2>/dev/null | sed -E 's#^copy to ##'
+    grep -E '^--- '         "$1" 2>/dev/null | sed -E 's#^--- ##'
+    grep -E '^\+\+\+ '      "$1" 2>/dev/null | sed -E 's#^\+\+\+ ##'
+    # Header fallback: split `diff --git a/X b/Y` (plain) or
+    # `diff --git "a/X" "b/Y"` (quoted) into its two path tokens, one per
+    # line, so both sides feed the same per-line dequote/prefix-strip below.
+    grep -E '^diff --git '  "$1" 2>/dev/null \
+      | sed -E 's#^diff --git ("[^"]*"|[^ ]+) ("[^"]*"|[^ ]+)$#\1\n\2#'
+  } | while IFS= read -r _p; do dequote_path "$_p"; done \
+    | sed -E 's#^(a/|b/)##' \
+    | grep -v -E '^(/dev/null)?$' \
+    | sort -u
+}
+
+# dequote_path: best-effort decode of a single git-quoted path token (e.g.
+# "caf\303\251.txt" for non-ASCII/special-char filenames). Overlap SAFETY
+# never depends on this decoding succeeding -- both sides of a rename/copy
+# produce the identical key whether quoted-and-decoded or left raw, so a
+# decode miss can only affect MERGE-REPORT readability, never correctness.
+# Always falls back to the raw token on any doubt; never errors, never
+# drops a path.
+dequote_path(){
+  local p="$1" inner decoded
+  if [[ "$p" == \"*\" && "$p" == *\" && ${#p} -ge 2 ]]; then
+    inner="${p:1:-1}"
+    decoded="$(printf '%b' "$inner" 2>/dev/null)"
+    [[ -n "$decoded" ]] && { printf '%s\n' "$decoded"; return; }
+  fi
+  printf '%s\n' "$p"
 }
 
 # apply_worktree_merges: post-run, opt-in (--apply-worktree only) safe-path

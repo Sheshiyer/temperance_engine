@@ -17,6 +17,13 @@
 #                        (e.g. "WRITE=fileA.txt:hello-from-A"). Parent dirs
 #                        are created as needed. Applied AFTER exit/sleep
 #                        tokens so EXIT=N still short-circuits before writing.
+#   MOVE=<src>:<dst>  -- `mv <src> <dst>` relative to cwd, so worktree-mode
+#                        tests can produce a real rename in `git diff --cached`
+#                        (rename from/to headers) instead of a plain add/del.
+#                        Applied in the same relative order as WRITE (after
+#                        exit/sleep tokens); if both WRITE and MOVE are present
+#                        WRITE runs first so a MOVE can act on a freshly
+#                        written file within the same task.
 base="$(basename "$0")"
 prompt=""; prev=""
 for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
@@ -33,6 +40,14 @@ if [[ "$prompt" == *WRITE=* ]]; then
   if [[ -n "$relpath" ]]; then
     mkdir -p "$(dirname "$relpath")" 2>/dev/null
     printf '%s\n' "$content" > "$relpath"
+  fi
+fi
+if [[ "$prompt" == *MOVE=* ]]; then
+  mspec="${prompt#*MOVE=}"; mspec="${mspec%% *}"
+  msrc="${mspec%%:*}"; mdst="${mspec#*:}"
+  if [[ -n "$msrc" && -n "$mdst" && -e "$msrc" ]]; then
+    mkdir -p "$(dirname "$mdst")" 2>/dev/null
+    mv "$msrc" "$mdst"
   fi
 fi
 printf 'MOCK_OUTPUT_START\n%s\nMOCK_OUTPUT_END\n' "$prompt"
