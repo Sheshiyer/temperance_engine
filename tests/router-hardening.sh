@@ -124,6 +124,14 @@ done
 jv="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json 'refactor the auth module' | jq -r '.verdict')"
 [[ "$jv" == "external" ]] && echo "ok   - json.verdict" || { echo "FAIL - json.verdict: $jv"; fail=1; }
 
+# --- #6: MBR must source classify-task.sh even when invoked via a symlink ---
+# (scripts/wire-multi-backend.sh installs ~/.local/bin/temperance-route as a
+#  symlink to this router; SCRIPT_DIR must resolve to the REAL dir, not the link's.)
+SYM_TMP="$(mktemp -d)"; ln -s "$R" "$SYM_TMP/temperance-route"
+sym_out="$(TEMPERANCE_BACKENDS='command-code' bash "$SYM_TMP/temperance-route" --route-only 'refactor the auth module' 2>&1)"
+check "MBR via symlink sources classify-task.sh" "command-code	moonshotai/Kimi-K2.7-Code" "$sym_out"
+rm -rf "$SYM_TMP"
+
 # --- #6: route-task.sh is retired; nothing may reference it ---
 # (excludes this test file itself, which necessarily names the retired
 # script in its own guard text below, and ISA.md, whose ISC-39 records the

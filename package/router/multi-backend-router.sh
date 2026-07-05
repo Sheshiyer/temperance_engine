@@ -31,7 +31,18 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks so classify-task.sh (sourced below) is found next to the REAL
+# script even when invoked through an installed symlink such as
+# ~/.local/bin/temperance-route (scripts/wire-multi-backend.sh). BSD readlink has
+# no -f, so follow the chain manually.
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _sdir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  case "$_src" in /*) ;; *) _src="$_sdir/$_src" ;; esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
+unset _src _sdir
 
 # Single source of task-type classification + command-code type->model primary
 # (issue #6). classify-task.sh is POSIX sh and only defines functions when
