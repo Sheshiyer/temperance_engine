@@ -57,4 +57,29 @@ else
   echo "FAIL - emit-nvidia-body with both args did not emit valid JSON"; fail=1
 fi
 
+# --route-only-with-fallbacks: full priority-filtered chain, in order,
+# nvidia never appears, filtered to available backends.
+out=$(TEMPERANCE_BACKENDS="command-code grok kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
+expected=$'command-code\tmoonshotai/Kimi-K2.7-Code\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
+check "route-only-with-fallbacks: cc/grok/kimi in order" "$expected" "$out"
+
+if echo "$out" | grep -qi nvidia; then
+  echo "FAIL - nvidia appeared in --route-only-with-fallbacks output"; fail=1
+else
+  echo "ok - nvidia never appears in --route-only-with-fallbacks"
+fi
+
+# filtered to available: grok missing from TEMPERANCE_BACKENDS -> 2 lines (grok dropped)
+out=$(TEMPERANCE_BACKENDS="command-code kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
+expected=$'command-code\tmoonshotai/Kimi-K2.7-Code\nkimi\tkimi-code/kimi-for-coding'
+check "route-only-with-fallbacks: grok filtered out when unavailable" "$expected" "$out"
+
+# inline task -> single inline<TAB>- line
+out=$(TEMPERANCE_BACKENDS="command-code grok kimi" "$R" --route-only-with-fallbacks "summarize these three bullet points")
+check "route-only-with-fallbacks: inline task -> single inline line" "inline	-" "$out"
+
+# zero backends -> single none<TAB>- line
+out=$(TEMPERANCE_BACKENDS="" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
+check "route-only-with-fallbacks: zero backends -> single none line" "none	-" "$out"
+
 exit $fail

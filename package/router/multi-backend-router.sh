@@ -107,25 +107,28 @@ declare -A MODEL_CATALOG=(
 # Routing Rules
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Priority order for each task type (Command Code primary, others fallback)
+# Priority order for each task type: command-code -> grok -> kimi (one route
+# per backend, no same-backend duplicates). nvidia is intentionally excluded
+# from automatic priority selection -- it remains reachable via `--backend
+# nvidia` (see run_nvidia/execute_route + MODEL_CATALOG, both left intact).
 declare -A ROUTING_PRIORITY=(
-  # Fast iteration - DeepSeek Flash primary, Grok fallback
+  # Fast iteration - DeepSeek Flash primary, Grok fallback, Kimi fallback
   ["fast"]="command-code:deepseek/deepseek-v4-flash grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
-  
-  # Long-horizon coding - Kimi K2.7 via Command Code primary, direct Kimi fallback
-  ["long-horizon"]="command-code:moonshotai/Kimi-K2.7-Code kimi:kimi-code/kimi-for-coding command-code:Qwen/Qwen3.7-Max"
-  
-  # Complex reasoning - Claude Fable primary, NVIDIA fallback
-  ["reasoning"]="command-code:claude-fable-5 command-code:deepseek/deepseek-v4-pro nvidia:nvidia/nemotron-3-ultra-550b"
-  
-  # Validation/review - Gemini Flash primary, Grok fallback
-  ["validation"]="command-code:google/gemini-3.5-flash grok:grok-build command-code:claude-sonnet-5"
-  
-  # Creative/exploratory - Sonnet primary, Grok fallback
+
+  # Long-horizon coding - Kimi K2.7 via Command Code primary, Grok fallback, direct Kimi fallback
+  ["long-horizon"]="command-code:moonshotai/Kimi-K2.7-Code grok:grok-build kimi:kimi-code/kimi-for-coding"
+
+  # Complex reasoning - Claude Fable primary, Grok fallback, Kimi fallback
+  ["reasoning"]="command-code:claude-fable-5 grok:grok-build kimi:kimi-code/kimi-for-coding"
+
+  # Validation/review - Gemini Flash primary, Grok fallback, Kimi fallback
+  ["validation"]="command-code:google/gemini-3.5-flash grok:grok-build kimi:kimi-code/kimi-for-coding"
+
+  # Creative/exploratory - Sonnet primary, Grok fallback, Kimi fallback
   ["creative"]="command-code:claude-sonnet-5 grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
-  
-  # Default balanced - Sonnet primary
-  ["balanced"]="command-code:claude-sonnet-5 grok:grok-build kimi:kimi-code/kimi-for-coding nvidia:nvidia/llama-3.3-nemotron-super-49b"
+
+  # Default balanced - Sonnet primary, Grok fallback, Kimi fallback
+  ["balanced"]="command-code:claude-sonnet-5 grok:grok-build kimi:kimi-code/kimi-for-coding"
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -258,6 +261,52 @@ route_only() {
     printf 'none\t-\n'; return
   fi
   printf '%s\t%s\n' "$backend" "$model"
+}
+
+# route_only_with_fallbacks: like route_only, but emits the FULL
+# priority-filtered fallback chain for the task's type -- one
+# "backend<TAB>model" line per backend in ROUTING_PRIORITY order, filtered to
+# backends actually available (detect_backends / TEMPERANCE_BACKENDS). Reuses
+# select_route's priority table directly rather than re-deriving it, so the
+# ordering and catalog stay a single source of truth.
+route_only_with_fallbacks() {
+  local desc="$1"
+  local task_type
+  task_type=$(analyze_task_type "$desc")
+  if [[ "$task_type" == "inline" ]]; then
+    printf 'inline\t-\n'; return
+  fi
+  local avail
+  avail=$(detect_backends)
+  if [[ -z "${avail// }" ]]; then
+    printf 'none\t-\n'; return
+  fi
+
+  # --backend forces a single line, same convention as route_only.
+  if [[ -n "$FORCE_BACKEND" ]]; then
+    if ! echo " $avail " | grep -q " $FORCE_BACKEND "; then
+      printf 'none\t-\n'; return
+    fi
+    local forced_route
+    forced_route=$(select_route "$task_type" "$FORCE_BACKEND") || { printf 'none\t-\n'; return; }
+    local fb="${forced_route%%:*}" fm="${forced_route#*:}"
+    [[ -n "$FORCE_MODEL" ]] && fm="$FORCE_MODEL"
+    printf '%s\t%s\n' "$fb" "$fm"
+    return
+  fi
+
+  local priority="${ROUTING_PRIORITY[$task_type]:-${ROUTING_PRIORITY[balanced]}}"
+  local printed=false
+  local route backend model
+  for route in $priority; do
+    backend="${route%%:*}"; model="${route#*:}"
+    if echo " $avail " | grep -q " $backend "; then
+      [[ -n "$FORCE_MODEL" ]] && model="$FORCE_MODEL"
+      printf '%s\t%s\n' "$backend" "$model"
+      printed=true
+    fi
+  done
+  $printed || printf 'none\t-\n'
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -406,6 +455,10 @@ OPTIONS:
   --backend <name>    Force specific backend (command-code, kimi, grok, nvidia)
   --model <name>      Force specific model (used with --route-only)
   --route-only        Print "BACKEND<TAB>MODEL" and exit (for programmatic callers)
+  --route-only-with-fallbacks
+                      Print the full priority-filtered fallback chain, one
+                      "BACKEND<TAB>MODEL" line per available backend, in
+                      priority order (for programmatic callers)
   --list-backends     List available backends and exit
   --list-models       List all models in catalog
   -h, --help          Show this help
@@ -431,6 +484,7 @@ main() {
   local command=false
   local execute=false
   local route_only_mode=false
+  local route_only_fallbacks_mode=false
   declare -g FORCE_BACKEND=""
   declare -g FORCE_MODEL=""
   local desc=""
@@ -441,6 +495,7 @@ main() {
       --command) command=true; shift ;;
       --execute) execute=true; shift ;;
       --route-only) route_only_mode=true; shift ;;
+      --route-only-with-fallbacks) route_only_fallbacks_mode=true; shift ;;
       --model) FORCE_MODEL="$2"; shift 2 ;;
       --backend) FORCE_BACKEND="$2"; shift 2 ;;
       --emit-nvidia-body)
@@ -477,6 +532,11 @@ main() {
 
   if $route_only_mode; then
     route_only "$desc"
+    exit 0
+  fi
+
+  if $route_only_fallbacks_mode; then
+    route_only_with_fallbacks "$desc"
     exit 0
   fi
 
