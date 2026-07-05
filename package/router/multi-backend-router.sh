@@ -227,6 +227,12 @@ route_only() {
 #   inline\t-      -> inline
 #   none\t-        -> claude-subagent   (no external backend => needs live session)
 #   backend\tmodel -> external\tbackend\tmodel
+# Note: a forced `--backend <name>` that is NOT available makes route_only emit
+# `none\t-`, so --verdict reports `claude-subagent` and exits 0 -- whereas a bare
+# `--route-only` with the same unavailable forced backend exits 1 with an ERROR on
+# stderr. That is intentional (forced backend gone => fall back to the live session)
+# and harmless today (no consumer wires --verdict with a forced backend); revisit
+# this mapping if one ever does.
 verdict() {
   local line b m
   line=$(route_only "$1")
