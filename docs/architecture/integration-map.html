@@ -42,7 +42,8 @@
 
 <div class="section">
   <h2>1. The Backbone: 7-Phase Loop</h2>
-  <p>Observe &rarr; Think &rarr; Plan &rarr; Build &rarr; Execute &rarr; Verify &rarr; Learn is the spine everything else attaches to. It is defined once, in <code>docs/pai-flow.md</code>, as a convention the agent follows &mdash; there is no state machine or enforcement code for it in this repo. Every other seam below is something that <em>can</em> happen at a specific phase, not something the loop itself triggers.</p>
+  <p>Observe &rarr; Think &rarr; Plan &rarr; Build &rarr; Execute &rarr; Verify &rarr; Learn is the spine everything else attaches to. It is defined once, in <code>docs/pai-flow.md</code>, as a convention the agent follows &mdash; there is no state machine or enforcement code for it in this repo (enforcement is a future sub-project). Every other seam below is something that <em>can</em> happen at a specific phase, not something the loop itself triggers.</p>
+  <p>Underneath that spine, <code>docs/pai-flow.md</code> also names gsd-core (<code>open-gsd/gsd-core</code>) as the recommended-default workflow backbone (Discuss &rarr; Plan &rarr; Execute &rarr; Verify &rarr; Ship, <code>/gsd-*</code> commands) that the 7 phases fold onto. It is recommended, not required, and still detect-only at install (<code>--with-gsd</code> never vendors it) &mdash; when absent, the flow degrades to the superpowers chain (<code>brainstorming &rarr; writing-plans &rarr; subagent-driven-development &rarr; verification-before-completion &rarr; finishing-a-development-branch</code>). See seam 3b below for the skill-cluster resolver that sits between a named skill and a tool actually running.</p>
 </div>
 
 <div class="section">
@@ -94,21 +95,35 @@
 </div>
 
 <div class="section">
+  <h2>3b. Skill-Cluster Resolver Layer <span class="badge wired">WIRED</span> &mdash; the discovery/lazy-load layer between backbone and tool</h2>
+  <p>Promoted out of the terse mention above because <code>docs/pai-flow.md</code> now documents it as a real architecture layer, not a footnote: it sits between &ldquo;gsd-core (or any backbone) names a skill&rdquo; and &ldquo;a tool actually runs.&rdquo; This is the context-economy mechanism &mdash; it is why the agent doesn't load all ~30+ skill clusters on every turn.</p>
+  <table>
+    <tr><th>Resolution state</th><th>What happens</th></tr>
+    <tr><td><code>active-spoke</code></td><td>Already symlinked into <code>$AGENTS_HOME/skills</code> by <code>tier.mjs --apply</code> &mdash; loads immediately</td></tr>
+    <tr><td><code>deferred-*</code></td><td>Cluster resolved on demand via its indexed <code>activate</code> command, only when the task genuinely needs it</td></tr>
+    <tr><td><code>archived</code></td><td>Read directly from the indexed path, or restored persistently via the indexed restore command</td></tr>
+    <tr><td>not found</td><td>Hard error &mdash; no silent fallback to scanning the full skill tree</td></tr>
+  </table>
+  <p>Index file: <code>$AGENTS_HOME/skill-clusters/skill-index.json</code>. Health is checked with <code>npm run health</code>, <code>npm run audit-refs</code>, and <code>npm run tier</code> inside <code>$AGENTS_HOME/skill-clusters</code>. The index and the four resolution states are real and consulted before any skill lookup &mdash; the only REFERENCE ONLY part left is that a hook enforcing this automatically is currently installed for Codex alone (see the table above); other surfaces follow the same discipline as a doc convention.</p>
+</div>
+
+<div class="section">
   <h2>4. Planning / Preference Seam <span class="badge ref">SEPARATE BY DESIGN</span> + <span class="badge wired">one read-only bridge</span></h2>
   <div class="callout">
-    <strong>Decision (ISA.md, 2026-07-01):</strong> Temperance Engine owns exactly one preference store &mdash; its own <code>ISA.md</code>. GSD config and PAI steering/memory stay fully external and untouched:
+    <strong>Decision (ISA.md, 2026-07-01):</strong> Temperance Engine owns exactly one preference store &mdash; its own <code>ISA.md</code>. gsd-core config and PAI steering/memory stay fully external and untouched:
   </div>
   <table>
     <tr><th>Layer</th><th>Scope</th><th>Storage</th><th>Authoritative for</th></tr>
     <tr><td>PAI steering + memory</td><td>Operator-level, every project/session</td><td><code>AISTEERINGRULES.md</code>, <code>USER/OPINIONS.md</code>, <code>MEMORY/LEARNING/*</code></td><td>How the agent behaves as itself, loaded first at harness <code>SessionStart</code> &mdash; private, never shipped by Temperance Engine</td></tr>
-    <tr><td>GSD workflow config</td><td>GSD-workflow-level, one project or global default</td><td><code>.planning/config.json</code> + <code>~/.gsd/defaults.json</code></td><td>How GSD's own commands execute &mdash; re-read fresh every <code>gsd:*</code> invocation; GSD is external, referenced only via <code>--with-gsd</code></td></tr>
+    <tr><td>gsd-core workflow config</td><td>gsd-core-workflow-level, one project or global default</td><td><code>.planning/config.json</code> + <code>~/.gsd/defaults.json</code></td><td>How gsd-core's own commands execute &mdash; re-read fresh every <code>/gsd-*</code> invocation; gsd-core (<code>open-gsd/gsd-core</code>) is the recommended-default backbone but is external and never vendored by Temperance &mdash; <code>--with-gsd</code> at install time is detect-only</td></tr>
     <tr><td>Temperance's own ISA.md</td><td>Artifact-level, one project</td><td><code>ISA.md</code> Decisions/Criteria</td><td>Why this specific codebase is built the way it is &mdash; this repo's own system of record</td></tr>
   </table>
-  <p><strong>The one deliberate bridge:</strong> <code>ParallelDispatchContext.hook.sh</code> reads GSD's <code>.planning/config.json</code> (<code>model_profile</code>, <code>workflow.auto_advance</code>) <em>read-only</em>, purely to enrich its own advisory output. It never writes to that file, never overrides GSD's own fresh read of it, and never reads PAI's steering rules, memory, or this project's <code>ISA.md</code> &mdash; those three stay exactly as separate as the table above says they should.</p>
+  <p><strong>The one deliberate bridge:</strong> <code>ParallelDispatchContext.hook.sh</code> reads gsd-core's <code>.planning/config.json</code> (<code>model_profile</code>, <code>workflow.auto_advance</code>) <em>read-only</em>, purely to enrich its own advisory output. It never writes to that file, never overrides gsd-core's own fresh read of it, and never reads PAI's steering rules, memory, or this project's <code>ISA.md</code> &mdash; those three stay exactly as separate as the table above says they should.</p>
 </div>
 
 <div class="section">
-  <h2>5. Parallel-Dispatch Seam <span class="badge ref">REFERENCE ONLY</span> (hook) + <span class="badge wired">WIRED</span> (docs cross-link)</h2>
+  <h2>5. Parallel-Dispatch Seam <span class="badge ref">REFERENCE ONLY</span> (hook) + <span class="badge wired">WIRED</span> (temperance-batch is a real, runnable CLI)</h2>
+  <p>This seam was simplified when <code>docs/parallel-dispatch.md</code> retired to a redirect stub: the Execute-phase dispatch decision is no longer a separate decision tree to go consult &mdash; it is now the Execute row + doctrine in <code>docs/pai-flow.md</code> itself. There is one doc to read, not two.</p>
   <svg viewBox="0 0 1080 220" xmlns="http://www.w3.org/2000/svg">
     <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker></defs>
     <g font-size="11" text-anchor="middle" fill="white">
@@ -122,18 +137,21 @@
       <text x="345" y="126" font-size="9.5">(only if user wired it manually)</text>
 
       <rect x="500" y="70" width="220" height="80" rx="8" fill="#ed8936"/>
-      <text x="610" y="100">docs/parallel-dispatch.md</text>
-      <text x="610" y="118" font-size="9.5">decision tree consulted</text>
+      <text x="610" y="93">docs/pai-flow.md</text>
+      <text x="610" y="110" font-size="9.5">Execute row + doctrine</text>
+      <text x="610" y="124" font-size="9.5">consulted (item 3, retired list)</text>
 
       <rect x="765" y="20" width="150" height="70" rx="8" fill="#9f7aea"/>
-      <text x="840" y="48">GSD execute-phase</text>
-      <text x="840" y="64" font-size="9.5">/ workstreams</text>
-      <text x="840" y="78" font-size="9.5">(if installed + plan-shaped)</text>
+      <text x="840" y="42">gsd-core</text>
+      <text x="840" y="58" font-size="9.5">/gsd-execute-phase</text>
+      <text x="840" y="72" font-size="9.5">(recommended-default,</text>
+      <text x="840" y="84" font-size="9.5">if plan-shaped)</text>
 
       <rect x="765" y="140" width="150" height="70" rx="8" fill="#48bb78"/>
-      <text x="840" y="168">superpowers</text>
-      <text x="840" y="184" font-size="9.5">dispatch skill</text>
-      <text x="840" y="198" font-size="9.5">(otherwise)</text>
+      <text x="840" y="162">superpowers</text>
+      <text x="840" y="178" font-size="9.5">dispatching-parallel-agents</text>
+      <text x="840" y="192" font-size="9.5">+ temperance-batch</text>
+      <text x="840" y="204" font-size="9.5">(external backends)</text>
     </g>
     <g stroke="#666" stroke-width="2">
       <path d="M190,110 L233,110" marker-end="url(#a2)"/>
@@ -142,16 +160,17 @@
       <path d="M720,125 L763,158" marker-end="url(#a2)"/>
     </g>
   </svg>
-  <p>The hook only <em>informs</em> &mdash; it never calls either mechanism. The decision to use GSD vs. superpowers dispatch vs. plain sequential work is always made by the agent reading the doc, never automated.</p>
+  <p>The hook only <em>informs</em> &mdash; it never calls either mechanism. What is genuinely WIRED here is <code>package/router/dispatch-tasklist.sh</code>, installed as the <code>temperance-batch</code> command: it is a real, runnable CLI that fans work out to external backends (command-code/grok/kimi), not just advisory text. It fires only in Execute (and optionally Verify) per <code>docs/pai-flow.md</code> doctrine &mdash; never a default for single-agent work. <code>package/conductor/routed-execute.sh</code> is deleted; <code>dispatch-tasklist.sh</code> supersedes it. The decision itself (gsd-core vs. superpowers dispatch vs. plain sequential work) is always made by the agent reading <code>docs/pai-flow.md</code>, never automated.</p>
 </div>
 
 <div class="section">
   <h2>6. What Is Explicitly Not Stitched</h2>
   <table>
     <tr><th>Gap</th><th>Why it's left this way</th></tr>
-    <tr><td>No hook calls into GSD or superpowers automatically</td><td>Automating the judgment call would duplicate GSD's own wave-dependency logic and the superpowers skill's own guardrails &mdash; the decision needs codebase-specific context a hook can't have.</td></tr>
-    <tr><td>No shared state file between Pulse server, skill resolver, CodeGraph, GSD, and ISA.md</td><td>Each was built independently for a narrow purpose; unifying them into one state store would be new architecture this repo doesn't need yet.</td></tr>
-    <tr><td><code>verify.sh</code> only checks Temperance's own install surface</td><td>It does not and cannot verify GSD's correctness, superpowers' behavior, or the live PAI runtime &mdash; those are out of this repo's ownership boundary per <code>ISA.md</code> Out of Scope.</td></tr>
+    <tr><td>No hook calls into gsd-core or superpowers automatically</td><td>Automating the judgment call would duplicate gsd-core's own wave-dependency logic and the superpowers skill's own guardrails &mdash; the decision needs codebase-specific context a hook can't have. This holds even though gsd-core is now the recommended-default backbone: recommended is not the same as auto-invoked.</td></tr>
+    <tr><td>No shared state file between Pulse server, skill resolver, CodeGraph, gsd-core, and ISA.md</td><td>Each was built independently for a narrow purpose; unifying them into one state store would be new architecture this repo doesn't need yet.</td></tr>
+    <tr><td><code>verify.sh</code> only checks Temperance's own install surface</td><td>It does not and cannot verify gsd-core's correctness, superpowers' behavior, or the live PAI runtime &mdash; those are out of this repo's ownership boundary per <code>ISA.md</code> Out of Scope.</td></tr>
+    <tr><td>gsd-core is recommended, never vendored</td><td><code>--with-gsd</code> at install time is detect-only &mdash; <code>scripts/install-gsd.sh</code> checks for <code>open-gsd/gsd-core</code> and points at <code>npx @opengsd/gsd-core@latest</code> if absent, but never installs it on this repo's behalf. The legacy <code>~/.claude/get-shit-done</code> (danielmiessler lineage) path is deprecated; the installer no longer treats it as primary.</td></tr>
   </table>
 </div>
 
