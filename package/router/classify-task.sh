@@ -8,28 +8,37 @@
 # availability gating -- that stays in the router. Does NOT call `set` (it is
 # sourced into a script with its own shell options and must not mutate them).
 
+# _kw <text> <alternation> -> exit 0 if any keyword in the alternation matches
+# <text> as a whole word. Uses POSIX-portable word boundaries
+# `(^|[^[:alnum:]])...([^[:alnum:]]|$)` rather than the GNU/BSD `\b`, which is
+# not defined by POSIX ERE and can misbehave on strict/busybox grep. Verified
+# byte-identical to `\b` for these keyword lists on macOS + GNU grep.
+_kw() {
+  printf '%s' "$1" | grep -Eq "(^|[^[:alnum:]])($2)([^[:alnum:]]|$)"
+}
+
 # classify_task_type "<task>" -> one of:
 #   long-horizon | reasoning | validation | creative | fast | inline | balanced
-# Ordered, first-match-wins. This is the ONLY copy of these regexes.
+# Ordered, first-match-wins. This is the ONLY copy of these keyword lists.
 classify_task_type() {
   lower_desc=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
-  if printf '%s' "$lower_desc" | grep -qE '\b(refactor|rewrite|migrate|redesign|overhaul|restructure|entire|all files|across.*files)\b'; then
+  if _kw "$lower_desc" 'refactor|rewrite|migrate|redesign|overhaul|restructure|entire|all files|across.*files'; then
     echo "long-horizon"; return
   fi
-  if printf '%s' "$lower_desc" | grep -qE '\b(analyze|debug|diagnose|explain|understand|reason|think|complex|difficult)\b'; then
+  if _kw "$lower_desc" 'analyze|debug|diagnose|explain|understand|reason|think|complex|difficult'; then
     echo "reasoning"; return
   fi
-  if printf '%s' "$lower_desc" | grep -qE '\b(validate|verify|review|check|audit|test|ensure|confirm)\b'; then
+  if _kw "$lower_desc" 'validate|verify|review|check|audit|test|ensure|confirm'; then
     echo "validation"; return
   fi
-  if printf '%s' "$lower_desc" | grep -qE '\b(brainstorm|creative|design|explore|imagine|ideate|alternative)\b'; then
+  if _kw "$lower_desc" 'brainstorm|creative|design|explore|imagine|ideate|alternative'; then
     echo "creative"; return
   fi
-  if printf '%s' "$lower_desc" | grep -qE '\b(quick|simple|small|minor|tweak|fix typo|update comment)\b'; then
+  if _kw "$lower_desc" 'quick|simple|small|minor|tweak|fix typo|update comment'; then
     echo "fast"; return
   fi
-  if printf '%s' "$lower_desc" | grep -qE '\b(extract|classify|summarize|list|identify|find|count)\b'; then
-    if ! printf '%s' "$lower_desc" | grep -qE '\b(read|search|grep|edit|write|run|execute|test|build|compile)\b'; then
+  if _kw "$lower_desc" 'extract|classify|summarize|list|identify|find|count'; then
+    if ! _kw "$lower_desc" 'read|search|grep|edit|write|run|execute|test|build|compile'; then
       echo "inline"; return
     fi
   fi
