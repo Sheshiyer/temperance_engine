@@ -3,16 +3,16 @@
 Use this log for roadmap, scope, and requirement decisions.
 
 ## Metadata
-- Project: temperance-engine
-- Maintainer: Thoughtseed
-- Last Updated: 2026-06-13
+- Project: Temperance Engine
+- Maintainer: Sheshiyer
+- Last Updated: 2026-07-05
 
 ## Decision Entries
 
-### DEC-001 — Prioritize **Safe Defaults:** The installer uses `$HOME` and user-overridable environment variables to prevent leaking machine-specific data as MVP must-have
-- Date: 2026-06-13
+### DEC-001 — Prioritize **Backup-First Operations:** Every write operation is preceded by the creation of timestamped backups, ensuring full reversibility as MVP must-have
+- Date: 2026-07-05
 - Status: Proposed / Accepted / Rejected / Superseded
-- Owner: Thoughtseed
+- Owner: Sheshiyer
 - Stakeholders Consulted:
 - Context: Initial synthesis of NotebookLM report indicates highest impact in core workflow simplification.
 - Options Considered:
@@ -32,9 +32,9 @@ Use this log for roadmap, scope, and requirement decisions.
 ---
 
 ### DEC-002 — Enforce POC gate before committing full roadmap
-- Date: 2026-06-13
+- Date: 2026-07-05
 - Status: Proposed / Accepted / Rejected / Superseded
-- Owner: Thoughtseed
+- Owner: Sheshiyer
 - Stakeholders Consulted:
 - Context: Top risks require evidence before locking downstream scope and commitments.
 - Options Considered:
