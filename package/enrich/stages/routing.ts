@@ -12,7 +12,24 @@ import { homedir } from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CLASSIFY_SH = join(__dirname, '..', '..', 'router', 'classify-task.sh');
+
+/** Resolve the shared classifier script (package/router/classify-task.sh).
+ *  The sibling-relative path holds when enrich runs from the repo OR from an
+ *  install that co-locates `router/` next to `enrich/`. When enrich is installed
+ *  somewhere that does NOT co-locate the router (e.g. ~/.claude/PAI/enrich with no
+ *  sibling router/), set TEMPERANCE_ROUTER_DIR to the dir containing
+ *  classify-task.sh. First existing candidate wins; if none exists we return the
+ *  sibling path anyway so execFileSync fails cleanly into the fail-open default. */
+function resolveClassifyScript(): string {
+  const candidates: string[] = [];
+  const envDir = process.env.TEMPERANCE_ROUTER_DIR;
+  if (envDir) candidates.push(join(envDir, 'classify-task.sh'));
+  candidates.push(join(__dirname, '..', '..', 'router', 'classify-task.sh'));
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[candidates.length - 1];
+}
 
 /** Detect available backends without calling the router (fast check) */
 function detectBackends(): string[] {
@@ -50,7 +67,7 @@ const SKILL_POINTER = 'temperance-parallel-dispatch';
  *  (package/router/classify-task.sh). Fail-open to balanced on any error. */
 function classifyViaShared(prompt: string): { taskType: string; preferred: string } {
   try {
-    const out = execFileSync(CLASSIFY_SH, [prompt], { encoding: 'utf8' }).trim();
+    const out = execFileSync(resolveClassifyScript(), [prompt], { encoding: 'utf8' }).trim();
     const [taskType, preferred] = out.split('\t');
     if (taskType && preferred) return { taskType, preferred };
   } catch {

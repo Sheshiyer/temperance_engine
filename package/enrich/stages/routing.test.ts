@@ -1,6 +1,7 @@
 // package/enrich/stages/routing.test.ts -- unit tests for the routing stage.
 import { describe, expect, it } from 'bun:test';
 import { execFileSync } from 'child_process';
+import { writeFileSync, chmodSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import type { ResolvedContext } from '../contract';
@@ -101,6 +102,39 @@ describe('routing stage', () => {
     const r = runRoutingWithEnv('quick refactor the module', `${shimDir}:/usr/bin:/bin`);
     expect(r.line).toContain('| task=long-horizon');
     expect(r.line).toContain('preferred=command-code:moonshotai/Kimi-K2.7-Code');
+    expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);
+  });
+
+  it('honors TEMPERANCE_ROUTER_DIR when the sibling classify-task.sh is not co-located', () => {
+    // Simulates enrich installed somewhere without a sibling router/ dir: the
+    // override env var must point routing.ts at the shared classifier. The stub
+    // always classifies as "reasoning", distinct from the repo's
+    // "refactor"->long-horizon, so a pass proves the override dir was used.
+    const shimDir = '/tmp/temperance-routing-test-shim-bin';
+    const routerDir = '/tmp/temperance-routerdir-test';
+    mkdirSync(shimDir, { recursive: true });
+    mkdirSync(routerDir, { recursive: true });
+    writeFileSync(`${shimDir}/command-code`, '#!/bin/sh\nexit 0\n');
+    chmodSync(`${shimDir}/command-code`, 0o755);
+    writeFileSync(`${routerDir}/classify-task.sh`, '#!/bin/sh\nprintf "reasoning\\tcommand-code:claude-fable-5\\n"\n');
+    chmodSync(`${routerDir}/classify-task.sh`, 0o755);
+
+    const script = `
+      import { routing } from ${JSON.stringify(join(__dirname, 'routing.ts'))};
+      const ctx = ${JSON.stringify({ ...base, input: { ...base.input, prompt: 'refactor the auth module' } })};
+      process.stdout.write(JSON.stringify(routing(ctx)));
+    `;
+    const out = execFileSync(BUN_BIN, ['-e', script], {
+      env: {
+        PATH: `${shimDir}:/usr/bin:/bin`,
+        HOME: '/tmp/temperance-routing-test-fake-home',
+        TEMPERANCE_ROUTER_DIR: routerDir,
+      },
+      encoding: 'utf8',
+    });
+    const r = JSON.parse(out);
+    expect(r.line).toContain('| task=reasoning');
+    expect(r.line).toContain('preferred=command-code:claude-fable-5');
     expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);
   });
 });
