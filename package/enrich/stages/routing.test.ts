@@ -88,4 +88,19 @@ describe('routing stage', () => {
     expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);
     expect(r.degraded).toBe(false);
   });
+
+  it('uses the shared classifier ordering: "quick refactor" -> long-horizon (forced backend via shim)', () => {
+    // routing.ts must defer to classify-task.sh, whose MBR-ordering classifies
+    // "quick refactor" as long-horizon (its OLD local classifier said "fast").
+    const shimDir = '/tmp/temperance-routing-test-shim-bin';
+    execFileSync('mkdir', ['-p', shimDir]);
+    execFileSync('bash', [
+      '-c',
+      `printf '#!/bin/sh\\nexit 0\\n' > ${shimDir}/command-code && chmod +x ${shimDir}/command-code`,
+    ]);
+    const r = runRoutingWithEnv('quick refactor the module', `${shimDir}:/usr/bin:/bin`);
+    expect(r.line).toContain('| task=long-horizon');
+    expect(r.line).toContain('preferred=command-code:moonshotai/Kimi-K2.7-Code');
+    expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);
+  });
 });
