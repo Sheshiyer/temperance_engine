@@ -27,4 +27,9 @@ grep -qi "retired" "$DIR/docs/parallel-dispatch.md" && grep -q "pai-flow.md" "$D
 grep -qi "retired" "$DIR/docs/multi-surface-architecture.md" && grep -q "pai-flow.md" "$DIR/docs/multi-surface-architecture.md" \
   && echo "ok - multi-surface-architecture.md is a redirect stub" \
   || { echo "FAIL - multi-surface-architecture.md not a redirect stub"; fail=1; }
+
+# --- A+F Task 3: conductor retired ---
+[ ! -e "$DIR/package/conductor/routed-execute.sh" ] \
+  && echo "ok - conductor/routed-execute.sh removed" \
+  || { echo "FAIL - package/conductor/routed-execute.sh still present"; fail=1; }
 exit $fail
