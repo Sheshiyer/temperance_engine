@@ -7,6 +7,7 @@ Temperance Engine is an integration package. It connects local configuration sur
 | Surface | Repository | Role |
 |---|---|---|
 | Personal AI Infrastructure | https://github.com/danielmiessler/Personal_AI_Infrastructure | Main PAI/Algorithm/ISA inspiration and upstream conceptual root. |
+| GSD Core | https://github.com/open-gsd/gsd-core | Recommended workflow backbone (Discuss→Plan→Execute→Verify→Ship); referenced, not vendored. |
 | CodeGraph | https://github.com/colbymchenry/codegraph | Local AST-backed structural code index for `.agents`. |
 | peon-ping | https://github.com/PeonPing/peon-ping | Local AI-agent voice notification pattern and script surface. |
 | OpenCode | https://github.com/anomalyco/opencode | OpenCode configuration and MCP runtime surface. |

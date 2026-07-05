@@ -28,11 +28,16 @@ assert_marker() {
 }
 
 is_version_signal() {
+  # The drift check enforces README <-> NotebookLM-asset <-> release consistency.
+  # It should fire ONLY when one of those genuinely changes:
+  #   - README.md (someone edited it; its notebooklm sections must match the assets)
+  #   - CHANGELOG.md (a release; README version surfaces should refresh)
+  #   - .readme-notebooklm/* (assets changed; README markers must be regenerated)
+  # It must NOT fire on every docs/ISA/scripts/package edit — that made every
+  # substantive PR demand a full README+NotebookLM regen (over-broad, false blocks).
   case "$1" in
-    CHANGELOG.md|ISA.md|CREDITS.md|UPSTREAM.md|SECURITY.md|CONTRIBUTING.md|LICENSE*|\
     README.md|\
-    install.sh|uninstall.sh|verify.sh|\
-    .github/workflows/*|.github/*|docs/*|assets/*|scripts/*|skills/*|templates/*|package/*|tasks/*|\
+    CHANGELOG.md|\
     .readme-notebooklm/*)
       return 0
       ;;

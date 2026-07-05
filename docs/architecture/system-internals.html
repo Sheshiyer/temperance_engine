@@ -68,7 +68,7 @@
 install-skill-clusters.sh # Codex resolver hook, always
 install-peon-ping.sh      # voice detection, gated on VOICE_MODE + macOS
 install-codegraph.sh      # codegraph CLI detection + index init
-install-gsd.sh            # detect-only GSD reference, gated on GSD_MODE
+install-gsd.sh            # detect-only gsd-core reference, gated on GSD_MODE
 configure-opencode.sh     # OpenCode/Cursor/Codex templates, gated per-surface
 verify-install.sh         # runs LAST, always, and fails the whole install if it fails</code></pre>
 </div>
@@ -100,7 +100,7 @@ verify-install.sh         # runs LAST, always, and fails the whole install if it
   <p>If <code>$AGENTS_HOME</code> exists and the <code>codegraph</code> CLI is on <code>PATH</code>: if <code>$AGENTS_HOME/.codegraph</code> already exists, no-ops; otherwise runs <code>codegraph init -i</code> inside <code>$AGENTS_HOME</code> (or prints the dry-run equivalent). If either precondition is missing, prints a guidance line and does nothing.</p>
 
   <h3>install-gsd.sh <span class="tag detect">detect + print only, zero writes</span></h3>
-  <p>Gated on <code>GSD_MODE=install</code> (default <code>skip</code>). When active, only checks whether <code>$GSD_HOME</code> (default <code>~/.claude/get-shit-done</code>) exists and prints a one-line pointer to <code>docs/parallel-dispatch.md</code> either way. No <code>ensure_dir</code>, no <code>install_file</code> &mdash; this script cannot mutate anything by construction.</p>
+  <p>Gated on <code>GSD_MODE=install</code> (default <code>skip</code>). When active, detects gsd-core (<code>open-gsd/gsd-core</code>) two ways: the legacy path <code>$GSD_HOME</code> (default <code>~/.claude/get-shit-done</code> &mdash; deprecated danielmiessler lineage, kept for back-compat detection only) OR a <code>gsd</code> binary on <code>PATH</code>. If either is found, it prints a pointer to <code>docs/pai-flow.md</code> for how gsd-core's phases map onto the PAI 7-phase flow. If neither is found, it prints that Temperance does not vendor GSD and recommends installing gsd-core via <code>npx @opengsd/gsd-core@latest</code>, again pointing at <code>docs/pai-flow.md</code> (for the recommended-default flow and its superpowers fallback) instead of a phase-mapping doc. No <code>ensure_dir</code>, no <code>install_file</code> &mdash; this script cannot mutate anything by construction, in either branch.</p>
 
   <h3>configure-opencode.sh <span class="tag gated">per-surface gates</span></h3>
   <p>OpenCode (default install): writes <code>opencode.AGENTS.md</code> always when enabled, but only writes <code>opencode.json.patch.json</code> as <code>opencode.json</code> if no config exists yet &mdash; otherwise it prints "merge manually" and leaves the existing file untouched. Cursor (default install): always copies both Cursor templates into <code>$CURSOR_HOME/templates</code> as a project-local staging area &mdash; nothing is copied into an actual project automatically. Codex (default skip): writes <code>codex.AGENTS.md</code> only with <code>--with-codex</code>.</p>
@@ -108,12 +108,12 @@ verify-install.sh         # runs LAST, always, and fails the whole install if it
   <h3>verify-install.sh <span class="tag always">runs unconditionally, can fail the install</span></h3>
   <p>Four independent check categories, all must pass or the whole install exits non-zero:</p>
   <ol>
-    <li><strong>File existence</strong> &mdash; 21 required paths (was 18 before the parallel-dispatch work added 3 more).</li>
+    <li><strong>File existence</strong> &mdash; 21 required paths (was 18 before the parallel-dispatch work added 3 more; <code>docs/parallel-dispatch.md</code> itself is now a retired redirect stub pointing at <code>docs/pai-flow.md</code>, not deleted).</li>
     <li><strong>Shell syntax</strong> &mdash; every <code>*.sh</code> in repo root + <code>scripts/</code> is linted with <code>bash -n</code> or <code>sh -n</code>, chosen by sniffing its shebang line.</li>
     <li><strong>Private-path denylist</strong> &mdash; greps README, docs, scripts, templates, package, skills, and top-level docs for a small set of local-machine path prefixes (home-directory paths, this author's specific volume mount, a hashed local-agent pattern). Any match fails the build &mdash; including, deliberately, this sentence if it spelled the literal patterns out, which is why they're described rather than quoted here.</li>
     <li><strong>Content assertions</strong> &mdash; targeted <code>grep -q</code> checks that specific README/credits/Cursor-rule strings exist (banner + skills.sh reference, Thoughtseed Labs + upstream credits, "OpenCode/Cursor-first" + optional-Claude/Codex language).</li>
   </ol>
-  <p>Deliberately <em>not</em> checked: exact prose wording of the new ISC-28..31 criteria, or <code>docs/parallel-dispatch.md</code> content beyond its existence &mdash; content-assertion grepping is reserved for load-bearing public claims, not every doc, to avoid coupling verification to prose that will get copyedited.</p>
+  <p>Deliberately <em>not</em> checked: exact prose wording of the ISC-28..31 or ISC-34..37 criteria, or the exact prose of <code>docs/pai-flow.md</code> (the current authoritative unified-flow doc) beyond its existence &mdash; content-assertion grepping is reserved for load-bearing public claims, not every doc, to avoid coupling verification to prose that will get copyedited.</p>
 </div>
 
 <div class="section">
@@ -147,7 +147,14 @@ verify-install.sh         # runs LAST, always, and fails the whole install if it
 
 <div class="section">
   <h2>5. Skill Resolver Hook (<code>skill_cluster_resolver.mjs</code>)</h2>
-  <p>An ~18-line Node script installed only to <code>$CODEX_HOME/hooks/</code>. Reads <code>$HOME/.agents/skill-clusters/skill-index.json</code> (or <code>$SKILL_CLUSTER_INDEX</code> override); if the file is missing it prints <code>{"continue": true, "temperance": "skill-index-missing", indexPath}</code>, otherwise <code>{"continue": true, "temperance": "skill-index-present", "skills": &lt;count&gt;}</code>. It always prints <code>"continue": true</code> &mdash; this hook can only inform Codex, never block it.</p>
+  <p>Per <code>docs/pai-flow.md</code>, the skill-cluster resolver is the <strong>discovery / lazy-load layer</strong> that sits between "the gsd-core (or superpowers) backbone names a skill" and "a tool actually runs." Its index (<code>~/.agents/skill-clusters/skill-index.json</code>) classifies every skill into one of four states, and this is the context-economy mechanism that keeps the always-loaded surface small:</p>
+  <ul>
+    <li><strong>active-spoke</strong> &mdash; already symlinked into <code>~/.agents/skills</code>; resolves immediately, no extra step.</li>
+    <li><strong>deferred-*</strong> &mdash; not loaded by default; the indexed <code>activate</code> command runs on demand, only when a task genuinely needs that cluster.</li>
+    <li><strong>archived</strong> &mdash; read directly from its indexed path (or restored via the indexed restore command) without permanent registration.</li>
+    <li><strong>not-found</strong> &mdash; a hard error; nothing silently falls through.</li>
+  </ul>
+  <p>The Codex-facing hook itself is a thin, non-blocking probe of that layer, not the layer's implementation: an ~18-line Node script installed only to <code>$CODEX_HOME/hooks/</code>. It reads <code>$HOME/.agents/skill-clusters/skill-index.json</code> (or <code>$SKILL_CLUSTER_INDEX</code> override); if the file is missing it prints <code>{"continue": true, "temperance": "skill-index-missing", indexPath}</code>, otherwise <code>{"continue": true, "temperance": "skill-index-present", "skills": &lt;count&gt;}</code>. It always prints <code>"continue": true</code> &mdash; this hook can only inform Codex that the resolver layer exists, never block it or perform the resolution itself. Claude and OpenCode get the same layer via routing docs instead of a hook (see <code>install-skill-clusters.sh</code> above).</p>
 </div>
 
 <div class="section">

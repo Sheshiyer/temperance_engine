@@ -161,8 +161,8 @@
     <text x="960" y="120" text-anchor="middle" fill="white" font-size="14" font-weight="bold">User's Machine</text>
     <text x="960" y="145" text-anchor="middle" fill="white" font-size="11">OpenCode / Cursor-first runtime</text>
     <text x="960" y="161" text-anchor="middle" fill="white" font-size="11">optional Claude / Codex / voice</text>
-    <text x="960" y="177" text-anchor="middle" fill="white" font-size="11">optional GSD reference</text>
-    <text x="960" y="193" text-anchor="middle" fill="white" font-size="11">7-phase loop + parallel-dispatch guide</text>
+    <text x="960" y="177" text-anchor="middle" fill="white" font-size="11">recommended gsd-core backbone (detect-only)</text>
+    <text x="960" y="193" text-anchor="middle" fill="white" font-size="11">7-phase PAI-shell + docs/pai-flow.md unified flow</text>
   </svg>
   <div class="legend">
     <span><span class="swatch" style="background:#718096"></span>Private source (not shipped)</span>
@@ -227,19 +227,31 @@
   <h2>System Architecture (Layered)</h2>
   <div class="layer" style="background:#4299e1;">
     <b>Templates &amp; Docs (data layer)</b>
-    templates/AGENTS.md, templates/cursor.*, templates/codex.AGENTS.md, templates/CLAUDE.md.template &middot; docs/pai-flow.md, docs/skill-clusters.md, docs/peon-ping-packs.md, docs/codegraph-routing.md, docs/parallel-dispatch.md
+    templates/AGENTS.md, templates/cursor.*, templates/codex.AGENTS.md, templates/CLAUDE.md.template &middot; docs/pai-flow.md (unified-flow source of truth), docs/skill-clusters.md, docs/peon-ping-packs.md, docs/codegraph-routing.md &middot; docs/parallel-dispatch.md and docs/multi-surface-architecture.md are retired redirect stubs pointing at docs/pai-flow.md
   </div>
   <div class="layer" style="background:#ed8936;">
     <b>Install Orchestration (processing layer)</b>
     install.sh (flag parsing, env export) &middot; scripts/install-*.sh (one script per surface) &middot; scripts/lib.sh (say / ensure_dir / backup_file / install_file)
   </div>
   <div class="layer" style="background:#9f7aea;">
-    <b>Optional Services (services layer)</b>
-    Pulse compatibility server (voice, --with-voice) &middot; CodeGraph CLI (structural index) &middot; GSD reference (--with-gsd, detect-only) &middot; skill-cluster resolver
+    <b>PAI-shell (always-on outer layer)</b>
+    The 7-phase Observe&rarr;Think&rarr;Plan&rarr;Build&rarr;Execute&rarr;Verify&rarr;Learn loop is always active as documented convention; enforcement is a future sub-project (B). The &lt;temperance-context&gt; block is the one always-on enrichment layer, emitted every prompt.
+  </div>
+  <div class="layer" style="background:#38a169;">
+    <b>gsd-core-backbone (recommended-default workflow layer, still detect-only)</b>
+    gsd-core (<code>open-gsd/gsd-core</code>, <code>npx @opengsd/gsd-core@latest</code>) is the recommended default backbone: Discuss &rarr; Plan &rarr; Execute &rarr; Verify &rarr; Ship, commands in canonical <code>/gsd-*</code> hyphen form. It is recommended, not required &mdash; <code>install-gsd.sh</code> and <code>--with-gsd</code> remain detect-only and never vendor gsd-core. When gsd-core is absent, the flow degrades to the superpowers chain: brainstorming &rarr; writing-plans &rarr; subagent-driven-development &rarr; verification-before-completion &rarr; finishing-a-development-branch. The old <code>~/.claude/get-shit-done</code> path (danielmiessler lineage) is deprecated/legacy; install-gsd.sh now recognizes gsd-core and points at the npx install.
+  </div>
+  <div class="layer" style="background:#9f7aea;">
+    <b>skill-cluster-resolver (discovery / lazy-load layer)</b>
+    <code>~/.agents/skill-clusters/skill-index.json</code> sits between "backbone names a skill" and "tool runs" &mdash; the context-economy mechanism. active-spoke skills are symlinked and loaded; deferred clusters are resolved on demand; archived skills are read from their indexed path; not-found is a hard error.
+  </div>
+  <div class="layer" style="background:#4299e1;">
+    <b>tool-inventory (services layer)</b>
+    superpowers skills (brainstorming, writing-plans, subagent-driven-development, dispatching-parallel-agents, verification-before-completion, finishing-a-development-branch) &middot; temperance-parallel-dispatch (external backends command-code/grok/kimi via <code>temperance-batch</code>) &middot; Pulse compatibility server (voice, --with-voice) &middot; CodeGraph CLI (structural index)
   </div>
   <div class="layer" style="background:#48bb78;">
     <b>Runtime Loop (output layer)</b>
-    Observe &rarr; Think &rarr; Plan &rarr; Build &rarr; <b style="text-decoration:underline;">Execute</b> &rarr; Verify &rarr; Learn, with the Execute phase now routed through <code>docs/parallel-dispatch.md</code>'s decision tree (superpowers dispatch vs GSD execute-phase/workstreams) and an advisory-only <code>ParallelDispatchContext.hook.sh</code> for situational awareness
+    Observe &rarr; Think &rarr; Plan &rarr; Build &rarr; <b style="text-decoration:underline;">Execute</b> &rarr; Verify &rarr; Learn. The Execute phase invokes <code>temperance-parallel-dispatch</code> only when 2+ independent tasks would benefit from external backends; the full decision doctrine now lives in <code>docs/pai-flow.md</code>'s Execute row (superpowers dispatch vs gsd-core execute-phase/workstreams), not <code>docs/parallel-dispatch.md</code>.
   </div>
 </div>
 
@@ -251,7 +263,7 @@
       <p>Backup-first, dry-runnable install</p>
       <p>Opt-in surfaces (Claude, Codex, voice, GSD)</p>
       <p>ISA-driven verification (31 ISC)</p>
-      <p>Parallel-dispatch decision guide wired into Execute phase</p>
+      <p>Execute-phase dispatch doctrine (docs/pai-flow.md) with skill-cluster-resolved tool inventory</p>
     </div>
     <div class="card">
       <h3>Non-Functional</h3>
@@ -291,7 +303,7 @@
   </div>
 </div>
 
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Generated for Temperance Engine via <code>architecture-diagram-creator</code>. Source of truth: <code>ISA.md</code>, <code>docs/pai-flow.md</code>, <code>docs/parallel-dispatch.md</code>, <code>UPSTREAM.md</code>.</p>
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Generated for Temperance Engine via <code>architecture-diagram-creator</code>. Source of truth: <code>ISA.md</code>, <code>docs/pai-flow.md</code>, <code>UPSTREAM.md</code>. (<code>docs/parallel-dispatch.md</code> is a retired redirect stub &mdash; see <code>docs/pai-flow.md</code>.)</p>
 
 </body>
 </html>

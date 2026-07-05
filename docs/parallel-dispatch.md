@@ -1,48 +1,10 @@
-# Parallel Dispatch
+# Parallel Dispatch — retired
 
-Temperance Engine's Execute phase can run work sequentially or in parallel. Picking the wrong mechanism risks shared-state collisions or wasted orchestration overhead, so this doc gives the decision rule.
+This document is **retired**. The Execute-phase dispatch decision (GSD
+`execute-phase` vs `superpowers:dispatching-parallel-agents` vs
+`temperance-parallel-dispatch` vs sequential) now lives in
+[`docs/pai-flow.md`](./pai-flow.md) — see its **Phases and the decision framework**
+table (Execute row) and **Doctrine**.
 
-## Why
-
-Two or more independent tasks in the Execute phase can often run at once instead of one after another. But "independent" has to be verified, not assumed, and the right dispatch mechanism depends on whether the work is already plan-shaped and whether an external planning system (GSD) is installed.
-
-## Decision Tree
-
-1. Is the work GSD-plan-shaped (a phase already has one or more `PLAN.md` files with declared dependencies, produced by `gsd:plan-phase`)?
-   - YES: use GSD `execute-phase` (wave-based, per-plan git-worktree isolation via `gsd-executor` agents). Only relevant if GSD is installed (`~/.claude/get-shit-done` present) — Temperance Engine does not vendor or require GSD.
-   - NO: continue.
-2. Is the work multiple independent milestones/features that need their own persistent planning namespace over a long-lived, multi-session effort (not just one batch of tasks)?
-   - YES: GSD `workstreams` (`.planning/workstreams/<name>/`), if GSD is installed.
-   - NO: continue.
-3. Are there 2+ independent tasks, no shared state, no sequential dependency, and you want them done within the current session (ephemeral, not a persisted plan)?
-   - YES: continue.
-3b. Of the independent ephemeral tasks, are some self-contained coding/refactor/validation tasks (describable fully in a prompt, no need for this live session's context)?
-    - YES: use the `temperance-parallel-dispatch` skill. It splits the batch — Claude-rail tasks go to `superpowers:dispatching-parallel-agents` (the Claude-subagent primitive), external-rail tasks go to `temperance-batch`, which routes each to command-code/kimi/grok.
-    - NO: use `superpowers:dispatching-parallel-agents` directly (all Claude subagents).
-4. Are there independent tasks from a written implementation plan you want executed with review checkpoints, still in the current session?
-   - YES: use `superpowers:subagent-driven-development`.
-5. Is there any shared mutable state (same files, same branch, same directory) between the tasks?
-   - YES: do not parallelize. Run sequentially. Shared-state interference is the top failure mode for both GSD execute-phase (mitigated internally via git worktrees) and superpowers dispatch (not mitigated — no worktree isolation, so the caller must guarantee non-overlap).
-
-## Comparison Table
-
-| Mechanism | Isolation | Persistence | Requires GSD | Best for |
-|---|---|---|---|---|
-| `superpowers:dispatching-parallel-agents` | none (caller must avoid overlap) | ephemeral (this session) | no | ad hoc independent subtasks |
-| `superpowers:subagent-driven-development` | none | ephemeral (this session) | no | executing a plan already written this session |
-| `temperance-parallel-dispatch` (+`temperance-batch`) | opt-in worktree per external task | ephemeral (run dir) | no | mixed batch: some tasks on external backends, some Claude subagents |
-| GSD `execute-phase` | git worktree per plan | persisted in `.planning/` | yes | a phase with multiple `PLAN.md` files and declared dependencies |
-| GSD `workstreams` | separate `.planning/workstreams/<name>/` namespace | persisted, long-lived | yes | multiple parallel milestones/features over many sessions |
-
-## If GSD Is Not Installed
-
-Everything above that isn't GSD-gated still applies via the two superpowers skills. Detect GSD with:
-
-```bash
-test -d "$HOME/.claude/get-shit-done"
-```
-
-## Related
-
-- `docs/pai-flow.md` (Execute phase)
-- `package/hooks/ParallelDispatchContext.hook.sh` (situational-awareness hook)
+The `temperance-parallel-dispatch` skill (external backends via `temperance-batch`)
+builds on `superpowers:dispatching-parallel-agents` (the Claude-subagent primitive).
