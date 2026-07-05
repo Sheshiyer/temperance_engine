@@ -4,3 +4,7 @@
 > Scanned 2 source files. Edges aggregate to top-level directories (or `src/<name>`).
 
 No internal relative-import edges detected.
+
+## Recommended External Dependencies
+
+- **gsd-core** (open-gsd/gsd-core) — recommended workflow backbone, referenced-not-vendored.

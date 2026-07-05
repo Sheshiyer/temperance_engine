@@ -4,5 +4,9 @@
 
 No external services detected from the standard config files.
 
+## Recommended Services
+
+- **gsd-core** (open-gsd/gsd-core) — recommended workflow backbone; install via `npx @opengsd/gsd-core@latest`; referenced-not-vendored.
+
 ## Files scanned
 (none — no recognized config files in project root)

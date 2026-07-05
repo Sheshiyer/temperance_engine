@@ -49,4 +49,9 @@ grep -qi "recommended-default" "$DIR/ISA.md" && grep -q "gsd-core" "$DIR/ISA.md"
   || { echo "FAIL - ISA.md missing gsd-core recommended-default criterion"; fail=1; }
 grep -qi "redirect stub" "$DIR/ISA.md" && echo "ok - ISA has retirement criterion" \
   || { echo "FAIL - ISA.md missing retirement criterion"; fail=1; }
+
+# --- A+F Task 6: skill-clusters documented as the discovery layer ---
+grep -qi "discovery/lazy-load layer" "$DIR/docs/skill-clusters.md" \
+  && echo "ok - skill-clusters.md names its unified-flow role" \
+  || { echo "FAIL - skill-clusters.md missing discovery/lazy-load layer statement"; fail=1; }
 exit $fail

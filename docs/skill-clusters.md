@@ -2,6 +2,16 @@
 
 Skill clusters keep a large skill library out of startup context while preserving discoverability.
 
+## Role in the unified flow
+
+In the unified flow (`docs/pai-flow.md`), skill-clusters is the
+**discovery/lazy-load layer** between the gsd-core backbone (which names a skill
+to invoke) and the tool inventory (which runs it). Only active-spoke skills are
+symlinked into the live skills dir; deferred clusters are resolved on demand via
+`~/.agents/skill-clusters/skill-index.json`; archived skills are read from their
+indexed path. This is the context-economy mechanism that keeps session startup
+lean while every skill stays reachable.
+
 ## Canonical Home
 
 ```bash
