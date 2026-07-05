@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Mock command-code/kimi/grok: print the prompt passed via -p (or last arg) verbatim.
 # Symlink this file to different basenames (command-code, kimi, ...) to mock
-# multiple backends in one test. Two exit-control tokens are honored in the
-# prompt text:
+# multiple backends in one test. Exit-control and file-write tokens are
+# honored in the prompt text:
 #   EXIT=N           -- exit N regardless of which backend name we were
 #                        invoked as (legacy, single-backend tests).
 #   <base>_EXIT=N     -- exit N ONLY when invoked as basename <base> (e.g.
@@ -10,6 +10,13 @@
 #                        single task payload drive per-backend fallback-chain
 #                        tests: the command-code attempt exits 1, the kimi
 #                        attempt on the SAME task exits 0).
+#   WRITE=<relpath>:<content> -- create <relpath> (relative to cwd) containing
+#                        <content>, so worktree-mode tests can produce a real
+#                        `git diff --cached` instead of an empty one. Content
+#                        runs to the next space, so keep it a single token
+#                        (e.g. "WRITE=fileA.txt:hello-from-A"). Parent dirs
+#                        are created as needed. Applied AFTER exit/sleep
+#                        tokens so EXIT=N still short-circuits before writing.
 base="$(basename "$0")"
 prompt=""; prev=""
 for a in "$@"; do [[ "$prev" == "-p" ]] && prompt="$a"; prev="$a"; done
@@ -20,4 +27,12 @@ if [[ "$prompt" == *"${base}_EXIT="* ]]; then
 fi
 if [[ "$prompt" == *EXIT=* ]]; then n="${prompt#*EXIT=}"; n="${n%% *}"; exit "$n"; fi
 if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
+if [[ "$prompt" == *WRITE=* ]]; then
+  spec="${prompt#*WRITE=}"; spec="${spec%% *}"
+  relpath="${spec%%:*}"; content="${spec#*:}"
+  if [[ -n "$relpath" ]]; then
+    mkdir -p "$(dirname "$relpath")" 2>/dev/null
+    printf '%s\n' "$content" > "$relpath"
+  fi
+fi
 printf 'MOCK_OUTPUT_START\n%s\nMOCK_OUTPUT_END\n' "$prompt"

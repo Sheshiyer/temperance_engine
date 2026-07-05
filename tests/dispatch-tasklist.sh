@@ -326,5 +326,53 @@ check "fallback timeout: attempts length 1 (no fallback)" "1" "$(jq -r '.tasks[0
 check "fallback timeout: attempts[0].status=timeout" "timeout" "$(jq -r '.tasks[0].attempts[0].status' "$run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
 
+# --- worktree auto-merge (#7): --apply-worktree opt-in safe-path merge -----
+
+# (a) non-overlapping auto-apply: task A writes fileA.txt, task B writes
+# fileB.txt (distinct files) -> after the run, BOTH files exist in the
+# caller cwd, both metas merged:true, MERGE-REPORT lists both applied.
+tmpgit_am1=$(mktemp -d); ( cd "$tmpgit_am1" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am1" && printf '%s' '[{"id":"AMA","task":"WRITE=fileA.txt:hello-A do work","backend":"command-code","model":"x"},
+             {"id":"AMB","task":"WRITE=fileB.txt:hello-B do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "auto-merge: fileA.txt applied to cwd" "hello-A" "$(cat "$tmpgit_am1/fileA.txt" 2>/dev/null)"
+check "auto-merge: fileB.txt applied to cwd" "hello-B" "$(cat "$tmpgit_am1/fileB.txt" 2>/dev/null)"
+check "auto-merge: AMA merged:true" "true" "$(jq -r '.merged' "$run/AMA.meta.json" 2>/dev/null)"
+check "auto-merge: AMB merged:true" "true" "$(jq -r '.merged' "$run/AMB.meta.json" 2>/dev/null)"
+[[ -f "$run/MERGE-REPORT.md" ]] && echo "ok - MERGE-REPORT.md written" || { echo "FAIL - no MERGE-REPORT.md"; fail=1; }
+grep -q "AMA" "$run/MERGE-REPORT.md" 2>/dev/null && grep -q "AMB" "$run/MERGE-REPORT.md" 2>/dev/null \
+  && echo "ok - MERGE-REPORT lists both applied tasks" || { echo "FAIL - MERGE-REPORT missing applied task(s)"; fail=1; }
+grep -q "Worktree merge" "$run/SUMMARY.md" 2>/dev/null && echo "ok - SUMMARY.md has Worktree merge section" || { echo "FAIL - SUMMARY.md missing Worktree merge section"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (b) overlapping conflict: two tasks both write the SAME file with different
+# content -> NEITHER is applied (shared.txt absent or unchanged in cwd),
+# both metas merged:false, MERGE-REPORT lists the conflict with the shared file.
+tmpgit_am2=$(mktemp -d); ( cd "$tmpgit_am2" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am2" && printf '%s' '[{"id":"CFA","task":"WRITE=shared.txt:from-A do work","backend":"command-code","model":"x"},
+             {"id":"CFB","task":"WRITE=shared.txt:from-B do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "auto-merge conflict: shared.txt absent from cwd" "" "$(cat "$tmpgit_am2/shared.txt" 2>/dev/null)"
+check "auto-merge conflict: CFA merged:false" "false" "$(jq -r '.merged' "$run/CFA.meta.json" 2>/dev/null)"
+check "auto-merge conflict: CFB merged:false" "false" "$(jq -r '.merged' "$run/CFB.meta.json" 2>/dev/null)"
+grep -qi "shared.txt" "$run/MERGE-REPORT.md" 2>/dev/null && echo "ok - MERGE-REPORT lists conflicted shared file" || { echo "FAIL - MERGE-REPORT missing conflict file"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# (c) opt-out default: --worktree WITHOUT --apply-worktree -> nothing applied
+# to cwd, metas merged:null, diffs still captured (proves the safety default).
+tmpgit_am3=$(mktemp -d); ( cd "$tmpgit_am3" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+( cd "$tmpgit_am3" && printf '%s' '[{"id":"NOA","task":"WRITE=fileC.txt:hello-C do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --out "$run" --tasks - >/dev/null 2>&1 )
+check "opt-out default: fileC.txt NOT applied to cwd" "" "$(cat "$tmpgit_am3/fileC.txt" 2>/dev/null)"
+check "opt-out default: NOA merged:null" "null" "$(jq -r '.merged' "$run/NOA.meta.json" 2>/dev/null)"
+[[ -s "$run/NOA.diff" ]] && echo "ok - diff still captured without --apply-worktree" || { echo "FAIL - diff missing"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
 echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail
