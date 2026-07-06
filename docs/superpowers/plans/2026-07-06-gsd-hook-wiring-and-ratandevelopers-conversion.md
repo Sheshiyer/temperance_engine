@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - **Never blind-write `~/.claude/settings.json`.** Only ever: `backup_file` it → edit via `jq` into a `mktemp` temp → `jq empty` verify the temp → atomic `mv`. Never `sed`/`awk`/in-place. Abort byte-identical on any failure.
-- **All paths generalized** through `$HOME` / `${PAI_HOME:-$HOME/.claude}` / `$REPO_ROOT` / `$SCRIPT_DIR` — no `/Users/...` or `/Volumes/...` literals in shipped files.
+- **All paths generalized** through `$HOME` / `${PAI_HOME:-$HOME/.claude}` / `$REPO_ROOT` / `$SCRIPT_DIR` — no machine-specific home-dir or volume-path literals in shipped files.
 - **`settings.json` hook commands are absolute** (Claude Code requires it). Compute `CMD` once as the resolved stable path and use the identical string for add/check/remove.
 - **Registered path is the stable `~/.claude/hooks/` copy, NEVER the `/Volumes` clone** (removable mount → broken SessionStart chain when unmounted).
 - **`wire-session-hook.sh` is OPT-IN and MUST NOT be called from `install.sh`.** `install.sh` deliberately never touches `settings.json`.
@@ -456,7 +456,7 @@ git commit -m "test(wire): fixture-based tests for wire-session-hook.sh (dry-run
 - [ ] **Step 1: Dry-run against the REAL settings.json**
 
 Run: `bash scripts/wire-session-hook.sh --dry-run`
-Expected: `Would add SessionStart entry: /Users/<you>/.claude/hooks/ParallelDispatchContext.hook.sh`, status shows `[MISSING]`/`[NOT REGISTERED]`, exit 0. **Confirm nothing changed:** `jq '.hooks.SessionStart | length' ~/.claude/settings.json` still `4`.
+Expected: `Would add SessionStart entry: $HOME/.claude/hooks/ParallelDispatchContext.hook.sh`, status shows `[MISSING]`/`[NOT REGISTERED]`, exit 0. **Confirm nothing changed:** `jq '.hooks.SessionStart | length' ~/.claude/settings.json` still `4`.
 
 - [ ] **Step 2: Apply live**
 
@@ -482,7 +482,7 @@ Run: `bash scripts/wire-session-hook.sh` again → `[skip] … already registere
 
 > **Non-destructive contract:** everything here is additive to `.planning/`. `.docs/` is never read or written by GSD. Confirm `git -C <ratandevelopers> status --porcelain` shows ONLY the new untracked `.planning/` path afterward.
 
-**Absolute path:** `/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/ratandevelopers` (referred to below as `$RD`).
+**Absolute path:** `$RD` (referred to below as `$RD`).
 
 ### Task 5: Create the additive `.planning/` scaffold
 
