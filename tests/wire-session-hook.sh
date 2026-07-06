@@ -4,7 +4,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$DIR/scripts/wire-session-hook.sh"
 HOOK="$DIR/package/hooks/ParallelDispatchContext.hook.sh"
 fail=0
-
+TMPBK="$(mktemp -d)"
+export TEMPERANCE_BACKUP_DIR="$TMPBK"
 # --- hook defect regressions (Task 1) ---
 grep -q 'docs/pai-flow.md' "$HOOK" && echo "ok - hook points at docs/pai-flow.md" || { echo "FAIL - hook missing pai-flow.md ref"; fail=1; }
 grep -q 'See docs/parallel-dispatch.md' "$HOOK" && { echo "FAIL - hook still surfaces retired parallel-dispatch.md"; fail=1; } || echo "ok - retired doc ref not surfaced"
@@ -94,5 +95,5 @@ PAI_HOME="$FIX3" bash "$SCRIPT" >/dev/null 2>&1
 broke_after="$(shasum "$FIX3/settings.json" | awk '{print $1}')"
 [ "$broke_before" = "$broke_after" ] && echo "ok - invalid settings.json left untouched" || { echo "FAIL - touched invalid settings.json"; fail=1; }
 
-rm -rf "$FIX" "$FIX2" "$FIX3"
+rm -rf "$FIX" "$FIX2" "$FIX3" "$TMPBK"
 exit $fail
