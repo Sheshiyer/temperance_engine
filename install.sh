@@ -77,11 +77,27 @@ if test "${TEMPERANCE_CLAUDE_MODE:-skip}" = "install"; then
   if test -d "$SKILL_SRC"; then
     BAK=""
     if test -e "$SKILL_DST"; then
-      BAK="$SKILL_DST.bak.$(date +%Y%m%d_%H%M%S)"
-      cp -R "$SKILL_DST" "$BAK"
+      # Back up outside ~/.claude/skills/ -- that directory is scanned for
+      # skills, so a sibling .bak dropped in-place gets picked up as a phantom skill.
+      BAK="$TEMPERANCE_BACKUP_DIR/$(date -u +%Y%m%dT%H%M%SZ)/temperance-parallel-dispatch"
+      if test "$DRY_RUN" = "1"; then
+        printf 'DRY_RUN: cp -R %s %s\n' "$SKILL_DST" "$BAK"
+        printf 'DRY_RUN: rm -rf %s\n' "$SKILL_DST"
+      else
+        mkdir -p "$(dirname "$BAK")"
+        cp -R "$SKILL_DST" "$BAK"
+        # cp -R into a pre-existing directory nests SRC inside DST instead of
+        # replacing it, so clear the destination first.
+        rm -rf "$SKILL_DST"
+      fi
     fi
-    mkdir -p "$HOME/.claude/skills"
-    cp -R "$SKILL_SRC" "$SKILL_DST"
+    if test "$DRY_RUN" = "1"; then
+      printf 'DRY_RUN: mkdir -p %s\n' "$HOME/.claude/skills"
+      printf 'DRY_RUN: cp -R %s %s\n' "$SKILL_SRC" "$SKILL_DST"
+    else
+      mkdir -p "$HOME/.claude/skills"
+      cp -R "$SKILL_SRC" "$SKILL_DST"
+    fi
     printf '%s\n' "[install] temperance-parallel-dispatch skill -> $SKILL_DST"
     if test -n "$BAK"; then
       printf '%s\n' "[install] backed up prior skill -> $BAK"
