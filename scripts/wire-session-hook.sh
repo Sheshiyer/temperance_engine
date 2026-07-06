@@ -81,12 +81,21 @@ jq_write(){  # $1 = jq filter
 install_hook_file(){
   if [ "$DRY_RUN" = "1" ]; then
     log "Would ensure $HOOKS_DIR exists"
-    [ -e "$HOOK_DEST" ] && log "Would back up existing $HOOK_DEST" || true
+    if [ -L "$HOOK_DEST" ]; then
+      log "Would replace existing symlink $HOOK_DEST"
+    elif [ -e "$HOOK_DEST" ]; then
+      log "Would back up existing $HOOK_DEST"
+    fi
     log "Would copy hook -> $HOOK_DEST (chmod +x)"
     return 0
   fi
   mkdir -p "$HOOKS_DIR"
-  if [ -e "$HOOK_DEST" ]; then
+  if [ -L "$HOOK_DEST" ]; then
+    # Replace a pre-existing symlink with our real copy; never cp THROUGH it
+    # (cp would follow the link and overwrite the symlink's target file).
+    log "Replacing existing symlink $HOOK_DEST (was -> $(readlink "$HOOK_DEST"))"
+    rm -f "$HOOK_DEST"
+  elif [ -e "$HOOK_DEST" ]; then
     mkdir -p "$BACKUP_DIR"
     cp "$HOOK_DEST" "$BACKUP_DIR/ParallelDispatchContext.hook.sh"
     log "Backed up existing hook -> $BACKUP_DIR/ParallelDispatchContext.hook.sh"
