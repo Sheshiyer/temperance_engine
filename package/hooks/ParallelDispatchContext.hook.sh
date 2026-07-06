@@ -1,19 +1,15 @@
 #!/usr/bin/env sh
 # ParallelDispatchContext.hook.sh -- advisory-only session context (fail-open, never blocks)
 #
-# Not auto-registered by install.sh. To use it, add it to your own
-# ~/.claude/settings.json under hooks.SessionStart yourself (this installer
-# never writes into settings.json JSON structure it doesn't own). Point the
-# command at wherever THIS file actually lives on your machine -- either the
-# clone (recommended if you may `git pull` updates), or a copy you placed
-# under your PAI hooks dir:
+# Installed to a stable path by scripts/wire-session-hook.sh, which copies this
+# file to $PAI_HOME/hooks/ParallelDispatchContext.hook.sh and registers a
+# SessionStart entry pointing at that stable copy. If registering manually,
+# point settings.json at that installed path -- never at a repo clone on a
+# removable volume (it vanishes on unmount and breaks every future session):
 #
 #   { "hooks": [ { "type": "command",
-#       "command": "/absolute/path/to/temperance_engine/package/hooks/ParallelDispatchContext.hook.sh"
+#       "command": "$PAI_HOME/hooks/ParallelDispatchContext.hook.sh"
 #   } ] }
-#
-# The installer does not copy this hook anywhere, so `$PAI_HOME/hooks/...`
-# will NOT resolve unless you cp the file there yourself first.
 #
 # Checks (read-only, no side effects):
 #   - .planning/ present in cwd           -> GSD-managed project
@@ -73,7 +69,7 @@ fi
 if [ -n "$AUTO_ADVANCE" ]; then
   printf 'GSD config.json workflow.auto_advance: %s\n' "$AUTO_ADVANCE"
 fi
-printf 'See docs/parallel-dispatch.md before choosing sequential vs parallel work for this project.\n'
+printf 'See docs/pai-flow.md before choosing sequential vs parallel work for this project.\n'
 printf '</system-reminder>\n'
 
 exit 0
