@@ -25,7 +25,7 @@ run_command_code() {
   echo "[command-code] Starting with model: $model" >&2
   local start_time=$(date +%s)
   
-  if command-code -p "$desc" --model "$model" --max-turns 10 --trust --skip-onboarding > "$output_file" 2>&1; then
+  if command-code -p "$desc" --model "$model" --max-turns 10 --trust --yolo --skip-onboarding > "$output_file" 2>&1; then
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
     echo "[command-code] Completed in ${duration}s" >&2

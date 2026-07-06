@@ -17,7 +17,7 @@ SCRIPT_DIR="$(self_path)"
 ROUTER="${TEMPERANCE_ROUTER:-$SCRIPT_DIR/multi-backend-router.sh}"
 
 # --- backend execution (argv arrays; task text is always ONE literal arg) ---
-run_command_code(){ command-code -p "$1" --model "$2" --max-turns "${MAX_TURNS:-10}" --trust --skip-onboarding >"$3" 2>&1; }
+run_command_code(){ command-code -p "$1" --model "$2" --max-turns "${MAX_TURNS:-10}" --trust --yolo --skip-onboarding >"$3" 2>&1; }
 run_kimi(){ kimi --print --yolo --model "$2" -p "$1" >"$3" 2>&1; }
 run_grok(){ "$HOME/.grok/bin/grok" --model "$2" --always-approve -- "$1" >"$3" 2>&1; }
 run_nvidia(){

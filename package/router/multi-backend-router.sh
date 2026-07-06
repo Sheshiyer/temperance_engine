@@ -325,7 +325,7 @@ generate_command() {
   
   case "$backend" in
     command-code)
-      echo "command-code -p \"$escaped_desc\" --model $model --max-turns $max_turns --trust --skip-onboarding"
+      echo "command-code -p \"$escaped_desc\" --model $model --max-turns $max_turns --trust --yolo --skip-onboarding"
       ;;
     
     kimi)
@@ -375,7 +375,7 @@ execute_route() {
   
   case "$backend" in
     command-code)
-      command-code -p "$desc" --model "$model" --max-turns "$max_turns" --trust --skip-onboarding
+      command-code -p "$desc" --model "$model" --max-turns "$max_turns" --trust --yolo --skip-onboarding
       ;;
     
     kimi)
