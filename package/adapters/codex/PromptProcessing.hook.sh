@@ -18,7 +18,11 @@ set -u
 # Configuration
 # ─────────────────────────────────────────────────────────────────────────────
 
-ENRICH_DIR="${TEMPERANCE_ENRICH_DIR:-$HOME/.codex/PAI/enrich}"
+# The shared SP0 enrichment core lives once, under ~/.claude/PAI/enrich,
+# regardless of which surface (claude/codex/opencode) is calling it -- see
+# ~/.claude/hooks/PromptProcessing.hook.ts, which uses the same default.
+# TEMPERANCE_ENRICH_DIR overrides for non-standard installs.
+ENRICH_DIR="${TEMPERANCE_ENRICH_DIR:-$HOME/.claude/PAI/enrich}"
 CWD="${CODEX_PROJECT_DIR:-$PWD}"
 SURFACE="codex"
 
@@ -35,7 +39,34 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Mode classification (fallback if enrichment unavailable)
+# Shared enrichment core delegation
+# ─────────────────────────────────────────────────────────────────────────────
+# Try the real SP0 pipeline (contract/resolver/stages) via bun first. Prints
+# the <temperance-context> block and returns 0 on success; returns 1 with no
+# output if bun or the core is unavailable, or the core throws -- caller
+# falls back to the classifier below. Never fatal (no set -e; failure here
+# is just an empty command substitution).
+
+try_enrich_core() {
+  local prompt="$1" cwd="$2"
+  command -v bun >/dev/null 2>&1 || return 1
+  [ -f "$ENRICH_DIR/index.ts" ] || return 1
+
+  TEMPERANCE_HOOK_PROMPT="$prompt" TEMPERANCE_HOOK_CWD="$cwd" TEMPERANCE_HOOK_ENRICH_DIR="$ENRICH_DIR" \
+    bun -e '
+      const dir = process.env.TEMPERANCE_HOOK_ENRICH_DIR;
+      const prompt = process.env.TEMPERANCE_HOOK_PROMPT || "";
+      const cwd = process.env.TEMPERANCE_HOOK_CWD || process.cwd();
+      import(dir + "/index.ts").then(async (mod) => {
+        const out = await mod.enrich({ prompt, cwd, surface: "codex" });
+        if (typeof out === "string" && out.trim()) { process.stdout.write(out); process.exit(0); }
+        process.exit(1);
+      }).catch(() => process.exit(1));
+    ' 2>/dev/null
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Mode classification (fallback if the shared core is unavailable)
 # ─────────────────────────────────────────────────────────────────────────────
 
 classify_mode() {
@@ -146,6 +177,15 @@ slice_section() {
 # ─────────────────────────────────────────────────────────────────────────────
 
 main() {
+  # Try the shared enrichment core first; only fall back to the
+  # self-contained classifier below if it's unavailable or throws.
+  local enriched
+  enriched=$(try_enrich_core "$PROMPT" "$CWD")
+  if [ -n "$enriched" ]; then
+    printf '%s\n' "$enriched"
+    return
+  fi
+
   # Classify mode
   local mode
   mode=$(classify_mode "$PROMPT")
