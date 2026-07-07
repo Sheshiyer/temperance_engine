@@ -4,7 +4,6 @@
 # - Command Code (35 models)
 # - Kimi CLI (K2.7 Code)
 # - Grok CLI (grok-composer-2.5-fast, grok-build)
-# - NVIDIA API (Nemotron models via curl)
 # - OpenRouter (aggregator, if configured)
 #
 # Usage:
@@ -24,7 +23,6 @@
 #   command-code    ~10s       15-20s         30-120s         180s for complex
 #   kimi            ~3s        10-15s         30-60s          120s
 #   grok            ~5s        10-15s         20-40s          90s
-#   nvidia (API)    ~1s        5-10s          15-30s          60s
 #
 # Note: command-code has higher latency due to agentic execution model.
 # For time-critical tasks, prefer kimi or grok.
@@ -93,11 +91,6 @@ detect_backends() {
     backends+=("grok")
   fi
   
-  # NVIDIA API
-  if [[ -n "${NVIDIA_API_KEY:-}" ]]; then
-    backends+=("nvidia")
-  fi
-  
   # OpenRouter
   if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
     backends+=("openrouter")
@@ -128,10 +121,6 @@ declare -A MODEL_CATALOG=(
   # Grok
   ["grok:grok-composer-2.5-fast"]="fast:creative:128k"
   ["grok:grok-build"]="balanced:coding:128k"
-  
-  # NVIDIA
-  ["nvidia:nvidia/nemotron-3-ultra-550b"]="premium:reasoning:128k"
-  ["nvidia:nvidia/llama-3.3-nemotron-super-49b"]="balanced:efficient:128k"
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -139,10 +128,7 @@ declare -A MODEL_CATALOG=(
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Priority order for each task type: command-code -> grok -> kimi (one route
-# per backend, no same-backend duplicates). nvidia is intentionally excluded
-# from automatic priority selection -- it remains reachable via `--backend
-# nvidia` (see run_nvidia/execute_route + MODEL_CATALOG, both left intact).
-# grok/kimi fallback tails per task type (command-code primary is derived from
+# per backend, no same-backend duplicates). grok/kimi fallback tails per task type (command-code primary is derived from
 # classify-task.sh's model_for_type, so the type->model catalog has ONE source).
 declare -A ROUTING_FALLBACK_TAILS=(
   ["fast"]="grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
@@ -194,7 +180,6 @@ select_route() {
         command-code) echo "command-code:claude-sonnet-5" ;;
         kimi) echo "kimi:kimi-code/kimi-for-coding" ;;
         grok) echo "grok:grok-composer-2.5-fast" ;;
-        nvidia) echo "nvidia:nvidia/nemotron-3-ultra-550b" ;;
         *) echo "command-code:claude-sonnet-5" ;;
       esac
       return
@@ -349,21 +334,7 @@ generate_command() {
     grok)
       echo "$HOME/.grok/bin/grok --model $model --always-approve \"$escaped_desc\""
       ;;
-    
-    nvidia)
-      # NVIDIA API via curl (simplified)
-      cat << EOF
-curl -s https://integrate.api.nvidia.com/v1/chat/completions \\
-  -H "Authorization: Bearer \$NVIDIA_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "$model",
-    "messages": [{"role": "user", "content": "$escaped_desc"}],
-    "max_tokens": 4096
-  }'
-EOF
-      ;;
-    
+
     *)
       echo "# Unknown backend: $backend"
       ;;
@@ -373,11 +344,6 @@ EOF
 # ─────────────────────────────────────────────────────────────────────────────
 # Execution
 # ─────────────────────────────────────────────────────────────────────────────
-
-nvidia_body() {  # model, desc  -> stdout JSON
-  jq -n --arg m "$1" --arg c "$2" \
-    '{model:$m, messages:[{role:"user", content:$c}], max_tokens:4096}'
-}
 
 execute_route() {
   local route="$1"
@@ -399,14 +365,7 @@ execute_route() {
     grok)
       "$HOME/.grok/bin/grok" --model "$model" --always-approve "$desc"
       ;;
-    
-    nvidia)
-      curl -s https://integrate.api.nvidia.com/v1/chat/completions \
-        -H "Authorization: Bearer $NVIDIA_API_KEY" -H "Content-Type: application/json" \
-        -d "$(nvidia_body "$model" "$desc")" \
-        | jq -r '.choices[0].message.content // .error.message // "Error"'
-      ;;
-    
+
     *)
       echo "Unknown backend: $backend" >&2
       return 1
@@ -474,7 +433,7 @@ OPTIONS:
   --json              Output JSON format
   --command           Generate execution command (don't execute)
   --execute           Execute the routed task
-  --backend <name>    Force specific backend (command-code, kimi, grok, nvidia)
+  --backend <name>    Force specific backend (command-code, kimi, grok)
   --model <name>      Force specific model (used with --route-only)
   --route-only        Print "BACKEND<TAB>MODEL" and exit (for programmatic callers)
   --route-only-with-fallbacks
@@ -491,7 +450,6 @@ BACKENDS:
   command-code        35 models via Command Code CLI
   kimi                K2.7 Code via Kimi CLI
   grok                grok-composer-2.5-fast, grok-build via Grok CLI
-  nvidia              Nemotron models via NVIDIA API
 
 EXAMPLES:
   $0 "implement auth middleware"
@@ -524,13 +482,6 @@ main() {
       --verdict) verdict_mode=true; shift ;;
       --model) FORCE_MODEL="$2"; shift 2 ;;
       --backend) FORCE_BACKEND="$2"; shift 2 ;;
-      --emit-nvidia-body)
-        if [[ -z "${2:-}" || -z "${3:-}" ]]; then
-          echo "usage: --emit-nvidia-body MODEL DESC" >&2
-          exit 2
-        fi
-        nvidia_body "$2" "$3"; exit 0
-        ;;
       --list-backends)
         echo "Available backends: $(detect_backends)"
         exit 0

@@ -35,19 +35,12 @@ ROUTER="${TEMPERANCE_ROUTER:-$SCRIPT_DIR/multi-backend-router.sh}"
 run_command_code(){ command-code -p "$1" --model "$2" --max-turns "${MAX_TURNS:-10}" --trust --yolo --skip-onboarding >"$3" 2>&1; }
 run_kimi(){ kimi --print --yolo --model "$2" -p "$1" >"$3" 2>&1; }
 run_grok(){ "$HOME/.grok/bin/grok" --model "$2" --always-approve -- "$1" >"$3" 2>&1; }
-run_nvidia(){
-  curl -s https://integrate.api.nvidia.com/v1/chat/completions \
-    -H "Authorization: Bearer ${NVIDIA_API_KEY:-}" -H "Content-Type: application/json" \
-    -d "$(jq -n --arg m "$2" --arg c "$1" '{model:$m,messages:[{role:"user",content:$c}],max_tokens:4096}')" \
-    | jq -r '.choices[0].message.content // .error.message // "Error"' >"$3" 2>&1
-}
 
 dispatch_backend(){ # backend task model outfile -> exit code
   case "$1" in
     command-code) run_command_code "$2" "$3" "$4" ;;
     kimi) run_kimi "$2" "$3" "$4" ;;
     grok) run_grok "$2" "$3" "$4" ;;
-    nvidia) run_nvidia "$2" "$3" "$4" ;;
     *) echo "unknown backend: $1" >"$4"; return 1 ;;
   esac
 }

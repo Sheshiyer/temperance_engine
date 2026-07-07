@@ -73,7 +73,7 @@ mode/tier: ALGORITHM / E3 | reason: multi-step request | source: classifier
 intent: refactor the auth system | not: none
 guardrails: ...
 isa: /path/to/ISA.md
-routing: backends=command-code,kimi,grok,nvidia | task=long-horizon | preferred=command-code:moonshotai/Kimi-K2.7-Code
+routing: backends=command-code,kimi,grok | task=long-horizon | preferred=command-code:moonshotai/Kimi-K2.7-Code
 </temperance-context>
 ```
 
@@ -86,7 +86,6 @@ The agent sees the `routing:` line and knows which backend/model to use when del
 | **command-code** | `command-code` | 35 models | Primary, versatile |
 | **kimi** | `kimi` | K2.7 Code (262K) | Long-horizon coding |
 | **grok** | `~/.grok/bin/grok` | grok-composer-2.5-fast | Fast iteration |
-| **nvidia** | API | Nemotron Ultra | Deep reasoning |
 
 ### Latency Characteristics
 
@@ -95,7 +94,6 @@ The agent sees the `routing:` line and knows which backend/model to use when del
 | `command-code` | ~10s | 15-20s | 30-120s | 180s |
 | `kimi` | ~3s | 10-15s | 30-60s | 120s |
 | `grok` | ~5s | 10-15s | 20-40s | 90s |
-| `nvidia` | ~1s | 5-10s | 15-30s | 60s |
 
 **Note:** command-code has higher latency due to its agentic execution model. For time-critical simple tasks, prefer `kimi` or `grok`.
 

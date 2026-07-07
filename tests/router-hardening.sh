@@ -31,43 +31,15 @@ else
   echo "FAIL - --json produced invalid JSON for tricky task"; fail=1
 fi
 
-# nvidia body helper builds valid JSON with a quote in the task
-if body=$("$R" --emit-nvidia-body "nvidia/x" 'he said "hi"') && echo "$body" | jq -e '.messages[0].content' >/dev/null 2>&1; then
-  echo "ok - nvidia body valid JSON"
-else
-  echo "FAIL - nvidia body invalid JSON"; fail=1
-fi
-
 # --execute on an inline-classified task must NOT masquerade as success
 TEMPERANCE_BACKENDS="command-code" "$R" --execute "summarize these bullet points" >/dev/null 2>&1
 check "inline --execute exit code" "3" "$?"
 
-# --emit-nvidia-body with no following args must fail loudly, not emit empty-string JSON
-"$R" --emit-nvidia-body >/dev/null 2>&1
-check "emit-nvidia-body no args exit code" "2" "$?"
-
-# --emit-nvidia-body with only one following arg must also fail loudly
-"$R" --emit-nvidia-body "onlymodel" >/dev/null 2>&1
-check "emit-nvidia-body one arg exit code" "2" "$?"
-
-# --emit-nvidia-body with both args still emits valid JSON
-if body=$("$R" --emit-nvidia-body "m" "d") && echo "$body" | jq -e . >/dev/null 2>&1; then
-  echo "ok - emit-nvidia-body with both args emits valid JSON"
-else
-  echo "FAIL - emit-nvidia-body with both args did not emit valid JSON"; fail=1
-fi
-
 # --route-only-with-fallbacks: full priority-filtered chain, in order,
-# nvidia never appears, filtered to available backends.
+# filtered to available backends.
 out=$(TEMPERANCE_BACKENDS="command-code grok kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
 expected=$'command-code\tmoonshotai/Kimi-K2.7-Code\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
 check "route-only-with-fallbacks: cc/grok/kimi in order" "$expected" "$out"
-
-if echo "$out" | grep -qi nvidia; then
-  echo "FAIL - nvidia appeared in --route-only-with-fallbacks output"; fail=1
-else
-  echo "ok - nvidia never appears in --route-only-with-fallbacks"
-fi
 
 # filtered to available: grok missing from TEMPERANCE_BACKENDS -> 2 lines (grok dropped)
 out=$(TEMPERANCE_BACKENDS="command-code kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")

@@ -31,7 +31,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 ## What It Installs
 
 - PAI instruction templates for OpenCode, Cursor, and portable `AGENTS.md` use.
-- **Multi-backend routing** via `temperance-route` CLI — automatically selects optimal AI model based on task type (command-code primary with 35 models; kimi, grok, nvidia as fallbacks).
+- **Multi-backend routing** via `temperance-route` CLI — automatically selects optimal AI model based on task type (command-code primary with 35 models; kimi, grok as fallbacks).
 - **Enrichment context** with automatic task classification — every prompt gets a `<temperance-context>` block with routing hints.
 - Optional templates for Claude Code and Codex when a user explicitly opts in.
 - Optional local Pulse compatibility server on `localhost:31337` when Claude/Pulse compatibility is explicitly enabled.
@@ -44,7 +44,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 
 | Capability | What it does |
 |---|---|
-| **Multi-backend routing** | Routes tasks to optimal backend/model: command-code (35 models), kimi (262K context), grok (fast), nvidia (reasoning). |
+| **Multi-backend routing** | Routes tasks to optimal backend/model: command-code (35 models), kimi (262K context), grok (fast). |
 | **Automatic task classification** | Classifies prompts as fast/long-horizon/reasoning/validation/creative and recommends optimal model. |
 | Guarded PAI templates | Installs `NOESIS`-style instruction surfaces without copying private memory. |
 | Pulse compatibility | Provides a tiny local `/notify` and `/healthz` endpoint for phase events. |
@@ -61,7 +61,7 @@ cd temperance_engine
 ./install.sh
 ./verify.sh
 
-# Optional: Wire multi-backend routing (command-code, kimi, grok, nvidia)
+# Optional: Wire multi-backend routing (command-code, kimi, grok)
 ./scripts/wire-multi-backend.sh
 ```
 
@@ -180,7 +180,6 @@ graph LR
 | superpowers | Runtime capability enhancements. | Principal | Not in source | Runtime core component. | verified | [4] |
 | kimi | Long-horizon coding specialist utilizing the K2.7 Code (262K) model. | Principal | Not in source | Long-horizon coding and time-critical simple tasks. | verified | [5] |
 | grok | Fast iteration tool located at ~/.grok/bin/grok. | Principal | Not in source | Fast iteration and time-critical simple tasks. | verified | [5] |
-| nvidia | API-based backend featuring Nemotron Ultra for deep reasoning. | Principal | Not in source | Deep reasoning tasks. | verified | [5] |
 | ParallelDispatchContext | System for parallel task dispatching. | Principal | Not in source | Hook-based parallel execution. | unreleased | [4] |
 | Enrichment core | Automatic task classification system. | Referenced | Not in source | Automatic task classification. | verified | [5] |
 | Claude Code | Optional AI product surface from Anthropic. | Optional template installation | Not in source | Receives local instruction templates only when enabled; optional compatibility target. | optional | [2], [3] |

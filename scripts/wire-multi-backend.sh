@@ -182,7 +182,6 @@ check_status() {
   command -v command-code &>/dev/null && backends+=("command-code")
   command -v kimi &>/dev/null && backends+=("kimi")
   [[ -x "$HOME/.grok/bin/grok" ]] && backends+=("grok")
-  [[ -n "${NVIDIA_API_KEY:-}" ]] && backends+=("nvidia")
   echo "   ${backends[*]:-NONE}"
   echo ""
   

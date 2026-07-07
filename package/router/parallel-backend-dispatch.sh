@@ -74,38 +74,6 @@ run_grok() {
   fi
 }
 
-run_nvidia() {
-  local desc="$1"
-  local model="${2:-nvidia/nemotron-3-ultra-550b}"
-  local output_file="$OUTPUT_DIR/nvidia.txt"
-  
-  echo "[nvidia] Starting with model: $model" >&2
-  local start_time=$(date +%s)
-  
-  local response
-  response=$(curl -s https://integrate.api.nvidia.com/v1/chat/completions \
-    -H "Authorization: Bearer $NVIDIA_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "{
-      \"model\": \"$model\",
-      \"messages\": [{\"role\": \"user\", \"content\": \"$desc\"}],
-      \"max_tokens\": 4096
-    }" 2>&1)
-  
-  local end_time=$(date +%s)
-  local duration=$((end_time - start_time))
-  
-  if echo "$response" | jq -e '.choices[0].message.content' > /dev/null 2>&1; then
-    echo "$response" | jq -r '.choices[0].message.content' > "$output_file"
-    echo "[nvidia] Completed in ${duration}s" >&2
-    echo "$duration" > "$OUTPUT_DIR/nvidia.time"
-  else
-    echo "$response" > "$output_file"
-    echo "[nvidia] Failed" >&2
-    echo "ERROR" > "$OUTPUT_DIR/nvidia.time"
-  fi
-}
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Comparison Report
 # ─────────────────────────────────────────────────────────────────────────────
@@ -125,7 +93,7 @@ generate_report() {
   echo "TIMING"
   echo "───────────────────────────────────────────────────────────────────────────────"
   
-  for backend in command-code kimi grok nvidia; do
+  for backend in command-code kimi grok; do
     local time_file="$OUTPUT_DIR/$backend.time"
     local output_file="$OUTPUT_DIR/$backend.txt"
     
@@ -147,7 +115,7 @@ generate_report() {
   echo "OUTPUT PREVIEWS (first 500 chars)"
   echo "───────────────────────────────────────────────────────────────────────────────"
   
-  for backend in command-code kimi grok nvidia; do
+  for backend in command-code kimi grok; do
     local output_file="$OUTPUT_DIR/$backend.txt"
     
     if [[ -f "$output_file" ]]; then
@@ -174,7 +142,7 @@ usage() {
 Usage: $0 [OPTIONS] "task description"
 
 OPTIONS:
-  --backends <list>   Comma-separated backends (command-code,kimi,grok,nvidia)
+  --backends <list>   Comma-separated backends (command-code,kimi,grok)
   --all               Use all available backends
   --compare-only      Show comparison of existing results (requires --output-dir)
   --output-dir <dir>  Custom output directory
@@ -265,10 +233,6 @@ main() {
         ;;
       grok)
         run_grok "$desc" &
-        pids+=($!)
-        ;;
-      nvidia)
-        run_nvidia "$desc" &
         pids+=($!)
         ;;
     esac
