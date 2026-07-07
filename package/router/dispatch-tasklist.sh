@@ -2,6 +2,21 @@
 # package/router/dispatch-tasklist.sh
 # Route a JSON task list to backends via multi-backend-router.sh (selection only)
 # and execute each task via argv arrays. Never evals router output.
+
+# This script needs bash >=4 (associative arrays, e.g. IS_FALLBACK/STATUS_OF
+# below). `env bash` can resolve to macOS's stock /bin/bash 3.2 when PATH puts
+# /usr/bin ahead of a newer bash (e.g. Homebrew's) -- which silently mis-parses
+# `declare -A` and fails later with an unrelated-looking "unbound variable"
+# error. Re-exec under a bash 4+ if one can be found.
+if [ -z "${BASH_VERSINFO:-}" ] || [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  for _b in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    if [ -x "$_b" ]; then exec "$_b" "$0" "$@"; fi
+  done
+  echo "error: $0 requires bash >= 4 (associative arrays); found ${BASH_VERSION:-unknown}." >&2
+  echo "Install a newer bash (e.g. 'brew install bash') or put it ahead of /usr/bin/bash in PATH." >&2
+  exit 1
+fi
+
 set -uo pipefail   # NOT -e: per-task failures are recorded, never abort the batch
 
 # --- resolve this script's real path (symlink-safe) ---

@@ -29,6 +29,20 @@
 # Note: command-code has higher latency due to agentic execution model.
 # For time-critical tasks, prefer kimi or grok.
 
+# This script needs bash >=4 (associative arrays, e.g. MODEL_CATALOG below).
+# `env bash` can resolve to macOS's stock /bin/bash 3.2 when PATH puts
+# /usr/bin ahead of a newer bash (e.g. Homebrew's) -- which silently mis-parses
+# `declare -A` and fails later with an unrelated-looking "unbound variable"
+# error. Re-exec under a bash 4+ if one can be found.
+if [ -z "${BASH_VERSINFO:-}" ] || [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  for _b in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    if [ -x "$_b" ]; then exec "$_b" "$0" "$@"; fi
+  done
+  echo "error: $0 requires bash >= 4 (associative arrays); found ${BASH_VERSION:-unknown}." >&2
+  echo "Install a newer bash (e.g. 'brew install bash') or put it ahead of /usr/bin/bash in PATH." >&2
+  exit 1
+fi
+
 set -euo pipefail
 
 # Resolve symlinks so classify-task.sh (sourced below) is found next to the REAL
