@@ -90,7 +90,7 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 ARCHIVE_PATH="$OUTPUT_DIR/$ARCHIVE_NAME"
-COPYFILE_DISABLE=1 tar -czf "$ARCHIVE_PATH" -C "$STAGING_DIR" "$(basename "$RELEASE_ROOT")"
+COPYFILE_DISABLE=1 tar --no-xattrs -czf "$ARCHIVE_PATH" -C "$STAGING_DIR" "$(basename "$RELEASE_ROOT")"
 ARCHIVE_SHA=$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')
 printf '%s  %s\n' "$ARCHIVE_SHA" "$ARCHIVE_NAME" > "$ARCHIVE_PATH.sha256"
 printf '{"schema":"thoughtseed.temperance.build_result.v1","releaseId":"%s","sourceCommit":"%s","archive":"%s","sha256":"sha256:%s"}\n' \
