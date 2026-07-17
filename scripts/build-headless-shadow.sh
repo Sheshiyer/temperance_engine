@@ -81,6 +81,13 @@ const manifest = {
 writeFileSync(join(root, "release-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o644 });
 NODE
 
+# macOS attaches com.apple.provenance to newly copied files. That metadata is
+# not part of the runtime contract and makes GNU tar emit extended-header
+# warnings on EC2, so remove it from the disposable staging tree only.
+if command -v xattr >/dev/null 2>&1; then
+  xattr -cr "$RELEASE_ROOT"
+fi
+
 mkdir -p "$OUTPUT_DIR"
 ARCHIVE_PATH="$OUTPUT_DIR/$ARCHIVE_NAME"
 COPYFILE_DISABLE=1 tar -czf "$ARCHIVE_PATH" -C "$STAGING_DIR" "$(basename "$RELEASE_ROOT")"
