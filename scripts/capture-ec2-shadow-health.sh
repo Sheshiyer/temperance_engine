@@ -27,8 +27,9 @@ GATEWAY_HASH=$(test -f "$GATEWAY_PATH" && sha256sum "$GATEWAY_PATH" | awk '{prin
 RUNNER_HASH=$(test -f "$RUNNER_PATH" && sha256sum "$RUNNER_PATH" | awk '{print "sha256:"$1}' || true)
 TIMER_HASH=$(test -f "$TIMER_PATH" && sha256sum "$TIMER_PATH" | awk '{print "sha256:"$1}' || true)
 RELEASE_MANIFEST_HASH=$(test -n "$RELEASE_DIR" && test -f "$RELEASE_DIR/release-manifest.json" && sha256sum "$RELEASE_DIR/release-manifest.json" | awk '{print "sha256:"$1}' || true)
-TEMPERANCE_UNIT_FILES=$(systemctl list-unit-files 'temperance*' --no-legend --no-pager 2>/dev/null | awk 'NF {count++} END {print count+0}')
-PUBLIC_LISTENERS=$(ss -ltnH | awk '$4 !~ /^127\./ && $4 !~ /^\[::1\]/ {print $4}' | sort -u | paste -sd ',' -)
+TEMPERANCE_UNIT_FILES=$(systemctl list-unit-files 'temperance*' --no-legend --no-pager 2>/dev/null | awk 'NF {count++} END {print count+0}' || true)
+TEMPERANCE_UNIT_FILES=${TEMPERANCE_UNIT_FILES:-0}
+PUBLIC_LISTENERS=$(ss -ltnH | awk '$4 !~ /^127\./ && $4 !~ /^\[::1\]/ {print $4}' | sort -u | paste -sd ',' - || true)
 HAS_CURRENT_PATH=false
 if [[ -e /opt/temperance-headless/current || -L /opt/temperance-headless/current ]]; then
   HAS_CURRENT_PATH=true
