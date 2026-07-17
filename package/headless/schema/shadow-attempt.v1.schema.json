@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thoughtseed.space/schemas/hermes-temperance-shadow-attempt.v1.json",
+  "title": "Thoughtseed Hermes Temperance shadow attempt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "hermes", "context", "approval", "intent", "proof"],
+  "properties": {
+    "schema": { "const": "thoughtseed.hermes.temperance_shadow_attempt.v1" },
+    "hermes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["releaseCommit", "directiveId", "idempotencyKey", "executionId", "claimId", "attempt", "runnerId", "hostIdentity", "leaseExpiresAt"],
+      "properties": {
+        "releaseCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "directiveId": { "$ref": "#/$defs/safeId" },
+        "idempotencyKey": { "$ref": "#/$defs/safeId" },
+        "executionId": { "$ref": "#/$defs/safeId" },
+        "claimId": { "$ref": "#/$defs/safeId" },
+        "attempt": { "type": "integer", "minimum": 1 },
+        "runnerId": { "$ref": "#/$defs/safeId" },
+        "hostIdentity": { "$ref": "#/$defs/safeId" },
+        "leaseExpiresAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenantId", "projectId", "workflowId", "taskId", "attemptId"],
+      "properties": {
+        "tenantId": { "$ref": "#/$defs/safeId" },
+        "projectId": { "$ref": "#/$defs/safeId" },
+        "workflowId": { "$ref": "#/$defs/safeId" },
+        "taskId": { "$ref": "#/$defs/safeId" },
+        "attemptId": { "$ref": "#/$defs/safeId" }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "observedState", "observationId", "observedAt"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "observedState": { "enum": ["not_required", "pending", "approved", "rejected"] },
+        "observationId": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+        "observedAt": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] }
+      }
+    },
+    "intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "operation", "summary", "requestedArtifact", "requestedBackend"],
+      "properties": {
+        "domain": { "enum": ["hr", "accounting", "legal", "project_management", "marketing", "distribution", "operations"] },
+        "operation": { "$ref": "#/$defs/safeId" },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "requestedArtifact": { "oneOf": [{ "$ref": "#/$defs/safeId" }, { "type": "null" }] },
+        "requestedBackend": { "enum": ["auto", "kimi", "command-code"] }
+      }
+    },
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policyVersion", "expectedMode"],
+      "properties": {
+        "policyVersion": { "const": "thoughtseed.temperance.shadow_policy.v1" },
+        "expectedMode": { "const": "shadow" }
+      }
+    }
+  },
+  "$defs": {
+    "safeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+set -eu
+
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+if [ "$#" -eq 1 ] && [ "$1" = "--help" ]; then
+  exec /usr/bin/node "$ROOT_DIR/lib/runtime.mjs" --help
+fi
+
+if [ "$#" -ne 2 ] || [ "$1" != "--envelope" ] || [ -z "$2" ]; then
+  printf '%s\n' 'usage: temperance-shadow --envelope FILE' >&2
+  exit 64
+fi
+
+exec /usr/bin/node "$ROOT_DIR/lib/runtime.mjs" \
+  --envelope "$2" \
+  --policy "$ROOT_DIR/share/policy.v1.json" \
+  --manifest "$ROOT_DIR/release-manifest.json"

@@ -1,0 +1,8 @@
+{
+  "schema": "thoughtseed.temperance.headless_release.v1",
+  "releaseId": "0.1.0-shadow.1-test",
+  "version": "0.1.0-shadow.1",
+  "sourceCommit": "78ce35cf6cc022201108d374a56c1ac210afc1e3",
+  "node": ">=22 <23",
+  "contentDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+}
