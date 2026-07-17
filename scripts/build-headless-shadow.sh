@@ -31,20 +31,28 @@ npm run standalone:smoke
 mkdir -p \
   "$RELEASE_ROOT/bin" \
   "$RELEASE_ROOT/lib" \
+  "$RELEASE_ROOT/node_modules" \
   "$RELEASE_ROOT/schema" \
   "$RELEASE_ROOT/share/fixtures"
 
 cp "$PACKAGE_DIR/bin/temperance-shadow" "$RELEASE_ROOT/bin/temperance-shadow"
+cp "$PACKAGE_DIR/bin/temperance-business" "$RELEASE_ROOT/bin/temperance-business"
 cp "$PACKAGE_DIR/lib/runtime.mjs" "$RELEASE_ROOT/lib/runtime.mjs"
+cp "$PACKAGE_DIR/lib/business-runtime.mjs" "$RELEASE_ROOT/lib/business-runtime.mjs"
+cp -R "$PACKAGE_DIR/node_modules/." "$RELEASE_ROOT/node_modules/"
+cp "$PACKAGE_DIR/package.json" "$RELEASE_ROOT/package.json"
+cp "$PACKAGE_DIR/package-lock.json" "$RELEASE_ROOT/package-lock.json"
 cp "$PACKAGE_DIR/schema/shadow-attempt.v1.schema.json" "$RELEASE_ROOT/schema/shadow-attempt.v1.schema.json"
 cp "$PACKAGE_DIR/share/policy.v1.json" "$RELEASE_ROOT/share/policy.v1.json"
+cp "$PACKAGE_DIR/share/service-agreement-policy.v1.json" "$RELEASE_ROOT/share/service-agreement-policy.v1.json"
 cp "$PACKAGE_DIR/fixtures/hermes-shadow-attempt.v1.json" "$RELEASE_ROOT/share/fixtures/hermes-shadow-attempt.v1.json"
 cp "$PACKAGE_DIR/fixtures/invalid-missing-approval.v1.json" "$RELEASE_ROOT/share/fixtures/invalid-missing-approval.v1.json"
 cp "$PACKAGE_DIR/fixtures/invalid-unknown-field.v1.json" "$RELEASE_ROOT/share/fixtures/invalid-unknown-field.v1.json"
+cp "$PACKAGE_DIR/fixtures/service-agreement-directive.v1.json" "$RELEASE_ROOT/share/fixtures/service-agreement-directive.v1.json"
 cp "$PACKAGE_DIR/README.md" "$RELEASE_ROOT/README.md"
-chmod 0755 "$RELEASE_ROOT/bin/temperance-shadow" "$RELEASE_ROOT/lib/runtime.mjs"
+chmod 0755 "$RELEASE_ROOT/bin/temperance-shadow" "$RELEASE_ROOT/bin/temperance-business" "$RELEASE_ROOT/lib/runtime.mjs" "$RELEASE_ROOT/lib/business-runtime.mjs"
 find "$RELEASE_ROOT" -type d -exec chmod 0755 {} +
-find "$RELEASE_ROOT" -type f ! -path '*/bin/temperance-shadow' ! -path '*/lib/runtime.mjs' -exec chmod 0644 {} +
+find "$RELEASE_ROOT" -type f ! -path '*/bin/temperance-shadow' ! -path '*/bin/temperance-business' ! -path '*/lib/runtime.mjs' ! -path '*/lib/business-runtime.mjs' -exec chmod 0644 {} +
 
 node - "$RELEASE_ROOT" "$VERSION" "$SOURCE_COMMIT" "$RELEASE_ID" <<'NODE'
 const { createHash } = require("node:crypto");

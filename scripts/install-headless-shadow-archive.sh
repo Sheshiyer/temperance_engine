@@ -98,7 +98,7 @@ fi
 chown -R root:root "$EXTRACTED_DIR"
 find "$EXTRACTED_DIR" -type d -exec chmod 0755 {} +
 find "$EXTRACTED_DIR" -type f -exec chmod 0644 {} +
-chmod 0755 "$EXTRACTED_DIR/bin/temperance-shadow" "$EXTRACTED_DIR/lib/runtime.mjs"
+chmod 0755 "$EXTRACTED_DIR/bin/temperance-shadow" "$EXTRACTED_DIR/bin/temperance-business" "$EXTRACTED_DIR/lib/runtime.mjs" "$EXTRACTED_DIR/lib/business-runtime.mjs"
 mv "$EXTRACTED_DIR" "$TARGET_DIR"
 sync
 

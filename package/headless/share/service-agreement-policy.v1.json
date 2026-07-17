@@ -1,0 +1,51 @@
+{
+  "schema": "thoughtseed.temperance.service_agreement_policy.v1",
+  "workflowId": "thoughtseed.legal.service-agreement.draft.v1",
+  "command": "service_agreement.draft.render",
+  "contentPolicy": {
+    "id": "anthropic-skills:thoughtseed-contract-generator@1",
+    "digest": "sha256:b34b87ac93681a9acb4127ebdeb3030eccf4f9b6e2f8119b21326fdf3ffe9a13",
+    "spec": {
+      "documentKind": "service_agreement",
+      "jurisdiction": "India",
+      "governingLaw": "India; arbitration in Bengaluru, Karnataka",
+      "requiredSections": [
+        "Draft Notice",
+        "Parties",
+        "Recitals",
+        "Scope of Services",
+        "Fees and Payment",
+        "Term and Termination",
+        "Confidentiality",
+        "Intellectual Property",
+        "Warranties",
+        "Limitation of Liability",
+        "Indemnification",
+        "General Provisions",
+        "Governing Law and Dispute Resolution",
+        "Signatures Disabled",
+        "Appendix A – Scope of Work"
+      ]
+    }
+  },
+  "rendererPolicy": {
+    "id": "thoughtseed.docx.legal.a4.v1",
+    "digest": "sha256:ab11e39c744ac22dd6ee88b50f7fd275954ce4dd6bebd44590844b1f6ac6f453",
+    "spec": {
+      "engine": "docx-js@9.5.1",
+      "archiveEngine": "jszip@3.10.1",
+      "deterministicTimestampSource": "approval.observedAt",
+      "zipCompressionLevel": 6,
+      "page": "A4",
+      "pageWidthDxa": 11906,
+      "pageHeightDxa": 16838,
+      "marginDxa": 1440,
+      "bodyFont": "Times New Roman",
+      "bodyHalfPoints": 22,
+      "headingHalfPoints": 24,
+      "lineSpacingTwips": 360,
+      "pageNumbers": true,
+      "fallbackPolicy": "fail_closed"
+    }
+  }
+}
