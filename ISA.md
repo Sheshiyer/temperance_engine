@@ -199,7 +199,7 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-01: Decide Temperance Engine owns exactly one preference store, `ISA.md`. GSD config and PAI steering/memory remain fully external and out of scope; no separate precedence doc. The only cross-system touch is the hook's read-only `config.json` display read, enforced structurally (no write path exists in the script) rather than documented in prose.
 - 2026-07-01: Port the runtime identity to live operator surfaces as an attached, reversible `<!-- temperance:identity -->` block (live-is-truth), never a content replacement; prove the installer layering first with an isolated sandbox harness that pins the Pulse port and cannot touch the real home directory.
 - 2026-07-09: Promote product-engineering workflow hardening into repo-native state: `.planning` is the GSD execution spine, Speckit-style specs/plans remain design inputs, `ISA.md` remains the acceptance ledger, and only ratified surfaces become active phases.
-- 2026-07-18: Pin the command-code type→model primaries in `package/router/classify-task.sh` (`model_for_type`) to the account's credit deals so parallel dispatch spends discounted/free tokens: `fast`+`validation` → `tencent/Hy3` (FREE), `long-horizon` → `xiaomi/mimo-v2.5-pro` (5×, permanent), `reasoning` → `deepseek/deepseek-v4-pro` (4×, permanent), `creative`+`balanced` → `MiniMaxAI/MiniMax-M3` (2.67×). Permanent deals hold the durable coding/reasoning slots; the two Jul-21-expiring deals (`Hy3`, `MiniMax-M3`) hold high-volume slots. **Revert the four expiring-deal slots on/after 2026-07-21** back to durable models. `task-model-router.ts` is dead (no consumers) and was left untouched — a candidate for deletion under ISC-39's one-classifier doctrine.
+- 2026-07-18: Pin the command-code type→model primaries in `package/router/classify-task.sh` (`model_for_type`) to the account's credit deals so parallel dispatch spends discounted/free tokens: `fast`+`validation` → `tencent/Hy3` (FREE), `long-horizon` → `xiaomi/mimo-v2.5-pro` (5×, permanent), `reasoning` → `deepseek/deepseek-v4-pro` (4×, permanent), `creative`+`balanced` → `MiniMaxAI/MiniMax-M3` (2.67×). Permanent deals hold the durable coding/reasoning slots; the two Jul-21-expiring deals (`Hy3`, `MiniMax-M3`) hold high-volume slots. **Revert the four expiring-deal slots on/after 2026-07-21** back to durable models. `package/router/task-model-router.ts` — a dead, no-consumer re-implementation of the classifier + a stale MODEL_CATALOG — was deleted 2026-07-18 so ISC-39's one-classifier doctrine holds literally.
 
 ## Changelog
 
@@ -207,6 +207,7 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-09: Added `.planning` as a ratified GSD execution map, not a second preference store.
 - 2026-07-09: Added `scripts/verify-all.sh` and delegated CI package verification to that full gate.
 - 2026-07-18: Repointed the dispatch type→model primaries to the account's command-code credit deals (Hy3/MiMo-V2.5-Pro/DeepSeek-V4-Pro/MiniMax-M3); updated `multi-backend-router.sh` MODEL_CATALOG metadata and the `tests/classify-task.sh` + `routing.test.ts` expectations to match.
+- 2026-07-18: Deleted dead `package/router/task-model-router.ts` (no importers; re-implemented the classifier against ISC-39 and carried a now-stale model catalog).
 
 ## Verification
 
