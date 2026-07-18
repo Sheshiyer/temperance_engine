@@ -49,15 +49,24 @@ classify_task_type() {
 # inline -> current-session sentinel). Single source of the type->primary
 # catalog: MBR derives ROUTING_PRIORITY's command-code column from this, and
 # routing.ts renders `preferred=` from it.
+#
+# Primaries are pinned to the account's command-code credit deals so parallel
+# dispatch spends discounted/free tokens (decision 2026-07-18):
+#   tencent/Hy3            FREE  ($0/req)   -- expires 2026-07-21
+#   xiaomi/mimo-v2.5-pro   5x    ($30->150) -- permanent
+#   deepseek/deepseek-v4-pro 4x  ($30->120) -- permanent
+#   MiniMaxAI/MiniMax-M3   2.67x ($30->80)  -- expires 2026-07-21
+# On/after 2026-07-21, revert the two expiring slots (fast, validation ->
+# a durable fast model; creative, balanced -> a durable general model).
 model_for_type() {
   case "$1" in
-    fast)         echo "command-code:deepseek/deepseek-v4-flash" ;;
-    long-horizon) echo "command-code:moonshotai/Kimi-K2.7-Code" ;;
-    reasoning)    echo "command-code:claude-fable-5" ;;
-    validation)   echo "command-code:google/gemini-3.5-flash" ;;
-    creative)     echo "command-code:claude-sonnet-5" ;;
+    fast)         echo "command-code:tencent/Hy3" ;;
+    long-horizon) echo "command-code:xiaomi/mimo-v2.5-pro" ;;
+    reasoning)    echo "command-code:deepseek/deepseek-v4-pro" ;;
+    validation)   echo "command-code:tencent/Hy3" ;;
+    creative)     echo "command-code:MiniMaxAI/MiniMax-M3" ;;
     inline)       echo "inline:current-session" ;;
-    *)            echo "command-code:claude-sonnet-5" ;;
+    *)            echo "command-code:MiniMaxAI/MiniMax-M3" ;;
   esac
 }
 

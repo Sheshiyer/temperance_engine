@@ -8,8 +8,8 @@ check() { # desc, expected, actual
 
 # route-only emits BACKEND<TAB>MODEL for a coding task when command-code is available
 out=$(TEMPERANCE_BACKENDS="command-code" "$R" --route-only "refactor the entire auth layer")
-check "route-only long-horizon -> command-code kimi model" \
-  "command-code	moonshotai/Kimi-K2.7-Code" "$out"
+check "route-only long-horizon -> command-code primary" \
+  "command-code	xiaomi/mimo-v2.5-pro" "$out"
 
 # zero backends -> none<TAB>-
 out=$(TEMPERANCE_BACKENDS="" "$R" --route-only "refactor the entire auth layer")
@@ -38,12 +38,12 @@ check "inline --execute exit code" "3" "$?"
 # --route-only-with-fallbacks: full priority-filtered chain, in order,
 # filtered to available backends.
 out=$(TEMPERANCE_BACKENDS="command-code grok kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
-expected=$'command-code\tmoonshotai/Kimi-K2.7-Code\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
+expected=$'command-code\txiaomi/mimo-v2.5-pro\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
 check "route-only-with-fallbacks: cc/grok/kimi in order" "$expected" "$out"
 
 # filtered to available: grok missing from TEMPERANCE_BACKENDS -> 2 lines (grok dropped)
 out=$(TEMPERANCE_BACKENDS="command-code kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
-expected=$'command-code\tmoonshotai/Kimi-K2.7-Code\nkimi\tkimi-code/kimi-for-coding'
+expected=$'command-code\txiaomi/mimo-v2.5-pro\nkimi\tkimi-code/kimi-for-coding'
 check "route-only-with-fallbacks: grok filtered out when unavailable" "$expected" "$out"
 
 # inline task -> single inline<TAB>- line
@@ -76,7 +76,7 @@ v="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --verdict 'summarize this text
 # (route_only emits the model WITHOUT its "command-code:" prefix, so verdict
 #  carries the bare model in field 3.)
 v="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --verdict 'refactor the auth module')"
-[[ "$v" == "external"$'\t'"command-code"$'\t'"moonshotai/Kimi-K2.7-Code" ]] \
+[[ "$v" == "external"$'\t'"command-code"$'\t'"xiaomi/mimo-v2.5-pro" ]] \
   && echo "ok   - verdict external" || { echo "FAIL - verdict external: $v"; fail=1; }
 # non-trivial + NO backend -> claude-subagent
 v="$(TEMPERANCE_BACKENDS='' bash "$R" --verdict 'refactor the auth module')"
@@ -101,7 +101,7 @@ jv="$(TEMPERANCE_BACKENDS='command-code' bash "$R" --json 'refactor the auth mod
 #  symlink to this router; SCRIPT_DIR must resolve to the REAL dir, not the link's.)
 SYM_TMP="$(mktemp -d)"; ln -s "$R" "$SYM_TMP/temperance-route"
 sym_out="$(TEMPERANCE_BACKENDS='command-code' bash "$SYM_TMP/temperance-route" --route-only 'refactor the auth module' 2>&1)"
-check "MBR via symlink sources classify-task.sh" "command-code	moonshotai/Kimi-K2.7-Code" "$sym_out"
+check "MBR via symlink sources classify-task.sh" "command-code	xiaomi/mimo-v2.5-pro" "$sym_out"
 rm -rf "$SYM_TMP"
 
 # --- #6: route-task.sh is retired; nothing may reference it ---

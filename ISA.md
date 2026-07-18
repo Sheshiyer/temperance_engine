@@ -1,9 +1,12 @@
 ---
 project: temperance_engine
+task: Package and maintain Temperance Engine public installer/runtime docs
 effort: E4
 phase: complete
-progress: 34/34
+progress: 48/48
 mode: public-package
+started: 2026-06-12
+updated: 2026-07-09
 ---
 
 ## Problem
@@ -17,6 +20,13 @@ Temperance Engine gives a user a readable public repo that explains the runtime,
 ## Out of Scope
 
 Bundling private memory, credentials, backups, proprietary voice/audio packs, or forcing non-macOS voice behavior is out of scope.
+
+## Principles
+
+- `ISA.md` remains the single acceptance ledger and preference store.
+- GSD organizes execution; Speckit-style specs/plans supply design context.
+- Runtime enrichment must fail open and expose pointers, not private file bodies.
+- Ratification controls scope: pending review surfaces stay deferred.
 
 ## Constraints
 
@@ -72,6 +82,14 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - [x] ISC-38: `UPSTREAM.md` credits gsd-core with its current URL (`https://github.com/open-gsd/gsd-core`).
 - [x] ISC-39 — Unified task router (single classifier). Task-type classification and the command-code type→model primary live in exactly one place: `package/router/classify-task.sh` (POSIX sh). `multi-backend-router.sh` sources it (its `analyze_task_type` delegates; `ROUTING_PRIORITY`'s command-code column is derived from `model_for_type`), and `package/enrich/stages/routing.ts` execs it. No routing surface re-implements the classifier. `route-task.sh` is retired. Because `routing.ts` now execs the shared script, the enrichment runtime must be able to reach it: either a co-located `router/classify-task.sh` sibling of the installed `enrich/`, or `TEMPERANCE_ROUTER_DIR` pointing at its directory. If neither is reachable, `routing.ts` fails open to `task=balanced` (degraded, never fatal).
 - [x] ISC-40 — Three routing verdicts. `multi-backend-router.sh --verdict "<task>"` emits exactly one of `inline` | `external<TAB>backend<TAB>model` | `claude-subagent`, as a pure remap of `--route-only` (so they never disagree). `external` names the backend `route_only` selected — `command-code` when it is available (the sole auto-preferred), otherwise the first available backend in the command-code→grok→kimi fallback chain (ISC / #8), byte-identical to `--route-only` (so grok/kimi surface only when command-code is down or forced via `--backend`, never as a preference while command-code is up). `claude-subagent` is the no-external-backend case.
+- [x] ISC-41: ISA frontmatter contains `project`, `task`, `effort`, `phase`, `progress`, `mode`, `started`, and `updated`; `progress` matches the checked active criteria count.
+- [x] ISC-42: ISA body includes the canonical project-ledger sections for Problem, Vision, Out of Scope, Principles, Constraints, Goal, Criteria, Test Strategy, Features, Decisions, Changelog, and Verification.
+- [x] ISC-43: Test Strategy contains rows for every active ISC through ISC-48, including ISC-39, ISC-40, and the workflow-hardening criteria.
+- [x] ISC-44: Features maps every active ISC or ISC range, including identity, unified flow, unified router, planning-state resolver hardening, planning spine, and the full verification gate.
+- [x] ISC-45: `package/enrich/resolver.test.ts` covers valid `.planning` absent and present states, empty `.planning`, and `.planning` as a file while preserving fail-open pointer-only behavior.
+- [x] ISC-46: Root `.planning/` exists as the GSD execution spine and maps ratified surfaces into active or completed-reference phases while keeping pending specs/plans deferred.
+- [x] ISC-47: `scripts/verify-all.sh` is the canonical full verification entrypoint and runs `./verify.sh`, `bun test package/enrich`, docs continuity, router hardening, sandbox install, identity, wire-batch, and classify checks.
+- [x] ISC-48: `.github/workflows/verify.yml` delegates package verification to `scripts/verify-all.sh` and declares the runtime dependencies needed for that gate.
 
 ## Test Strategy
 
@@ -115,6 +133,16 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | ISC-36 | text | ISA.md/docs state gsd-core as recommended-default with superpowers-only fallback | match | grep |
 | ISC-37 | text | retired docs are redirect stubs pointing at `pai-flow.md`; conductor script removed | match + zero matches | grep + test |
 | ISC-38 | text | `UPSTREAM.md` credits `open-gsd/gsd-core` | match | grep |
+| ISC-39 | shell | router and enrichment classification use `package/router/classify-task.sh` | zero disagreement | bash tests/router-hardening.sh + bash tests/classify-task.sh |
+| ISC-40 | shell | `--verdict` agrees with `--route-only` across inline, external, and subagent cases | zero disagreement | bash tests/router-hardening.sh |
+| ISC-41 | text | ISA frontmatter has canonical metadata and `progress: 48/48` | match | grep |
+| ISC-42 | text | ISA includes Principles and Changelog project-ledger sections | match | grep |
+| ISC-43 | text | Test Strategy has rows for ISC-39..ISC-48 | match | grep |
+| ISC-44 | text | Features table maps identity, unified flow, router, planning, and full verification ranges | match | grep |
+| ISC-45 | unit | `.planning` absent, present, empty, and file states are explicit resolver contracts | pass | bun test package/enrich |
+| ISC-46 | text | `.planning` exists, names GSD/Speckit, and gates ratified surfaces | match | bash tests/docs-continuity.sh |
+| ISC-47 | shell | `scripts/verify-all.sh` runs all named hardening checks | zero failures | scripts/verify-all.sh |
+| ISC-48 | yaml | GitHub Verify workflow calls `scripts/verify-all.sh` and sets up Node, Bun, and jq | match | bash tests/docs-continuity.sh |
 
 ## Features
 
@@ -129,6 +157,12 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | Single preference store | ISC-32 | parallel-dispatch guidance | no |
 | Layering test harness | ISC-33 | installer scripts | no |
 | Identity port tool | ISC-34 | operator AGENTS.md surfaces | no |
+| Unified PAI/GSD workflow table | ISC-35..ISC-38 | PAI flow docs | yes |
+| Unified router invariants | ISC-39..ISC-40 | router scripts, enrichment stage | no |
+| ISA normalization ledger | ISC-41..ISC-44 | ISA criteria and sections | no |
+| Planning-state resolver hardening | ISC-45 | package/enrich resolver | yes |
+| GSD planning spine | ISC-46 | ISA, specs, plans | yes |
+| Full verification gate | ISC-47..ISC-48 | existing test harnesses, CI | no |
 
 ## Architecture
 
@@ -164,6 +198,15 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-01: Record parallel-dispatch strategy as ISA-tracked decisions (ISC-28..ISC-31) rather than a new config file; GSD stays an opt-in thin reference (`--with-gsd`, default OFF) never vendored, and the shipped hook is advisory-only with no auto-triggered dispatch.
 - 2026-07-01: Decide Temperance Engine owns exactly one preference store, `ISA.md`. GSD config and PAI steering/memory remain fully external and out of scope; no separate precedence doc. The only cross-system touch is the hook's read-only `config.json` display read, enforced structurally (no write path exists in the script) rather than documented in prose.
 - 2026-07-01: Port the runtime identity to live operator surfaces as an attached, reversible `<!-- temperance:identity -->` block (live-is-truth), never a content replacement; prove the installer layering first with an isolated sandbox harness that pins the Pulse port and cannot touch the real home directory.
+- 2026-07-09: Promote product-engineering workflow hardening into repo-native state: `.planning` is the GSD execution spine, Speckit-style specs/plans remain design inputs, `ISA.md` remains the acceptance ledger, and only ratified surfaces become active phases.
+- 2026-07-18: Pin the command-code type→model primaries in `package/router/classify-task.sh` (`model_for_type`) to the account's credit deals so parallel dispatch spends discounted/free tokens: `fast`+`validation` → `tencent/Hy3` (FREE), `long-horizon` → `xiaomi/mimo-v2.5-pro` (5×, permanent), `reasoning` → `deepseek/deepseek-v4-pro` (4×, permanent), `creative`+`balanced` → `MiniMaxAI/MiniMax-M3` (2.67×). Permanent deals hold the durable coding/reasoning slots; the two Jul-21-expiring deals (`Hy3`, `MiniMax-M3`) hold high-volume slots. **Revert the four expiring-deal slots on/after 2026-07-21** back to durable models. `task-model-router.ts` is dead (no consumers) and was left untouched — a candidate for deletion under ISC-39's one-classifier doctrine.
+
+## Changelog
+
+- 2026-07-09: Normalized ISA frontmatter, added Principles and Changelog sections, and extended criteria through ISC-48 for product-engineering workflow hardening.
+- 2026-07-09: Added `.planning` as a ratified GSD execution map, not a second preference store.
+- 2026-07-09: Added `scripts/verify-all.sh` and delegated CI package verification to that full gate.
+- 2026-07-18: Repointed the dispatch type→model primaries to the account's command-code credit deals (Hy3/MiMo-V2.5-Pro/DeepSeek-V4-Pro/MiniMax-M3); updated `multi-backend-router.sh` MODEL_CATALOG metadata and the `tests/classify-task.sh` + `routing.test.ts` expectations to match.
 
 ## Verification
 
@@ -179,3 +222,5 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-06-15: `bash scripts/readme-continuity-check.sh HEAD HEAD` passed.
 - 2026-06-15: `./install.sh --dry-run --skip-voice` proved default mode skips Claude/Pulse and Codex while installing OpenCode/Cursor templates.
 - 2026-06-15: `./install.sh --dry-run --skip-voice --with-claude --with-codex` proved optional Claude/Pulse and Codex surfaces can still be requested explicitly.
+- 2026-07-09: `bun test package/enrich` covers `.planning` absent, present, empty, and file-state resolver behavior.
+- 2026-07-09: `./scripts/verify-all.sh` passed after running `./verify.sh`, `bun test package/enrich`, docs continuity, router hardening, sandbox install, identity, wire-batch, and classify checks.

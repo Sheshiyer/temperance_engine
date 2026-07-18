@@ -21,7 +21,7 @@ check "dup id rejected" "1" "$?"
 
 # dry-run prints a routing line per task
 out=$(printf '%s' '[{"id":"T1","task":"refactor the entire module"}]' | "$W" --dry-run --tasks - 2>/dev/null)
-check "dry-run routes T1 to command-code" "T1 command-code moonshotai/Kimi-K2.7-Code" "$out"
+check "dry-run routes T1 to command-code" "T1 command-code xiaomi/mimo-v2.5-pro" "$out"
 
 # inline task is marked skipped:inline in dry-run
 out=$(printf '%s' '[{"id":"S1","task":"summarize these points"}]' | "$W" --dry-run --tasks - 2>/dev/null)
@@ -47,7 +47,7 @@ rm -f "$DIR/tests/fixtures/command-code"
 # ("--help" exactly matches the router's -h|--help case unless "--" ends option parsing)
 out=$(printf '%s' '[{"id":"F1","task":"--help"}]' | "$W" --dry-run --tasks - 2>/dev/null)
 check "flag-like task -> dispatch (not swallowed as --help)" \
-  "F1 command-code claude-sonnet-5" "$out"
+  "F1 command-code MiniMaxAI/MiniMax-M3" "$out"
 
 # concurrency cap + atomic meta + index.json + SUMMARY.md
 ln -sf mock-backend "$DIR/tests/fixtures/command-code"

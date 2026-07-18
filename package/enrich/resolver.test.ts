@@ -11,6 +11,9 @@ import { resolve } from './resolver';
 // --- fixture layout ----------------------------------------------------------
 let root: string;          // throwaway sandbox root
 let cwd: string;           // fake project dir (holds ISA.md + MEMORY.md)
+let planningCwd: string;   // fake project dir with .planning present
+let emptyPlanningCwd: string; // fake project dir with an empty .planning dir
+let filePlanningCwd: string;  // fake project dir with .planning as a file
 let home: string;          // fake HOME (holds .claude/MEMORY tree)
 let failuresNewest: string; // expected newest failure record dir
 let reflectionsFile: string;
@@ -50,12 +53,24 @@ function mk(input: Partial<EnrichInput> = {}): EnrichInput {
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), 'resolver-test-'));
   cwd = join(root, 'proj');
+  planningCwd = join(root, 'proj-with-planning');
+  emptyPlanningCwd = join(root, 'proj-with-empty-planning');
+  filePlanningCwd = join(root, 'proj-with-file-planning');
   home = join(root, 'home');
 
   // Project dir: ISA.md + a project MEMORY.md index.
   mkdirSync(cwd, { recursive: true });
   writeFileSync(join(cwd, 'ISA.md'), ISA_MD, 'utf8');
   writeFileSync(join(cwd, 'MEMORY.md'), '# index\n- pointer only\n', 'utf8');
+  mkdirSync(planningCwd, { recursive: true });
+  writeFileSync(join(planningCwd, 'ISA.md'), ISA_MD, 'utf8');
+  writeFileSync(join(planningCwd, 'MEMORY.md'), '# index\n- pointer only\n', 'utf8');
+  mkdirSync(emptyPlanningCwd, { recursive: true });
+  writeFileSync(join(emptyPlanningCwd, 'ISA.md'), ISA_MD, 'utf8');
+  writeFileSync(join(emptyPlanningCwd, 'MEMORY.md'), '# index\n- pointer only\n', 'utf8');
+  mkdirSync(filePlanningCwd, { recursive: true });
+  writeFileSync(join(filePlanningCwd, 'ISA.md'), ISA_MD, 'utf8');
+  writeFileSync(join(filePlanningCwd, 'MEMORY.md'), '# index\n- pointer only\n', 'utf8');
 
   // Fake HOME/.claude/MEMORY/LEARNING tree.
   const learning = join(home, '.claude', 'MEMORY', 'LEARNING');
@@ -80,10 +95,17 @@ beforeAll(() => {
   reflectionsFile = join(reflections, '2026-06-30_reflection.md');
   writeFileSync(reflectionsFile, '# reflection body (must NOT be returned)\n', 'utf8');
 
-  // .planning dir near cwd, with one phase entry.
-  const planning = join(cwd, '.planning');
+  // .planning dir in a separate fixture so absent and present are distinct contracts.
+  const planning = join(planningCwd, '.planning');
   mkdirSync(planning, { recursive: true });
-  writeFileSync(join(planning, 'phase-2.md'), 'in progress\n', 'utf8');
+  const phase1 = join(planning, 'phase-1.md');
+  const phase2 = join(planning, 'phase-2.md');
+  writeFileSync(phase1, 'old state\n', 'utf8');
+  writeFileSync(phase2, 'newest state body must not leak\n', 'utf8');
+  utimesSync(phase1, t('2026-06-01T00:00:00Z'), t('2026-06-01T00:00:00Z'));
+  utimesSync(phase2, t('2026-06-30T00:00:00Z'), t('2026-06-30T00:00:00Z'));
+  mkdirSync(join(emptyPlanningCwd, '.planning'), { recursive: true });
+  writeFileSync(join(filePlanningCwd, '.planning'), 'not a directory\n', 'utf8');
 });
 
 afterAll(() => {
@@ -130,10 +152,38 @@ describe('resolve()', () => {
     }
   });
 
-  test('detects the .planning dir near cwd', async () => {
+  test('omits planning state when .planning is absent from cwd', async () => {
     const ctx = await resolve(mk(), { home });
+
+    expect(ctx.isaPath).toBe(join(cwd, 'ISA.md'));
+    expect(ctx.memory.open).toBe(join(cwd, 'MEMORY.md'));
+    expect(ctx.planningPresent).toBe(false);
+    expect(ctx.planningState).toBeNull();
+  });
+
+  test('detects the .planning dir near cwd when present', async () => {
+    const ctx = await resolve(mk({ cwd: planningCwd }), { home });
+
     expect(ctx.planningPresent).toBe(true);
     expect(ctx.planningState).toBe('phase-2.md');
+    expect(ctx.planningState).not.toContain(planningCwd);
+    expect(ctx.planningState).not.toContain('newest state body');
+  });
+
+  test('treats an empty .planning dir as absent planning state', async () => {
+    const ctx = await resolve(mk({ cwd: emptyPlanningCwd }), { home });
+
+    expect(ctx.isaPath).toBe(join(emptyPlanningCwd, 'ISA.md'));
+    expect(ctx.planningPresent).toBe(false);
+    expect(ctx.planningState).toBeNull();
+  });
+
+  test('treats a .planning file as absent planning state', async () => {
+    const ctx = await resolve(mk({ cwd: filePlanningCwd }), { home });
+
+    expect(ctx.isaPath).toBe(join(filePlanningCwd, 'ISA.md'));
+    expect(ctx.planningPresent).toBe(false);
+    expect(ctx.planningState).toBeNull();
   });
 
   test('fails open: bogus cwd + bogus home never throws and yields the empty context', async () => {

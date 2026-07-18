@@ -24,7 +24,12 @@ for SH in /bin/sh /opt/homebrew/bin/bash; do
   ck "[$SH] inline guard (summarize+edit)" "balanced"   "$(type_of "$SH" 'summarize then edit the file')"
   ck "[$SH] default balanced"            "balanced"     "$(type_of "$SH" 'do the thing')"
   ck "[$SH] empty -> balanced"           "balanced"     "$(type_of "$SH" '')"
-  ck "[$SH] model(long-horizon)" "command-code:moonshotai/Kimi-K2.7-Code" "$(model_of "$SH" 'refactor the auth module')"
+  ck "[$SH] model(long-horizon)" "command-code:xiaomi/mimo-v2.5-pro" "$(model_of "$SH" 'refactor the auth module')"
+  ck "[$SH] model(reasoning)"    "command-code:deepseek/deepseek-v4-pro" "$(model_of "$SH" 'debug this failure')"
+  ck "[$SH] model(validation)"   "command-code:tencent/Hy3"              "$(model_of "$SH" 'audit the code')"
+  ck "[$SH] model(fast)"         "command-code:tencent/Hy3"              "$(model_of "$SH" 'fix typo in header')"
+  ck "[$SH] model(creative)"     "command-code:MiniMaxAI/MiniMax-M3"     "$(model_of "$SH" 'brainstorm ideas')"
+  ck "[$SH] model(balanced)"     "command-code:MiniMaxAI/MiniMax-M3"     "$(model_of "$SH" 'do the thing')"
   ck "[$SH] model(inline)"       "inline:current-session"                 "$(model_of "$SH" 'summarize this text')"
 done
 

@@ -15,6 +15,12 @@ check_file() {
 
 check_file "$ROOT/install.sh"
 check_file "$ROOT/verify.sh"
+check_file "$ROOT/scripts/verify-all.sh"
+check_file "$ROOT/.planning/PROJECT.md"
+check_file "$ROOT/.planning/ROADMAP.md"
+check_file "$ROOT/.planning/STATE.md"
+check_file "$ROOT/.planning/REQUIREMENTS.md"
+check_file "$ROOT/.planning/config.json"
 check_file "$ROOT/docs/pai-flow.md"
 check_file "$ROOT/docs/skill-clusters.md"
 check_file "$ROOT/docs/peon-ping-packs.md"
@@ -75,6 +81,7 @@ if grep -R -n -I -F \
   "$ROOT/README.md" \
   "$ROOT/.readme-notebooklm" \
   "$ROOT/.github" \
+  "$ROOT/.planning" \
   "$ROOT/docs" \
   "$ROOT/scripts" \
   "$ROOT/templates" \
@@ -122,6 +129,9 @@ fi
 
 node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$ROOT/skills.sh.json"
 printf '%s\n' "ok: skills.sh.json parses"
+
+node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$ROOT/.planning/config.json"
+printf '%s\n' "ok: .planning/config.json parses"
 
 if test "$fail" -ne 0; then
   exit 1

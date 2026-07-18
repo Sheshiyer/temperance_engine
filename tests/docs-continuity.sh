@@ -56,8 +56,39 @@ grep -q 'classify-task\.sh' "$DIR/ISA.md" && echo "ok - ISA has classify-task.sh
 grep -q -- '--verdict' "$DIR/ISA.md" && echo "ok - ISA has --verdict invariant" \
   || { echo "FAIL - ISA missing --verdict"; fail=1; }
 
+# --- ISA normalization: criteria and ledger shape are current ---
+grep -q '^task: Package and maintain Temperance Engine public installer/runtime docs$' "$DIR/ISA.md" \
+  && grep -q '^progress: 48/48$' "$DIR/ISA.md" \
+  && grep -q '^updated: 2026-07-09$' "$DIR/ISA.md" \
+  && echo "ok - ISA frontmatter normalized" \
+  || { echo "FAIL - ISA frontmatter normalization missing"; fail=1; }
+grep -q '^## Principles$' "$DIR/ISA.md" && grep -q '^## Changelog$' "$DIR/ISA.md" \
+  && echo "ok - ISA has Principles and Changelog" \
+  || { echo "FAIL - ISA missing Principles or Changelog"; fail=1; }
+grep -q 'ISC-48' "$DIR/ISA.md" && echo "ok - ISA criteria extend through ISC-48" \
+  || { echo "FAIL - ISA missing ISC-48"; fail=1; }
+grep -q 'ISA normalization ledger' "$DIR/ISA.md" && echo "ok - ISA features map normalization ledger" \
+  || { echo "FAIL - ISA features missing normalization ledger"; fail=1; }
+
 # --- A+F Task 6: skill-clusters documented as the discovery layer ---
 grep -qi "discovery/lazy-load layer" "$DIR/docs/skill-clusters.md" \
   && echo "ok - skill-clusters.md names its unified-flow role" \
   || { echo "FAIL - skill-clusters.md missing discovery/lazy-load layer statement"; fail=1; }
+
+# --- workflow hardening: .planning is a ratified GSD/Speckit execution map ---
+for planning_doc in PROJECT.md ROADMAP.md STATE.md REQUIREMENTS.md config.json; do
+  [ -f "$DIR/.planning/$planning_doc" ] \
+    && echo "ok - .planning/$planning_doc exists" \
+    || { echo "FAIL - .planning/$planning_doc missing"; fail=1; }
+done
+grep -qi "Speckit" "$DIR/.planning/PROJECT.md" && echo "ok - .planning names Speckit specs" \
+  || { echo "FAIL - .planning/PROJECT.md missing Speckit"; fail=1; }
+grep -qi "GSD" "$DIR/.planning/ROADMAP.md" && echo "ok - .planning maps GSD phases" \
+  || { echo "FAIL - .planning/ROADMAP.md missing GSD"; fail=1; }
+grep -qi "ratified" "$DIR/.planning/REQUIREMENTS.md" && echo "ok - .planning gates ratified surfaces" \
+  || { echo "FAIL - .planning/REQUIREMENTS.md missing ratified-surface policy"; fail=1; }
+grep -q "scripts/verify-all.sh" "$DIR/.planning/config.json" && echo "ok - .planning config points at verify-all" \
+  || { echo "FAIL - .planning/config.json missing verify-all"; fail=1; }
+grep -q "scripts/verify-all.sh" "$DIR/.github/workflows/verify.yml" && echo "ok - CI delegates to verify-all" \
+  || { echo "FAIL - verify workflow does not call scripts/verify-all.sh"; fail=1; }
 exit $fail

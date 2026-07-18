@@ -101,7 +101,7 @@ describe('routing stage', () => {
     ]);
     const r = runRoutingWithEnv('quick refactor the module', `${shimDir}:/usr/bin:/bin`);
     expect(r.line).toContain('| task=long-horizon');
-    expect(r.line).toContain('preferred=command-code:moonshotai/Kimi-K2.7-Code');
+    expect(r.line).toContain('preferred=command-code:xiaomi/mimo-v2.5-pro');
     expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);
   });
 

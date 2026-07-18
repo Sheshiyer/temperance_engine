@@ -1,0 +1,19 @@
+{
+  "project": "temperance_engine",
+  "active_milestone": "product-engineering-workflow-hardening",
+  "active_phase": "verify",
+  "workflow": {
+    "system": "gsd",
+    "require_isa_criteria": true,
+    "require_ratified_surfaces": true,
+    "require_verification_evidence": true,
+    "auto_advance": false
+  },
+  "sources": {
+    "isa": "ISA.md",
+    "spec_method": "Speckit-style specs",
+    "specs": "docs/superpowers/specs",
+    "plans": "docs/superpowers/plans",
+    "verification": "scripts/verify-all.sh"
+  }
+}
