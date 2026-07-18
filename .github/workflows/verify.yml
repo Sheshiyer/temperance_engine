@@ -24,6 +24,9 @@ jobs:
       - name: Install jq
         run: brew install jq
 
+      - name: Install bash 4+
+        run: brew install bash
+
       - name: Verify package
         run: ./scripts/verify-all.sh
 
