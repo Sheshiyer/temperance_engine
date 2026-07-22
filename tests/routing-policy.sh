@@ -43,6 +43,7 @@ if jq -e '
   (.correlation_id == ("tc_" + (.input_hash[0:24]))) and
   (.input_hash | length == 64) and
   (.static_order | length == 3) and
+  ([.static_order[].failure_domain] == ["direct","direct","direct"]) and
   (.proposed_order | length == 3) and
   (.selected_order | length == 3)
 ' >/dev/null 2>&1 <<< "$plan"; then

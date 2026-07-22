@@ -22,6 +22,12 @@ out=$(TEMPERANCE_BACKENDS="omniroute command-code grok kimi" "$R" --route-only-w
 expected=$'omniroute\ttemperance-coding\ncommand-code\txiaomi/mimo-v2.5-pro\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
 check "OmniRoute gateway precedes direct fallback rails" "$expected" "$out"
 
+domain_plan=$(TEMPERANCE_BACKENDS="omniroute command-code grok kimi" "$R" --plan-json "refactor the entire auth layer")
+check "OmniRoute candidate declares gateway domain" "gateway" \
+  "$(jq -r '.static_order[] | select(.backend=="omniroute") | .failure_domain' <<< "$domain_plan")"
+check "direct candidates declare direct domain" "3" \
+  "$(jq -r '[.static_order[] | select(.failure_domain=="direct")] | length' <<< "$domain_plan")"
+
 # zero backends -> none<TAB>-
 out=$(TEMPERANCE_BACKENDS="" "$R" --route-only "refactor the entire auth layer")
 check "route-only zero backends -> none" "none	-" "$out"

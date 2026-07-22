@@ -13,6 +13,7 @@ const candidates: RoutingInput["candidates"] = [
     backend: "command-code",
     model: "MiniMaxAI/MiniMax-M3",
     static_rank: 0,
+    failure_domain: "direct",
     tier: "balanced",
     strength: "frontier",
     context_window: "1M",
@@ -21,6 +22,7 @@ const candidates: RoutingInput["candidates"] = [
     backend: "grok",
     model: "grok-build",
     static_rank: 1,
+    failure_domain: "direct",
     tier: "balanced",
     strength: "coding",
     context_window: "128k",
@@ -29,6 +31,7 @@ const candidates: RoutingInput["candidates"] = [
     backend: "kimi",
     model: "kimi-code/kimi-for-coding",
     static_rank: 2,
+    failure_domain: "direct",
     tier: "deep",
     strength: "coding",
     context_window: "262k",
@@ -115,6 +118,36 @@ describe("planRouting", () => {
     expect(plan.diverged).toBeFalse();
     expect(plan.proposed_order).toEqual(plan.static_order);
     expect(plan.selected_order).toEqual(plan.static_order);
+  });
+
+  test("candidate failure domains survive plan normalization", () => {
+    const plan = planRouting(
+      input({
+        candidates: [
+          {
+            backend: "omniroute",
+            model: "temperance-coding",
+            static_rank: 0,
+            failure_domain: "gateway",
+          },
+          {
+            backend: "grok",
+            model: "grok-build",
+            static_rank: 1,
+            failure_domain: "direct",
+          },
+        ],
+      }),
+    );
+
+    expect(
+      (plan.static_order.find(({ backend }) => backend === "omniroute") as Record<string, unknown>)
+        .failure_domain,
+    ).toBe("gateway");
+    expect(
+      (plan.static_order.find(({ backend }) => backend === "grok") as Record<string, unknown>)
+        .failure_domain,
+    ).toBe("direct");
   });
 
   test("forced overrides collapse to one candidate", () => {

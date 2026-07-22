@@ -196,9 +196,11 @@ candidate_json() { # route static_rank -> JSON
   local info="${MODEL_CATALOG[$route]:-unknown:unknown:unknown}"
   local tier="${info%%:*}" rest="${info#*:}"
   local strength="${rest%%:*}" context="${rest#*:}"
+  local failure_domain="direct"
+  [[ "$backend" == "omniroute" ]] && failure_domain="gateway"
   jq -cn --arg b "$backend" --arg m "$model" --argjson r "$rank" \
-    --arg tier "$tier" --arg strength "$strength" --arg context "$context" \
-    '{backend:$b,model:$m,static_rank:$r,tier:$tier,strength:$strength,context_window:$context}'
+    --arg tier "$tier" --arg strength "$strength" --arg context "$context" --arg failure_domain "$failure_domain" \
+    '{backend:$b,model:$m,static_rank:$r,failure_domain:$failure_domain,tier:$tier,strength:$strength,context_window:$context}'
 }
 
 static_policy_plan() { # mode task_type disposition candidates_json -> JSON
@@ -237,7 +239,8 @@ valid_policy_plan() { # JSON on stdin
       type=="object" and
       (.backend|type=="string" and length>0) and
       (.model|type=="string" and length>0) and
-      (.static_rank|type=="number");
+      (.static_rank|type=="number") and
+      (.failure_domain=="gateway" or .failure_domain=="direct");
     def route_key: [.backend,.model] | @tsv;
     (.policy_version|type=="string" and length>0) and
     (.plan_id|type=="string" and length>0) and

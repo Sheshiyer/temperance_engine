@@ -142,7 +142,8 @@ valid_dispatch_plan(){ # plan file
       type=="object" and
       (.backend|type=="string" and length>0) and
       (.model|type=="string" and length>0) and
-      (.static_rank|type=="number");
+      (.static_rank|type=="number") and
+      (.failure_domain=="gateway" or .failure_domain=="direct");
     def route_key: [.backend,.model] | @tsv;
     (.plan_id|type=="string" and length>0) and
     (.correlation_id|type=="string" and test("^tc_[A-Za-z0-9._-]+$")) and
@@ -214,15 +215,16 @@ build_index_json(){
 }
 
 # attempt_record: backend model exit dur status -> one jq-built attempt object
-attempt_record(){ # backend model exit dur status task_id attempt_index start_ms finish_ms fallback_reason usage_json cost_json correlation_id -> JSON
+attempt_record(){ # backend model exit dur status task_id attempt_index start_ms finish_ms fallback_reason usage_json cost_json correlation_id failure_domain -> JSON
   jq -n --arg b "$1" --arg m "$2" --argjson ex "$3" --argjson d "$4" --arg st "$5" \
     --arg task_id "$6" --argjson attempt_index "$7" --argjson started_at_ms "$8" \
     --argjson finished_at_ms "$9" --arg fallback_reason "${10:-}" \
-    --argjson usage "${11:-null}" --argjson cost "${12:-null}" --arg correlation_id "${13:-}" \
+    --argjson usage "${11:-null}" --argjson cost "${12:-null}" --arg correlation_id "${13:-}" --arg failure_domain "${14:-}" \
     '{event:"attempt",backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
       task_id:$task_id,attempt_index:$attempt_index,started_at_ms:$started_at_ms,
       finished_at_ms:$finished_at_ms,
       correlation_id:(if $correlation_id=="" then null else $correlation_id end),
+      failure_domain:(if $failure_domain=="" then null else $failure_domain end),
       fallback_reason:(if $fallback_reason=="" then null else $fallback_reason end),
       usage:$usage,cost:$cost}'
 }
@@ -678,22 +680,23 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json correlation_id
   # same wait. Any other non-zero exit -> record failed, advance to the next
   # backend in the chain. Chain exhausted with no success -> status=failed
   # using the LAST attempt's exit code.
-  local -a fb_backends=() fb_models=()
-  while IFS=$'\t' read -r fbk fmk; do
+  local -a fb_backends=() fb_models=() fb_domains=()
+  while IFS=$'\t' read -r fbk fmk fdomain; do
     [[ -z "$fbk" || "$fbk" == "none" || "$fbk" == "inline" ]] && continue
-    fb_backends+=("$fbk"); fb_models+=("$fmk")
-  done < <(jq -r '.[]? | [.backend,.model] | @tsv' <<< "$selected_order_json" 2>/dev/null)
+    fb_backends+=("$fbk"); fb_models+=("$fmk"); fb_domains+=("$fdomain")
+  done < <(jq -r '.[]? | [.backend,.model,.failure_domain] | @tsv' <<< "$selected_order_json" 2>/dev/null)
   # Guard for a corrupt/missing plan: attempt the cached first route once.
   if (( ${#fb_backends[@]} == 0 )); then
     fb_backends=("$rb"); fb_models=("$rm")
+    [[ "$rb" == "omniroute" ]] && fb_domains=("gateway") || fb_domains=("direct")
   fi
 
   local attempts_json="[]"
-  local ex=1 dur=0 st="failed" fbk fmk start_ms=0 finish_ms=0 fallback_reason=""
+  local ex=1 dur=0 st="failed" fbk fmk fdomain start_ms=0 finish_ms=0 fallback_reason=""
   local metrics_file metrics_json usage_json cost_json
   local i
   for ((i=0; i<${#fb_backends[@]}; i++)); do
-    fbk="${fb_backends[i]}"; fmk="${fb_models[i]}"
+    fbk="${fb_backends[i]}"; fmk="${fb_models[i]}"; fdomain="${fb_domains[i]}"
     IFS=$'\t' read -r ex dur start_ms finish_ms < <(run_attempt "$fbk" "$task" "$fmk" "$OUT/$id.out" "$TIMEOUT" "$correlation_id")
     if (( ex == 124 )); then st="timeout"
     elif (( ex != 0 )); then st="failed"
@@ -708,7 +711,7 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json correlation_id
     usage_json="$(jq -c '.usage // null' <<< "$metrics_json")"
     cost_json="$(jq -c '.cost // null' <<< "$metrics_json")"
     rm -f "$metrics_file"
-    attempts_json=$(jq -c --argjson prev "$attempts_json" --argjson rec "$(attempt_record "$fbk" "$fmk" "$ex" "$dur" "$st" "$id" "$i" "$start_ms" "$finish_ms" "$fallback_reason" "$usage_json" "$cost_json" "$correlation_id")" \
+    attempts_json=$(jq -c --argjson prev "$attempts_json" --argjson rec "$(attempt_record "$fbk" "$fmk" "$ex" "$dur" "$st" "$id" "$i" "$start_ms" "$finish_ms" "$fallback_reason" "$usage_json" "$cost_json" "$correlation_id" "$fdomain")" \
       -n '$prev + [$rec]')
     rb="$fbk"; rm="$fmk"   # top-level fields track the FINAL attempt
     if [[ "$st" == "ok" ]]; then break; fi

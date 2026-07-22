@@ -130,6 +130,10 @@ check "gateway failure falls back to direct backend" "command-code" \
   "$(jq -r '.tasks[0].backend' "$fallback_run/index.json" 2>/dev/null)"
 check "gateway and direct attempts share correlation" "1" \
   "$(jq -r --arg correlation "$trace_correlation" '[.tasks[0].attempts[] | select(.correlation_id == $correlation)] | length == 2 | if . then 1 else 0 end' "$fallback_run/index.json" 2>/dev/null)"
+check "gateway attempt records gateway failure domain" "gateway" \
+  "$(jq -r '.tasks[0].attempts[0].failure_domain' "$fallback_run/index.json" 2>/dev/null)"
+check "direct fallback records direct failure domain" "direct" \
+  "$(jq -r '.tasks[0].attempts[1].failure_domain' "$fallback_run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code"
 rm -f "$DIR/tests/fixtures/codex"
 

@@ -18,11 +18,13 @@ export const CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000;
 
 export type PolicyMode = "off" | "shadow" | "enforce";
 export type CircuitState = "closed" | "open" | "half_open";
+export type FailureDomain = "gateway" | "direct";
 
 export interface RouteCandidate {
   backend: string;
   model: string;
   static_rank: number;
+  failure_domain: FailureDomain;
   tier?: string;
   strength?: string;
   context_window?: string;
@@ -187,6 +189,7 @@ function plainCandidate(candidate: RouteCandidate): RouteCandidate {
     backend: candidate.backend,
     model: candidate.model,
     static_rank: candidate.static_rank,
+    failure_domain: candidate.failure_domain,
     ...(candidate.tier === undefined ? {} : { tier: candidate.tier }),
     ...(candidate.strength === undefined ? {} : { strength: candidate.strength }),
     ...(candidate.context_window === undefined

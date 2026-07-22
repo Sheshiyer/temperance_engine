@@ -3,7 +3,7 @@ project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
 phase: execute
-progress: 95/105
+progress: 96/105
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-22
@@ -159,7 +159,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-94: Every task attempt record repeats its frozen plan's correlation identifier.
 - [x] ISC-95: The OmniRoute Codex adapter forwards the correlation identifier as request metadata.
 - [x] ISC-96: Direct fallback attempts retain the same correlation identifier after gateway failure.
-- [ ] ISC-97: Every external routing candidate declares either the gateway or direct failure domain.
+- [x] ISC-97: Every external routing candidate declares either the gateway or direct failure domain.
 - [ ] ISC-98: Shared task-type output resolves deterministically to a named OmniRoute portfolio.
 - [ ] ISC-99: A missing named portfolio degrades through the compatibility combo before direct backends.
 - [ ] ISC-100: Anti: unverified OmniRoute telemetry or eval output never receives enforcement authority.
@@ -416,3 +416,4 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-94: integration test — `bash tests/dispatch-tasklist.sh` reported `ok - attempt correlation matches frozen plan`.
 - ISC-95: mocked client probe — `bash tests/dispatch-tasklist.sh` reported `ok - OmniRoute Codex request carries correlation header`.
 - ISC-96: fallback integration — `bash tests/dispatch-tasklist.sh` reported `ok - gateway and direct attempts share correlation` and completed with `dispatch-tasklist: PASS`.
+- ISC-97: schema and integration tests — policy/router tests label OmniRoute `gateway` and all CLI candidates `direct`; dispatcher fallback reported both domains and completed with `dispatch-tasklist: PASS`.
