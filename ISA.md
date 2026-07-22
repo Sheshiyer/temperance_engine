@@ -2,8 +2,8 @@
 project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
-phase: learn
-progress: 99/106
+phase: execute
+progress: 101/106
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-22
@@ -163,8 +163,8 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-98: Shared task-type output resolves deterministically to a named OmniRoute portfolio.
 - [x] ISC-99: A missing named portfolio degrades through the compatibility combo before direct backends.
 - [x] ISC-100: Anti: unverified OmniRoute telemetry or eval output never receives enforcement authority.
-- [ ] ISC-101: A machine-readable readiness probe reports configured portfolio availability.
-- [ ] ISC-102: A machine-readable readiness probe reports telemetry and evaluation evidence state.
+- [x] ISC-101: A machine-readable readiness probe reports configured portfolio availability.
+- [x] ISC-102: A machine-readable readiness probe reports telemetry and evaluation evidence state.
 - [ ] ISC-103: Enrichment reports the shared classifier's resolved OmniRoute portfolio without reclassifying the task.
 - [ ] ISC-104: The full verification entrypoint executes governed-portfolio regression tests.
 - [ ] ISC-105: Operator documentation distinguishes discovery routes, production portfolios, councils, and direct fallbacks.
@@ -429,3 +429,5 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-98: unit test — `bun test package/router/omniroute-portfolios.test.ts` passed mappings for all six outputs of the shared task classifier.
 - ISC-99: fixture-driven routing integration — `bash tests/router-hardening.sh` proved a missing named portfolio keeps `temperance-coding` selected before the direct primary, while an empty gateway catalog removes OmniRoute and selects the direct rail.
 - ISC-100: isolation probes — the portfolio manifest reports `enforcement=shadow`, resolver tests pin no provider members, and a live plan inspection found no `te-*` model in `selected_order`.
+- ISC-101: readiness CLI — `bash tests/omniroute-check.sh` and `scripts/omniroute-check.sh --json` reported the schema version, catalog count, configured/available/missing portfolios, and failed closed for an unknown fixture schema.
+- ISC-102: evidence-state CLI — the same fixture/live probes reported telemetry and eval availability/counts, preserved unavailable/null evidence, and kept `.enforcement_ready` false.
