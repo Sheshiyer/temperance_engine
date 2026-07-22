@@ -163,12 +163,6 @@ declare -A ROUTING_FALLBACK_TAILS=(
   ["creative"]="grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
   ["balanced"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
 )
-declare -A ROUTING_PRIORITY=()
-for _rt in fast long-horizon reasoning validation creative balanced; do
-  ROUTING_PRIORITY["$_rt"]="omniroute:${TEMPERANCE_OMNIROUTE_MODEL:-temperance-coding} $(model_for_type "$_rt") ${ROUTING_FALLBACK_TAILS[$_rt]}"
-done
-unset _rt
-
 routing_priority_for_type() {
   local task_type="$1" omni_model="${2:-}"
   local direct_primary="$(model_for_type "$task_type")"
@@ -570,10 +564,8 @@ verdict_label() {
 
 # route_only_with_fallbacks: like route_only, but emits the FULL
 # priority-filtered fallback chain for the task's type -- one
-# "backend<TAB>model" line per backend in ROUTING_PRIORITY order, filtered to
-# backends actually available (detect_backends / TEMPERANCE_BACKENDS). Reuses
-# select_route's priority table directly rather than re-deriving it, so the
-# ordering and catalog stay a single source of truth.
+# "backend<TAB>model" line per backend in the frozen selected order, filtered
+# to backends actually available (detect_backends / TEMPERANCE_BACKENDS).
 route_only_with_fallbacks() {
   local desc="$1"
   local plan status
