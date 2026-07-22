@@ -2,7 +2,7 @@
 project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
-phase: execute
+phase: learn
 progress: 101/106
 mode: interactive
 started: 2026-06-12
@@ -375,6 +375,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   refuted by: the final Advisor showed concurrent executions with identical routing inputs can deliberately share replay lineage
   learned: deterministic plan identity and unique execution tracing require separate fields before telemetry joins become authoritative
   criterion now: ISC-106 requires distinct request traces for concurrent executions with identical routing inputs
+
+- 2026-07-22 | conjectured: a healthy live catalog could stand in for OmniRoute portfolio readiness
+  refuted by: the readiness probe found compatibility present but all named portfolios absent, telemetry without eval evidence, and no promotion receipt
+  learned: runtime health, catalog membership, telemetry, and eval evidence are separate machine-readable gates that must fail closed independently
+  criterion now: ISC-101 and ISC-102 require versioned readiness evidence while enforcement remains false
 
 ## Verification
 
