@@ -2,7 +2,7 @@
 project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
-phase: learn
+phase: verify
 progress: 101/106
 mode: interactive
 started: 2026-06-12
@@ -381,6 +381,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   learned: runtime health, catalog membership, telemetry, and eval evidence are separate machine-readable gates that must fail closed independently
   criterion now: ISC-101 and ISC-102 require versioned readiness evidence while enforcement remains false
 
+- 2026-07-22 | conjectured: a local promotion receipt could authorize a named portfolio once its JSON fields looked valid
+  refuted by: Advisor review required an external trust anchor, runtime/policy binding, replay protection, and the live workstation had no signing key, named portfolio, or evaluation evidence
+  learned: promotion must be authorized only by a signed, bounded receipt and must preserve compatibility routing when any trust or evidence input is absent
+  criterion now: Task 6 promotion validation requires HMAC authenticity, manifest/evidence thresholds, expiry, nonce, runtime binding, and an explicit compatibility fallback
+
 ## Verification
 
 - `./verify.sh` passed after checking required files, shell syntax, and hard-coded install paths.
@@ -436,3 +441,5 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-100: isolation probes — the portfolio manifest reports `enforcement=shadow`, resolver tests pin no provider members, and a live plan inspection found no `te-*` model in `selected_order`.
 - ISC-101: readiness CLI — `bash tests/omniroute-check.sh` and `scripts/omniroute-check.sh --json` reported the schema version, catalog count, configured/available/missing portfolios, and failed closed for an unknown fixture schema.
 - ISC-102: evidence-state CLI — the same fixture/live probes reported telemetry and eval availability/counts, preserved unavailable/null evidence, and kept `.enforcement_ready` false.
+- Task 6: promotion gate — `bun test package/router/omniroute-promotion.test.ts` passed 9/9; `bash tests/router-hardening.sh` verified signed `te-fast` promotion, wrong-portfolio rejection, missing-key compatibility fallback, manifest-tamper rejection, and forced-route preservation.
+- Task 6: local Mac integration — the installed `~/.local/bin/temperance-route` symlink selected `temperance-coding` without a receipt; `scripts/omniroute-check.sh --live` completed through OmniRoute runtime 3.8.48, with 265 catalog models and enforcement still false.
