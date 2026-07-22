@@ -145,6 +145,7 @@ valid_dispatch_plan(){ # plan file
       (.static_rank|type=="number");
     def route_key: [.backend,.model] | @tsv;
     (.plan_id|type=="string" and length>0) and
+    (.correlation_id|type=="string" and test("^tc_[A-Za-z0-9._-]+$")) and
     (.status as $status | ["ok","off","no-observations","inline","unavailable"] | index($status) != null) and
     (.static_order|type=="array" and all(.[]; route)) and
     (.selected_order|type=="array" and all(.[]; route)) and
@@ -161,17 +162,18 @@ valid_dispatch_plan(){ # plan file
 # duration_s,status} built with jq, one entry per fallback attempt. Top-level
 # backend/model/exit/duration_s/status always reflect the FINAL attempt, so
 # existing consumers reading only those fields are unaffected.
-write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [attempts_json] [plan_id] [plan_path] -> atomic
+write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [attempts_json] [plan_id] [plan_path] [correlation_id] -> atomic
   local f="$OUT/$1.meta.json"
-  local wt="${8:-}" dp="${9:-}" attempts="${10:-[]}" plan_id="${11:-}" plan_path="${12:-}"
+  local wt="${8:-}" dp="${9:-}" attempts="${10:-[]}" plan_id="${11:-}" plan_path="${12:-}" correlation_id="${13:-}"
   jq -n --arg id "$1" --arg task "$2" --arg b "$3" --arg m "$4" \
         --argjson ex "$5" --argjson d "$6" --arg st "$7" \
         --arg wt "$wt" --arg dp "$dp" --argjson attempts "$attempts" \
-        --arg plan_id "$plan_id" --arg plan_path "$plan_path" \
+        --arg plan_id "$plan_id" --arg plan_path "$plan_path" --arg correlation_id "$correlation_id" \
     '{id:$id,task:$task,backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
       worktree:(if $wt=="" then null else $wt end),
       diff_path:(if $dp=="" then null else $dp end),
       plan_id:(if $plan_id=="" then null else $plan_id end),
+      correlation_id:(if $correlation_id=="" then null else $correlation_id end),
       plan_path:(if $plan_path=="" then null else $plan_path end),
       attempts:$attempts,
       merged:null}' \
@@ -212,14 +214,15 @@ build_index_json(){
 }
 
 # attempt_record: backend model exit dur status -> one jq-built attempt object
-attempt_record(){ # backend model exit dur status task_id attempt_index start_ms finish_ms fallback_reason usage_json cost_json -> JSON
+attempt_record(){ # backend model exit dur status task_id attempt_index start_ms finish_ms fallback_reason usage_json cost_json correlation_id -> JSON
   jq -n --arg b "$1" --arg m "$2" --argjson ex "$3" --argjson d "$4" --arg st "$5" \
     --arg task_id "$6" --argjson attempt_index "$7" --argjson started_at_ms "$8" \
     --argjson finished_at_ms "$9" --arg fallback_reason "${10:-}" \
-    --argjson usage "${11:-null}" --argjson cost "${12:-null}" \
+    --argjson usage "${11:-null}" --argjson cost "${12:-null}" --arg correlation_id "${13:-}" \
     '{event:"attempt",backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
       task_id:$task_id,attempt_index:$attempt_index,started_at_ms:$started_at_ms,
       finished_at_ms:$finished_at_ms,
+      correlation_id:(if $correlation_id=="" then null else $correlation_id end),
       fallback_reason:(if $fallback_reason=="" then null else $fallback_reason end),
       usage:$usage,cost:$cost}'
 }
@@ -620,14 +623,14 @@ exec_task(){ # backend task model outfile
 # run_attempt: one backend/model attempt of a task, under the same
 # watchdog-timeout logic that existed pre-fallback-chain. Echoes "exit<TAB>dur"
 # on stdout; the task's own stdout/stderr still go to $outfile as before.
-run_attempt(){ # backend task model outfile timeout -> echoes ex<TAB>dur<TAB>start_ms<TAB>finish_ms
-  local backend="$1" task="$2" model="$3" outfile="$4" tmo="$5" start end dur ex start_ms finish_ms
+run_attempt(){ # backend task model outfile timeout correlation_id -> echoes ex<TAB>dur<TAB>start_ms<TAB>finish_ms
+  local backend="$1" task="$2" model="$3" outfile="$4" tmo="$5" correlation_id="${6:-}" start end dur ex start_ms finish_ms
   local metrics_path="$outfile.metrics.json"
   rm -f "$metrics_path"
   start=$(date +%s); start_ms="$(epoch_ms)"
   if (( tmo > 0 )); then
     local sentinel="$outfile.watchdog"
-    TEMPERANCE_ATTEMPT_METRICS_PATH="$metrics_path" \
+    TEMPERANCE_ATTEMPT_METRICS_PATH="$metrics_path" TEMPERANCE_CORRELATION_ID="$correlation_id" \
       exec_task "$backend" "$task" "$model" "$outfile" & local bpid=$!
     ( sleep "$tmo"; touch "$sentinel"; kill_tree "$bpid" ) & local wpid=$!
     if wait "$bpid" 2>/dev/null; then ex=0; else ex=$?; fi
@@ -645,23 +648,23 @@ run_attempt(){ # backend task model outfile timeout -> echoes ex<TAB>dur<TAB>sta
       rm -f "$sentinel"
     fi
   else
-    TEMPERANCE_ATTEMPT_METRICS_PATH="$metrics_path" \
+    TEMPERANCE_ATTEMPT_METRICS_PATH="$metrics_path" TEMPERANCE_CORRELATION_ID="$correlation_id" \
       exec_task "$backend" "$task" "$model" "$outfile"; ex=$?
   fi
   end=$(date +%s); finish_ms="$(epoch_ms)"; dur=$((end-start))
   printf '%s\t%s\t%s\t%s\n' "$ex" "$dur" "$start_ms" "$finish_ms"
 }
 
-run_one(){ # id task rb rm plan_path plan_id selected_order_json
+run_one(){ # id task rb rm plan_path plan_id selected_order_json correlation_id
   local id="$1" task="$2" rb="$3" rm="$4"
-  local plan_path="${5:-}" plan_id="${6:-}" selected_order_json="${7:-[]}"
+  local plan_path="${5:-}" plan_id="${6:-}" selected_order_json="${7:-[]}" correlation_id="${8:-}"
   local branch="" diffp=""
   TASK_WT=""   # default: no worktree (W7 sets this before this block)
   if $WORKTREE; then
     branch="te-dispatch/${RUNTAG}/${id}"
     TASK_WT="$OUT/wt-$id"
     if ! git worktree add -q -b "$branch" "$TASK_WT" HEAD 2>/dev/null; then
-      write_meta "$id" "$task" "$rb" "$rm" 1 0 "failed" "" "" "[]" "$plan_id" "$plan_path"
+      write_meta "$id" "$task" "$rb" "$rm" 1 0 "failed" "" "" "[]" "$plan_id" "$plan_path" "$correlation_id"
       return
     fi
   fi
@@ -691,7 +694,7 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json
   local i
   for ((i=0; i<${#fb_backends[@]}; i++)); do
     fbk="${fb_backends[i]}"; fmk="${fb_models[i]}"
-    IFS=$'\t' read -r ex dur start_ms finish_ms < <(run_attempt "$fbk" "$task" "$fmk" "$OUT/$id.out" "$TIMEOUT")
+    IFS=$'\t' read -r ex dur start_ms finish_ms < <(run_attempt "$fbk" "$task" "$fmk" "$OUT/$id.out" "$TIMEOUT" "$correlation_id")
     if (( ex == 124 )); then st="timeout"
     elif (( ex != 0 )); then st="failed"
     else st="ok"
@@ -705,7 +708,7 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json
     usage_json="$(jq -c '.usage // null' <<< "$metrics_json")"
     cost_json="$(jq -c '.cost // null' <<< "$metrics_json")"
     rm -f "$metrics_file"
-    attempts_json=$(jq -c --argjson prev "$attempts_json" --argjson rec "$(attempt_record "$fbk" "$fmk" "$ex" "$dur" "$st" "$id" "$i" "$start_ms" "$finish_ms" "$fallback_reason" "$usage_json" "$cost_json")" \
+    attempts_json=$(jq -c --argjson prev "$attempts_json" --argjson rec "$(attempt_record "$fbk" "$fmk" "$ex" "$dur" "$st" "$id" "$i" "$start_ms" "$finish_ms" "$fallback_reason" "$usage_json" "$cost_json" "$correlation_id")" \
       -n '$prev + [$rec]')
     rb="$fbk"; rm="$fmk"   # top-level fields track the FINAL attempt
     if [[ "$st" == "ok" ]]; then break; fi
@@ -728,7 +731,7 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json
       fi
     fi
   fi
-  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp" "$attempts_json" "$plan_id" "$plan_path"
+  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp" "$attempts_json" "$plan_id" "$plan_path" "$correlation_id"
 }
 
 # --- pre-classify every task (routing only, no dispatch) so we can fail-open
@@ -736,7 +739,7 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json
 # in parallel arrays, indexed by task position, so run_batch's loop below
 # doesn't re-invoke the router per task.
 n=$(echo "$raw" | jq 'length')
-declare -a ROUTE_BACKEND ROUTE_MODEL ROUTE_STATUS ROUTE_PLAN_PATH ROUTE_PLAN_ID ROUTE_SELECTED_JSON
+declare -a ROUTE_BACKEND ROUTE_MODEL ROUTE_STATUS ROUTE_PLAN_PATH ROUTE_PLAN_ID ROUTE_SELECTED_JSON ROUTE_CORRELATION_ID
 any_dispatch=false
 for ((i=0; i<n; i++)); do
   id=$(echo "$raw"   | jq -r ".[$i].id")
@@ -751,13 +754,14 @@ for ((i=0; i<n; i++)); do
     rm -f "$plan_path.tmp"
     jq -n --arg id "$id" --argjson now "$(( $(date +%s) * 1000 ))" \
       '{policy_version:"unavailable",mode:"off",plan_id:("rp_unavailable_"+$id),
-      input_hash:"unavailable",task_type:"unknown",decision_time_ms:$now,diverged:false,
+      correlation_id:("tc_unavailable_"+$id),input_hash:"unavailable",task_type:"unknown",decision_time_ms:$now,diverged:false,
       status:"unavailable",static_order:[],
       proposed_order:[],selected_order:[],candidates:[]}' > "$plan_path.tmp"
   fi
   rb="$(jq -r '.selected_order[0].backend // "none"' "$plan_path.tmp")"
   rm="$(jq -r '.selected_order[0].model // "-"' "$plan_path.tmp")"
   plan_id="$(jq -r '.plan_id' "$plan_path.tmp")"
+  correlation_id="$(jq -r '.correlation_id' "$plan_path.tmp")"
   plan_status="$(jq -r '.status' "$plan_path.tmp")"
   selected_json="$(jq -c '.selected_order' "$plan_path.tmp")"
   selected_count="$(jq '.selected_order | length' "$plan_path.tmp")"
@@ -772,6 +776,7 @@ for ((i=0; i<n; i++)); do
   [[ "$status" == "dispatch" ]] && any_dispatch=true
   ROUTE_BACKEND[i]="$rb"; ROUTE_MODEL[i]="$rm"; ROUTE_STATUS[i]="$status"
   ROUTE_PLAN_PATH[i]="$plan_path"; ROUTE_PLAN_ID[i]="$plan_id"
+  ROUTE_CORRELATION_ID[i]="$correlation_id"
   ROUTE_SELECTED_JSON[i]="$selected_json"
   mv -f "$plan_path.tmp" "$plan_path"
 done
@@ -811,7 +816,7 @@ run_batch(){
     id=$(echo "$raw"   | jq -r ".[$i].id")
     task=$(echo "$raw" | jq -r ".[$i].task")
     rb="${ROUTE_BACKEND[i]}" rm="${ROUTE_MODEL[i]}" status="${ROUTE_STATUS[i]}"
-    plan_path="${ROUTE_PLAN_PATH[i]}" plan_id="${ROUTE_PLAN_ID[i]}" selected_json="${ROUTE_SELECTED_JSON[i]}"
+    plan_path="${ROUTE_PLAN_PATH[i]}" plan_id="${ROUTE_PLAN_ID[i]}" selected_json="${ROUTE_SELECTED_JSON[i]}" correlation_id="${ROUTE_CORRELATION_ID[i]}"
     if $DRY_RUN; then
       if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
       continue
@@ -819,9 +824,9 @@ run_batch(){
     case "$status" in
       dispatch)
         while (( $(jobs -rp | wc -l) >= CONCURRENCY )); do wait -n; done
-        run_one "$id" "$task" "$rb" "$rm" "$plan_path" "$plan_id" "$selected_json" &
+        run_one "$id" "$task" "$rb" "$rm" "$plan_path" "$plan_id" "$selected_json" "$correlation_id" &
         ;;
-      *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" "" "" "[]" "$plan_id" "$plan_path" ;;
+      *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" "" "" "[]" "$plan_id" "$plan_path" "$correlation_id" ;;
     esac
   done
 

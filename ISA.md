@@ -2,8 +2,8 @@
 project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
-phase: plan
-progress: 90/105
+phase: execute
+progress: 95/105
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-22
@@ -154,11 +154,11 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-89: Anti: OmniRoute provider/model routing does not introduce a second task classifier.
 - [x] ISC-90: OmniRoute data and package environment files containing secrets are mode `600`.
 - [x] ISC-91: Router and dispatcher tests cover OmniRoute-first ordering, agentic invocation, literal prompt passage, metadata, and direct fallback preservation.
-- [ ] ISC-92: A repository-native TDD implementation plan exists for governed OmniRoute portfolios.
-- [ ] ISC-93: Every frozen routing plan contains one stable correlation identifier.
-- [ ] ISC-94: Every task attempt record repeats its frozen plan's correlation identifier.
-- [ ] ISC-95: The OmniRoute Codex adapter forwards the correlation identifier as request metadata.
-- [ ] ISC-96: Direct fallback attempts retain the same correlation identifier after gateway failure.
+- [x] ISC-92: A repository-native TDD implementation plan exists for governed OmniRoute portfolios.
+- [x] ISC-93: Every frozen routing plan contains one stable correlation identifier.
+- [x] ISC-94: Every task attempt record repeats its frozen plan's correlation identifier.
+- [x] ISC-95: The OmniRoute Codex adapter forwards the correlation identifier as request metadata.
+- [x] ISC-96: Direct fallback attempts retain the same correlation identifier after gateway failure.
 - [ ] ISC-97: Every external routing candidate declares either the gateway or direct failure domain.
 - [ ] ISC-98: Shared task-type output resolves deterministically to a named OmniRoute portfolio.
 - [ ] ISC-99: A missing named portfolio degrades through the compatibility combo before direct backends.
@@ -411,3 +411,8 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-89: architecture test — shared-classifier parity passed across router cases, and no alternate OmniRoute task classifier exists.
 - ISC-90: permission check — both OmniRoute environment files and the generated Codex profile report mode `600`.
 - ISC-91: regression gate — `scripts/verify-all.sh` completed with `Temperance Engine full verification passed`, including all OmniRoute router and dispatcher assertions.
+- ISC-92: file read — `docs/plans/2026-07-22-omniroute-governed-portfolios.md` begins with the required implementation-plan header, goal, architecture, stack, and TDD tasks.
+- ISC-93: unit test — `bun test package/router/routing-policy.test.ts` passed 14/14 and asserted `correlation_id == tc_ + input_hash[0:24]` across byte-identical replays.
+- ISC-94: integration test — `bash tests/dispatch-tasklist.sh` reported `ok - attempt correlation matches frozen plan`.
+- ISC-95: mocked client probe — `bash tests/dispatch-tasklist.sh` reported `ok - OmniRoute Codex request carries correlation header`.
+- ISC-96: fallback integration — `bash tests/dispatch-tasklist.sh` reported `ok - gateway and direct attempts share correlation` and completed with `dispatch-tasklist: PASS`.

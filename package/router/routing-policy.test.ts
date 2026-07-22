@@ -102,6 +102,8 @@ describe("planRouting", () => {
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(first.plan_id).toMatch(/^rp_[a-f0-9]{16}$/);
     expect(first.input_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(first.correlation_id).toBe(`tc_${first.input_hash.slice(0, 24)}`);
+    expect(first.correlation_id).toBe(second.correlation_id);
   });
 
   test("missing observations preserve the static order", () => {

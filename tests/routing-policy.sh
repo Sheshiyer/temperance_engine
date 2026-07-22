@@ -39,6 +39,8 @@ if jq -e '
   .policy_version == "temperance-routing-v1" and
   .mode == "shadow" and
   (.plan_id | startswith("rp_")) and
+  (.correlation_id | test("^tc_[a-f0-9]{24}$")) and
+  (.correlation_id == ("tc_" + (.input_hash[0:24]))) and
   (.input_hash | length == 64) and
   (.static_order | length == 3) and
   (.proposed_order | length == 3) and

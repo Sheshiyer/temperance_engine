@@ -4,6 +4,7 @@ set -uo pipefail
 printf 'MOCK_CODEX_ARGS_START\n'
 printf '%s\n' "$@"
 printf 'MOCK_CODEX_ARGS_END\n'
+printf 'MOCK_CODEX_CORRELATION=%s\n' "${TEMPERANCE_CORRELATION_ID:-}"
 
 case " ${*} " in
   *" FAIL_OMNIROUTE "*) exit 17 ;;

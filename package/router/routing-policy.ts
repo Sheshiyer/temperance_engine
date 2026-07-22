@@ -86,6 +86,7 @@ export interface RoutingPlan {
   policy_version: string;
   mode: PolicyMode;
   plan_id: string;
+  correlation_id: string;
   input_hash: string;
   task_type: string;
   decision_time_ms: number;
@@ -395,6 +396,7 @@ export function planRouting(input: RoutingInput): RoutingPlan {
     policy_version: POLICY_VERSION,
     mode: normalizedMode,
     plan_id: `rp_${inputHash.slice(0, 16)}`,
+    correlation_id: `tc_${inputHash.slice(0, 24)}`,
     input_hash: inputHash,
     task_type: normalizedInput.task_type,
     decision_time_ms: normalizedInput.now_ms,

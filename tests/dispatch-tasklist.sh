@@ -100,11 +100,37 @@ check "OmniRoute backend recorded in attempt envelope" "omniroute" \
   "$(jq -r '.tasks[0].attempts[0].backend' "$run/index.json" 2>/dev/null)"
 check "OmniRoute model recorded in attempt envelope" "temperance-coding" \
   "$(jq -r '.tasks[0].attempts[0].model' "$run/index.json" 2>/dev/null)"
+omni_correlation="$(jq -r '.tasks[0].correlation_id' "$run/index.json" 2>/dev/null)"
+check "OmniRoute attempt correlation matches metadata" "$omni_correlation" \
+  "$(jq -r '.tasks[0].attempts[0].correlation_id' "$run/index.json" 2>/dev/null)"
+check "OmniRoute plan correlation matches metadata" "$omni_correlation" \
+  "$(jq -r '.correlation_id' "$run/OMNI.plan.json" 2>/dev/null)"
 if grep -qF 'refactor the auth module safely' "$run/OMNI.out"; then
   echo "ok - OmniRoute task text passed literally to Codex"
 else
   echo "FAIL - OmniRoute task text missing from Codex argv"; fail=1
 fi
+if grep -qF "MOCK_CODEX_CORRELATION=$omni_correlation" "$run/OMNI.out" \
+    && grep -qF 'X-Temperance-Correlation-ID' "$run/OMNI.out" \
+    && grep -qF "$omni_correlation" "$run/OMNI.out"; then
+  echo "ok - OmniRoute Codex request carries correlation header"
+else
+  echo "FAIL - OmniRoute Codex correlation header missing"; fail=1
+fi
+
+# Gateway failure and direct fallback remain one trace even though execution
+# crosses the OmniRoute/Codex adapter boundary into a direct CLI backend.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+fallback_run=$(mktemp -d)
+printf '%s' '[{"id":"TRACE","task":"FAIL_OMNIROUTE refactor the auth module"}]' \
+  | OMNIROUTE_API_KEY=test-key TEMPERANCE_BACKENDS="omniroute command-code" \
+    "$W" --foreground --out "$fallback_run" --tasks - >/dev/null 2>&1
+trace_correlation="$(jq -r '.tasks[0].correlation_id' "$fallback_run/index.json" 2>/dev/null)"
+check "gateway failure falls back to direct backend" "command-code" \
+  "$(jq -r '.tasks[0].backend' "$fallback_run/index.json" 2>/dev/null)"
+check "gateway and direct attempts share correlation" "1" \
+  "$(jq -r --arg correlation "$trace_correlation" '[.tasks[0].attempts[] | select(.correlation_id == $correlation)] | length == 2 | if . then 1 else 0 end' "$fallback_run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
 rm -f "$DIR/tests/fixtures/codex"
 
 # flag-like task text must NOT be interpreted as router flags
@@ -154,6 +180,12 @@ check "frozen plan selected backend" "command-code" \
 check "metadata plan_id matches frozen plan" \
   "$(jq -r '.plan_id' "$run/PLAN.plan.json" 2>/dev/null)" \
   "$(jq -r '.plan_id' "$run/PLAN.meta.json" 2>/dev/null)"
+check "metadata correlation matches frozen plan" \
+  "$(jq -r '.correlation_id' "$run/PLAN.plan.json" 2>/dev/null)" \
+  "$(jq -r '.correlation_id' "$run/PLAN.meta.json" 2>/dev/null)"
+check "attempt correlation matches frozen plan" \
+  "$(jq -r '.correlation_id' "$run/PLAN.plan.json" 2>/dev/null)" \
+  "$(jq -r '.attempts[0].correlation_id' "$run/PLAN.meta.json" 2>/dev/null)"
 check "metadata records plan path" "$run/PLAN.plan.json" \
   "$(jq -r '.plan_path' "$run/PLAN.meta.json" 2>/dev/null)"
 check "router plan resolved once" "1" "$(grep -c '^plan$' "$counter" 2>/dev/null || true)"

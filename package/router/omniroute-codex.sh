@@ -29,6 +29,11 @@ CODEX_PROFILE="${TEMPERANCE_OMNIROUTE_CODEX_PROFILE:-temperance-coding}"
 CODEX_SANDBOX="${TEMPERANCE_OMNIROUTE_CODEX_SANDBOX:-workspace-write}"
 WIRE_API="${TEMPERANCE_OMNIROUTE_WIRE_API:-responses}"
 ROOT_URL="${BASE_URL%/v1}"
+CORRELATION_ID="${TEMPERANCE_CORRELATION_ID:-}"
+if [[ -n "$CORRELATION_ID" && ! "$CORRELATION_ID" =~ ^[A-Za-z0-9._:-]+$ ]]; then
+  echo "invalid TEMPERANCE_CORRELATION_ID" >&2
+  exit 2
+fi
 
 args=(
   exec
@@ -47,6 +52,12 @@ args=(
   --skip-git-repo-check
   --color never
 )
+
+if [[ -n "$CORRELATION_ID" ]]; then
+  args+=(
+    -c "model_providers.omniroute.http_headers={\"X-Temperance-Correlation-ID\"=\"$CORRELATION_ID\"}"
+  )
+fi
 
 # OmniRoute's profile generator writes this file from the live catalog. The
 # inline provider flags above keep the backend portable when the profile is not

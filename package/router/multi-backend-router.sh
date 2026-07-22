@@ -208,7 +208,7 @@ static_policy_plan() { # mode task_type disposition candidates_json -> JSON
   [[ "$mode" == "off" ]] && status="off"
   [[ "$disposition" == "inline" ]] && status="inline"
   [[ "$disposition" == "unavailable" ]] && status="unavailable"
-  local fingerprint input_hash plan_id
+  local fingerprint input_hash plan_id correlation_id
   fingerprint="$(jq -cnS --arg mode "$mode" --arg tt "$task_type" --arg status "$status" \
     --argjson now "$now" --argjson candidates "$candidates" \
     '{mode:$mode,task_type:$tt,status:$status,decision_time_ms:$now,candidates:$candidates}')"
@@ -218,11 +218,12 @@ static_policy_plan() { # mode task_type disposition candidates_json -> JSON
     input_hash="degraded-$(printf '%s' "$fingerprint" | cksum | awk '{print $1 "-" $2}')"
   fi
   plan_id="rp_$(printf '%.16s' "$input_hash")"
+  correlation_id="tc_$(printf '%.24s' "$input_hash")"
   jq -cn --arg mode "$mode" --arg tt "$task_type" --arg status "$status" \
     --argjson candidates "$candidates" --argjson now "$now" \
-    --arg input_hash "$input_hash" --arg plan_id "$plan_id" \
+    --arg input_hash "$input_hash" --arg plan_id "$plan_id" --arg correlation_id "$correlation_id" \
     '{policy_version:"temperance-routing-v1-degraded",mode:$mode,
-      plan_id:$plan_id,input_hash:$input_hash,task_type:$tt,
+      plan_id:$plan_id,correlation_id:$correlation_id,input_hash:$input_hash,task_type:$tt,
       decision_time_ms:$now,diverged:false,status:$status,
       static_order:$candidates,proposed_order:$candidates,selected_order:$candidates,
       candidates:($candidates | map(. + {score:0,eligible:true,effective_circuit_state:"closed",
@@ -240,6 +241,7 @@ valid_policy_plan() { # JSON on stdin
     def route_key: [.backend,.model] | @tsv;
     (.policy_version|type=="string" and length>0) and
     (.plan_id|type=="string" and length>0) and
+    (.correlation_id|type=="string" and test("^tc_[A-Za-z0-9._-]+$")) and
     (.input_hash|type=="string" and length>0) and
     (.task_type|type=="string" and length>0) and
     (.decision_time_ms|type=="number") and
