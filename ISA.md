@@ -2,7 +2,7 @@
 project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
-phase: verify
+phase: learn
 progress: 101/106
 mode: interactive
 started: 2026-06-12
