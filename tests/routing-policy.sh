@@ -58,6 +58,12 @@ check "shadow preserves static selected order" "command-code" \
 check "shadow records adaptive proposal" "grok" \
   "$(jq -r '.proposed_order[0].backend' <<< "$plan")"
 
+portfolio_plan=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$ROOT/tests/fixtures/omniroute-models.json" \
+  "$ROUTER" --plan-json "fix typo")
+check "portfolio proposal does not enter selected order" "temperance-coding" \
+  "$(jq -r '.selected_order[0].model' <<< "$portfolio_plan")"
+
 shadow_chain=$(env "${common_env[@]}" TEMPERANCE_ROUTING_POLICY=shadow \
   "$ROUTER" --route-only-with-fallbacks "refactor the entire auth layer")
 check "shadow CLI chain stays backward compatible" \

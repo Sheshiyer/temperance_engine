@@ -169,11 +169,111 @@ for _rt in fast long-horizon reasoning validation creative balanced; do
 done
 unset _rt
 
+routing_priority_for_type() {
+  local task_type="$1" omni_model="${2:-}"
+  local direct_primary="$(model_for_type "$task_type")"
+  local fallback_tail="${ROUTING_FALLBACK_TAILS[$task_type]:-${ROUTING_FALLBACK_TAILS[balanced]}}"
+  if [[ -n "$omni_model" ]]; then
+    printf 'omniroute:%s %s %s\n' "$omni_model" "$direct_primary" "$fallback_tail"
+  else
+    printf '%s %s\n' "$direct_primary" "$fallback_tail"
+  fi
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Deterministic routing policy (OmniRoute-inspired, Temperance-owned)
 # ─────────────────────────────────────────────────────────────────────────────
 
 POLICY_RUNNER="${TEMPERANCE_ROUTING_POLICY_BIN:-$SCRIPT_DIR/routing-policy.ts}"
+PORTFOLIO_RESOLVER="${TEMPERANCE_OMNIROUTE_PORTFOLIO_RESOLVER:-$SCRIPT_DIR/omniroute-portfolios.ts}"
+
+omniroute_catalog_json() {
+  local catalog_file="${TEMPERANCE_OMNIROUTE_CATALOG_FILE:-}"
+  if [[ -n "$catalog_file" ]]; then
+    if [[ -f "$catalog_file" ]] && jq -e 'type == "object" and (.data|type == "array")' "$catalog_file" >/dev/null 2>&1; then
+      jq -c . "$catalog_file"
+    else
+      printf '{"data":[]}\n'
+    fi
+    return
+  fi
+
+  local omni_base="${TEMPERANCE_OMNIROUTE_BASE_URL:-http://127.0.0.1:20128/v1}"
+  omni_base="${omni_base%/}"
+  [[ "$omni_base" == */v1 ]] || omni_base="$omni_base/v1"
+  local -a omni_headers=()
+  [[ -n "${OMNIROUTE_API_KEY:-}" ]] && omni_headers=(-H "Authorization: Bearer $OMNIROUTE_API_KEY")
+  local catalog=""
+  if command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+    catalog="$(curl -fsS --connect-timeout 1 --max-time 3 "${omni_headers[@]}" "$omni_base/models" 2>/dev/null || true)"
+    if jq -e 'type == "object" and (.data|type == "array")' <<< "$catalog" >/dev/null 2>&1; then
+      jq -c . <<< "$catalog"
+      return
+    fi
+  fi
+
+  # An explicit backend override is a caller-owned test/stub contract. If its
+  # live catalog is unavailable, preserve the compatibility gateway only; no
+  # task-specific portfolio is treated as available without catalog evidence.
+  if [[ -n "${TEMPERANCE_BACKENDS+x}" ]] && printf ' %s ' "$TEMPERANCE_BACKENDS" | grep -q ' omniroute '; then
+    jq -cn --arg model "${TEMPERANCE_OMNIROUTE_MODEL:-temperance-coding}" \
+      '{data:[{id:$model,owned_by:"temperance-override"}]}'
+  else
+    printf '{"data":[]}\n'
+  fi
+}
+
+resolve_portfolio_for_type() {
+  local task_type="$1" catalog result
+  local -a available_models=()
+  catalog="$(omniroute_catalog_json)"
+  mapfile -t available_models < <(jq -r '.data[]? | select(.id|type == "string") | .id' <<< "$catalog")
+
+  if command -v bun >/dev/null 2>&1 && [[ -f "$PORTFOLIO_RESOLVER" ]]; then
+    if (( ${#available_models[@]} > 0 )); then
+      result="$(bun "$PORTFOLIO_RESOLVER" resolve "$task_type" "${available_models[@]}" 2>/dev/null || true)"
+    else
+      result="$(bun "$PORTFOLIO_RESOLVER" resolve "$task_type" 2>/dev/null || true)"
+    fi
+    if jq -e 'type == "object" and (.source|IN("portfolio","compatibility","direct")) and (.enforcement == "shadow")' <<< "$result" >/dev/null 2>&1; then
+      printf '%s\n' "$result"
+      return
+    fi
+  fi
+
+  jq -cn --arg task_type "$task_type" \
+    '{task_type:$task_type,requested_portfolio:"",selected_model:null,source:"direct",enforcement:"shadow"}'
+}
+
+remove_backend() {
+  local backend_list="$1" backend_to_remove="$2" backend result=""
+  for backend in $backend_list; do
+    [[ "$backend" == "$backend_to_remove" ]] && continue
+    result+="${result:+ }$backend"
+  done
+  printf '%s\n' "$result"
+}
+
+apply_portfolio_shadow_overlay() {
+  local plan="$1" source="$2" portfolio_model="$3" requested_portfolio="$4"
+  if [[ "$(routing_policy_mode)" != "shadow" || "$source" != "portfolio" || -z "$portfolio_model" ]]; then
+    printf '%s\n' "$plan"
+    return
+  fi
+  jq -c --arg model "$portfolio_model" --arg requested "$requested_portfolio" '
+    .proposed_order = (
+      ([.proposed_order[] | select(.backend == "omniroute") | .model = $model] +
+       [.proposed_order[] | select(.backend != "omniroute")])
+    ) |
+    .diverged = true |
+    .portfolio = {
+      requested_portfolio: $requested,
+      selected_model: $model,
+      source: "portfolio",
+      enforcement: "shadow"
+    }
+  ' <<< "$plan"
+}
 
 routing_policy_mode() {
   case "${TEMPERANCE_ROUTING_POLICY:-shadow}" in
@@ -267,7 +367,26 @@ route_plan_for_type_json() { # task_type [force_backend] [force_model] [disposit
   local task_type="$1" force_backend="${2:-}" force_model="${3:-}" disposition="${4:-external}"
   local mode; mode="$(routing_policy_mode)"
   local available_backends; available_backends="$(detect_backends)"
-  local priority="${ROUTING_PRIORITY[$task_type]:-${ROUTING_PRIORITY[balanced]}}"
+  local portfolio_json='{"source":"direct","requested_portfolio":"","selected_model":null}'
+  local portfolio_source="direct" portfolio_requested="" portfolio_selected=""
+  local omni_compat_model="${TEMPERANCE_OMNIROUTE_MODEL:-temperance-coding}"
+  local omni_model_for_priority=""
+  if printf ' %s ' "$available_backends" | grep -q ' omniroute '; then
+    portfolio_json="$(resolve_portfolio_for_type "$task_type")"
+    portfolio_source="$(jq -r '.source // "direct"' <<< "$portfolio_json")"
+    portfolio_requested="$(jq -r '.requested_portfolio // empty' <<< "$portfolio_json")"
+    portfolio_selected="$(jq -r '.selected_model // empty' <<< "$portfolio_json")"
+    if [[ "$portfolio_source" != "direct" && "$portfolio_selected" == "$omni_compat_model" ]]; then
+      omni_model_for_priority="$omni_compat_model"
+    elif [[ "$portfolio_source" == "portfolio" ]]; then
+      # A named portfolio may be proposed only when the compatibility combo
+      # is also present for the frozen selected chain.
+      omni_model_for_priority="$omni_compat_model"
+    else
+      available_backends="$(remove_backend "$available_backends" "omniroute")"
+    fi
+  fi
+  local priority; priority="$(routing_priority_for_type "$task_type" "$omni_model_for_priority")"
   local candidates='[]' route backend model item rank=0 forced=false
 
   if [[ "$disposition" == "external" && -z "${available_backends// }" ]]; then
@@ -356,11 +475,14 @@ route_plan_for_type_json() { # task_type [force_backend] [force_model] [disposit
             .backend] | unique[]?
         ' <<< "$output")
       fi
+      output="$(apply_portfolio_shadow_overlay "$output" "$portfolio_source" "$portfolio_selected" "$portfolio_requested")"
       printf '%s\n' "$output"
       return
     fi
   fi
-  static_policy_plan "$mode" "$task_type" "$disposition" "$candidates"
+  output="$(static_policy_plan "$mode" "$task_type" "$disposition" "$candidates")"
+  output="$(apply_portfolio_shadow_overlay "$output" "$portfolio_source" "$portfolio_selected" "$portfolio_requested")"
+  printf '%s\n' "$output"
 }
 
 route_plan_json() { # description -> JSON

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -uo pipefail
 R="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/package/router/multi-backend-router.sh"
+PORTFOLIO_CATALOG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/tests/fixtures/omniroute-models.json"
+EMPTY_PORTFOLIO_CATALOG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/tests/fixtures/omniroute-models-empty.json"
 fail=0
 check() { # desc, expected, actual
   if [[ "$2" == "$3" ]]; then echo "ok - $1"; else echo "FAIL - $1: expected [$2] got [$3]"; fail=1; fi
@@ -21,6 +23,38 @@ check "route-only long-horizon -> OmniRoute gateway primary" \
 out=$(TEMPERANCE_BACKENDS="omniroute command-code grok kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
 expected=$'omniroute\ttemperance-coding\ncommand-code\txiaomi/mimo-v2.5-pro\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
 check "OmniRoute gateway precedes direct fallback rails" "$expected" "$out"
+
+# Task-specific OmniRoute portfolios are proposal-only until a promotion receipt
+# exists. The frozen selected chain must stay on the compatibility combo.
+portfolio_fast=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  "$R" --plan-json "fix typo")
+check "fast task proposes live te-fast portfolio" "te-fast" \
+  "$(jq -r '.proposed_order[0].model' <<< "$portfolio_fast")"
+check "fast task selects compatibility combo in shadow" "temperance-coding" \
+  "$(jq -r '.selected_order[0].model' <<< "$portfolio_fast")"
+
+portfolio_validation=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  "$R" --plan-json "audit the code")
+check "validation task proposes live te-validate portfolio" "te-validate" \
+  "$(jq -r '.proposed_order[0].model' <<< "$portfolio_validation")"
+check "validation task keeps compatibility selected" "temperance-coding" \
+  "$(jq -r '.selected_order[0].model' <<< "$portfolio_validation")"
+
+portfolio_missing=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  "$R" --plan-json "refactor the entire auth layer")
+check "missing named portfolio proposes compatibility" "temperance-coding" \
+  "$(jq -r '.proposed_order[0].model' <<< "$portfolio_missing")"
+check "missing named portfolio keeps direct fallback after compatibility" $'temperance-coding\nxiaomi/mimo-v2.5-pro' \
+  "$(jq -r '.selected_order[] | .model' <<< "$portfolio_missing")"
+
+portfolio_direct=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$EMPTY_PORTFOLIO_CATALOG" \
+  "$R" --plan-json "fix typo")
+check "missing gateway catalog degrades to direct first" "command-code" \
+  "$(jq -r '.selected_order[0].backend' <<< "$portfolio_direct")"
 
 domain_plan=$(TEMPERANCE_BACKENDS="omniroute command-code grok kimi" "$R" --plan-json "refactor the entire auth layer")
 check "OmniRoute candidate declares gateway domain" "gateway" \
