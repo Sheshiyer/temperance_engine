@@ -180,6 +180,7 @@ routing_priority_for_type() {
 
 POLICY_RUNNER="${TEMPERANCE_ROUTING_POLICY_BIN:-$SCRIPT_DIR/routing-policy.ts}"
 PORTFOLIO_RESOLVER="${TEMPERANCE_OMNIROUTE_PORTFOLIO_RESOLVER:-$SCRIPT_DIR/omniroute-portfolios.ts}"
+PROMOTION_VALIDATOR="${TEMPERANCE_OMNIROUTE_PROMOTION_VALIDATOR:-$SCRIPT_DIR/omniroute-promotion.ts}"
 
 omniroute_catalog_json() {
   local catalog_file="${TEMPERANCE_OMNIROUTE_CATALOG_FILE:-}"
@@ -239,6 +240,50 @@ resolve_portfolio_for_type() {
     '{task_type:$task_type,requested_portfolio:"",selected_model:null,source:"direct",enforcement:"shadow"}'
 }
 
+promotion_receipt_portfolio() {
+  local receipt_path="${TEMPERANCE_OMNIROUTE_PROMOTION_RECEIPT:-}"
+  if [[ -n "$receipt_path" && -f "$receipt_path" ]]; then
+    jq -r '.portfolio // empty' "$receipt_path" 2>/dev/null || true
+  fi
+}
+
+promotion_signing_key() {
+  if [[ -n "${TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY:-}" ]]; then
+    printf '%s\n' "$TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY"
+    return
+  fi
+  if command -v security >/dev/null 2>&1; then
+    security find-generic-password -a "${USER:-}" \
+      -s "${TEMPERANCE_OMNIROUTE_PROMOTION_KEYCHAIN_SERVICE:-OmniRoute Temperance Promotion Key}" \
+      -w 2>/dev/null || true
+  fi
+}
+
+promotion_runtime_version() {
+  if [[ -n "${TEMPERANCE_OMNIROUTE_RUNTIME_VERSION:-}" ]]; then
+    printf '%s\n' "$TEMPERANCE_OMNIROUTE_RUNTIME_VERSION"
+  elif command -v omniroute >/dev/null 2>&1; then
+    omniroute --version 2>/dev/null | tail -n 1 | tr -d '\r'
+  fi
+}
+
+promotion_authorized() {
+  local receipt_path="${TEMPERANCE_OMNIROUTE_PROMOTION_RECEIPT:-}" result=""
+  local signing_key="" runtime_version=""
+  if [[ -n "$receipt_path" && -f "$receipt_path" ]] && command -v bun >/dev/null 2>&1 && [[ -f "$PROMOTION_VALIDATOR" ]]; then
+    signing_key="$(promotion_signing_key)"
+    runtime_version="$(promotion_runtime_version)"
+    result="$(TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY="$signing_key" \
+      TEMPERANCE_OMNIROUTE_RUNTIME_VERSION="$runtime_version" \
+      bun "$PROMOTION_VALIDATOR" validate 2>/dev/null || true)"
+  fi
+  if jq -e '.authorized == true and (.reasons | type == "array" and length == 0)' <<< "$result" >/dev/null 2>&1; then
+    printf 'true\n'
+  else
+    printf 'false\n'
+  fi
+}
+
 remove_backend() {
   local backend_list="$1" backend_to_remove="$2" backend result=""
   for backend in $backend_list; do
@@ -265,6 +310,27 @@ apply_portfolio_shadow_overlay() {
       selected_model: $model,
       source: "portfolio",
       enforcement: "shadow"
+    }
+  ' <<< "$plan"
+}
+
+apply_portfolio_promotion_overlay() {
+  local plan="$1" portfolio_model="$2" requested_portfolio="$3"
+  if [[ -z "$portfolio_model" || -z "$requested_portfolio" || "$(routing_policy_mode)" == "off" ]]; then
+    printf '%s\n' "$plan"
+    return
+  fi
+  jq -c --arg model "$portfolio_model" --arg requested "$requested_portfolio" '
+    .static_order |= map(if .backend == "omniroute" then .model = $model else . end) |
+    .proposed_order |= map(if .backend == "omniroute" then .model = $model else . end) |
+    .selected_order |= map(if .backend == "omniroute" then .model = $model else . end) |
+    .candidates |= map(if .backend == "omniroute" then .model = $model else . end) |
+    .diverged = true |
+    .portfolio = {
+      requested_portfolio: $requested,
+      selected_model: $model,
+      source: "portfolio",
+      enforcement: "promoted"
     }
   ' <<< "$plan"
 }
@@ -363,6 +429,7 @@ route_plan_for_type_json() { # task_type [force_backend] [force_model] [disposit
   local available_backends; available_backends="$(detect_backends)"
   local portfolio_json='{"source":"direct","requested_portfolio":"","selected_model":null}'
   local portfolio_source="direct" portfolio_requested="" portfolio_selected=""
+  local promotion_receipt="" promotion_is_authorized=false
   local omni_compat_model="${TEMPERANCE_OMNIROUTE_MODEL:-temperance-coding}"
   local omni_model_for_priority=""
   if printf ' %s ' "$available_backends" | grep -q ' omniroute '; then
@@ -370,6 +437,10 @@ route_plan_for_type_json() { # task_type [force_backend] [force_model] [disposit
     portfolio_source="$(jq -r '.source // "direct"' <<< "$portfolio_json")"
     portfolio_requested="$(jq -r '.requested_portfolio // empty' <<< "$portfolio_json")"
     portfolio_selected="$(jq -r '.selected_model // empty' <<< "$portfolio_json")"
+    promotion_receipt="$(promotion_receipt_portfolio)"
+    if [[ "$portfolio_source" == "portfolio" && "$promotion_receipt" == "$portfolio_requested" ]]; then
+      promotion_is_authorized="$(promotion_authorized)"
+    fi
     if [[ "$portfolio_source" != "direct" && "$portfolio_selected" == "$omni_compat_model" ]]; then
       omni_model_for_priority="$omni_compat_model"
     elif [[ "$portfolio_source" == "portfolio" ]]; then
@@ -470,12 +541,18 @@ route_plan_for_type_json() { # task_type [force_backend] [force_model] [disposit
         ' <<< "$output")
       fi
       output="$(apply_portfolio_shadow_overlay "$output" "$portfolio_source" "$portfolio_selected" "$portfolio_requested")"
+      if [[ "$promotion_is_authorized" == true && "$forced" != true && -z "$force_model" ]]; then
+        output="$(apply_portfolio_promotion_overlay "$output" "$portfolio_selected" "$portfolio_requested")"
+      fi
       printf '%s\n' "$output"
       return
     fi
   fi
   output="$(static_policy_plan "$mode" "$task_type" "$disposition" "$candidates")"
   output="$(apply_portfolio_shadow_overlay "$output" "$portfolio_source" "$portfolio_selected" "$portfolio_requested")"
+  if [[ "$promotion_is_authorized" == true && "$forced" != true && -z "$force_model" ]]; then
+    output="$(apply_portfolio_promotion_overlay "$output" "$portfolio_selected" "$portfolio_requested")"
+  fi
   printf '%s\n' "$output"
 }
 

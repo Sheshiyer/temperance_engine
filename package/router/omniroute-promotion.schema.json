@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "temperance://omniroute-promotion-receipt-v1",
+  "title": "Temperance OmniRoute Promotion Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "portfolio",
+    "suite_id",
+    "run_id",
+    "run_status",
+    "sample_count",
+    "success_rate",
+    "cost_usd",
+    "latency_p95_ms",
+    "created_at",
+    "expires_at",
+    "manifest_hash",
+    "nonce",
+    "runtime_version",
+    "policy_version",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "portfolio": {"type": "string", "minLength": 1},
+    "suite_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "run_status": {"const": "completed"},
+    "sample_count": {"type": "integer", "minimum": 0},
+    "success_rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "cost_usd": {"type": "number", "minimum": 0},
+    "latency_p95_ms": {"type": "number", "minimum": 0},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "manifest_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "nonce": {"type": "string", "minLength": 16},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "policy_version": {"const": "temperance-routing-v1"},
+    "signature": {"type": "string", "pattern": "^hmac-sha256:[a-f0-9]{64}$"}
+  }
+}
