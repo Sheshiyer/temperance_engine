@@ -277,6 +277,11 @@ Run: `git add package/router/omniroute-portfolios.json package/router/omniroute-
 
 ## Task 4: Integrate Portfolio Resolution into Frozen Plans
 
+### Post-Task-3 Advisor gates
+
+- Keep the completed `correlation_id` contract as deterministic frozen-plan lineage. Before request-level telemetry joins, add a separate per-execution trace identifier satisfying ISC-106; do not overload or randomize the replay identifier.
+- Reconcile every manifest portfolio name against the current `/v1/models` catalog before it may enter any proposed or selected chain. The current live probe proves only `temperance-coding`, not the named `te-*` portfolios.
+
 **Files:**
 - Modify: `package/router/multi-backend-router.sh`
 - Modify: `tests/router-hardening.sh`

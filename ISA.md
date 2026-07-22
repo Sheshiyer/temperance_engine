@@ -2,8 +2,8 @@
 project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
-phase: execute
-progress: 98/105
+phase: verify
+progress: 98/106
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-22
@@ -168,6 +168,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [ ] ISC-103: Enrichment reports the shared classifier's resolved OmniRoute portfolio without reclassifying the task.
 - [ ] ISC-104: The full verification entrypoint executes governed-portfolio regression tests.
 - [ ] ISC-105: Operator documentation distinguishes discovery routes, production portfolios, councils, and direct fallbacks.
+- [ ] ISC-106: Concurrent executions with identical routing inputs expose distinct request trace identifiers.
 
 ## Test Strategy
 
@@ -213,7 +214,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-38 | text | `UPSTREAM.md` credits `open-gsd/gsd-core` | match | grep |
 | ISC-39 | shell | router and enrichment classification use `package/router/classify-task.sh` | zero disagreement | bash tests/router-hardening.sh + bash tests/classify-task.sh |
 | ISC-40 | shell | `--verdict` agrees with `--route-only` across inline, external, and subagent cases | zero disagreement | bash tests/router-hardening.sh |
-| ISC-41 | text | ISA frontmatter has canonical metadata and progress equals checked/total criteria | `progress: 90/91` during LEARN | grep |
+| ISC-41 | text | ISA frontmatter has canonical metadata and progress equals checked/total criteria | exact checked/total ratio | grep + awk |
 | ISC-42 | text | ISA includes Principles and Changelog project-ledger sections | match | grep |
 | ISC-43 | text | Test Strategy has rows for ISC-39..ISC-48 | match | grep |
 | ISC-44 | text | Features table maps identity, unified flow, router, planning, and full verification ranges | match | grep |
@@ -278,6 +279,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-103 | unit | enrichment task and portfolio share classifier output | exact match | enrichment test |
 | ISC-104 | shell | canonical gate invokes governed-portfolio tests | match | verify-all test |
 | ISC-105 | docs | portfolio roles and fallback boundaries documented | present | docs continuity |
+| ISC-106 | integration | identical plans dispatched concurrently receive distinct execution traces | unique identifiers | dispatch test |
 
 ## Features
 
@@ -305,6 +307,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | Regression and full-gate coverage | ISC-67..ISC-70, ISC-73, ISC-75 | routing and batch implementation | no |
 | Live OmniRoute agent gateway | ISC-79..ISC-91 | local OmniRoute runtime, Codex adapter, existing classifier and fallback rails | no |
 | Correlated failure-domain receipts | ISC-93..ISC-97 | frozen routing plan, dispatcher, Codex adapter | no |
+| Unique execution trace layer | ISC-106 | deterministic plan lineage, dispatcher task identity | no |
 | Governed OmniRoute portfolio resolver | ISC-98..ISC-100 | shared task classifier, live model catalog | no |
 | Portfolio evidence and operator surfaces | ISC-92, ISC-101..ISC-105 | OmniRoute CLI/API, enrichment, canonical verification | no |
 
@@ -333,6 +336,7 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 
 - Use a public repo that references voice assets instead of bundling them.
 - 2026-07-22 14:00: Preserve the verified prior OmniRoute integration at commit `1f37185` before new writes; serialize Tasks 1–3 in the shared tree and relax the E3 delegation floor because the active higher-priority instruction forbids unrequested subagents.
+- 2026-07-22 14:15: refined: Treat `correlation_id` as deterministic frozen-plan lineage; add a distinct per-execution trace identifier before OmniRoute telemetry is trusted for request-level joins, while Task 4 must reconcile every named portfolio against the live catalog before selection.
 - Keep the first installer Mac-friendly but not Mac-required.
 - Generalize paths through `$HOME` and override variables.
 - Treat skills.sh readiness as a skill-card plus metadata layer, not a separate installer fork.

@@ -57,8 +57,10 @@ grep -q -- '--verdict' "$DIR/ISA.md" && echo "ok - ISA has --verdict invariant" 
   || { echo "FAIL - ISA missing --verdict"; fail=1; }
 
 # --- ISA normalization: criteria and ledger shape are current ---
-grep -q "^task: Configure OmniRoute as Temperance's live agent gateway$" "$DIR/ISA.md" \
-  && grep -q '^progress: 90/91$' "$DIR/ISA.md" \
+isa_checked="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} inside && /^- \[x\] ISC-[0-9]+:/{count++} END{print count+0}' "$DIR/ISA.md")"
+isa_total="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} inside && /^- \[[ x]\] ISC-[0-9]+:/{count++} END{print count+0}' "$DIR/ISA.md")"
+grep -Eq '^task: .+$' "$DIR/ISA.md" \
+  && grep -q "^progress: $isa_checked/$isa_total$" "$DIR/ISA.md" \
   && grep -q '^updated: 2026-07-22$' "$DIR/ISA.md" \
   && echo "ok - ISA frontmatter normalized" \
   || { echo "FAIL - ISA frontmatter normalization missing"; fail=1; }
