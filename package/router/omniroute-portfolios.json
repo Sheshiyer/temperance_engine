@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "compatibility_model": "temperance-coding",
+  "task_type_portfolios": {
+    "fast": "te-fast",
+    "long-horizon": "te-build",
+    "reasoning": "te-reason",
+    "validation": "te-validate",
+    "creative": "te-vision",
+    "balanced": "te-build"
+  },
+  "reserved_portfolios": ["te-batch"],
+  "enforcement": "shadow"
+}
