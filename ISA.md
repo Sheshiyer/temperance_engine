@@ -2,7 +2,7 @@
 project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
-phase: verify
+phase: learn
 progress: 98/106
 mode: interactive
 started: 2026-06-12
@@ -370,6 +370,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   refuted by: The user approved replacing that scaffold, and the initialized runtime exposed 100 live catalog routes plus a working authenticated combo.
   learned: Task classification and provider/model routing are separate responsibilities; Temperance should own the former while OmniRoute owns the latter behind a tool-capable Codex client.
   criterion now: ISC-74 was refined and ISC-79 through ISC-91 require the live runtime, secure credentials, dynamic catalog, agentic gateway, documentation, and regression probes.
+
+- 2026-07-22 | conjectured: a deterministic plan correlation identifier could also serve as a unique downstream request trace
+  refuted by: the final Advisor showed concurrent executions with identical routing inputs can deliberately share replay lineage
+  learned: deterministic plan identity and unique execution tracing require separate fields before telemetry joins become authoritative
+  criterion now: ISC-106 requires distinct request traces for concurrent executions with identical routing inputs
 
 ## Verification
 
