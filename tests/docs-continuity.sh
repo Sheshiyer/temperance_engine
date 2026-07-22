@@ -115,6 +115,11 @@ grep -q 'off.*shadow.*enforce' "$OMNI_DOC" 2>/dev/null \
   && grep -q 'scripts/omniroute-check.sh --live' "$OMNI_RUNTIME_DOC" \
   && echo "ok - live OmniRoute runtime boundary and probe documented" \
   || { echo "FAIL - live OmniRoute runtime documentation missing"; fail=1; }
+[ -f "$OMNI_RUNTIME_DOC" ] \
+  && grep -q 'direct model override surface' "$OMNI_RUNTIME_DOC" \
+  && grep -q 'omniroute-catalog-guard.ts' "$OMNI_RUNTIME_DOC" \
+  && echo "ok - OpenCode picker override and catalog guard documented" \
+  || { echo "FAIL - OpenCode picker override/catalog guard documentation missing"; fail=1; }
 [ -x "$DIR/scripts/omniroute-check.sh" ] \
   && echo "ok - OmniRoute runtime probe is executable" \
   || { echo "FAIL - scripts/omniroute-check.sh missing or not executable"; fail=1; }
@@ -142,6 +147,7 @@ else
   echo "ok - OmniRoute integration surfaces contain no credential literals"
 fi
 grep -q 'bun test package/router/routing-policy.test.ts' "$DIR/scripts/verify-all.sh" \
+  && grep -q 'bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts' "$DIR/scripts/verify-all.sh" \
   && grep -q 'bash tests/routing-policy.sh' "$DIR/scripts/verify-all.sh" \
   && grep -q 'bash tests/dispatch-tasklist.sh' "$DIR/scripts/verify-all.sh" \
   && echo "ok - full gate includes routing policy and dispatcher" \

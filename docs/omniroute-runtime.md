@@ -30,6 +30,60 @@ The two `.env` files used by this installation are mode `600`. The scoped API
 key is referenced through `OMNIROUTE_API_KEY`; it is not embedded in config or
 source files.
 
+## OpenCode model-picker modes
+
+OpenCode's picker is a **direct model override surface**. It does not run the
+Temperance classifier when a user selects a model manually. Automatic task
+modes still belong to `temperance-route` and the governed `temperance-coding`
+combo; picker selections are explicit experiments or operator overrides.
+
+The local Mac configuration exposes this curated set from OmniRoute's live
+combo catalog:
+
+| Picker entry | Intended use | Governance |
+| --- | --- | --- |
+| `temperance-coding` | Governed default coding route | Temperance-compatible default |
+| `auto/best-coding` | Best available coding | Explicit override |
+| `auto/best-coding-fast` | Lower-latency coding | Explicit override |
+| `auto/best-reasoning` | Deep reasoning and validation | Explicit override |
+| `auto/best-fast` | Fast fixes and short tasks | Explicit override |
+| `auto/best-chat` | Creative and conversational work | Explicit override |
+| `auto/best-vision` | Image and multimodal work | Explicit override |
+| `auto/pro-coding` | Pro coding route | Explicit override; may use paid providers |
+| `auto/pro-reasoning` | Pro reasoning route | Explicit override; may use paid providers |
+| `auto/pro-fast` | Pro low-latency route | Explicit override; may use paid providers |
+| `auto/pro-vision` | Pro multimodal route | Explicit override; may use paid providers |
+| `auto/smart` | Balanced general-purpose route | Explicit override |
+| `auto/cheap` | Cost-sensitive route | Explicit override |
+| `auto/best-free` | Free-route experiment | Experimental; no enforcement authority |
+
+The full inventory remains available from the live API; it is intentionally not
+copied into OpenCode's picker because the catalog is provider-owned and changes
+over time:
+
+```bash
+export OMNIROUTE_API_KEY=$(security find-generic-password \
+  -a "$USER" -s 'OmniRoute Temperance API Key' -w)
+curl -sS -H "Authorization: Bearer $OMNIROUTE_API_KEY" \
+  http://127.0.0.1:20128/v1/models \
+  | jq -r '.data[] | [.owned_by,.id] | @tsv'
+```
+
+Combo names are routing aliases, not permanent provider guarantees. Their
+underlying provider/model can change with account health, quota, and dashboard
+configuration. A successful alias probe therefore proves reachability only; it
+does not authorize a production portfolio promotion. The governed router keeps
+`temperance-coding` as its default and retains direct fallback rails.
+
+After editing the local config, restart or refresh OpenCode's model picker.
+The configured IDs are checked against `/v1/models`; missing IDs must be
+removed or treated as unavailable rather than silently substituted.
+
+The local OpenCode plugin `omniroute-catalog-guard.ts` repeats that check in
+`chat.params` immediately before each OmniRoute request. A missing model,
+malformed catalog, or unavailable catalog endpoint fails the request closed;
+it cannot silently fall back to another provider/model.
+
 ## Test it
 
 The default probe is read-only and verifies the daemon, live model catalog,

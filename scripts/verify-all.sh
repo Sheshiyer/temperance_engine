@@ -17,6 +17,7 @@ fi
 run ./verify.sh
 run bun test package/enrich
 run bun test package/router/routing-policy.test.ts
+run bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts
 run bash tests/docs-continuity.sh
 run bash tests/router-hardening.sh
 run bash tests/routing-policy.sh
