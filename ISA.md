@@ -3,7 +3,7 @@ project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
 phase: learn
-progress: 98/106
+progress: 99/106
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-22
@@ -161,7 +161,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-96: Direct fallback attempts retain the same correlation identifier after gateway failure.
 - [x] ISC-97: Every external routing candidate declares either the gateway or direct failure domain.
 - [x] ISC-98: Shared task-type output resolves deterministically to a named OmniRoute portfolio.
-- [ ] ISC-99: A missing named portfolio degrades through the compatibility combo before direct backends.
+- [x] ISC-99: A missing named portfolio degrades through the compatibility combo before direct backends.
 - [x] ISC-100: Anti: unverified OmniRoute telemetry or eval output never receives enforcement authority.
 - [ ] ISC-101: A machine-readable readiness probe reports configured portfolio availability.
 - [ ] ISC-102: A machine-readable readiness probe reports telemetry and evaluation evidence state.
@@ -427,4 +427,5 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-96: fallback integration — `bash tests/dispatch-tasklist.sh` reported `ok - gateway and direct attempts share correlation` and completed with `dispatch-tasklist: PASS`.
 - ISC-97: schema and integration tests — policy/router tests label OmniRoute `gateway` and all CLI candidates `direct`; dispatcher fallback reported both domains and completed with `dispatch-tasklist: PASS`.
 - ISC-98: unit test — `bun test package/router/omniroute-portfolios.test.ts` passed mappings for all six outputs of the shared task classifier.
+- ISC-99: fixture-driven routing integration — `bash tests/router-hardening.sh` proved a missing named portfolio keeps `temperance-coding` selected before the direct primary, while an empty gateway catalog removes OmniRoute and selects the direct rail.
 - ISC-100: isolation probes — the portfolio manifest reports `enforcement=shadow`, resolver tests pin no provider members, and a live plan inspection found no `te-*` model in `selected_order`.
