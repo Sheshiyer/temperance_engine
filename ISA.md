@@ -1,25 +1,33 @@
 ---
 project: temperance_engine
-task: Package and maintain Temperance Engine public installer/runtime docs
-effort: E4
-phase: complete
-progress: 48/48
-mode: public-package
+task: Configure OmniRoute as Temperance's live agent gateway
+effort: E3
+phase: learn
+progress: 90/91
+mode: interactive
 started: 2026-06-12
-updated: 2026-07-09
+updated: 2026-07-22
 ---
 
 ## Problem
 
 The local PAI, skill-cluster, peon-ping, and CodeGraph integration exists as a working machine-specific runtime, but it is not packaged into a public, reviewable, one-time installer.
 
+Temperance also has a unified task classifier and dual-rail batch dispatcher, but its backend selection is primarily static. It does not yet combine capability fit, observed health, quota/cost state, deterministic fallback, and attempt telemetry into one explicit routing policy.
+
+The previous 14-entry backend/model catalog was Temperance-owned scaffolding, not OmniRoute's live provider inventory. OmniRoute patterns were adapted locally, but the OmniRoute runtime itself was never initialized, secured, or connected to agentic dispatch.
+
 ## Vision
 
 Temperance Engine gives a user a readable public repo that explains the runtime, installs the safe pieces, references optional local voice packs, and verifies the configuration without leaking private machine state.
 
+The orchestrator should use OmniRoute without becoming an OmniRoute fork: Temperance classifies work and freezes an inspectable dispatch plan; Codex supplies the workspace-capable agent loop; OmniRoute supplies the dynamic provider/model catalog and internal failover; direct agent CLIs preserve outage recovery.
+
 ## Out of Scope
 
 Bundling private memory, credentials, backups, proprietary voice/audio packs, or forcing non-macOS voice behavior is out of scope.
+
+Vendoring or forking OmniRoute, replacing `classify-task.sh`, committing provider credentials, automatically importing private provider accounts, or making the base Temperance installer depend on a running OmniRoute daemon remains out of scope. This workstation's explicitly approved local runtime integration is in scope.
 
 ## Principles
 
@@ -27,6 +35,10 @@ Bundling private memory, credentials, backups, proprietary voice/audio packs, or
 - GSD organizes execution; Speckit-style specs/plans supply design context.
 - Runtime enrichment must fail open and expose pointers, not private file bodies.
 - Ratification controls scope: pending review surfaces stay deferred.
+- Classification decides what the task is; policy ranks where it should run; execution records what actually happened.
+- Health, capability, cost, and quota signals may influence backend ranking without becoming a second task classifier.
+- Fallback is a planned route with observable attempts, not an exception hidden inside a shell loop.
+- Temperance owns task classification; OmniRoute owns provider/model inventory and gateway failover.
 
 ## Constraints
 
@@ -35,10 +47,19 @@ Bundling private memory, credentials, backups, proprietary voice/audio packs, or
 - Voice packs must be referenced, not vendored.
 - Non-macOS devices must be able to skip voice.
 - `~/.agents/skill-clusters/skills` must not be scanned wholesale at startup.
+- `package/router/classify-task.sh` remains the only task-type and primary-model classifier.
+- `ISA.md` remains the only durable preference and acceptance ledger.
+- OmniRoute-derived code or protocol ideas must be license-reviewed and attributed before reuse.
+- Existing router and batch CLI contracts remain backward compatible unless an explicit migration is ratified.
+- Agentic dispatch through OmniRoute must retain a tool-capable client loop; raw chat completion alone is not a coding-agent replacement.
 
 ## Goal
 
 Create a public-ready `Sheshiyer/temperance_engine` repository with install, verify, rollback, templates, and documentation for the custom runtime.
+
+Integrate the smallest high-leverage OmniRoute patterns into Temperance's existing router and parallel dispatcher: source-anchored design, capability/health/quota-aware ranking, circuit breaking and ordered failover, dry-run explainability, compact attempt telemetry, and full regression tests, while preserving the ISA and unified classifier as the sole policy authorities.
+
+Configure a secured local OmniRoute runtime as the preferred external gateway, make its live catalog the source of model inventory, execute its selected models through Codex's agent loop, and retain existing direct backends as automatic outage fallbacks.
 
 ## Criteria
 
@@ -80,8 +101,8 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - [x] ISC-36: gsd-core (`open-gsd/gsd-core`) is documented as the recommended-default workflow backbone with an explicit superpowers-only fallback; `--with-gsd` remains detect-only (ISC-31 preserved).
 - [x] ISC-37: `docs/parallel-dispatch.md` and `docs/multi-surface-architecture.md` are retired to redirect stubs pointing at `docs/pai-flow.md`; `package/conductor/routed-execute.sh` is removed.
 - [x] ISC-38: `UPSTREAM.md` credits gsd-core with its current URL (`https://github.com/open-gsd/gsd-core`).
-- [x] ISC-39 — Unified task router (single classifier). Task-type classification and the command-code type→model primary live in exactly one place: `package/router/classify-task.sh` (POSIX sh). `multi-backend-router.sh` sources it (its `analyze_task_type` delegates; `ROUTING_PRIORITY`'s command-code column is derived from `model_for_type`), and `package/enrich/stages/routing.ts` execs it. No routing surface re-implements the classifier. `route-task.sh` is retired. Because `routing.ts` now execs the shared script, the enrichment runtime must be able to reach it: either a co-located `router/classify-task.sh` sibling of the installed `enrich/`, or `TEMPERANCE_ROUTER_DIR` pointing at its directory. If neither is reachable, `routing.ts` fails open to `task=balanced` (degraded, never fatal).
-- [x] ISC-40 — Three routing verdicts. `multi-backend-router.sh --verdict "<task>"` emits exactly one of `inline` | `external<TAB>backend<TAB>model` | `claude-subagent`, as a pure remap of `--route-only` (so they never disagree). `external` names the backend `route_only` selected — `command-code` when it is available (the sole auto-preferred), otherwise the first available backend in the command-code→grok→kimi fallback chain (ISC / #8), byte-identical to `--route-only` (so grok/kimi surface only when command-code is down or forced via `--backend`, never as a preference while command-code is up). `claude-subagent` is the no-external-backend case.
+- [x] ISC-39: Unified task router (single classifier). Task-type classification and the command-code type→model primary live in exactly one place: `package/router/classify-task.sh` (POSIX sh). `multi-backend-router.sh` sources it (its `analyze_task_type` delegates; `ROUTING_PRIORITY`'s command-code column is derived from `model_for_type`), and `package/enrich/stages/routing.ts` execs it. No routing surface re-implements the classifier. `route-task.sh` is retired. Because `routing.ts` now execs the shared script, the enrichment runtime must be able to reach it: either a co-located `router/classify-task.sh` sibling of the installed `enrich/`, or `TEMPERANCE_ROUTER_DIR` pointing at its directory. If neither is reachable, `routing.ts` fails open to `task=balanced` (degraded, never fatal).
+- [x] ISC-40: Three routing verdicts. `multi-backend-router.sh --verdict "<task>"` emits exactly one of `inline` | `external<TAB>backend<TAB>model` | `claude-subagent`, as a pure remap of `--route-only` (so they never disagree). `external` names the backend `route_only` selected — `omniroute` when its named combo is live, otherwise the first available backend in the command-code→grok→kimi direct fallback chain. `claude-subagent` is the no-external-backend case.
 - [x] ISC-41: ISA frontmatter contains `project`, `task`, `effort`, `phase`, `progress`, `mode`, `started`, and `updated`; `progress` matches the checked active criteria count.
 - [x] ISC-42: ISA body includes the canonical project-ledger sections for Problem, Vision, Out of Scope, Principles, Constraints, Goal, Criteria, Test Strategy, Features, Decisions, Changelog, and Verification.
 - [x] ISC-43: Test Strategy contains rows for every active ISC through ISC-48, including ISC-39, ISC-40, and the workflow-hardening criteria.
@@ -90,6 +111,49 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 - [x] ISC-46: Root `.planning/` exists as the GSD execution spine and maps ratified surfaces into active or completed-reference phases while keeping pending specs/plans deferred.
 - [x] ISC-47: `scripts/verify-all.sh` is the canonical full verification entrypoint and runs `./verify.sh`, `bun test package/enrich`, docs continuity, router hardening, sandbox install, identity, wire-batch, and classify checks.
 - [x] ISC-48: `.github/workflows/verify.yml` delegates package verification to `scripts/verify-all.sh` and declares the runtime dependencies needed for that gate.
+- [x] ISC-49: The OmniRoute review records the inspected commit SHA and source paths.
+- [x] ISC-50: The design includes a source-anchored reuse, adapt, and reject matrix.
+- [x] ISC-51: The integration design names `classify-task.sh` as the sole task classifier.
+- [x] ISC-52: Task type enters routing only through `classify-task.sh` output.
+- [x] ISC-53: Backend capability metadata participates in automatic ranking.
+- [x] ISC-54: Observed backend health participates in automatic ranking.
+- [x] ISC-55: Available quota or budget state participates in automatic ranking when present.
+- [x] ISC-56: An explicit backend override wins over automatic ranking.
+- [x] ISC-57: Automatic ranking is deterministic for identical inputs and state.
+- [ ] ISC-58: An open circuit removes its backend from new automatic attempts.
+- [x] ISC-59: A cooldown probe can restore an open-circuit backend.
+- [x] ISC-60: External execution follows an inspectable ordered fallback list.
+- [x] ISC-61: Exhausted external fallbacks resolve to the existing subagent fallback.
+- [x] ISC-62: Every batch run persists its resolved dispatch plan.
+- [x] ISC-63: Every task result records status, attempts, backend, and artifact pointers.
+- [x] ISC-64: Dispatch emits structured attempt and fallback events.
+- [x] ISC-65: Dispatch records usage or cost metadata when a backend exposes it.
+- [x] ISC-66: Dry-run prints the resolved plan without executing a backend.
+- [x] ISC-67: Anti: no new task-type classifier is introduced.
+- [x] ISC-68: Anti: no provider credential or OmniRoute secret enters the repository.
+- [x] ISC-69: Unit tests cover ranking, overrides, circuit state, fallback, and dry-run.
+- [x] ISC-70: `scripts/verify-all.sh` executes the new routing-policy tests.
+- [x] ISC-71: Public docs explain the OmniRoute-inspired integration boundary.
+- [x] ISC-72: Missing health, quota, or cost telemetry degrades safely.
+- [x] ISC-73: Existing router and batch CLI outputs remain compatible.
+- [x] ISC-74: [REFINED — see Decisions 2026-07-22] OmniRoute remains optional for the base installer; direct fallback rails keep dispatch usable when its daemon is absent.
+- [x] ISC-75: Independent task plans remain concurrently dispatchable.
+- [x] ISC-76: A fixed-state replay produces the same ranked backend order.
+- [x] ISC-77: Batch summaries remain compact and omit raw model output by default.
+- [x] ISC-78: Reused OmniRoute ideas or code carry required license attribution.
+- [x] ISC-79: A local OmniRoute daemon answers its OpenAI-compatible `/v1/models` endpoint.
+- [x] ISC-80: Runtime model inventory comes from OmniRoute's live catalog; Temperance does not copy that catalog into its classifier.
+- [x] ISC-81: OmniRoute exposes a `temperance-coding` priority combo whose configured targets each pass a direct completion probe.
+- [x] ISC-82: A healthy `temperance-coding` combo ranks before direct agent backends, which remain in the frozen fallback chain.
+- [x] ISC-83: OmniRoute dispatch executes through Codex's agent/tool loop rather than a raw chat-only adapter.
+- [x] ISC-84: OmniRoute admin and scoped inference credentials remain outside the repository and are stored in macOS Keychain.
+- [x] ISC-85: `scripts/omniroute-check.sh` performs a read-only runtime, catalog, combo, and router-boundary probe.
+- [x] ISC-86: `scripts/omniroute-check.sh --live` completes a real authenticated request through `temperance-coding`.
+- [x] ISC-87: Local Codex and OpenCode configuration expose the `temperance-coding` OmniRoute model without embedding its API key.
+- [x] ISC-88: Public documentation explains provider onboarding, model inspection, health checks, startup, shutdown, and fallback behavior.
+- [x] ISC-89: Anti: OmniRoute provider/model routing does not introduce a second task classifier.
+- [x] ISC-90: OmniRoute data and package environment files containing secrets are mode `600`.
+- [x] ISC-91: Router and dispatcher tests cover OmniRoute-first ordering, agentic invocation, literal prompt passage, metadata, and direct fallback preservation.
 
 ## Test Strategy
 
@@ -135,7 +199,7 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | ISC-38 | text | `UPSTREAM.md` credits `open-gsd/gsd-core` | match | grep |
 | ISC-39 | shell | router and enrichment classification use `package/router/classify-task.sh` | zero disagreement | bash tests/router-hardening.sh + bash tests/classify-task.sh |
 | ISC-40 | shell | `--verdict` agrees with `--route-only` across inline, external, and subagent cases | zero disagreement | bash tests/router-hardening.sh |
-| ISC-41 | text | ISA frontmatter has canonical metadata and `progress: 48/48` | match | grep |
+| ISC-41 | text | ISA frontmatter has canonical metadata and progress equals checked/total criteria | `progress: 90/91` during LEARN | grep |
 | ISC-42 | text | ISA includes Principles and Changelog project-ledger sections | match | grep |
 | ISC-43 | text | Test Strategy has rows for ISC-39..ISC-48 | match | grep |
 | ISC-44 | text | Features table maps identity, unified flow, router, planning, and full verification ranges | match | grep |
@@ -143,6 +207,49 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | ISC-46 | text | `.planning` exists, names GSD/Speckit, and gates ratified surfaces | match | bash tests/docs-continuity.sh |
 | ISC-47 | shell | `scripts/verify-all.sh` runs all named hardening checks | zero failures | scripts/verify-all.sh |
 | ISC-48 | yaml | GitHub Verify workflow calls `scripts/verify-all.sh` and sets up Node, Bun, and jq | match | bash tests/docs-continuity.sh |
+| ISC-49 | research | review names commit SHA and exact source paths | present | grep |
+| ISC-50 | design | matrix classifies each candidate as reuse, adapt, or reject | present | grep |
+| ISC-51 | design | classifier authority is explicit | one named authority | grep |
+| ISC-52 | unit | routing task type equals shared-classifier output | exact match | routing-policy test |
+| ISC-53 | unit | capability mismatch lowers or removes a candidate | pass | routing-policy test |
+| ISC-54 | unit | unhealthy backend ranks below healthy equivalent | pass | routing-policy test |
+| ISC-55 | unit | exhausted quota lowers or removes a candidate | pass | routing-policy test |
+| ISC-56 | unit | forced backend is selected when available | pass | routing-policy test |
+| ISC-57 | unit | identical state produces byte-identical ranking | pass | routing-policy test |
+| ISC-58 | unit | open circuit excludes backend | pass | circuit-breaker test |
+| ISC-59 | unit | successful cooldown probe closes circuit | pass | circuit-breaker test |
+| ISC-60 | CLI | resolved fallback order is printed or persisted | exact order | dry-run test |
+| ISC-61 | CLI | external exhaustion returns subagent verdict | exact verdict | fallback test |
+| ISC-62 | file | run directory contains resolved dispatch plan | present | batch integration test |
+| ISC-63 | schema | result envelope contains required fields | schema match | batch integration test |
+| ISC-64 | log | attempt and fallback event types are emitted | match | event test |
+| ISC-65 | schema | optional usage/cost fields survive result normalization | pass | schema test |
+| ISC-66 | CLI | dry-run performs zero backend processes | zero executions | dry-run test |
+| ISC-67 | text | classifier implementations outside shared script | zero | grep + router-hardening test |
+| ISC-68 | security | OmniRoute credentials or secret literals enter repository | zero | gitleaks + grep |
+| ISC-69 | test | named routing-policy scenarios pass | zero failures | unit test command |
+| ISC-70 | shell | full gate invokes routing-policy tests | match | verify-all test |
+| ISC-71 | docs | integration boundary and provenance are documented | present | docs continuity test |
+| ISC-72 | unit | absent telemetry returns a valid ranked plan | pass | routing-policy test |
+| ISC-73 | regression | existing router and batch test fixtures pass unchanged | zero failures | existing tests |
+| ISC-74 | dependency | OmniRoute package, process, or port is required | zero | package and install scan |
+| ISC-75 | integration | two independent tasks overlap in execution time | overlap observed | batch concurrency test |
+| ISC-76 | unit | fixed-state ranking replay is identical | byte-identical | routing-policy test |
+| ISC-77 | integration | summary excludes raw output and stays within size limit | pass | batch summary test |
+| ISC-78 | legal | provenance file names OmniRoute and applicable license | present | grep |
+| ISC-79 | HTTP | `GET /v1/models` returns a model array | HTTP 200 | curl + jq |
+| ISC-80 | architecture | classifier contains no copied OmniRoute provider catalog | zero catalog duplication | grep + review |
+| ISC-81 | integration | named combo and its direct targets complete probes | exact responses | curl |
+| ISC-82 | unit | gateway precedes direct backends in frozen order | exact order | router-hardening test |
+| ISC-83 | unit | dispatcher invokes Codex for `omniroute` backend | mocked agent succeeds | dispatch test |
+| ISC-84 | security | repository scan plus Keychain lookup | no secret literals + entries present | grep + security |
+| ISC-85 | shell | default runtime check exits zero without completion | pass | omniroute-check |
+| ISC-86 | integration | live runtime check returns expected content | pass | omniroute-check --live |
+| ISC-87 | config | Codex profile and OpenCode model resolve | exact model | file + CLI |
+| ISC-88 | docs | runtime operations and provider onboarding documented | present | docs continuity |
+| ISC-89 | architecture | task classification still enters only via shared script | one classifier | router tests |
+| ISC-90 | permissions | secret-bearing OmniRoute environment files | mode 600 | stat |
+| ISC-91 | regression | OmniRoute router/dispatcher assertions plus full fallbacks | zero failures | shell tests |
 
 ## Features
 
@@ -163,6 +270,12 @@ Create a public-ready `Sheshiyer/temperance_engine` repository with install, ver
 | Planning-state resolver hardening | ISC-45 | package/enrich resolver | yes |
 | GSD planning spine | ISC-46 | ISA, specs, plans | yes |
 | Full verification gate | ISC-47..ISC-48 | existing test harnesses, CI | no |
+| OmniRoute source review and boundary design | ISC-49..ISC-51, ISC-71, ISC-74, ISC-78 | upstream source, current architecture | yes |
+| Adaptive routing policy | ISC-52..ISC-57, ISC-72, ISC-76 | unified classifier, backend observations | no |
+| Circuit breaker and ordered fallback | ISC-58..ISC-61 | adaptive routing policy | no |
+| Dispatch plan and result envelope | ISC-62..ISC-66, ISC-77 | batch runner | yes |
+| Regression and full-gate coverage | ISC-67..ISC-70, ISC-73, ISC-75 | routing and batch implementation | no |
+| Live OmniRoute agent gateway | ISC-79..ISC-91 | local OmniRoute runtime, Codex adapter, existing classifier and fallback rails | no |
 
 ## Architecture
 
@@ -200,6 +313,14 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-01: Port the runtime identity to live operator surfaces as an attached, reversible `<!-- temperance:identity -->` block (live-is-truth), never a content replacement; prove the installer layering first with an isolated sandbox harness that pins the Pulse port and cannot touch the real home directory.
 - 2026-07-09: Promote product-engineering workflow hardening into repo-native state: `.planning` is the GSD execution spine, Speckit-style specs/plans remain design inputs, `ISA.md` remains the acceptance ledger, and only ratified surfaces become active phases.
 - 2026-07-18: Pin the command-code type→model primaries in `package/router/classify-task.sh` (`model_for_type`) to the account's credit deals so parallel dispatch spends discounted/free tokens: `fast`+`validation` → `tencent/Hy3` (FREE), `long-horizon` → `xiaomi/mimo-v2.5-pro` (5×, permanent), `reasoning` → `deepseek/deepseek-v4-pro` (4×, permanent), `creative`+`balanced` → `MiniMaxAI/MiniMax-M3` (2.67×). Permanent deals hold the durable coding/reasoning slots; the two Jul-21-expiring deals (`Hy3`, `MiniMax-M3`) hold high-volume slots. **Revert the four expiring-deal slots on/after 2026-07-21** back to durable models. `package/router/task-model-router.ts` — a dead, no-consumer re-implementation of the classifier + a stale MODEL_CATALOG — was deleted 2026-07-18 so ISC-39's one-classifier doctrine holds literally.
+- 2026-07-21: refined: Treat OmniRoute as a pattern library, not a replacement gateway. Temperance keeps one classifier and ISA while adapting health-aware ranking, circuit breaking, explainable fallback, and attempt telemetry into its existing router/batch boundary.
+- 2026-07-21 15:03: The integration seam is between shared classification and existing batch execution. Preserve the current dispatcher, add a deterministic policy that reorders its candidate chain from capability and observation signals, and fail open to the current static order when policy state is absent or invalid.
+- 2026-07-21 15:03: Risks: concurrent health-state writes, stale quota/cost observations, unstable score ties, and accidental conversion of observations into a second preference store must each have explicit tests or structural guards before implementation is accepted.
+- 2026-07-21 15:21: User approved Option A. Replace the existing scaffold's static route-selection layer with a local deterministic shadow policy, frozen dispatch plans, backend observations, and circuit state; retain the unified classifier, parallel dispatcher, concurrency limits, worktree isolation, fail-open semantics, and result artifacts. OmniRoute remains an attributed design source, never a required runtime daemon.
+- 2026-07-21: Keep production in shadow mode and leave ISC-58 open until observation evidence justifies enforcement. The enforce-mode exclusion, cooldown probe lease, and kill switch are implemented and tested, but open circuits do not suppress the existing static route while shadow mode is authoritative.
+- 2026-07-22 12:54: refined: User explicitly expanded the boundary from OmniRoute-inspired local policy to an actual local OmniRoute runtime. Temperance remains the sole task classifier; OmniRoute becomes the preferred provider/model gateway; Codex supplies the agentic tool loop; command-code, grok, and kimi remain direct outage fallbacks.
+- 2026-07-22 12:54: Store the generated OmniRoute dashboard password and scoped Temperance inference key in macOS Keychain, keep runtime data under `~/.omniroute`, and never place either secret in repository configuration or model arguments.
+- 2026-07-22 12:54: Use a named `temperance-coding` priority combo instead of OmniRoute's generic auto/free aliases because live probes showed those aliases could select an inactive Auggie subscription; configure only targets that passed direct authenticated probes.
 
 ## Changelog
 
@@ -208,6 +329,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-09: Added `scripts/verify-all.sh` and delegated CI package verification to that full gate.
 - 2026-07-18: Repointed the dispatch type→model primaries to the account's command-code credit deals (Hy3/MiMo-V2.5-Pro/DeepSeek-V4-Pro/MiniMax-M3); updated `multi-backend-router.sh` MODEL_CATALOG metadata and the `tests/classify-task.sh` + `routing.test.ts` expectations to match.
 - 2026-07-18: Deleted dead `package/router/task-model-router.ts` (no importers; re-implemented the classifier against ISC-39 and carried a now-stale model catalog).
+- 2026-07-21: Replaced static backend selection with an OmniRoute-inspired local policy seam, frozen per-task plans, atomic backend observations, half-open probe leases, structured attempt/usage/cost evidence, and source/license documentation. The unified classifier and parallel/worktree dispatcher remain authoritative.
+- 2026-07-22 | conjectured: OmniRoute could remain a design-only influence while Temperance's local model catalog stayed authoritative.
+  refuted by: The user approved replacing that scaffold, and the initialized runtime exposed 100 live catalog routes plus a working authenticated combo.
+  learned: Task classification and provider/model routing are separate responsibilities; Temperance should own the former while OmniRoute owns the latter behind a tool-capable Codex client.
+  criterion now: ISC-74 was refined and ISC-79 through ISC-91 require the live runtime, secure credentials, dynamic catalog, agentic gateway, documentation, and regression probes.
 
 ## Verification
 
@@ -225,3 +351,31 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-06-15: `./install.sh --dry-run --skip-voice --with-claude --with-codex` proved optional Claude/Pulse and Codex surfaces can still be requested explicitly.
 - 2026-07-09: `bun test package/enrich` covers `.planning` absent, present, empty, and file-state resolver behavior.
 - 2026-07-09: `./scripts/verify-all.sh` passed after running `./verify.sh`, `bun test package/enrich`, docs continuity, router hardening, sandbox install, identity, wire-batch, and classify checks.
+- ISC-51: file inspection — `ISA.md` and `multi-backend-router.sh` name `package/router/classify-task.sh` as the only task classifier.
+- ISC-56: shell test — `bash tests/router-hardening.sh` reported `ok - route-only forced backend+model`.
+- ISC-60: shell test — `bash tests/router-hardening.sh` reported the command-code → grok → kimi fallback chain in order.
+- ISC-63: integration test — `bash tests/dispatch-tasklist.sh` verified top-level status/backend plus per-attempt metadata and diff pointers.
+- ISC-66: integration test — `bash tests/dispatch-tasklist.sh` reported `ok - dry-run routes T1 to command-code` without invoking a live backend.
+- ISC-67: shell test — classifier parity passed across the router corpus and no retired classifier consumer remains.
+- ISC-73: regression test — both `tests/router-hardening.sh` and `tests/dispatch-tasklist.sh` completed with zero failures.
+- ISC-74: dependency scan — the base installer does not require OmniRoute, and router tests prove the direct command-code → grok → kimi rails remain available when the daemon is absent.
+- ISC-75: integration test — dispatch concurrency observed a maximum of two in-flight tasks with `--concurrency 2`, and all four tasks completed.
+- 2026-07-21: `bun test package/router/routing-policy.test.ts` passed 14/14 policy and reducer tests, including deterministic replay, circuit state, per-signal freshness, and completion ordering.
+- 2026-07-21: `bash tests/routing-policy.sh` passed shadow/enforce/off, forced override, invalid-state fail-open, no-raw-prompt, all-open, semantic-validation, and single-probe lease scenarios.
+- 2026-07-21: `bash tests/dispatch-tasklist.sh` passed frozen-plan integrity, concurrency, fallback, timeout, worktree isolation, atomic observations, Bash-4 millisecond ordering, optional usage/cost preservation, and compact-summary checks.
+- 2026-07-21: `bash tests/docs-continuity.sh` verified the pinned OmniRoute commit, REUSE/ADAPT/REJECT matrix, MIT attribution, subagent fallback contract, no credential-like literals, and full-gate wiring.
+- 2026-07-21: `./scripts/verify-all.sh` completed with `Temperance Engine full verification passed`; 43 enrichment tests, 14 routing-policy tests, router/policy/dispatcher suites, installer sandbox, identity, wiring, and classifier gates were green.
+- 2026-07-21: Two read-only parallel reviewers rechecked routing integrity and specification coverage. Mutable-plan execution, all-open phantom routing, duplicate cooldown probes, stale telemetry refresh, and Bash-4 completion ties were corrected before the final gate; no P0/P1 finding remained in the implementation scope.
+- ISC-79: HTTP probe — `GET http://127.0.0.1:20128/v1/models` returned HTTP 200 with 100 catalog entries.
+- ISC-80: architecture inspection — `classify-task.sh` retains task-type mapping only; the live OmniRoute API supplies provider and model inventory.
+- ISC-81: integration probes — `oc/deepseek-v4-flash-free`, `oc/big-pickle`, and `mcode/mimo-auto` completed directly, and the named combo returned `SECURE_COMBO_OK`.
+- ISC-82: shell test — `tests/router-hardening.sh` verified `omniroute:temperance-coding` precedes command-code, grok, and kimi while preserving their order.
+- ISC-83: integration test — the Codex adapter completed an actual OmniRoute-routed agent run with `AGENT_GATEWAY_OK`; its dispatcher mock also passed.
+- ISC-84: security checks — both scoped credentials resolve from their named macOS Keychain entries, and `tests/docs-continuity.sh` found no repository credential literals.
+- ISC-85: shell probe — `scripts/omniroute-check.sh` exited zero after reporting runtime 3.8.48, 100 catalog entries, the combo, and router route.
+- ISC-86: live integration — `scripts/omniroute-check.sh --live` exited zero and reported completion through `deepseek-v4-flash-free`.
+- ISC-87: config probe — `opencode models omniroute` returned `omniroute/temperance-coding`, and the generated Codex profile exists without an embedded inference key.
+- ISC-88: documentation test — `tests/docs-continuity.sh` verified runtime operations, provider onboarding, model inspection, health checks, and fallback documentation.
+- ISC-89: architecture test — shared-classifier parity passed across router cases, and no alternate OmniRoute task classifier exists.
+- ISC-90: permission check — both OmniRoute environment files and the generated Codex profile report mode `600`.
+- ISC-91: regression gate — `scripts/verify-all.sh` completed with `Temperance Engine full verification passed`, including all OmniRoute router and dispatcher assertions.

@@ -8,6 +8,7 @@ Temperance Engine is an integration package. It connects local configuration sur
 |---|---|---|
 | Personal AI Infrastructure | https://github.com/danielmiessler/Personal_AI_Infrastructure | Main PAI/Algorithm/ISA inspiration and upstream conceptual root. |
 | GSD Core | https://github.com/open-gsd/gsd-core | Recommended workflow backbone (Discuss→Plan→Execute→Verify→Ship); referenced, not vendored. |
+| OmniRoute | https://github.com/diegosouzapw/OmniRoute | Source-reviewed inspiration for deterministic backend scoring, circuit state, frozen plans, and telemetry; referenced, not vendored. |
 | CodeGraph | https://github.com/colbymchenry/codegraph | Local AST-backed structural code index for `.agents`. |
 | peon-ping | https://github.com/PeonPing/peon-ping | Local AI-agent voice notification pattern and script surface. |
 | OpenCode | https://github.com/anomalyco/opencode | OpenCode configuration and MCP runtime surface. |
@@ -23,6 +24,7 @@ Temperance Engine is an integration package. It connects local configuration sur
 - CodeGraph: local `codegraph` CLI and index are referenced, not vendored.
 - peon-ping: local script and sound packs are referenced, not vendored.
 - skills.sh: `skills/temperance-engine/SKILL.md` is prepared as the marketplace-facing entry.
+- OmniRoute: no proxy, provider catalog, credentials, or runtime packages are bundled; see `docs/omniroute-integration.md` and `THIRD_PARTY_NOTICES.md`.
 
 ## Asset Notes
 

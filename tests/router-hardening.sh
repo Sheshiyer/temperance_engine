@@ -11,6 +11,17 @@ out=$(TEMPERANCE_BACKENDS="command-code" "$R" --route-only "refactor the entire 
 check "route-only long-horizon -> command-code primary" \
   "command-code	xiaomi/mimo-v2.5-pro" "$out"
 
+# A healthy OmniRoute gateway is the preferred execution rail. Temperance still
+# classifies the task, while OmniRoute owns provider/model failover behind its
+# named combo. Direct agent CLIs remain later fallbacks.
+out=$(TEMPERANCE_BACKENDS="omniroute command-code" "$R" --route-only "refactor the entire auth layer")
+check "route-only long-horizon -> OmniRoute gateway primary" \
+  "omniroute	temperance-coding" "$out"
+
+out=$(TEMPERANCE_BACKENDS="omniroute command-code grok kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
+expected=$'omniroute\ttemperance-coding\ncommand-code\txiaomi/mimo-v2.5-pro\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
+check "OmniRoute gateway precedes direct fallback rails" "$expected" "$out"
+
 # zero backends -> none<TAB>-
 out=$(TEMPERANCE_BACKENDS="" "$R" --route-only "refactor the entire auth layer")
 check "route-only zero backends -> none" "none	-" "$out"

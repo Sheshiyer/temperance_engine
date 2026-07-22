@@ -31,7 +31,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 ## What It Installs
 
 - PAI instruction templates for OpenCode, Cursor, and portable `AGENTS.md` use.
-- **Multi-backend routing** via `temperance-route` CLI — automatically selects optimal AI model based on task type (command-code primary with 35 models; kimi, grok as fallbacks).
+- **OmniRoute-backed agent routing** via `temperance-route` — Temperance classifies work, Codex supplies the tool loop, and OmniRoute owns the live model catalog and provider failover; direct CLIs remain outage fallbacks.
 - **Enrichment context** with automatic task classification — every prompt gets a `<temperance-context>` block with routing hints.
 - Optional templates for Claude Code and Codex when a user explicitly opts in.
 - Optional local Pulse compatibility server on `localhost:31337` when Claude/Pulse compatibility is explicitly enabled.
@@ -44,7 +44,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 
 | Capability | What it does |
 |---|---|
-| **Multi-backend routing** | Routes tasks to optimal backend/model: command-code (35 models), kimi (262K context), grok (fast). |
+| **OmniRoute agent gateway** | Routes external tasks through the live `temperance-coding` combo, with command-code, kimi, and grok as direct fallbacks. |
 | **Automatic task classification** | Classifies prompts as fast/long-horizon/reasoning/validation/creative and recommends optimal model. |
 | Guarded PAI templates | Installs `NOESIS`-style instruction surfaces without copying private memory. |
 | Pulse compatibility | Provides a tiny local `/notify` and `/healthz` endpoint for phase events. |
@@ -61,7 +61,7 @@ cd temperance_engine
 ./install.sh
 ./verify.sh
 
-# Optional: Wire multi-backend routing (command-code, kimi, grok)
+# Optional: Wire OmniRoute-first routing with direct CLI fallbacks
 ./scripts/wire-multi-backend.sh
 ```
 
@@ -330,6 +330,8 @@ Cursor's current rules documentation covers Project, Team, and User Rules plus `
 - `docs/peon-ping-packs.md` explains voice pack mapping.
 - `docs/codegraph-routing.md` explains CodeGraph indexing and search rules.
 - `docs/parallel-dispatch.md` explains when to use parallel agent dispatch vs GSD execute-phase/workstreams.
+- `docs/omniroute-integration.md` documents deterministic shadow routing, frozen dispatch plans, circuit observations, promotion, and rollback.
+- `docs/omniroute-runtime.md` documents the live gateway, model inventory, credentials, provider onboarding, and smoke tests.
 - `docs/rollback.md` explains backups and recovery.
 - `UPSTREAM.md` links the relevant upstream GitHub repos and docs.
 - `assets/` contains generated public-facing banner and icon assets.

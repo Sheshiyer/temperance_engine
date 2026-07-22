@@ -57,16 +57,16 @@ grep -q -- '--verdict' "$DIR/ISA.md" && echo "ok - ISA has --verdict invariant" 
   || { echo "FAIL - ISA missing --verdict"; fail=1; }
 
 # --- ISA normalization: criteria and ledger shape are current ---
-grep -q '^task: Package and maintain Temperance Engine public installer/runtime docs$' "$DIR/ISA.md" \
-  && grep -q '^progress: 48/48$' "$DIR/ISA.md" \
-  && grep -q '^updated: 2026-07-09$' "$DIR/ISA.md" \
+grep -q "^task: Configure OmniRoute as Temperance's live agent gateway$" "$DIR/ISA.md" \
+  && grep -q '^progress: 90/91$' "$DIR/ISA.md" \
+  && grep -q '^updated: 2026-07-22$' "$DIR/ISA.md" \
   && echo "ok - ISA frontmatter normalized" \
   || { echo "FAIL - ISA frontmatter normalization missing"; fail=1; }
 grep -q '^## Principles$' "$DIR/ISA.md" && grep -q '^## Changelog$' "$DIR/ISA.md" \
   && echo "ok - ISA has Principles and Changelog" \
   || { echo "FAIL - ISA missing Principles or Changelog"; fail=1; }
-grep -q 'ISC-48' "$DIR/ISA.md" && echo "ok - ISA criteria extend through ISC-48" \
-  || { echo "FAIL - ISA missing ISC-48"; fail=1; }
+grep -q 'ISC-91' "$DIR/ISA.md" && echo "ok - ISA criteria extend through ISC-91" \
+  || { echo "FAIL - ISA missing ISC-91"; fail=1; }
 grep -q 'ISA normalization ledger' "$DIR/ISA.md" && echo "ok - ISA features map normalization ledger" \
   || { echo "FAIL - ISA features missing normalization ledger"; fail=1; }
 
@@ -91,4 +91,57 @@ grep -q "scripts/verify-all.sh" "$DIR/.planning/config.json" && echo "ok - .plan
   || { echo "FAIL - .planning/config.json missing verify-all"; fail=1; }
 grep -q "scripts/verify-all.sh" "$DIR/.github/workflows/verify.yml" && echo "ok - CI delegates to verify-all" \
   || { echo "FAIL - verify workflow does not call scripts/verify-all.sh"; fail=1; }
+
+# --- OmniRoute-inspired routing boundary and provenance ---
+OMNI_DOC="$DIR/docs/omniroute-integration.md"
+OMNI_RUNTIME_DOC="$DIR/docs/omniroute-runtime.md"
+[ -f "$OMNI_DOC" ] && echo "ok - OmniRoute integration doc exists" \
+  || { echo "FAIL - docs/omniroute-integration.md missing"; fail=1; }
+grep -q 'c1bdd91e7b9681e1056c4883b3e26cd0d416108b' "$OMNI_DOC" 2>/dev/null \
+  && echo "ok - OmniRoute source commit pinned" \
+  || { echo "FAIL - OmniRoute source commit not pinned"; fail=1; }
+for boundary in REUSE ADAPT REJECT; do
+  grep -q "$boundary" "$OMNI_DOC" 2>/dev/null \
+    && echo "ok - OmniRoute matrix includes $boundary" \
+    || { echo "FAIL - OmniRoute matrix missing $boundary"; fail=1; }
+done
+grep -q 'off.*shadow.*enforce' "$OMNI_DOC" 2>/dev/null \
+  && echo "ok - routing modes documented" \
+  || { echo "FAIL - off/shadow/enforce modes missing"; fail=1; }
+[ -f "$OMNI_RUNTIME_DOC" ] \
+  && grep -q 'omniroute:temperance-coding' "$OMNI_RUNTIME_DOC" \
+  && grep -q 'scripts/omniroute-check.sh --live' "$OMNI_RUNTIME_DOC" \
+  && echo "ok - live OmniRoute runtime boundary and probe documented" \
+  || { echo "FAIL - live OmniRoute runtime documentation missing"; fail=1; }
+[ -x "$DIR/scripts/omniroute-check.sh" ] \
+  && echo "ok - OmniRoute runtime probe is executable" \
+  || { echo "FAIL - scripts/omniroute-check.sh missing or not executable"; fail=1; }
+grep -q 'diegosouzapw/OmniRoute' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
+  && grep -q 'MIT License' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
+  && echo "ok - OmniRoute attribution and license recorded" \
+  || { echo "FAIL - OmniRoute attribution/license missing"; fail=1; }
+grep -q 'diegosouzapw/OmniRoute' "$DIR/UPSTREAM.md" \
+  && echo "ok - UPSTREAM credits OmniRoute" \
+  || { echo "FAIL - UPSTREAM.md missing OmniRoute"; fail=1; }
+grep -Eq 'failed.*timeout.*unavailable.*Claude subagent' \
+  "$DIR/skills/temperance-parallel-dispatch/SKILL.md" \
+  && echo "ok - exhausted external routes retain Claude-subagent fallback" \
+  || { echo "FAIL - parallel dispatch skill lost subagent fail-open contract"; fail=1; }
+if grep -Eiq '(sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|(api[_-]?key|secret|token|password)[[:space:]]*[:=][[:space:]]*["'\''][A-Za-z0-9][^"'\'']{11,})' \
+    "$DIR/package/router/routing-policy.ts" \
+    "$DIR/package/router/multi-backend-router.sh" \
+    "$DIR/package/router/dispatch-tasklist.sh" \
+    "$DIR/package/router/omniroute-codex.sh" \
+    "$DIR/scripts/omniroute-check.sh" \
+    "$OMNI_DOC" "$OMNI_RUNTIME_DOC" "$DIR/THIRD_PARTY_NOTICES.md"; then
+  echo "FAIL - credential-like literal found in OmniRoute integration surfaces"
+  fail=1
+else
+  echo "ok - OmniRoute integration surfaces contain no credential literals"
+fi
+grep -q 'bun test package/router/routing-policy.test.ts' "$DIR/scripts/verify-all.sh" \
+  && grep -q 'bash tests/routing-policy.sh' "$DIR/scripts/verify-all.sh" \
+  && grep -q 'bash tests/dispatch-tasklist.sh' "$DIR/scripts/verify-all.sh" \
+  && echo "ok - full gate includes routing policy and dispatcher" \
+  || { echo "FAIL - verify-all missing routing policy or dispatcher suite"; fail=1; }
 exit $fail

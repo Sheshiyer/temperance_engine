@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+printf 'MOCK_CODEX_ARGS_START\n'
+printf '%s\n' "$@"
+printf 'MOCK_CODEX_ARGS_END\n'
+
+case " ${*} " in
+  *" FAIL_OMNIROUTE "*) exit 17 ;;
+esac
+
+exit 0
