@@ -1,9 +1,9 @@
 ---
 project: temperance_engine
-task: Configure OmniRoute as Temperance's live agent gateway
+task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
-phase: learn
-progress: 90/91
+phase: plan
+progress: 90/105
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-22
@@ -154,6 +154,20 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-89: Anti: OmniRoute provider/model routing does not introduce a second task classifier.
 - [x] ISC-90: OmniRoute data and package environment files containing secrets are mode `600`.
 - [x] ISC-91: Router and dispatcher tests cover OmniRoute-first ordering, agentic invocation, literal prompt passage, metadata, and direct fallback preservation.
+- [ ] ISC-92: A repository-native TDD implementation plan exists for governed OmniRoute portfolios.
+- [ ] ISC-93: Every frozen routing plan contains one stable correlation identifier.
+- [ ] ISC-94: Every task attempt record repeats its frozen plan's correlation identifier.
+- [ ] ISC-95: The OmniRoute Codex adapter forwards the correlation identifier as request metadata.
+- [ ] ISC-96: Direct fallback attempts retain the same correlation identifier after gateway failure.
+- [ ] ISC-97: Every external routing candidate declares either the gateway or direct failure domain.
+- [ ] ISC-98: Shared task-type output resolves deterministically to a named OmniRoute portfolio.
+- [ ] ISC-99: A missing named portfolio degrades through the compatibility combo before direct backends.
+- [ ] ISC-100: Anti: unverified OmniRoute telemetry or eval output never receives enforcement authority.
+- [ ] ISC-101: A machine-readable readiness probe reports configured portfolio availability.
+- [ ] ISC-102: A machine-readable readiness probe reports telemetry and evaluation evidence state.
+- [ ] ISC-103: Enrichment reports the shared classifier's resolved OmniRoute portfolio without reclassifying the task.
+- [ ] ISC-104: The full verification entrypoint executes governed-portfolio regression tests.
+- [ ] ISC-105: Operator documentation distinguishes discovery routes, production portfolios, councils, and direct fallbacks.
 
 ## Test Strategy
 
@@ -250,6 +264,20 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-89 | architecture | task classification still enters only via shared script | one classifier | router tests |
 | ISC-90 | permissions | secret-bearing OmniRoute environment files | mode 600 | stat |
 | ISC-91 | regression | OmniRoute router/dispatcher assertions plus full fallbacks | zero failures | shell tests |
+| ISC-92 | file | governed-portfolio implementation plan exists | present | test |
+| ISC-93 | schema | frozen plan contains stable correlation identifier | exact match | unit test |
+| ISC-94 | schema | every attempt repeats its plan correlation identifier | exact match | dispatch test |
+| ISC-95 | unit | Codex provider receives correlation request header | exact argument | mocked Codex |
+| ISC-96 | integration | gateway and direct attempts share correlation identifier | exact match | fallback test |
+| ISC-97 | schema | every external candidate names gateway or direct domain | enum match | routing tests |
+| ISC-98 | unit | task type resolves to expected named portfolio | exact mapping | portfolio test |
+| ISC-99 | integration | absent portfolio selects compatibility then direct chain | exact order | router test |
+| ISC-100 | safety | enforcement without valid evidence receipt | zero | promotion test |
+| ISC-101 | CLI | readiness JSON lists configured portfolio availability | schema match | checker test |
+| ISC-102 | CLI | readiness JSON lists telemetry and eval evidence state | schema match | checker test |
+| ISC-103 | unit | enrichment task and portfolio share classifier output | exact match | enrichment test |
+| ISC-104 | shell | canonical gate invokes governed-portfolio tests | match | verify-all test |
+| ISC-105 | docs | portfolio roles and fallback boundaries documented | present | docs continuity |
 
 ## Features
 
@@ -276,6 +304,9 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | Dispatch plan and result envelope | ISC-62..ISC-66, ISC-77 | batch runner | yes |
 | Regression and full-gate coverage | ISC-67..ISC-70, ISC-73, ISC-75 | routing and batch implementation | no |
 | Live OmniRoute agent gateway | ISC-79..ISC-91 | local OmniRoute runtime, Codex adapter, existing classifier and fallback rails | no |
+| Correlated failure-domain receipts | ISC-93..ISC-97 | frozen routing plan, dispatcher, Codex adapter | no |
+| Governed OmniRoute portfolio resolver | ISC-98..ISC-100 | shared task classifier, live model catalog | no |
+| Portfolio evidence and operator surfaces | ISC-92, ISC-101..ISC-105 | OmniRoute CLI/API, enrichment, canonical verification | no |
 
 ## Architecture
 
@@ -301,6 +332,7 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 ## Decisions
 
 - Use a public repo that references voice assets instead of bundling them.
+- 2026-07-22 14:00: Preserve the verified prior OmniRoute integration at commit `1f37185` before new writes; serialize Tasks 1–3 in the shared tree and relax the E3 delegation floor because the active higher-priority instruction forbids unrequested subagents.
 - Keep the first installer Mac-friendly but not Mac-required.
 - Generalize paths through `$HOME` and override variables.
 - Treat skills.sh readiness as a skill-card plus metadata layer, not a separate installer fork.
