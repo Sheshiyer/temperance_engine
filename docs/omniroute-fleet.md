@@ -125,10 +125,11 @@ loop with a hard generator/evaluator split:
 
 ```text
 brand voice DNA + vault source lattice (client-side)
+  -> te-write-research grounds and classifies claims (fusion council)
   -> te-write drafts one section (priority rail)
   -> te-write-critique scores drift and gates (fusion council)
   -> backpropagate corrections or commit (client-side loop, max 5 iterations)
-  -> te-creative plans images; brandmint/FAL generates them client-side
+  -> te-write-media plans image briefs; brandmint/FAL generates them client-side
   -> quality gates, convergence proof, and evidence ledgers (client-side)
 ```
 
@@ -141,8 +142,34 @@ skill's transmutation mode reuses the same rails: the council runs the
 Nigredo claim inventory and Rubedo re-verification while the drafting rail
 performs only the Citrinitas surgical edits.
 
-Lifecycle: `scripts/omniroute-temperance-writer.sh` (snapshot-first,
-collision-guarded, rollbackable). Verify the role resolution with:
+Two expansion combos widen the fleet beyond draft/critique:
+
+- **`te-write-research`** (fusion: `command-code/deepseek/deepseek-v4-pro`,
+  `github/gpt-5.4`, `codex/gpt-5.6-terra`, judge `codex/gpt-5.6-terra`) runs
+  *before* drafting begins. It triangulates independent research passes into
+  one claim-classified synthesis using the Albedo Epistemic Grammar's seven
+  claim modes (DIRECT-OBSERVATION through DECLARED-METAPHOR), so the drafting
+  rail starts from a grounded source lattice instead of inventing citations
+  mid-draft. It shares no models with `te-write-critique` or `te-write`,
+  deliberately widening which providers the writing fleet actually exercises.
+  It never drafts prose.
+- **`te-write-media`** (priority: `github/gpt-5.4`, `codex/gpt-5.6-sol-max`,
+  Nebius Qwen — the same proven roster as `te-creative`) writes structured
+  brandmint/FAL image briefs in the noesis house style (Amir Musich
+  typographic-poster anchors, Goethe color system, brand palette) instead of
+  a generic creative brief. It is text planning only; brandmint/FAL still
+  generates the actual image client-side, exactly as `te-creative` does for
+  other creative work — this combo never becomes a second `te-creative`, it
+  replaces te-creative's *generic* brief with a noesis-specific one for this
+  one skill's image pipeline.
+
+Lifecycle: `scripts/omniroute-temperance-writer.sh` for `te-write` /
+`te-write-critique`, and `scripts/omniroute-temperance-writer-expansion.sh`
+for `te-write-research` / `te-write-media` (both snapshot-first,
+collision-guarded, rollbackable — split into two scripts because the first
+pair was already live when the second pair was added, and a shared
+collision guard would refuse to run against that pre-existing state).
+Verify the role resolution with:
 
 ```bash
 bun package/router/temperance-workflows.ts resolve writing MODEL_IDS...

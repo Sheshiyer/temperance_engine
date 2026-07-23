@@ -13,6 +13,7 @@ const liveFleet = [
   "grok-cli/grok-build",
   "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
   "kimi-coding-apikey/k3",
+  "command-code/deepseek/deepseek-v4-pro",
 ];
 
 function quota(providers: Record<string, { remaining: number | null; state?: string }>): PlannerQuotaState {
@@ -89,13 +90,13 @@ describe("Temperance workflow roles", () => {
       "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
     ]);
     expect(workflowManifest.writing.critique.strategy).toBe("fusion");
-    expect(workflowManifest.writing.chat_combo_boundary).toMatch(/never drafts/i);
+    expect(workflowManifest.writing.chat_combo_boundary).toMatch(/never draft/i);
     expect(workflowManifest.writing.chat_combo_boundary).toMatch(/client-side/i);
   });
 
   test("writing workflow keeps image generation client-side and maps transmutation stages", () => {
     expect(workflowManifest.writing.skill).toBe("noesis-writer-skill");
-    expect(workflowManifest.writing.workflow).toContain("plan-images-with-te-creative");
+    expect(workflowManifest.writing.workflow).toContain("plan-images-with-te-write-media");
     expect(workflowManifest.writing.workflow).toContain("generate-images-client-side-brandmint-fal");
     const transmutation = workflowManifest.writing.transmutation_workflow.join(" ");
     for (const stage of ["nigredo", "albedo", "citrinitas", "rubedo"]) {
@@ -106,6 +107,41 @@ describe("Temperance workflow roles", () => {
   test("acp lane is declared but inactive", () => {
     expect(workflowManifest.writing.acp.status).toBe("declared-inactive");
     expect(workflowManifest.writing.acp.note).toMatch(/principal-bound/i);
+  });
+
+  test("writing research council grounds claims via a distinct model panel and never drafts", () => {
+    const resolution = resolveWorkflow("writing", liveFleet);
+    expect(resolution.research?.portfolio).toBe("te-write-research");
+    expect(resolution.research?.judge_model).toBe("codex/gpt-5.6-terra");
+    expect(resolution.research?.selected.map(({ model }) => model)).toEqual([
+      "command-code/deepseek/deepseek-v4-pro",
+      "github/gpt-5.4",
+      "codex/gpt-5.6-terra",
+    ]);
+    expect(workflowManifest.writing.research.strategy).toBe("fusion");
+    expect(workflowManifest.writing.research.claim_modes).toContain("HOUSE-MODEL");
+    expect(workflowManifest.writing.research.chat_combo_boundary).toMatch(/never drafts/i);
+  });
+
+  test("writing media planner writes text briefs only, distinct from te-creative", () => {
+    const resolution = resolveWorkflow("writing", liveFleet);
+    expect(resolution.media?.portfolio).toBe("te-write-media");
+    expect(resolution.media?.selected.map(({ model }) => model)).toEqual([
+      "github/gpt-5.4",
+      "codex/gpt-5.6-sol-max",
+      "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
+    ]);
+    expect(workflowManifest.writing.media.strategy).toBe("priority");
+    expect(workflowManifest.writing.media.chat_combo_boundary).toMatch(/text only/i);
+    expect(workflowManifest.writing.media.portfolio).not.toBe(workflowManifest.creative.portfolio);
+  });
+
+  test("writing workflow sequences research before drafting and media planning by name", () => {
+    expect(workflowManifest.writing.workflow).toContain("ground-and-classify-claims-on-te-write-research");
+    expect(workflowManifest.writing.workflow).toContain("plan-images-with-te-write-media");
+    const researchIndex = workflowManifest.writing.workflow.indexOf("ground-and-classify-claims-on-te-write-research");
+    const draftIndex = workflowManifest.writing.workflow.indexOf("draft-section-on-te-write");
+    expect(researchIndex).toBeLessThan(draftIndex);
   });
 
   test("planner resolution is unchanged and reports no substitutions with no quota state", () => {

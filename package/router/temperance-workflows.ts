@@ -23,6 +23,19 @@ export interface CritiqueResolution {
   omitted: WorkflowCandidate[];
 }
 
+export interface ResearchResolution {
+  portfolio: string;
+  judge_model: string;
+  selected: WorkflowCandidate[];
+  omitted: WorkflowCandidate[];
+}
+
+export interface MediaResolution {
+  portfolio: string;
+  selected: WorkflowCandidate[];
+  omitted: WorkflowCandidate[];
+}
+
 export interface WorkflowResolution {
   role: WorkflowRole;
   portfolio: string;
@@ -32,6 +45,8 @@ export interface WorkflowResolution {
   native_providers: string[];
   workflow: string[];
   critique?: CritiqueResolution;
+  research?: ResearchResolution;
+  media?: MediaResolution;
   substitutions?: PlannerSubstitution[];
 }
 
@@ -166,6 +181,22 @@ export const workflowManifest = manifestJson as {
       verdicts: string[];
       scored_dimensions: string[];
     };
+    research: {
+      portfolio: string;
+      strategy: "fusion";
+      purpose: string;
+      models: string[];
+      judge_model: string;
+      claim_modes: string[];
+      chat_combo_boundary: string;
+    };
+    media: {
+      portfolio: string;
+      strategy: "priority";
+      purpose: string;
+      models: string[];
+      chat_combo_boundary: string;
+    };
     workflow: string[];
     transmutation_workflow: string[];
     chat_combo_boundary: string;
@@ -227,6 +258,10 @@ export function resolveWorkflow(
     const drafting = workflowManifest.writing.drafting_models.map((model) => ({ model }));
     const council = workflowManifest.writing.critique.models.map((model) => ({ model }));
     const councilSplit = splitCandidates(council, catalog);
+    const researchPanel = workflowManifest.writing.research.models.map((model) => ({ model }));
+    const researchSplit = splitCandidates(researchPanel, catalog);
+    const mediaPanel = workflowManifest.writing.media.models.map((model) => ({ model }));
+    const mediaSplit = splitCandidates(mediaPanel, catalog);
     return {
       role: normalized,
       portfolio: workflowManifest.writing.portfolio,
@@ -238,6 +273,17 @@ export function resolveWorkflow(
         judge_model: workflowManifest.writing.critique.judge_model,
         selected: councilSplit.selected,
         omitted: councilSplit.omitted,
+      },
+      research: {
+        portfolio: workflowManifest.writing.research.portfolio,
+        judge_model: workflowManifest.writing.research.judge_model,
+        selected: researchSplit.selected,
+        omitted: researchSplit.omitted,
+      },
+      media: {
+        portfolio: workflowManifest.writing.media.portfolio,
+        selected: mediaSplit.selected,
+        omitted: mediaSplit.omitted,
       },
     };
   }
