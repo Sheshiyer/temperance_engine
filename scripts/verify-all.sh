@@ -16,8 +16,11 @@ fi
 
 run ./verify.sh
 run bun test package/enrich
+run bun test package/router/routing-policy.test.ts
 run bash tests/docs-continuity.sh
 run bash tests/router-hardening.sh
+run bash tests/routing-policy.sh
+run bash tests/dispatch-tasklist.sh
 run sh tests/sandbox-install.sh
 run sh tests/identity-tool.sh
 run bash tests/wire-batch.sh

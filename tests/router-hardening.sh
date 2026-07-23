@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -uo pipefail
 R="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/package/router/multi-backend-router.sh"
+PORTFOLIO_CATALOG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/tests/fixtures/omniroute-models.json"
+EMPTY_PORTFOLIO_CATALOG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/tests/fixtures/omniroute-models-empty.json"
 fail=0
 check() { # desc, expected, actual
   if [[ "$2" == "$3" ]]; then echo "ok - $1"; else echo "FAIL - $1: expected [$2] got [$3]"; fail=1; fi
@@ -10,6 +12,117 @@ check() { # desc, expected, actual
 out=$(TEMPERANCE_BACKENDS="command-code" "$R" --route-only "refactor the entire auth layer")
 check "route-only long-horizon -> command-code primary" \
   "command-code	xiaomi/mimo-v2.5-pro" "$out"
+
+# A healthy OmniRoute gateway is the preferred execution rail. Temperance still
+# classifies the task, while OmniRoute owns provider/model failover behind its
+# named combo. Direct agent CLIs remain later fallbacks.
+out=$(TEMPERANCE_BACKENDS="omniroute command-code" "$R" --route-only "refactor the entire auth layer")
+check "route-only long-horizon -> OmniRoute gateway primary" \
+  "omniroute	temperance-coding" "$out"
+
+out=$(TEMPERANCE_BACKENDS="omniroute command-code grok kimi" "$R" --route-only-with-fallbacks "refactor the entire auth layer")
+expected=$'omniroute\ttemperance-coding\ncommand-code\txiaomi/mimo-v2.5-pro\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
+check "OmniRoute gateway precedes direct fallback rails" "$expected" "$out"
+
+# Task-specific OmniRoute portfolios are proposal-only until a promotion receipt
+# exists. The frozen selected chain must stay on the compatibility combo.
+portfolio_fast=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  "$R" --plan-json "fix typo")
+check "fast task proposes live te-fast portfolio" "te-fast" \
+  "$(jq -r '.proposed_order[0].model' <<< "$portfolio_fast")"
+check "fast task selects compatibility combo in shadow" "temperance-coding" \
+  "$(jq -r '.selected_order[0].model' <<< "$portfolio_fast")"
+
+portfolio_validation=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  "$R" --plan-json "audit the code")
+check "validation task proposes live te-validate portfolio" "te-validate" \
+  "$(jq -r '.proposed_order[0].model' <<< "$portfolio_validation")"
+check "validation task keeps compatibility selected" "temperance-coding" \
+  "$(jq -r '.selected_order[0].model' <<< "$portfolio_validation")"
+
+portfolio_missing=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  "$R" --plan-json "refactor the entire auth layer")
+check "missing named portfolio proposes compatibility" "temperance-coding" \
+  "$(jq -r '.proposed_order[0].model' <<< "$portfolio_missing")"
+check "missing named portfolio keeps direct fallback after compatibility" $'temperance-coding\nxiaomi/mimo-v2.5-pro' \
+  "$(jq -r '.selected_order[] | .model' <<< "$portfolio_missing")"
+
+portfolio_direct=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$EMPTY_PORTFOLIO_CATALOG" \
+  "$R" --plan-json "fix typo")
+check "missing gateway catalog degrades to direct first" "command-code" \
+  "$(jq -r '.selected_order[0].backend' <<< "$portfolio_direct")"
+
+# A valid receipt may promote one allowlisted low-risk portfolio into the
+# frozen selected chain; the receipt is generated from the current manifest.
+PROMOTION_HASH="$(bun "$(dirname "$R")/omniroute-promotion.ts" manifest-hash)"
+PROMOTION_RECEIPT="$(mktemp)"
+PROMOTION_KEY="fixture-promotion-key"
+jq -n --arg hash "$PROMOTION_HASH" '{
+  schema_version:1, portfolio:"te-fast", suite_id:"suite-fast-v1",
+  run_id:"run-20260722-001", run_status:"completed", sample_count:100,
+  success_rate:0.98, cost_usd:0.25, latency_p95_ms:800,
+  created_at:"2026-01-01T00:00:00Z", expires_at:"2099-01-01T00:00:00Z",
+  manifest_hash:$hash, nonce:"run-20260722-001-nonce",
+  runtime_version:"3.8.48-fixture", policy_version:"temperance-routing-v1"
+}' > "$PROMOTION_RECEIPT"
+PROMOTION_RECEIPT_PATH="$PROMOTION_RECEIPT" PROMOTION_KEY="$PROMOTION_KEY" \
+  bun -e 'import { readFileSync, writeFileSync } from "node:fs"; import { signPromotionReceipt } from "./package/router/omniroute-promotion.ts"; const path=process.env.PROMOTION_RECEIPT_PATH!; const receipt=JSON.parse(readFileSync(path,"utf8")); receipt.signature=signPromotionReceipt(receipt, process.env.PROMOTION_KEY!); writeFileSync(path, JSON.stringify(receipt));'
+promotion_plan=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_RECEIPT="$PROMOTION_RECEIPT" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY="$PROMOTION_KEY" \
+  TEMPERANCE_OMNIROUTE_RUNTIME_VERSION="3.8.48-fixture" \
+  "$R" --plan-json "fix typo")
+check "valid receipt promotes te-fast into selected order" "te-fast" \
+  "$(jq -r '.selected_order[0].model' <<< "$promotion_plan")"
+check "promoted static gateway model is te-fast" "te-fast" \
+  "$(jq -r '.static_order[0].model' <<< "$promotion_plan")"
+check "promoted proposed gateway model is te-fast" "te-fast" \
+  "$(jq -r '.proposed_order[0].model' <<< "$promotion_plan")"
+check "valid receipt marks portfolio promoted" "promoted" \
+  "$(jq -r '.portfolio.enforcement // empty' <<< "$promotion_plan")"
+
+promotion_wrong_task=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_RECEIPT="$PROMOTION_RECEIPT" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY="$PROMOTION_KEY" \
+  TEMPERANCE_OMNIROUTE_RUNTIME_VERSION="3.8.48-fixture" \
+  "$R" --plan-json "audit the code")
+check "receipt for te-fast cannot promote validation portfolio" "temperance-coding" \
+  "$(jq -r '.selected_order[0].model' <<< "$promotion_wrong_task")"
+
+promotion_no_key=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_RECEIPT="$PROMOTION_RECEIPT" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY="" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_KEYCHAIN_SERVICE="Temperance Missing Test Key" \
+  TEMPERANCE_OMNIROUTE_RUNTIME_VERSION="3.8.48-fixture" \
+  "$R" --plan-json "fix typo")
+check "missing signing key preserves compatibility selection" "temperance-coding" \
+  "$(jq -r '.selected_order[0].model' <<< "$promotion_no_key")"
+
+PROMOTION_BAD_RECEIPT="$(mktemp)"
+BAD_PROMOTION_HASH="sha256:$(printf '%064d' 0)"
+jq --arg hash "$BAD_PROMOTION_HASH" '.manifest_hash = $hash' "$PROMOTION_RECEIPT" > "$PROMOTION_BAD_RECEIPT"
+promotion_rejected=$(TEMPERANCE_BACKENDS="omniroute command-code" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_RECEIPT="$PROMOTION_BAD_RECEIPT" \
+  TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY="$PROMOTION_KEY" \
+  TEMPERANCE_OMNIROUTE_RUNTIME_VERSION="3.8.48-fixture" \
+  "$R" --plan-json "fix typo")
+check "invalid receipt preserves compatibility selection" "temperance-coding" \
+  "$(jq -r '.selected_order[0].model' <<< "$promotion_rejected")"
+rm -f "$PROMOTION_RECEIPT" "$PROMOTION_BAD_RECEIPT"
+
+domain_plan=$(TEMPERANCE_BACKENDS="omniroute command-code grok kimi" "$R" --plan-json "refactor the entire auth layer")
+check "OmniRoute candidate declares gateway domain" "gateway" \
+  "$(jq -r '.static_order[] | select(.backend=="omniroute") | .failure_domain' <<< "$domain_plan")"
+check "direct candidates declare direct domain" "3" \
+  "$(jq -r '[.static_order[] | select(.failure_domain=="direct")] | length' <<< "$domain_plan")"
 
 # zero backends -> none<TAB>-
 out=$(TEMPERANCE_BACKENDS="" "$R" --route-only "refactor the entire auth layer")

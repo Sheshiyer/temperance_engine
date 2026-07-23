@@ -1,0 +1,7 @@
+{
+  "schema_version": "future-readiness-v99",
+  "version": "3.8.48-fixture",
+  "models": {"data": [{"id": "temperance-coding", "owned_by": "combo"}]},
+  "telemetry": {"available": true, "request_count": 999},
+  "evals": {"available": true, "suites": [{"id": "future"}], "runs": [{"id": "future"}]}
+}

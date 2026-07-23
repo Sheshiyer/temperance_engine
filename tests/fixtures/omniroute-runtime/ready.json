@@ -1,0 +1,23 @@
+{
+  "schema_version": "temperance-readiness-fixture-v1",
+  "version": "3.8.48-fixture",
+  "models": {
+    "data": [
+      {"id": "temperance-coding", "owned_by": "combo"},
+      {"id": "te-fast", "owned_by": "combo"},
+      {"id": "te-validate", "owned_by": "combo"},
+      {"id": "oc/deepseek-v4-flash-free", "owned_by": "ollamacloud"}
+    ]
+  },
+  "telemetry": {
+    "available": true,
+    "request_count": 12,
+    "success_count": 11,
+    "failure_count": 1
+  },
+  "evals": {
+    "available": true,
+    "suites": [{"id": "suite-a"}, {"id": "suite-b"}],
+    "runs": [{"id": "run-1"}, {"id": "run-2"}, {"id": "run-3"}]
+  }
+}

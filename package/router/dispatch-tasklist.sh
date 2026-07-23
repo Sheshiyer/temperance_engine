@@ -30,14 +30,17 @@ self_path() {
 }
 SCRIPT_DIR="$(self_path)"
 ROUTER="${TEMPERANCE_ROUTER:-$SCRIPT_DIR/multi-backend-router.sh}"
+POLICY_RUNNER="${TEMPERANCE_ROUTING_POLICY_BIN:-$SCRIPT_DIR/routing-policy.ts}"
 
 # --- backend execution (argv arrays; task text is always ONE literal arg) ---
 run_command_code(){ command-code -p "$1" --model "$2" --max-turns "${MAX_TURNS:-10}" --trust --yolo --skip-onboarding >"$3" 2>&1; }
 run_kimi(){ kimi --print --yolo --model "$2" -p "$1" >"$3" 2>&1; }
 run_grok(){ "$HOME/.grok/bin/grok" --model "$2" --always-approve -- "$1" >"$3" 2>&1; }
+run_omniroute(){ "$SCRIPT_DIR/omniroute-codex.sh" "$2" "$1" >"$3" 2>&1; }
 
 dispatch_backend(){ # backend task model outfile -> exit code
   case "$1" in
+    omniroute) run_omniroute "$2" "$3" "$4" ;;
     command-code) run_command_code "$2" "$3" "$4" ;;
     kimi) run_kimi "$2" "$3" "$4" ;;
     grok) run_grok "$2" "$3" "$4" ;;
@@ -121,24 +124,38 @@ while IFS= read -r id; do
 done <<< "$ids"
 if [[ "$(echo "$ids" | sort | uniq -d)" != "" ]]; then echo "duplicate task id(s)" >&2; exit 1; fi
 
-# --- per-task routing (selection only) ---
-route_task() { # id task backend model  -> echoes "backend<TAB>model"
-  local task="$2" backend="$3" model="$4" args=(--route-only)
+# --- per-task routing plan (classification + frozen candidate chain) ---
+route_plan() { # id task backend model -> plan JSON
+  local task="$2" backend="$3" model="$4" args=(--plan-json)
   [[ -n "$backend" && "$backend" != "auto" ]] && args+=(--backend "$backend")
   [[ -n "$model"   && "$model"   != "auto" ]] && args+=(--model "$model")
-  "$ROUTER" "${args[@]}" -- "$task"
+  if $DRY_RUN; then
+    "$ROUTER" "${args[@]}" -- "$task"
+  else
+    TEMPERANCE_ROUTING_CLAIM_PROBES=1 "$ROUTER" "${args[@]}" -- "$task"
+  fi
 }
 
-# route_fallbacks: id task backend model -> echoes "backend<TAB>model" lines,
-# one per backend in the task-type's priority order, filtered to available
-# backends (issue #8 fallback chain: command-code -> grok -> kimi). Same
-# --backend/--model override convention as route_task: a forced backend
-# collapses the chain to that single backend (handled by the router itself).
-route_fallbacks() { # id task backend model  -> echoes "backend<TAB>model" lines
-  local task="$2" backend="$3" model="$4" args=(--route-only-with-fallbacks)
-  [[ -n "$backend" && "$backend" != "auto" ]] && args+=(--backend "$backend")
-  [[ -n "$model"   && "$model"   != "auto" ]] && args+=(--model "$model")
-  "$ROUTER" "${args[@]}" -- "$task"
+valid_dispatch_plan(){ # plan file
+  jq -e '
+    def route:
+      type=="object" and
+      (.backend|type=="string" and length>0) and
+      (.model|type=="string" and length>0) and
+      (.static_rank|type=="number") and
+      (.failure_domain=="gateway" or .failure_domain=="direct");
+    def route_key: [.backend,.model] | @tsv;
+    (.plan_id|type=="string" and length>0) and
+    (.correlation_id|type=="string" and test("^tc_[A-Za-z0-9._-]+$")) and
+    (.status as $status | ["ok","off","no-observations","inline","unavailable"] | index($status) != null) and
+    (.static_order|type=="array" and all(.[]; route)) and
+    (.selected_order|type=="array" and all(.[]; route)) and
+    (([.selected_order[]|route_key] - [.static_order[]|route_key])|length == 0) and
+    (if (.status=="inline" or .status=="unavailable")
+      then (.selected_order|length)==0
+      else (.selected_order|length)>0
+      end)
+  ' "$1" >/dev/null 2>&1
 }
 
 # --- per-task metadata + dispatch wrapper (W4; W7 adds worktree/diff_path) ---
@@ -146,15 +163,19 @@ route_fallbacks() { # id task backend model  -> echoes "backend<TAB>model" lines
 # duration_s,status} built with jq, one entry per fallback attempt. Top-level
 # backend/model/exit/duration_s/status always reflect the FINAL attempt, so
 # existing consumers reading only those fields are unaffected.
-write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [attempts_json]  -> atomic
+write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [attempts_json] [plan_id] [plan_path] [correlation_id] -> atomic
   local f="$OUT/$1.meta.json"
-  local wt="${8:-}" dp="${9:-}" attempts="${10:-[]}"
+  local wt="${8:-}" dp="${9:-}" attempts="${10:-[]}" plan_id="${11:-}" plan_path="${12:-}" correlation_id="${13:-}"
   jq -n --arg id "$1" --arg task "$2" --arg b "$3" --arg m "$4" \
         --argjson ex "$5" --argjson d "$6" --arg st "$7" \
         --arg wt "$wt" --arg dp "$dp" --argjson attempts "$attempts" \
+        --arg plan_id "$plan_id" --arg plan_path "$plan_path" --arg correlation_id "$correlation_id" \
     '{id:$id,task:$task,backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
       worktree:(if $wt=="" then null else $wt end),
       diff_path:(if $dp=="" then null else $dp end),
+      plan_id:(if $plan_id=="" then null else $plan_id end),
+      correlation_id:(if $correlation_id=="" then null else $correlation_id end),
+      plan_path:(if $plan_path=="" then null else $plan_path end),
       attempts:$attempts,
       merged:null}' \
     > "$f.tmp" && mv -f "$f.tmp" "$f"
@@ -194,9 +215,33 @@ build_index_json(){
 }
 
 # attempt_record: backend model exit dur status -> one jq-built attempt object
-attempt_record(){ # backend model exit dur status -> JSON object on stdout
+attempt_record(){ # backend model exit dur status task_id attempt_index start_ms finish_ms fallback_reason usage_json cost_json correlation_id failure_domain -> JSON
   jq -n --arg b "$1" --arg m "$2" --argjson ex "$3" --argjson d "$4" --arg st "$5" \
-    '{backend:$b, model:$m, exit:$ex, duration_s:$d, status:$st}'
+    --arg task_id "$6" --argjson attempt_index "$7" --argjson started_at_ms "$8" \
+    --argjson finished_at_ms "$9" --arg fallback_reason "${10:-}" \
+    --argjson usage "${11:-null}" --argjson cost "${12:-null}" --arg correlation_id "${13:-}" --arg failure_domain "${14:-}" \
+    '{event:"attempt",backend:$b,model:$m,exit:$ex,duration_s:$d,status:$st,
+      task_id:$task_id,attempt_index:$attempt_index,started_at_ms:$started_at_ms,
+      finished_at_ms:$finished_at_ms,
+      correlation_id:(if $correlation_id=="" then null else $correlation_id end),
+      failure_domain:(if $failure_domain=="" then null else $failure_domain end),
+      fallback_reason:(if $fallback_reason=="" then null else $fallback_reason end),
+      usage:$usage,cost:$cost}'
+}
+
+epoch_ms(){
+  if [[ -n "${EPOCHREALTIME:-}" ]]; then
+    awk -v value="$EPOCHREALTIME" 'BEGIN { printf "%.0f", value * 1000 }'
+  elif command -v perl >/dev/null 2>&1; then
+    perl -MTime::HiRes=time -e 'printf "%.0f", time() * 1000'
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import time; print(time.time_ns() // 1_000_000, end="")'
+  elif command -v bun >/dev/null 2>&1; then
+    bun -e 'process.stdout.write(String(Date.now()))'
+  else
+    echo "millisecond clock unavailable (need Bash 5, Perl, Python 3, or Bun)" >&2
+    return 1
+  fi
 }
 
 # kill_tree PID — kill a process and all its descendants (portable, no setsid;
@@ -580,12 +625,15 @@ exec_task(){ # backend task model outfile
 # run_attempt: one backend/model attempt of a task, under the same
 # watchdog-timeout logic that existed pre-fallback-chain. Echoes "exit<TAB>dur"
 # on stdout; the task's own stdout/stderr still go to $outfile as before.
-run_attempt(){ # backend task model outfile timeout  -> echoes "ex<TAB>dur"
-  local backend="$1" task="$2" model="$3" outfile="$4" tmo="$5" start end dur ex
-  start=$(date +%s)
+run_attempt(){ # backend task model outfile timeout correlation_id -> echoes ex<TAB>dur<TAB>start_ms<TAB>finish_ms
+  local backend="$1" task="$2" model="$3" outfile="$4" tmo="$5" correlation_id="${6:-}" start end dur ex start_ms finish_ms
+  local metrics_path="$outfile.metrics.json"
+  rm -f "$metrics_path"
+  start=$(date +%s); start_ms="$(epoch_ms)"
   if (( tmo > 0 )); then
     local sentinel="$outfile.watchdog"
-    exec_task "$backend" "$task" "$model" "$outfile" & local bpid=$!
+    TEMPERANCE_ATTEMPT_METRICS_PATH="$metrics_path" TEMPERANCE_CORRELATION_ID="$correlation_id" \
+      exec_task "$backend" "$task" "$model" "$outfile" & local bpid=$!
     ( sleep "$tmo"; touch "$sentinel"; kill_tree "$bpid" ) & local wpid=$!
     if wait "$bpid" 2>/dev/null; then ex=0; else ex=$?; fi
     # kill_tree (not plain kill): the watchdog subshell's own `sleep` child
@@ -602,66 +650,68 @@ run_attempt(){ # backend task model outfile timeout  -> echoes "ex<TAB>dur"
       rm -f "$sentinel"
     fi
   else
-    exec_task "$backend" "$task" "$model" "$outfile"; ex=$?
+    TEMPERANCE_ATTEMPT_METRICS_PATH="$metrics_path" TEMPERANCE_CORRELATION_ID="$correlation_id" \
+      exec_task "$backend" "$task" "$model" "$outfile"; ex=$?
   fi
-  end=$(date +%s); dur=$((end-start))
-  printf '%s\t%s\n' "$ex" "$dur"
+  end=$(date +%s); finish_ms="$(epoch_ms)"; dur=$((end-start))
+  printf '%s\t%s\t%s\t%s\n' "$ex" "$dur" "$start_ms" "$finish_ms"
 }
 
-run_one(){ # id task rb rm [reqb] [reqm]
+run_one(){ # id task rb rm plan_path plan_id selected_order_json correlation_id
   local id="$1" task="$2" rb="$3" rm="$4"
-  # reqb/reqm: the RAW task-level backend/model override ("auto" if unset in
-  # the task JSON) -- used only to ask route_fallbacks for the chain with the
-  # same override semantics as the original route_task call. Falls back to
-  # "auto" for any caller that doesn't pass them (keeps run_one callable with
-  # its pre-#8 4-arg signature).
-  local reqb="${5:-auto}" reqm="${6:-auto}"
+  local plan_path="${5:-}" plan_id="${6:-}" selected_order_json="${7:-[]}" correlation_id="${8:-}"
   local branch="" diffp=""
   TASK_WT=""   # default: no worktree (W7 sets this before this block)
   if $WORKTREE; then
     branch="te-dispatch/${RUNTAG}/${id}"
     TASK_WT="$OUT/wt-$id"
     if ! git worktree add -q -b "$branch" "$TASK_WT" HEAD 2>/dev/null; then
-      write_meta "$id" "$task" "$rb" "$rm" 1 0 "failed" "" "" "[]"
+      write_meta "$id" "$task" "$rb" "$rm" 1 0 "failed" "" "" "[]" "$plan_id" "$plan_path" "$correlation_id"
       return
     fi
   fi
 
-  # Fallback chain (#8): try each backend:model the router hands back, in
-  # order. The pre-classified $rb/$rm (chosen route) is always attempt #1 --
-  # route_fallbacks independently re-derives the SAME task-type's priority
-  # list, so it always starts with $rb/$rm too, but re-deriving here (rather
-  # than trusting rb/rm alone) is what gives us the rest of the chain to fall
-  # back to. exit 0 -> stop (ok). exit 124 (timeout) -> stop, NO fallback:
+  # Execute the exact selected_order frozen during preclassification. Never
+  # re-run routing here: adaptive state can change while parallel tasks run,
+  # and recomputing would make the recorded decision impossible to replay.
+  # exit 0 -> stop (ok). exit 124 (timeout) -> stop, NO fallback:
   # a per-attempt timeout means the task itself is too slow, not a
   # backend-health signal, so trying another backend would just repeat the
   # same wait. Any other non-zero exit -> record failed, advance to the next
   # backend in the chain. Chain exhausted with no success -> status=failed
   # using the LAST attempt's exit code.
-  local -a fb_backends=() fb_models=()
-  while IFS=$'\t' read -r fbk fmk; do
+  local -a fb_backends=() fb_models=() fb_domains=()
+  while IFS=$'\t' read -r fbk fmk fdomain; do
     [[ -z "$fbk" || "$fbk" == "none" || "$fbk" == "inline" ]] && continue
-    fb_backends+=("$fbk"); fb_models+=("$fmk")
-  done < <(route_fallbacks "$id" "$task" "$reqb" "$reqm")
-  # Guard: if the router's fallback listing came back empty (e.g. a forced
-  # backend that's unavailable), still attempt the pre-classified route once
-  # so behavior degrades to the pre-#8 single-attempt path rather than
-  # silently doing nothing.
+    fb_backends+=("$fbk"); fb_models+=("$fmk"); fb_domains+=("$fdomain")
+  done < <(jq -r '.[]? | [.backend,.model,.failure_domain] | @tsv' <<< "$selected_order_json" 2>/dev/null)
+  # Guard for a corrupt/missing plan: attempt the cached first route once.
   if (( ${#fb_backends[@]} == 0 )); then
     fb_backends=("$rb"); fb_models=("$rm")
+    [[ "$rb" == "omniroute" ]] && fb_domains=("gateway") || fb_domains=("direct")
   fi
 
   local attempts_json="[]"
-  local ex=1 dur=0 st="failed" fbk fmk
+  local ex=1 dur=0 st="failed" fbk fmk fdomain start_ms=0 finish_ms=0 fallback_reason=""
+  local metrics_file metrics_json usage_json cost_json
   local i
   for ((i=0; i<${#fb_backends[@]}; i++)); do
-    fbk="${fb_backends[i]}"; fmk="${fb_models[i]}"
-    IFS=$'\t' read -r ex dur < <(run_attempt "$fbk" "$task" "$fmk" "$OUT/$id.out" "$TIMEOUT")
+    fbk="${fb_backends[i]}"; fmk="${fb_models[i]}"; fdomain="${fb_domains[i]}"
+    IFS=$'\t' read -r ex dur start_ms finish_ms < <(run_attempt "$fbk" "$task" "$fmk" "$OUT/$id.out" "$TIMEOUT" "$correlation_id")
     if (( ex == 124 )); then st="timeout"
     elif (( ex != 0 )); then st="failed"
     else st="ok"
     fi
-    attempts_json=$(jq -c --argjson prev "$attempts_json" --argjson rec "$(attempt_record "$fbk" "$fmk" "$ex" "$dur" "$st")" \
+    (( i > 0 )) && fallback_reason="previous-attempt-failed" || fallback_reason=""
+    metrics_file="$OUT/$id.out.metrics.json"
+    metrics_json='{}'
+    if [[ -f "$metrics_file" ]] && jq -e 'type=="object"' "$metrics_file" >/dev/null 2>&1; then
+      metrics_json="$(jq -c . "$metrics_file")"
+    fi
+    usage_json="$(jq -c '.usage // null' <<< "$metrics_json")"
+    cost_json="$(jq -c '.cost // null' <<< "$metrics_json")"
+    rm -f "$metrics_file"
+    attempts_json=$(jq -c --argjson prev "$attempts_json" --argjson rec "$(attempt_record "$fbk" "$fmk" "$ex" "$dur" "$st" "$id" "$i" "$start_ms" "$finish_ms" "$fallback_reason" "$usage_json" "$cost_json" "$correlation_id" "$fdomain")" \
       -n '$prev + [$rec]')
     rb="$fbk"; rm="$fmk"   # top-level fields track the FINAL attempt
     if [[ "$st" == "ok" ]]; then break; fi
@@ -684,7 +734,7 @@ run_one(){ # id task rb rm [reqb] [reqm]
       fi
     fi
   fi
-  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp" "$attempts_json"
+  write_meta "$id" "$task" "$rb" "$rm" "$ex" "$dur" "$st" "$branch" "$diffp" "$attempts_json" "$plan_id" "$plan_path" "$correlation_id"
 }
 
 # --- pre-classify every task (routing only, no dispatch) so we can fail-open
@@ -692,26 +742,46 @@ run_one(){ # id task rb rm [reqb] [reqm]
 # in parallel arrays, indexed by task position, so run_batch's loop below
 # doesn't re-invoke the router per task.
 n=$(echo "$raw" | jq 'length')
-declare -a ROUTE_BACKEND ROUTE_MODEL ROUTE_STATUS REQ_BACKEND REQ_MODEL
+declare -a ROUTE_BACKEND ROUTE_MODEL ROUTE_STATUS ROUTE_PLAN_PATH ROUTE_PLAN_ID ROUTE_SELECTED_JSON ROUTE_CORRELATION_ID
 any_dispatch=false
 for ((i=0; i<n; i++)); do
   id=$(echo "$raw"   | jq -r ".[$i].id")
   task=$(echo "$raw" | jq -r ".[$i].task")
   backend=$(echo "$raw" | jq -r ".[$i].backend // \"auto\"")
   model=$(echo "$raw"   | jq -r ".[$i].model // \"auto\"")
-  IFS=$'\t' read -r rb rm < <(route_task "$id" "$task" "$backend" "$model")
+  plan_path="$OUT/$id.plan.json"
+  if route_plan "$id" "$task" "$backend" "$model" > "$plan_path.tmp" \
+      && valid_dispatch_plan "$plan_path.tmp"; then
+    : # Cache every execution field from the private temp file before publish.
+  else
+    rm -f "$plan_path.tmp"
+    jq -n --arg id "$id" --argjson now "$(( $(date +%s) * 1000 ))" \
+      '{policy_version:"unavailable",mode:"off",plan_id:("rp_unavailable_"+$id),
+      correlation_id:("tc_unavailable_"+$id),input_hash:"unavailable",task_type:"unknown",decision_time_ms:$now,diverged:false,
+      status:"unavailable",static_order:[],
+      proposed_order:[],selected_order:[],candidates:[]}' > "$plan_path.tmp"
+  fi
+  rb="$(jq -r '.selected_order[0].backend // "none"' "$plan_path.tmp")"
+  rm="$(jq -r '.selected_order[0].model // "-"' "$plan_path.tmp")"
+  plan_id="$(jq -r '.plan_id' "$plan_path.tmp")"
+  correlation_id="$(jq -r '.correlation_id' "$plan_path.tmp")"
+  plan_status="$(jq -r '.status' "$plan_path.tmp")"
+  selected_json="$(jq -c '.selected_order' "$plan_path.tmp")"
+  selected_count="$(jq '.selected_order | length' "$plan_path.tmp")"
+  if [[ "$plan_status" != "inline" && "$plan_status" != "unavailable" && "$selected_count" == "0" ]]; then
+    plan_status="unavailable"
+  fi
   status="dispatch"
-  case "$rb" in
-    inline) status="skipped:inline" ;;
-    none)   status="unavailable" ;;
+  case "$plan_status" in
+    inline) status="skipped:inline"; rb="inline"; rm="-" ;;
+    unavailable) status="unavailable"; rb="none"; rm="-" ;;
   esac
   [[ "$status" == "dispatch" ]] && any_dispatch=true
   ROUTE_BACKEND[i]="$rb"; ROUTE_MODEL[i]="$rm"; ROUTE_STATUS[i]="$status"
-  # Cache the RAW task-level backend/model override (may be "auto") -- needed
-  # by run_one to ask route_fallbacks for the full chain using the same
-  # override semantics as the initial route_task call, rather than forcing
-  # the chain down to the single already-resolved backend (rb).
-  REQ_BACKEND[i]="$backend"; REQ_MODEL[i]="$model"
+  ROUTE_PLAN_PATH[i]="$plan_path"; ROUTE_PLAN_ID[i]="$plan_id"
+  ROUTE_CORRELATION_ID[i]="$correlation_id"
+  ROUTE_SELECTED_JSON[i]="$selected_json"
+  mv -f "$plan_path.tmp" "$plan_path"
 done
 
 # Phantom-route guard (spec sec 9.G16): if nothing classified as dispatch AND
@@ -749,7 +819,7 @@ run_batch(){
     id=$(echo "$raw"   | jq -r ".[$i].id")
     task=$(echo "$raw" | jq -r ".[$i].task")
     rb="${ROUTE_BACKEND[i]}" rm="${ROUTE_MODEL[i]}" status="${ROUTE_STATUS[i]}"
-    reqb="${REQ_BACKEND[i]}" reqm="${REQ_MODEL[i]}"
+    plan_path="${ROUTE_PLAN_PATH[i]}" plan_id="${ROUTE_PLAN_ID[i]}" selected_json="${ROUTE_SELECTED_JSON[i]}" correlation_id="${ROUTE_CORRELATION_ID[i]}"
     if $DRY_RUN; then
       if [[ "$status" == "dispatch" ]]; then echo "$id $rb $rm"; else echo "$id $status"; fi
       continue
@@ -757,9 +827,9 @@ run_batch(){
     case "$status" in
       dispatch)
         while (( $(jobs -rp | wc -l) >= CONCURRENCY )); do wait -n; done
-        run_one "$id" "$task" "$rb" "$rm" "$reqb" "$reqm" &
+        run_one "$id" "$task" "$rb" "$rm" "$plan_path" "$plan_id" "$selected_json" "$correlation_id" &
         ;;
-      *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" ;;
+      *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" "" "" "[]" "$plan_id" "$plan_path" "$correlation_id" ;;
     esac
   done
 
@@ -783,6 +853,15 @@ run_batch(){
     fi
     if $WORKTREE && $APPLY_WORKTREE; then
       apply_worktree_merges
+    fi
+    # Parent-owned observation reduction: all worker attempts are complete,
+    # so one locked atomic write updates cross-run backend facts. Failure is
+    # advisory only; task results and fail-open behavior remain authoritative.
+    if command -v bun >/dev/null 2>&1 && [[ -f "$POLICY_RUNNER" ]]; then
+      state_path="${TEMPERANCE_ROUTING_STATE:-${TEMPERANCE_STATE_DIR:-$HOME/.temperance_engine/state}/routing-observations.json}"
+      if ! bun "$POLICY_RUNNER" observe --state "$state_path" --index "$OUT/index.json" >/dev/null; then
+        echo "warning: routing observation update failed" >&2
+      fi
     fi
     echo "$OUT"
   fi

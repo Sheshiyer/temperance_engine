@@ -83,6 +83,11 @@ if [[ "$prompt" == *MOVE=* ]]; then
     mv "$msrc" "$mdst"
   fi
 fi
+if [[ "$prompt" == *METRICS* && -n "${TEMPERANCE_ATTEMPT_METRICS_PATH:-}" ]]; then
+  printf '%s\n' \
+    '{"usage":{"input_tokens":11,"output_tokens":7},"cost":{"amount":0.0042,"currency":"USD"}}' \
+    > "$TEMPERANCE_ATTEMPT_METRICS_PATH"
+fi
 # Exit-token handling: checked AFTER WRITE/MOVE (see comment above) so a
 # nonzero exit can still model "wrote/moved, then failed". A ZERO code falls
 # through to the success-output printf below, same as before.

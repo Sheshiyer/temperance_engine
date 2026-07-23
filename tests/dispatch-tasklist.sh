@@ -4,8 +4,29 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 W="$DIR/package/router/dispatch-tasklist.sh"
 export TEMPERANCE_ROUTER="$DIR/package/router/multi-backend-router.sh"
 export TEMPERANCE_BACKENDS="command-code"
+TEST_STATE_DIR="$(mktemp -d)"
+export TEMPERANCE_STATE_DIR="$TEST_STATE_DIR"
+trap 'rm -rf "$TEST_STATE_DIR"' EXIT
 fail=0
 check(){ if [[ "$2" == "$3" ]]; then echo "ok - $1"; else echo "FAIL - $1: exp[$2] got[$3]"; fail=1; fi; }
+
+# Bash 4 has no EPOCHREALTIME. Exercise the portable branch directly and
+# require distinct millisecond values so parallel completion order is not
+# collapsed into whole-second ties.
+epoch_fn="$(sed -n '/^epoch_ms(){/,/^}/p' "$W")"
+if EPOCH_FN="$epoch_fn" bash -c '
+  unset EPOCHREALTIME
+  eval "$EPOCH_FN"
+  first=$(epoch_ms) || exit 1
+  sleep 0.03
+  second=$(epoch_ms) || exit 1
+  (( second > first ))
+'; then
+  echo "ok - Bash 4 fallback clock preserves millisecond ordering"
+else
+  echo "FAIL - Bash 4 fallback clock collapsed completion ordering"
+  fail=1
+fi
 
 # malformed JSON rejected (exit 1)
 echo 'not json' | "$W" --dry-run --tasks - >/dev/null 2>&1
@@ -43,6 +64,79 @@ check "task text passed literally (no eval)" 'run $(touch /tmp/pwned) and say "d
 [[ -e /tmp/pwned ]] && { echo "FAIL - injection executed!"; fail=1; rm -f /tmp/pwned; }
 rm -f "$DIR/tests/fixtures/command-code"
 
+# Backend adapters may expose optional normalized usage/cost through the
+# per-attempt metrics sidecar path. The dispatcher preserves those fields in
+# the attempt envelope without copying raw backend output into its summary.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+printf '%s' '[{"id":"METRICS","task":"METRICS refactor all files","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+check "backend usage metadata preserved" "11" \
+  "$(jq -r '.tasks[0].attempts[0].usage.input_tokens' "$run/index.json" 2>/dev/null)"
+check "backend cost metadata preserved" "0.0042" \
+  "$(jq -r '.tasks[0].attempts[0].cost.amount' "$run/index.json" 2>/dev/null)"
+summary_bytes="$(wc -c < "$run/SUMMARY.md" | tr -d ' ')"
+if (( summary_bytes <= 4096 )) && ! grep -q 'MOCK_OUTPUT_START' "$run/SUMMARY.md"; then
+  echo "ok - summary remains compact and excludes raw model output"
+else
+  echo "FAIL - summary is oversized or contains raw model output"
+  fail=1
+fi
+rm -f "$DIR/tests/fixtures/command-code"
+
+# OmniRoute is an agentic gateway backend, not a raw chat adapter. The dispatcher
+# invokes Codex with the OmniRoute provider configuration so the selected model
+# retains workspace tools. A mocked Codex binary proves argv-safe prompt passage
+# and final metadata without calling a live model.
+ln -sf mock-codex "$DIR/tests/fixtures/codex"
+run=$(mktemp -d)
+payload='[{"id":"OMNI","task":"refactor the auth module safely","backend":"omniroute","model":"temperance-coding"}]'
+printf '%s' "$payload" \
+  | OMNIROUTE_API_KEY=test-key TEMPERANCE_BACKENDS="omniroute command-code" \
+    "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+check "OmniRoute agent backend succeeds through Codex" "ok" \
+  "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+check "OmniRoute backend recorded in attempt envelope" "omniroute" \
+  "$(jq -r '.tasks[0].attempts[0].backend' "$run/index.json" 2>/dev/null)"
+check "OmniRoute model recorded in attempt envelope" "temperance-coding" \
+  "$(jq -r '.tasks[0].attempts[0].model' "$run/index.json" 2>/dev/null)"
+omni_correlation="$(jq -r '.tasks[0].correlation_id' "$run/index.json" 2>/dev/null)"
+check "OmniRoute attempt correlation matches metadata" "$omni_correlation" \
+  "$(jq -r '.tasks[0].attempts[0].correlation_id' "$run/index.json" 2>/dev/null)"
+check "OmniRoute plan correlation matches metadata" "$omni_correlation" \
+  "$(jq -r '.correlation_id' "$run/OMNI.plan.json" 2>/dev/null)"
+if grep -qF 'refactor the auth module safely' "$run/OMNI.out"; then
+  echo "ok - OmniRoute task text passed literally to Codex"
+else
+  echo "FAIL - OmniRoute task text missing from Codex argv"; fail=1
+fi
+if grep -qF "MOCK_CODEX_CORRELATION=$omni_correlation" "$run/OMNI.out" \
+    && grep -qF 'X-Temperance-Correlation-ID' "$run/OMNI.out" \
+    && grep -qF "$omni_correlation" "$run/OMNI.out"; then
+  echo "ok - OmniRoute Codex request carries correlation header"
+else
+  echo "FAIL - OmniRoute Codex correlation header missing"; fail=1
+fi
+
+# Gateway failure and direct fallback remain one trace even though execution
+# crosses the OmniRoute/Codex adapter boundary into a direct CLI backend.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+fallback_run=$(mktemp -d)
+printf '%s' '[{"id":"TRACE","task":"FAIL_OMNIROUTE refactor the auth module"}]' \
+  | OMNIROUTE_API_KEY=test-key TEMPERANCE_BACKENDS="omniroute command-code" \
+    "$W" --foreground --out "$fallback_run" --tasks - >/dev/null 2>&1
+trace_correlation="$(jq -r '.tasks[0].correlation_id' "$fallback_run/index.json" 2>/dev/null)"
+check "gateway failure falls back to direct backend" "command-code" \
+  "$(jq -r '.tasks[0].backend' "$fallback_run/index.json" 2>/dev/null)"
+check "gateway and direct attempts share correlation" "1" \
+  "$(jq -r --arg correlation "$trace_correlation" '[.tasks[0].attempts[] | select(.correlation_id == $correlation)] | length == 2 | if . then 1 else 0 end' "$fallback_run/index.json" 2>/dev/null)"
+check "gateway attempt records gateway failure domain" "gateway" \
+  "$(jq -r '.tasks[0].attempts[0].failure_domain' "$fallback_run/index.json" 2>/dev/null)"
+check "direct fallback records direct failure domain" "direct" \
+  "$(jq -r '.tasks[0].attempts[1].failure_domain' "$fallback_run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+rm -f "$DIR/tests/fixtures/codex"
+
 # flag-like task text must NOT be interpreted as router flags
 # ("--help" exactly matches the router's -h|--help case unless "--" ends option parsing)
 out=$(printf '%s' '[{"id":"F1","task":"--help"}]' | "$W" --dry-run --tasks - 2>/dev/null)
@@ -64,6 +158,120 @@ check "A meta status ok" "ok" "$st"
 # SUMMARY.md exists
 [[ -f "$run/SUMMARY.md" ]] && echo "ok - SUMMARY.md written" || { echo "FAIL - no SUMMARY.md"; fail=1; }
 rm -f "$DIR/tests/fixtures/command-code"
+
+# OmniRoute-inspired policy seam: preclassification must freeze exactly one
+# plan and run_one must consume that file rather than asking the router to
+# re-derive a fallback chain against newer mutable state.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+counter="$run/router-calls.log"
+wrapper="$run/router-wrapper.sh"
+cat > "$wrapper" <<EOF
+#!/usr/bin/env bash
+case "\${1:-}" in
+  --plan-json) printf '%s\n' plan >> "$counter" ;;
+  --route-only|--route-only-with-fallbacks) printf '%s\n' legacy >> "$counter" ;;
+esac
+exec "$DIR/package/router/multi-backend-router.sh" "\$@"
+EOF
+chmod +x "$wrapper"
+printf '%s' '[{"id":"PLAN","task":"refactor all files"}]' \
+  | TEMPERANCE_ROUTER="$wrapper" TEMPERANCE_STATE_DIR="$run/state" \
+    "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+[[ -f "$run/PLAN.plan.json" ]] && echo "ok - frozen dispatch plan written" || { echo "FAIL - no frozen dispatch plan"; fail=1; }
+check "frozen plan selected backend" "command-code" \
+  "$(jq -r '.selected_order[0].backend' "$run/PLAN.plan.json" 2>/dev/null)"
+check "metadata plan_id matches frozen plan" \
+  "$(jq -r '.plan_id' "$run/PLAN.plan.json" 2>/dev/null)" \
+  "$(jq -r '.plan_id' "$run/PLAN.meta.json" 2>/dev/null)"
+check "metadata correlation matches frozen plan" \
+  "$(jq -r '.correlation_id' "$run/PLAN.plan.json" 2>/dev/null)" \
+  "$(jq -r '.correlation_id' "$run/PLAN.meta.json" 2>/dev/null)"
+check "attempt correlation matches frozen plan" \
+  "$(jq -r '.correlation_id' "$run/PLAN.plan.json" 2>/dev/null)" \
+  "$(jq -r '.attempts[0].correlation_id' "$run/PLAN.meta.json" 2>/dev/null)"
+check "metadata records plan path" "$run/PLAN.plan.json" \
+  "$(jq -r '.plan_path' "$run/PLAN.meta.json" 2>/dev/null)"
+check "router plan resolved once" "1" "$(grep -c '^plan$' "$counter" 2>/dev/null || true)"
+check "execution never re-routes legacy chain" "0" "$(grep -c '^legacy$' "$counter" 2>/dev/null || true)"
+check "observation reducer records success" "1" \
+  "$(jq -r '.backends["command-code"].success_count' "$run/state/routing-observations.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# Queued workers consume the parent-cached selected_order, not the mutable
+# inspection artifact. Tampering with a queued task's plan file must not alter
+# the backend that actually runs or the result metadata.
+ln -sf slow-mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+(
+  printf '%s' '[{"id":"TAMPER1","task":"refactor all files","backend":"command-code","model":"x"},{"id":"TAMPER2","task":"refactor all files","backend":"command-code","model":"x"}]' \
+    | TEMPERANCE_STATE_DIR="$run/state" "$W" --foreground --concurrency 1 --out "$run" --tasks - >/dev/null 2>&1
+) &
+tamper_pid=$!
+for _ in $(seq 1 40); do
+  [[ -f "$run/TAMPER2.plan.json" ]] && break
+  sleep 0.05
+done
+if [[ -f "$run/TAMPER2.plan.json" ]]; then
+  jq '.selected_order=[{"backend":"evil","model":"tampered","static_rank":0}]' \
+    "$run/TAMPER2.plan.json" > "$run/TAMPER2.plan.json.tmp"
+  mv -f "$run/TAMPER2.plan.json.tmp" "$run/TAMPER2.plan.json"
+fi
+wait "$tamper_pid"
+check "tampered plan cannot change cached execution backend" "command-code" \
+  "$(jq -r '.backend' "$run/TAMPER2.meta.json" 2>/dev/null)"
+check "tampered plan cannot change successful result" "ok" \
+  "$(jq -r '.status' "$run/TAMPER2.meta.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# Observation updates are advisory. A stale lock must be bounded well below a
+# backend turn and must not change the real task's result.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+mkdir -p "$run/state/routing-observations.json.lock"
+printf '%s' '[{"id":"LOCK","task":"refactor all files","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_STATE_DIR="$run/state" "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+check "stale observation lock leaves task successful" "ok" \
+  "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+SECONDS=0
+bun "$DIR/package/router/routing-policy.ts" observe \
+  --state "$run/state/routing-observations.json" --index "$run/index.json" \
+  >/dev/null 2>&1
+lock_elapsed=$SECONDS
+if (( lock_elapsed <= 1 )); then
+  echo "ok - held observation lock is bounded (${lock_elapsed}s)"
+else
+  echo "FAIL - held observation lock delayed observer ${lock_elapsed}s"
+  fail=1
+fi
+rm -f "$DIR/tests/fixtures/command-code"
+
+# An unwritable/invalid state target forces the observer to fail. Dispatch
+# evidence must remain successful and index.json must stay valid.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+run=$(mktemp -d)
+printf '%s' '[{"id":"OBSFAIL","task":"refactor all files","backend":"command-code","model":"x"}]' \
+  | TEMPERANCE_ROUTING_STATE="/dev/null/routing-observations.json" \
+    "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
+check "observation write failure leaves task successful" "ok" \
+  "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
+check "observation write failure preserves batch success" "1" \
+  "$(jq -r '.summary.ok' "$run/index.json" 2>/dev/null)"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# Defense in depth: even if a custom router returns status=ok with an empty
+# selected_order, the batch must classify it unavailable instead of executing
+# the cached none:- sentinel.
+run=$(mktemp -d)
+wrapper="$run/empty-plan-router.sh"
+cat > "$wrapper" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' '{"policy_version":"bad","mode":"enforce","plan_id":"rp_empty","input_hash":"bad","task_type":"balanced","decision_time_ms":1,"diverged":true,"status":"ok","static_order":[{"backend":"command-code","model":"x","static_rank":0}],"proposed_order":[],"selected_order":[],"candidates":[]}'
+EOF
+chmod +x "$wrapper"
+empty_preview=$(printf '%s' '[{"id":"EMPTY","task":"refactor all files"}]' \
+  | TEMPERANCE_ROUTER="$wrapper" "$W" --dry-run --out "$run" --tasks - 2>/dev/null)
+check "empty selected plan is unavailable" "EMPTY unavailable" "$empty_preview"
 
 # background-by-default: prints run dir fast, task completes eventually
 # (uses a slow mock so blocking vs backgrounding is actually observable)
@@ -300,6 +508,11 @@ check "fallback success: attempts[0].backend=command-code" "command-code" "$(jq 
 check "fallback success: attempts[0].status=failed" "failed" "$(jq -r '.tasks[0].attempts[0].status' "$run/index.json" 2>/dev/null)"
 check "fallback success: attempts[1].backend=kimi" "kimi" "$(jq -r '.tasks[0].attempts[1].backend' "$run/index.json" 2>/dev/null)"
 check "fallback success: attempts[1].status=ok" "ok" "$(jq -r '.tasks[0].attempts[1].status' "$run/index.json" 2>/dev/null)"
+check "attempt event is structured" "attempt" "$(jq -r '.tasks[0].attempts[0].event' "$run/index.json" 2>/dev/null)"
+check "fallback event records its reason" "previous-attempt-failed" \
+  "$(jq -r '.tasks[0].attempts[1].fallback_reason' "$run/index.json" 2>/dev/null)"
+check "attempt event records completion time" "number" \
+  "$(jq -r '.tasks[0].attempts[1].finished_at_ms | type' "$run/index.json" 2>/dev/null)"
 rm -f "$DIR/tests/fixtures/command-code" "$DIR/tests/fixtures/kimi"
 
 # (b) all backends fail: command-code exits 1, kimi exits 1 -> status=failed,
