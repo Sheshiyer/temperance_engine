@@ -1,13 +1,13 @@
 {
   "version": 1,
   "compatibility_model": "temperance-coding",
-  "required_portfolios": ["te-fast", "te-build", "te-reason", "te-validate"],
+  "required_portfolios": ["te-fast", "te-build", "te-reason", "te-validate", "te-creative"],
   "task_type_portfolios": {
     "fast": "te-fast",
     "long-horizon": "te-build",
     "reasoning": "te-reason",
     "validation": "te-validate",
-    "creative": "te-vision",
+    "creative": "te-creative",
     "balanced": "te-build"
   },
   "reserved_portfolios": ["te-batch", "te-vision"],

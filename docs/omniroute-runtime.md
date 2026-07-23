@@ -9,7 +9,8 @@ was not OmniRoute's provider catalog. The current boundary is:
 4. OmniRoute's named combos own provider/model failover; Temperance owns which
    combo is appropriate for the task.
 5. `temperance-coding` is the compatibility rail, while `te-fast`, `te-build`,
-   `te-reason`, and `te-validate` are the four governed task portfolios.
+   `te-reason`, `te-validate`, and `te-creative` are the five governed task
+   portfolios. `te-plan` and `te-dispatch` are role combos for orchestration.
 6. Command Code, Grok, and Kimi remain direct outage fallbacks.
 
 This avoids two classifiers and preserves filesystem-capable agents. Calling
@@ -64,8 +65,9 @@ relay intentionally preserves the upstream failure instead of silently
 changing a governed portfolio.
 
 The distinction is observable in OmniRoute call logs: `temperance-coding` is a
-compatibility rail, `te-fast`/`te-build`/`te-reason` are priority portfolios,
-and `te-validate` is a fusion council. `auto/*` remains a separate provider-
+compatibility rail, `te-fast`/`te-build`/`te-reason`/`te-creative` are priority
+portfolios, and `te-validate` is a fusion council. `te-plan` protects the
+GitHub-first planner; `te-dispatch` is the worker fleet. `auto/*` remains a separate provider-
 owned virtual pool and is never silently promoted into a Temperance portfolio.
 
 ## Local configuration
@@ -75,10 +77,12 @@ owned virtual pool and is never silently promoted into a Temperance portfolio.
 - OpenAI-compatible API: `http://127.0.0.1:20128/v1`
 - Data: `~/.omniroute` (`.env` and SQLite are local, never repository inputs)
 - Compatibility combo: `temperance-coding`
-- Governed combos: `te-fast`, `te-build`, `te-reason`, `te-validate`
+- Governed combos: `te-fast`, `te-build`, `te-reason`, `te-validate`, `te-creative`
+- Role combos: `te-plan` (GitHub planner) and `te-dispatch` (fleet workers)
 - Compatibility targets: `codex/gpt-5.6-terra`, `github/gpt-5.4`, then
   `nebius/Qwen/Qwen3-235B-A22B-Instruct-2507`
 - Live combo lifecycle: `scripts/omniroute-temperance-combos.sh`
+- Role combo lifecycle: `scripts/omniroute-temperance-fleet.sh`
 - Admin password: macOS Keychain service `OmniRoute Temperance Admin`
 - Scoped inference key: macOS Keychain service `OmniRoute Temperance API Key`
 - Codex profile: `~/.codex/temperance-coding.config.toml`
@@ -106,6 +110,7 @@ combo catalog:
 | `te-build` | Tool-capable reversible execution | Temperance task portfolio |
 | `te-reason` | Deliberation, assumptions, and alternatives (content rail) | Temperance task portfolio |
 | `te-validate` | Multi-model challenge and synthesis with tools | Temperance fusion council |
+| `te-creative` | Creative brief and artifact planning (text rail) | Native media workflow; not a chat fallback |
 | `auto/best-coding` | Best available coding | Explicit override |
 | `auto/best-coding-fast` | Lower-latency coding | Explicit override |
 | `auto/best-reasoning` | Deep reasoning and validation | Explicit override |
@@ -120,7 +125,7 @@ combo catalog:
 | `auto/cheap` | Cost-sensitive route | Explicit override |
 | `auto/best-free` | Free-route experiment | Experimental; no enforcement authority |
 
-The four Temperance portfolios encode the operating philosophy in their
+The five task portfolios encode the operating philosophy in their
 operator-facing descriptions and strategy settings: proportion before power,
 reversible agency, explicit uncertainty, and synthesis over unexamined
 consensus. The OpenCode flow plugin continues to add the full Temperance/ISA

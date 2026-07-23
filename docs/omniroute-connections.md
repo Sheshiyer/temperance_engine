@@ -38,12 +38,12 @@ The latest local read-only probe found:
 
 | Surface | Observation | Meaning |
 | --- | --- | --- |
-| Connections | 17 active, 11 API-key and 6 OAuth | credentials are connected, but not all are equally probed |
+| Connections | 17 configured, 16 active (11 API-key and 6 OAuth) | one Kimi Coding OAuth connection is quota-banned; the API-key route remains active |
 | Catalog | 503 advertised / 488 unique IDs | aliases are provider-owned and volatile |
-| Agentic lane | Antigravity, Command Code, Kimi API-key currently eligible | healthy evidence exists for these connections |
+| Agentic lane | GitHub, Codex, Command Code, Grok CLI, Kimi API-key, Antigravity | healthy evidence exists for planner and worker candidates; entitlement is still model-specific |
 | Backbone lane | Nebius, NVIDIA, Ollama Cloud | general model pools; promote only through named combos |
 | Research lane | Brave, Exa, Firecrawl, Jina | tool services, not coding-model fallbacks |
-| Media lane | ElevenLabs, RunwayML | speech/video/image contracts, not chat completions |
+| Media lane | ElevenLabs, RunwayML | speech/video/image contracts, not chat fallbacks |
 | Unknown lane | none after mapping known connections | any future provider fails loud as unmapped |
 | Gateway health | OmniRoute healthy; governed portfolios probe successfully | `temperance-coding` is repaired; promotion remains shadow-gated |
 
@@ -74,7 +74,7 @@ PAI / ISA / GSD
 
 ## Temperance portfolio synthesis
 
-The live combo set turns the philosophy into four differentiated operating
+The live task combo set turns the philosophy into five differentiated operating
 modes, without promoting every connected provider into the automatic rail:
 
 | Portfolio | Temperance principle | Strategy | Verified target posture |
@@ -83,12 +83,14 @@ modes, without promoting every connected provider into the automatic rail:
 | `te-build` | reversible agency with inspectable evidence | priority | Codex/GitHub/Nebius tool-capable rail |
 | `te-reason` | explicit assumptions and evidence-weighted alternatives | priority | deep-thinking content rail; Antigravity, then Nebius/Codex |
 | `te-validate` | challenge, reconcile, and synthesize | fusion | GitHub/Codex/Nebius tool-capable panel with Codex judge |
+| `te-creative` | context-rich creative briefs handed to native media adapters | priority | GitHub/Codex/Nebius text planning; ElevenLabs/Runway remain native |
 
 `temperance-coding` remains the compatibility rail for existing OpenCode and
 Codex integrations. Research/crawl, embeddings, speech, video, and image
 connections remain native capability lanes; they are intentionally not forced
-into chat combos. `te-vision` and `te-batch` remain reserved until their native
-contracts and evidence receipts exist.
+into chat combos. `te-creative` plans native media work, while `te-vision` and
+`te-batch` remain reserved until their native contracts and evidence receipts
+exist. See [the fleet workflow](omniroute-fleet.md) for the planner/worker split.
 
 The portfolio manifest is [package/router/omniroute-portfolios.json](../package/router/omniroute-portfolios.json). The authenticated lifecycle,
 pre-mutation snapshot, collision guard, native target preflight, and rollback

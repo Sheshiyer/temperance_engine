@@ -17,6 +17,7 @@ fi
 run ./verify.sh
 run bun test package/enrich
 run bun test package/router/routing-policy.test.ts
+run bun test package/router/temperance-workflows.test.ts
 run bun test package/router/temperance-openai-proxy.test.ts
 run bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts
 run bun test package/adapters/opencode/TemperanceFlowPlugin.test.ts
