@@ -178,6 +178,33 @@ bun package/router/temperance-workflows.ts resolve writing MODEL_IDS...
 The full phase-by-phase map, client-side boundaries, and catalog caveats
 live in [docs/noesis-writer-routing.md](noesis-writer-routing.md).
 
+### OpenCode picker registration
+
+Creating an OmniRoute combo does **not** make it appear in OpenCode's model
+picker. OpenCode's `openai-compatible` provider renders only the static
+`models` map in `~/.config/opencode/opencode.json` — it never enumerates the
+upstream `/v1/models`. Every new `te-*` combo must therefore also be
+registered there (this is why the four writer combos were invisible until
+2026-07-24 even though OmniRoute already served them):
+
+```bash
+jq '.provider.omniroute.models += {
+  "te-write": {
+    "name": "Temperance · Writing Rail (drafting)",
+    "reasoning": true, "temperature": true, "tool_call": true,
+    "limit": {"context": 500000, "input": 372000, "output": 128000}
+  }
+}' ~/.config/opencode/opencode.json > /tmp/opencode.json.new \
+  && jq empty /tmp/opencode.json.new \
+  && mv /tmp/opencode.json.new ~/.config/opencode/opencode.json
+```
+
+Back up the config first, keep one entry per combo (`te-write`,
+`te-write-critique`, `te-write-research`, `te-write-media` are all
+registered), and restart or reload OpenCode so the picker rescans the
+config. Deliberation councils (`-critique`, `-research`, `-media`) are
+registered with `tool_call: false` to match their never-draft boundary.
+
 ## Verify the live state
 
 ```bash
