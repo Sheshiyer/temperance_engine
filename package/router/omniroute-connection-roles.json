@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "unknown_policy": "unmapped-not-eligible",
+  "roles": {
+    "agentic": [
+      "antigravity", "auggie", "aug", "codex", "cx", "command-code", "cmd",
+      "github", "gh", "grok-cli", "gc", "kimi-coding", "kmc", "kimi-coding-apikey", "kmca", "trae", "tr"
+    ],
+    "research": [
+      "brave-search", "exa-search", "firecrawl", "jina-ai", "jina", "duckduckgo-web", "ddgw"
+    ],
+    "media": ["elevenlabs", "el", "veoaifree-web", "veo-free", "runwayml"],
+    "backbone": [
+      "nvidia", "nebius", "ollama-cloud", "ollamacloud", "opencode", "oc", "opencode-zen",
+      "mimocode", "mcode", "theoldllm", "tllm", "chipotle", "combo"
+    ]
+  },
+  "lane_descriptions": {
+    "agentic": "Workspace-capable coding and tool-loop model providers.",
+    "research": "Search, crawl, and embedding services used as tools, not chat routes.",
+    "media": "Speech, image, and video generation services with separate payload contracts.",
+    "backbone": "General model pools and gateway aliases suitable for named portfolios after probes."
+  }
+}

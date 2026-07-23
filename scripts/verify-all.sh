@@ -20,6 +20,7 @@ run bun test package/router/routing-policy.test.ts
 run bun test package/router/temperance-openai-proxy.test.ts
 run bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts
 run bun test package/adapters/opencode/TemperanceFlowPlugin.test.ts
+run bash tests/omniroute-connections.sh
 run bash tests/temperance-proxy-live.sh
 run bash tests/docs-continuity.sh
 run bash tests/router-hardening.sh

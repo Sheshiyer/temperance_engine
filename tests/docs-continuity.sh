@@ -128,6 +128,15 @@ grep -q 'off.*shadow.*enforce' "$OMNI_DOC" 2>/dev/null \
   && grep -q 'temperance-openai-proxy.ts' "$OMNI_DOC" \
   && echo "ok - automatic OpenCode Temperance relay documented" \
   || { echo "FAIL - automatic OpenCode Temperance relay documentation missing"; fail=1; }
+[ -f "$DIR/docs/omniroute-connections.md" ] \
+  && grep -q 'omniroute-connections.sh' "$DIR/docs/omniroute-connections.md" \
+  && grep -q 'read-only' "$DIR/docs/omniroute-connections.md" \
+  && echo "ok - OmniRoute connection inventory documented" \
+  || { echo "FAIL - OmniRoute connection inventory documentation missing"; fail=1; }
+[ -x "$DIR/scripts/omniroute-connections.sh" ] \
+  && grep -q 'unmapped-not-eligible' "$DIR/package/router/omniroute-connection-roles.json" \
+  && echo "ok - connection role safety documented" \
+  || { echo "FAIL - connection role safety map missing"; fail=1; }
 grep -q 'diegosouzapw/OmniRoute' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
   && grep -q 'MIT License' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
   && echo "ok - OmniRoute attribution and license recorded" \
