@@ -3,7 +3,8 @@ project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
 phase: learn
-progress: 119/121
+iteration: 2026-07-23-connection-inventory
+progress: 127/129
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-23
@@ -184,6 +185,14 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-119: Concurrent automatic requests receive distinct request trace identifiers.
 - [x] ISC-120: A user-scoped macOS LaunchAgent keeps the automatic relay available across shell sessions.
 - [ ] ISC-121: A fresh OpenCode interactive session completes an automatic model request through the relay.
+- [x] ISC-122: A read-only connection inventory reports every active OmniRoute connection with auth type and no secret material.
+- [x] ISC-123: The connection inventory joins live catalog owners to stable Temperance capability roles without copying the full model catalog into source.
+- [x] ISC-124: The inventory reports runtime health, circuit-breaker state, and observed provider success metrics in one machine-readable envelope.
+- [x] ISC-125: The inventory command supports a fixture-backed JSON mode for deterministic verification without contacting upstream providers.
+- [x] ISC-126: Anti: inventory and role mapping never mutate provider credentials, combos, local OpenCode configuration, or upstream state.
+- [x] ISC-127: The operator report explains safe leverage lanes for agentic coding, research tools, media, and model backbones.
+- [x] ISC-128: The canonical verification gate executes the connection inventory fixture test.
+- [x] ISC-129: Current workstation evidence records 17 active connections, 488 unique model IDs, and 1 degraded gateway domain.
 
 ## Test Strategy
 
@@ -310,6 +319,14 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-119 | unit | concurrent automatic decisions have unique request IDs | all unique | Bun test |
 | ISC-120 | macOS | LaunchAgent is loaded and health endpoint responds | running + HTTP 200 | launchctl + curl |
 | ISC-121 | integration | OpenCode auto model completes a fresh session | assistant response | OpenCode CLI |
+| ISC-122 | CLI | inventory lists active provider connection metadata | count + redacted fields | connection report |
+| ISC-123 | schema | catalog owners map to capability roles without model dump | role map + no full IDs | connection report |
+| ISC-124 | schema | health, breaker, and metrics sections coexist | keys + counts | connection report |
+| ISC-125 | fixture | fixture mode produces deterministic JSON without network | exact fixture values | connection report test |
+| ISC-126 | safety | inventory command has no mutating HTTP or credential writes | zero writes | shell inspection |
+| ISC-127 | docs | report explains four leverage lanes and guardrails | present | docs continuity |
+| ISC-128 | shell | verify-all invokes fixture inventory test | match + pass | verify-all |
+| ISC-129 | live | workstation snapshot matches active connection and catalog probes | 17 / 488 / 1 | health + curl |
 
 ## Features
 
@@ -344,6 +361,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | OpenCode request-time catalog guard | ISC-111 | OpenCode plugin API, live `/v1/models` endpoint | no |
 | OpenCode Temperance flow bridge | ISC-112..ISC-119 | shared enrichment, frozen router, local OpenAI relay | no |
 | Local proxy lifecycle | ISC-120..ISC-121 | macOS LaunchAgent, OpenCode runtime | no |
+| Connection inventory and leverage map | ISC-122..ISC-129 | OmniRoute CLI/API, live catalog, role map, fixture test | yes |
 
 ## Architecture
 
@@ -390,6 +408,7 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-21: Keep production in shadow mode and leave ISC-58 open until observation evidence justifies enforcement. The enforce-mode exclusion, cooldown probe lease, and kill switch are implemented and tested, but open circuits do not suppress the existing static route while shadow mode is authoritative.
 - 2026-07-22 12:54: refined: User explicitly expanded the boundary from OmniRoute-inspired local policy to an actual local OmniRoute runtime. Temperance remains the sole task classifier; OmniRoute becomes the preferred provider/model gateway; Codex supplies the agentic tool loop; command-code, grok, and kimi remain direct outage fallbacks.
 - 2026-07-22 12:54: Store the generated OmniRoute dashboard password and scoped Temperance inference key in macOS Keychain, keep runtime data under `~/.omniroute`, and never place either secret in repository configuration or model arguments.
+- 2026-07-23: refined: Treat the newly authenticated OmniRoute connections as four capability lanes—agentic model execution, research/tool services, media generation, and model backbones. Temperance can safely inventory and explain these lanes without copying provider credentials or the volatile full catalog; routing policy remains the authority for task selection.
 - 2026-07-22 12:54: Use a named `temperance-coding` priority combo instead of OmniRoute's generic auto/free aliases because live probes showed those aliases could select an inactive Auggie subscription; configure only targets that passed direct authenticated probes.
 - 2026-07-22: refined: The single OpenCode OmniRoute option entered at the provider configuration boundary, where the `models` map declared only `temperance-coding`; expose a curated live combo set as explicit picker overrides while preserving `temperance-coding` as the governed default.
 - 2026-07-22: Root-cause checkpoint: fixing the OpenCode provider `models` map removes the missing-options symptom at ingestion; adding modes inside the router would create a second UI-specific classifier, so the router remains unchanged and user-selected picker models are treated as explicit overrides.
@@ -438,6 +457,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   refuted by: OpenCode's provider request path bypassed `classify-task.sh`, the frozen plan, and the enrichment pipeline even though the picker listed live modes
   learned: presentation, context enrichment, and request-time model scheduling are separate seams; the last seam needs a local proxy because OpenCode plugins cannot replace `input.model`
   criterion now: ISC-112 through ISC-121 track enrichment, automatic relay routing, direct overrides, transport fidelity, lifecycle, and the remaining fresh-session probe
+
+- 2026-07-23 | conjectured: every newly authenticated connection should become another Temperance task classifier route
+  refuted by: the live inventory separates agentic model providers from search, crawl, embedding, audio, and media services, while OmniRoute health reports only two monitored gateway domains
+  learned: connections are capability inputs, not interchangeable model routes; expose a redacted inventory and role map first, then promote only evidence-backed provider pools into named portfolios
+  criterion now: ISC-122 through ISC-129 require connection inventory, capability-role mapping, health/metric evidence, fixture safety, leverage guidance, and a current workstation snapshot
 
 ## Verification
 
@@ -518,3 +542,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-114: real-upstream canary — a transient relay with `TEMPERANCE_OMNIROUTE_MODEL=auto/best-coding` returned HTTP 200 and `REAL_TEMPERANCE_CANARY_OK` with automatic route, plan, correlation, and task headers; the governed `temperance-coding` request separately returned OmniRoute's explicit `[502] Combo "temperance-coding" failed — all targets exhausted`.
 - ISC-121: remains open — `opencode run -m omniroute/temperance-auto` fails before issuing an HTTP request because the existing local OpenCode SQLite schema lacks `replacement_seq`; the relay itself is covered by curl and mock/real-upstream probes.
 - Combo diagnosis: direct probes returned HTTP 200 for `opencode/deepseek-v4-flash-free`, an empty-response 502 for `opencode/big-pickle`, and account-exhausted 502 for `mimocode/mimo-auto`; the named combo's failure is therefore upstream target health/quota state, not a hidden relay route miss.
+- ISC-122: live `scripts/omniroute-connections.sh` inventory reported 17 active connections with OAuth/API-key type labels and emitted no credential fields.
+- ISC-123: the inventory joined 23 catalog owners to four stable capability lanes while reporting counts only, with deterministic duplicate collapse and no full model-ID dump.
+- ISC-124: live JSON included runtime status, circuit breakers, connection health, provider metrics, catalog counts, eligibility, and safety flags in one envelope.
+- ISC-125: `bash tests/omniroute-connections.sh` passed the fixture-backed deterministic schema, duplicate, unknown-provider, and redaction assertions.
+- ISC-126: source inspection and fixture tests confirmed GET-only reads, no credential/config writes, `full_model_ids_emitted=false`, and `credential_fields_emitted=false`.
+- ISC-127: `docs/omniroute-connections.md` documents agentic, research, media, and backbone leverage lanes with native-probe and promotion guardrails.
+- ISC-128: `./scripts/verify-all.sh` executed `tests/omniroute-connections.sh`; the full gate completed with `Temperance Engine full verification passed`.
+- ISC-129: the current live snapshot records 17 active/configured connections, 503 advertised and 488 unique model IDs, and one degraded gateway domain (`oc`).

@@ -1,0 +1,29 @@
+{
+  "health": {
+    "status": "healthy",
+    "version": "3.8.48",
+    "activeConnections": 3,
+    "providerSummary": {"catalogCount": 3, "configuredCount": 3},
+    "circuitBreakers": {"open": 0, "halfOpen": 0, "degraded": 1, "closed": 1, "total": 2},
+    "providerBreakers": [{"provider": "opencode", "state": "DEGRADED", "failureCount": 2, "retryAfterMs": 0}]
+  },
+  "providers": {
+    "providers": [
+      {"id": "fixture-agent", "provider": "command-code", "name": "main", "authType": "apikey", "isActive": true, "testStatus": "active", "lastError": "sk-fixture-secret"},
+      {"id": "fixture-research", "provider": "exa-search", "name": "main", "authType": "apikey", "isActive": true, "testStatus": "active", "credential": "Bearer fixture-secret"},
+      {"id": "fixture-unknown", "provider": "new-provider", "name": "main", "authType": "oauth", "isActive": true, "testStatus": "active"}
+    ]
+  },
+  "metrics": [
+    {"provider": "command-code", "totalRequests": 2, "totalSuccesses": 2, "successRate": 100, "avgLatencyMs": 120, "lastStatus": 200},
+    {"provider": "exa-search", "totalRequests": 1, "totalSuccesses": 1, "successRate": 100, "avgLatencyMs": 40, "lastStatus": 200},
+    {"provider": "new-provider", "totalRequests": 0, "totalSuccesses": 0, "successRate": 0, "avgLatencyMs": 0, "lastStatus": 0}
+  ],
+  "catalog": {
+    "data": [
+      {"id": "cmd/test", "owned_by": "command-code", "capabilities": {"tool_calling": true, "reasoning": true}},
+      {"id": "cmd/test", "owned_by": "cmd", "capabilities": {"tool_calling": true, "reasoning": true}},
+      {"id": "exa/search", "owned_by": "exa-search", "capabilities": {"tool_calling": true, "reasoning": false}}
+    ]
+  }
+}
