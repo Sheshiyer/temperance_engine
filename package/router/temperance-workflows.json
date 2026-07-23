@@ -122,7 +122,7 @@
     "skill": "noesis-writer-skill",
     "drafting_models": [
       "command-code/MiniMaxAI/MiniMax-M2.7",
-      "kimi/kimi-k2.6",
+      "nebius/moonshotai/Kimi-K2.6",
       "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507"
     ],
     "critique": {

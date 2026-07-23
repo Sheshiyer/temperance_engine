@@ -12,7 +12,7 @@ Two combos, one boundary:
 
 - `te-write` — the drafting rail. Priority strategy:
   `command-code/MiniMaxAI/MiniMax-M2.7` →
-  `kimi/kimi-k2.6` →
+  `nebius/moonshotai/Kimi-K2.6` →
   `nebius/Qwen/Qwen3-235B-A22B-Instruct-2507`.
   It drafts exactly one section at a time for the skill's sequential
   autoregressive loop and never certifies its own output.
@@ -91,10 +91,10 @@ scripts/omniroute-temperance-writer.sh --rollback \
 
 The script is snapshot-first, refuses to overwrite existing combos, and
 verifies that global `activeCombo` stays unchanged. Its catalog preflight
-requires all five writer models live, including `kimi/kimi-k2.6` — that ID
-is not yet verified against the live catalog, so if the live spelling
-differs the preflight fails closed; correct the ID in the script and in
-`temperance-workflows.json` before `--apply`. Timeouts are drafting-sized
+requires all five writer models live: `command-code/MiniMaxAI/MiniMax-M2.7`,
+`nebius/moonshotai/Kimi-K2.6`, `nebius/Qwen/Qwen3-235B-A22B-Instruct-2507`,
+`github/gpt-5.4`, and `codex/gpt-5.6-terra`, confirmed against the live
+`/v1/models` catalog on 2026-07-23. Timeouts are drafting-sized
 (`te-write` 240s/120s) because long-form sections routinely exceed
 reasoning-answer lengths; the council reuses the validation timeouts
 (180s/90s).

@@ -9,7 +9,7 @@ const liveFleet = [
   "command-code/deepseek/deepseek-v4-flash",
   "command-code/moonshotai/Kimi-K2.7-Code",
   "command-code/MiniMaxAI/MiniMax-M2.7",
-  "kimi/kimi-k2.6",
+  "nebius/moonshotai/Kimi-K2.6",
   "grok-cli/grok-build",
   "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
 ];
@@ -63,7 +63,7 @@ describe("Temperance workflow roles", () => {
     expect(resolution.portfolio).toBe("te-write");
     expect(resolution.selected.map(({ model }) => model)).toEqual([
       "command-code/MiniMaxAI/MiniMax-M2.7",
-      "kimi/kimi-k2.6",
+      "nebius/moonshotai/Kimi-K2.6",
       "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
     ]);
     expect(resolution.native_providers).toEqual([]);

@@ -79,7 +79,7 @@ brand voice DNA + vault source lattice (client-side)
 ```
 
 `te-write` runs priority failover over `command-code/MiniMaxAI/MiniMax-M2.7`,
-`kimi/kimi-k2.6`, and Nebius Qwen; it drafts and never certifies its own
+`nebius/moonshotai/Kimi-K2.6`, and Nebius Qwen; it drafts and never certifies its own
 output. `te-write-critique` mirrors the `te-validate` fusion shape
 (GitHub/Codex/Nebius panel, Codex terra judge) and returns one falsifiable
 verdict per section — COMMIT, REGENERATE, or FLAG; it never drafts. The

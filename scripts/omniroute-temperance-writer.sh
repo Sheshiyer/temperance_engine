@@ -80,7 +80,7 @@ fi
 # preflight fails, correct the ID here and in temperance-workflows.json.
 for model in \
   command-code/MiniMaxAI/MiniMax-M2.7 \
-  kimi/kimi-k2.6 \
+  nebius/moonshotai/Kimi-K2.6 \
   nebius/Qwen/Qwen3-235B-A22B-Instruct-2507 \
   github/gpt-5.4 \
   codex/gpt-5.6-terra
@@ -142,7 +142,7 @@ combo_payload() {
     }'
 }
 
-write_models="$(models_json command-code/MiniMaxAI/MiniMax-M2.7 kimi/kimi-k2.6 nebius/Qwen/Qwen3-235B-A22B-Instruct-2507)"
+write_models="$(models_json command-code/MiniMaxAI/MiniMax-M2.7 nebius/moonshotai/Kimi-K2.6 nebius/Qwen/Qwen3-235B-A22B-Instruct-2507)"
 critique_models="$(models_json github/gpt-5.4 codex/gpt-5.6-terra nebius/Qwen/Qwen3-235B-A22B-Instruct-2507)"
 write_config="$(config_json 240000 120000 1)"
 critique_config="$(config_json 180000 90000 1)"

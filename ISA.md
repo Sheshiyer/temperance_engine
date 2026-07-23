@@ -2,9 +2,9 @@
 project: temperance_engine
 task: Add the noesis writing fleet (te-write + te-write-critique) to OmniRoute governance
 effort: E3
-phase: build
+phase: verify
 iteration: 2026-07-23-writing-fleet
-progress: 169/177
+progress: 175/177
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-23
@@ -235,12 +235,12 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-169: Temperance skills resolve in Kimi's project scope (committed `.agents/skills` relative symlinks), user scope (`~/.kimi/skills`), and the desktop daimon skills directory via backup-first, revertable wiring.
 - [x] ISC-170: `temperance-doctor.sh` reports an opt-in `kimi_ready` aggregate that never affects `direct_ready` and gates the exit code only under `--require-kimi`.
 - [x] ISC-171: The canonical verification gate covers kimi relay configuration, desktop configuration, hook behavior, and relay enrichment injection alongside existing suites.
-- [ ] ISC-172: The role manifest exposes a `writing` role — portfolio `te-write` with drafting order MiniMax-M2.7 → Kimi K2.6 → Nebius Qwen, and a nested fusion critique council `te-write-critique` with a Codex terra judge — and the resolver handles `writing` without inspecting prompt text.
-- [ ] ISC-173: `te-write` and `te-write-critique` appear only in `reserved_portfolios` as names; task-type mappings and the five required portfolios are unchanged, and the portfolio manifest still contains no provider or model membership.
-- [ ] ISC-174: A snapshot-first writer lifecycle script defaults to dry-run, refuses name collisions, preflights exactly its live catalog targets, preserves `activeCombo` null, and supports rollback; the lifecycle shell gate covers all of these guards.
-- [ ] ISC-175: Writing-workflow documentation maps every noesis-writer-skill phase (including transmutation mode) to its combo or client-side boundary; FAL image generation, vault source mining, and gate ledgers remain client-side, and `te-creative` is reused for image planning.
-- [ ] ISC-176: The ACP lane is declared-but-inactive in the manifest and docs, with the principal-bound security design named as the activation prerequisite and no agent-protocol implementation added.
-- [ ] ISC-177: The canonical verification gate passes with the writing-fleet resolver tests, portfolio manifest tests, and lifecycle shell assertions included.
+- [x] ISC-172: The role manifest exposes a `writing` role — portfolio `te-write` with drafting order MiniMax-M2.7 → Kimi K2.6 → Nebius Qwen, and a nested fusion critique council `te-write-critique` with a Codex terra judge — and the resolver handles `writing` without inspecting prompt text.
+- [x] ISC-173: `te-write` and `te-write-critique` appear only in `reserved_portfolios` as names; task-type mappings and the five required portfolios are unchanged, and the portfolio manifest still contains no provider or model membership.
+- [x] ISC-174: A snapshot-first writer lifecycle script defaults to dry-run, refuses name collisions, preflights exactly its live catalog targets, preserves `activeCombo` null, and supports rollback; the lifecycle shell gate covers all of these guards.
+- [x] ISC-175: Writing-workflow documentation maps every noesis-writer-skill phase (including transmutation mode) to its combo or client-side boundary; FAL image generation, vault source mining, and gate ledgers remain client-side, and `te-creative` is reused for image planning.
+- [x] ISC-176: The ACP lane is declared-but-inactive in the manifest and docs, with the principal-bound security design named as the activation prerequisite and no agent-protocol implementation added.
+- [x] ISC-177: The canonical verification gate passes with the writing-fleet resolver tests, portfolio manifest tests, and lifecycle shell assertions included.
 
 ## Test Strategy
 
@@ -601,6 +601,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   learned: kimi treats config.toml as a database, not a user file; managed-config lifecycles need a semantic identity anchor (the state marker plus table headers), with marker-based byte-identical restore only as the pre-normalization fast path
   criterion now: ISC-166/ISC-167 cover both states (marker and normalized), the doctor's provider check is semantic, and the deployed relay layout mirrors package/ so the proxy's static enrich import resolves
 
+- 2026-07-23 | conjectured: `kimi/kimi-k2.6` was a valid drafting fallback ID for the te-write priority rail
+  refuted by: the writer script's live catalog preflight failed closed — no bare `kimi` provider prefix exists on this OmniRoute installation
+  learned: catalog-derived model IDs must be probed against the live `/v1/models` inventory before being pinned in a manifest or script, not inferred from naming convention; `nebius/moonshotai/Kimi-K2.6` is the correct live route and keeps genuine failure-domain diversity from the command-code-backed primary slot
+  criterion now: ISC-172 and ISC-174 require the corrected, live-verified model ID across the manifest, script, tests, and docs
+
 ## Verification
 
 - `./verify.sh` passed after checking required files, shell syntax, and hard-coded install paths.
@@ -737,5 +742,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-170: `bash tests/temperance-doctor.sh` passed — kimi fixture yields `kimi_ready=true`, a broken kimi lane leaves `direct_ready=true` with exit 0, and `--require-kimi` folds the lane into the exit gate; live `--require-kimi --json` exited 0 with `direct_ready`, `automatic_ready`, and `kimi_ready` all true and no secrets.
 - ISC-171: `./scripts/verify-all.sh` completed with `Temperance Engine full verification passed` including the three new kimi suites and the extended doctor test.
 - 2026-07-23 live E2E: `kimi --print --model temperance/temperance-auto` from the repo returned the requested `TEMPERANCE_KIMI_OK` text; the relay decision log recorded `surface=kimi`, `enrichment=injected`, `enrichment_cwd_source=session-context`, `prompt_hash_match=true`, routed `temperance-coding` via `tool-safe-compatibility` (kimi requests carry tools, so the ISC-117 pin applied); the hook sidecar held the real session id and repo cwd; `mode-classifier.jsonl` gained `surface="kimi"` telemetry lines.
+- ISC-172: `bun test package/router/temperance-workflows.test.ts` passed 8/8, including the writing role's drafting order, critique council/judge shape, client-side image workflow, transmutation stage mapping, and declared-inactive ACP lane.
+- ISC-173: `bun test package/router/omniroute-portfolios.test.ts` passed with `reserved_portfolios` extended to `te-write`/`te-write-critique`; the names-only regex assertion, the five required portfolios, and all task-type mappings remained unchanged.
+- ISC-174: the writer script's first dry-run failed closed on `kimi/kimi-k2.6` (see Changelog); after correcting the ID to `nebius/moonshotai/Kimi-K2.6` the dry-run authenticated, snapshotted, preflighted all five live catalog targets, printed both combo payloads, and left `activeCombo=null` with zero mutation. `bash tests/omniroute-temperance-combos.sh` passed all 30 checks including the six new writer-script guards.
+- ISC-175: `docs/noesis-writer-routing.md` maps every skill phase (P1–P5 plus Nigredo/Albedo/Citrinitas/Rubedo) to its combo or client-side boundary; the shell gate confirms the doc names both combos and states FAL/client-side explicitly.
+- ISC-176: `workflowManifest.writing.acp.status === "declared-inactive"` with a note naming the principal-bound security-design prerequisite, asserted in the resolver test suite.
+- ISC-177: `./scripts/omniroute-temperance-writer.sh --apply` created `te-write` (id `c37c4438-0906-42a2-a166-11515177d63c`) and `te-write-critique` (id `988a8278-4518-465b-bcac-44884f9b814b`); `activeCombo` remained `null` before and after. Live native probes returned `WRITE_OK` from `te-write` (routed to priority-1 `MiniMaxAI/MiniMax-M2.7` via `command-code`, 622ms, zero cost) and `CRITIQUE_OK` from `te-write-critique` (fusion judge `gpt-5.6-terra` via Codex, 443ms). `./scripts/verify-all.sh` completed with `Temperance Engine full verification passed` including the extended portfolio and workflow suites.
 - 2026-07-23 negative path: with OmniRoute stopped, the governed kimi lane returned the relay's clean `upstream_unavailable` envelope and the session stayed resumable; the default `managed:kimi-code` lane was structurally untouched. After `omniroute serve` restarted, the same request succeeded end-to-end.
 - 2026-07-23 desktop: `configure-kimi-desktop-relay.sh enable` landed the managed block in `daimon-share/config.toml` with `config_sha256` recorded; picker visibility pending the user's next app restart (the app was running and was not killed).
