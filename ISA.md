@@ -3,10 +3,10 @@ project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
 phase: learn
-progress: 101/106
+progress: 119/121
 mode: interactive
 started: 2026-06-12
-updated: 2026-07-22
+updated: 2026-07-23
 ---
 
 ## Problem
@@ -165,10 +165,25 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-100: Anti: unverified OmniRoute telemetry or eval output never receives enforcement authority.
 - [x] ISC-101: A machine-readable readiness probe reports configured portfolio availability.
 - [x] ISC-102: A machine-readable readiness probe reports telemetry and evaluation evidence state.
-- [ ] ISC-103: Enrichment reports the shared classifier's resolved OmniRoute portfolio without reclassifying the task.
-- [ ] ISC-104: The full verification entrypoint executes governed-portfolio regression tests.
-- [ ] ISC-105: Operator documentation distinguishes discovery routes, production portfolios, councils, and direct fallbacks.
-- [ ] ISC-106: Concurrent executions with identical routing inputs expose distinct request trace identifiers.
+- [x] ISC-103: Enrichment reports the shared classifier's resolved OmniRoute portfolio without reclassifying the task.
+- [x] ISC-104: The full verification entrypoint executes governed-portfolio regression tests.
+- [x] ISC-105: Operator documentation distinguishes discovery routes, production portfolios, councils, and direct fallbacks.
+- [x] ISC-106: Concurrent executions with identical routing inputs expose distinct request trace identifiers.
+- [x] ISC-107: The local OpenCode OmniRoute provider exposes a curated set of live combo mode IDs alongside `temperance-coding`.
+- [x] ISC-108: Every OpenCode combo mode ID is present in OmniRoute's live `/v1/models` catalog at verification time.
+- [x] ISC-109: Operator documentation distinguishes direct OpenCode picker overrides from automatic Temperance classifier routing.
+- [x] ISC-110: Anti: the OpenCode mode surface does not copy the full provider catalog or embed credentials.
+- [x] ISC-111: Anti: an OpenCode OmniRoute override is denied when its model ID is absent or the live catalog cannot be read.
+- [x] ISC-112: The shared enrichment stage reports the classifier's requested OmniRoute portfolio without a second classifier.
+- [x] ISC-113: The automatic OpenCode model is advertised by the local relay alongside the live OmniRoute catalog.
+- [x] ISC-114: An automatic OpenCode request forwards the frozen plan's task, portfolio, plan, and correlation metadata.
+- [x] ISC-115: An explicit OpenCode picker model bypasses Temperance classification and reaches OmniRoute unchanged.
+- [x] ISC-116: Streaming automatic requests preserve SSE chunks and `[DONE]` while carrying route headers.
+- [x] ISC-117: Tool-carrying automatic requests use the verified compatibility combo until named portfolio promotion.
+- [x] ISC-118: Upstream OmniRoute status codes and retry headers pass through the relay unchanged.
+- [x] ISC-119: Concurrent automatic requests receive distinct request trace identifiers.
+- [x] ISC-120: A user-scoped macOS LaunchAgent keeps the automatic relay available across shell sessions.
+- [ ] ISC-121: A fresh OpenCode interactive session completes an automatic model request through the relay.
 
 ## Test Strategy
 
@@ -280,6 +295,21 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-104 | shell | canonical gate invokes governed-portfolio tests | match | verify-all test |
 | ISC-105 | docs | portfolio roles and fallback boundaries documented | present | docs continuity |
 | ISC-106 | integration | identical plans dispatched concurrently receive distinct execution traces | unique identifiers | dispatch test |
+| ISC-107 | config | OpenCode provider lists the curated OmniRoute mode IDs | exact keys | jq + opencode models |
+| ISC-108 | HTTP | every configured combo ID appears in `/v1/models` | zero missing | curl + jq |
+| ISC-109 | docs | picker override and classifier routing boundary is explicit | present | grep + read |
+| ISC-110 | security | mode surface contains no catalog dump or credential literal | zero violations | grep + jq |
+| ISC-111 | unit | stale or unavailable OmniRoute catalog fails closed before request dispatch | zero silent fallbacks | Bun test |
+| ISC-112 | unit | enrichment includes resolver portfolio intent | exact `portfolio=te-*` line | Bun test |
+| ISC-113 | HTTP | relay model catalog includes automatic alias and live IDs | HTTP 200 + IDs | curl + jq |
+| ISC-114 | HTTP | automatic request response includes frozen route headers | header set | curl |
+| ISC-115 | unit | direct picker model is forwarded without plan execution | exact body | Bun test |
+| ISC-116 | unit | streaming relay preserves SSE bytes | `[DONE]` present | Bun test |
+| ISC-117 | unit | tools force compatibility route | exact model | Bun test |
+| ISC-118 | unit | upstream error status and retry header survive | exact status/header | Bun test |
+| ISC-119 | unit | concurrent automatic decisions have unique request IDs | all unique | Bun test |
+| ISC-120 | macOS | LaunchAgent is loaded and health endpoint responds | running + HTTP 200 | launchctl + curl |
+| ISC-121 | integration | OpenCode auto model completes a fresh session | assistant response | OpenCode CLI |
 
 ## Features
 
@@ -310,6 +340,10 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | Unique execution trace layer | ISC-106 | deterministic plan lineage, dispatcher task identity | no |
 | Governed OmniRoute portfolio resolver | ISC-98..ISC-100 | shared task classifier, live model catalog | no |
 | Portfolio evidence and operator surfaces | ISC-92, ISC-101..ISC-105 | OmniRoute CLI/API, enrichment, canonical verification | no |
+| OpenCode OmniRoute mode surface | ISC-107..ISC-110 | live combo catalog, local OpenCode config, runtime docs | no |
+| OpenCode request-time catalog guard | ISC-111 | OpenCode plugin API, live `/v1/models` endpoint | no |
+| OpenCode Temperance flow bridge | ISC-112..ISC-119 | shared enrichment, frozen router, local OpenAI relay | no |
+| Local proxy lifecycle | ISC-120..ISC-121 | macOS LaunchAgent, OpenCode runtime | no |
 
 ## Architecture
 
@@ -357,6 +391,10 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-22 12:54: refined: User explicitly expanded the boundary from OmniRoute-inspired local policy to an actual local OmniRoute runtime. Temperance remains the sole task classifier; OmniRoute becomes the preferred provider/model gateway; Codex supplies the agentic tool loop; command-code, grok, and kimi remain direct outage fallbacks.
 - 2026-07-22 12:54: Store the generated OmniRoute dashboard password and scoped Temperance inference key in macOS Keychain, keep runtime data under `~/.omniroute`, and never place either secret in repository configuration or model arguments.
 - 2026-07-22 12:54: Use a named `temperance-coding` priority combo instead of OmniRoute's generic auto/free aliases because live probes showed those aliases could select an inactive Auggie subscription; configure only targets that passed direct authenticated probes.
+- 2026-07-22: refined: The single OpenCode OmniRoute option entered at the provider configuration boundary, where the `models` map declared only `temperance-coding`; expose a curated live combo set as explicit picker overrides while preserving `temperance-coding` as the governed default.
+- 2026-07-22: Root-cause checkpoint: fixing the OpenCode provider `models` map removes the missing-options symptom at ingestion; adding modes inside the router would create a second UI-specific classifier, so the router remains unchanged and user-selected picker models are treated as explicit overrides.
+- 2026-07-23: refined: The picker expansion solved catalog presentation but left OpenCode chat requests outside the Temperance execution spine. The missing seam entered at the provider URL, before `classify-task.sh` and frozen-plan creation.
+- 2026-07-23: Adopt a narrow local OpenAI-compatible relay for `temperance-auto`; OpenCode enrichment remains synthetic context, the shared router remains the sole classifier, and all explicit picker models bypass classification.
 
 ## Changelog
 
@@ -385,6 +423,21 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   refuted by: Advisor review required an external trust anchor, runtime/policy binding, replay protection, and the live workstation had no signing key, named portfolio, or evaluation evidence
   learned: promotion must be authorized only by a signed, bounded receipt and must preserve compatibility routing when any trust or evidence input is absent
   criterion now: Task 6 promotion validation requires HMAC authenticity, manifest/evidence thresholds, expiry, nonce, runtime binding, and an explicit compatibility fallback
+
+- 2026-07-22 | conjectured: OpenCode's single OmniRoute option meant the connected runtime exposed only one usable mode
+  refuted by: the live `/v1/models` catalog contained 37 combo aliases, while the local OpenCode `models` map declared only `temperance-coding`
+  learned: OmniRoute discovery and OpenCode presentation are separate surfaces; expose a curated, live-verified picker set while keeping automatic task classification and governed routing authoritative
+  criterion now: ISC-107 through ISC-110 require curated live IDs, explicit override documentation, and no catalog or credential duplication
+
+- 2026-07-22 | conjectured: validating picker IDs once during configuration was sufficient to keep explicit OmniRoute overrides safe
+  refuted by: Advisor review identified catalog drift and OmniRoute's silent unknown-model fallback as a request-time risk
+  learned: explicit picker overrides need a request-time live-catalog guard that denies stale IDs and unavailable catalog reads
+  criterion now: ISC-111 requires the OpenCode catalog guard to fail closed before an OmniRoute request is sent
+
+- 2026-07-23 | conjectured: exposing curated OmniRoute modes was equivalent to integrating OmniRoute into the Temperance flow
+  refuted by: OpenCode's provider request path bypassed `classify-task.sh`, the frozen plan, and the enrichment pipeline even though the picker listed live modes
+  learned: presentation, context enrichment, and request-time model scheduling are separate seams; the last seam needs a local proxy because OpenCode plugins cannot replace `input.model`
+  criterion now: ISC-112 through ISC-121 track enrichment, automatic relay routing, direct overrides, transport fidelity, lifecycle, and the remaining fresh-session probe
 
 ## Verification
 
@@ -443,3 +496,25 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-102: evidence-state CLI — the same fixture/live probes reported telemetry and eval availability/counts, preserved unavailable/null evidence, and kept `.enforcement_ready` false.
 - Task 6: promotion gate — `bun test package/router/omniroute-promotion.test.ts` passed 9/9; `bash tests/router-hardening.sh` verified signed `te-fast` promotion, wrong-portfolio rejection, missing-key compatibility fallback, manifest-tamper rejection, and forced-route preservation.
 - Task 6: local Mac integration — the installed `~/.local/bin/temperance-route` symlink selected `temperance-coding` without a receipt; `scripts/omniroute-check.sh --live` completed through OmniRoute runtime 3.8.48, with 265 catalog models and enforcement still false.
+- ISC-107: OpenCode config/CLI probe — the provider now declares 14 labeled OmniRoute entries, and `opencode models omniroute` lists all 14 including `temperance-coding`.
+- ISC-108: live catalog probe — `GET /v1/models` returned 265 models and all 14 configured IDs matched with `missing=0`.
+- ISC-109: documentation read — `docs/omniroute-runtime.md` states picker selection is a direct override and automatic task modes remain owned by Temperance routing.
+- ISC-110: security/config probe — JSON parsed, `git diff --check` passed, the config retained `{env:OMNIROUTE_API_KEY}`, and no credential literal or full catalog dump was found.
+- ISC-111: unit/plugin guard — `bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts` passed 3/3, including stale-ID rejection and unavailable/malformed catalog denial; OpenCode resolved the installed guard plugin successfully.
+- ISC-103: enrichment test — `bun test package/enrich/stages/routing.test.ts` passed and the shared classifier output now carries `portfolio=te-*` from the pure resolver.
+- ISC-104: full-gate inspection — `scripts/verify-all.sh` now invokes proxy and OpenCode flow regression suites.
+- ISC-105: documentation read — `docs/omniroute-integration.md`, `docs/omniroute-runtime.md`, and `docs/pai-flow.md` distinguish discovery aliases, production compatibility, automatic relay routing, councils, and direct fallbacks.
+- ISC-106: proxy unit/integration tests — automatic decisions use UUID request traces while deterministic plan correlation remains separate.
+- ISC-112: unit test — `bun test package/adapters/opencode/TemperanceFlowPlugin.test.ts` appends the shared `<temperance-context>` block as a synthetic OpenCode message part.
+- ISC-113: live relay probe — `GET http://127.0.0.1:20129/v1/models` returned 266 models including `temperance-auto` and `temperance-coding`.
+- ISC-114: live request probe — automatic curl request reached OmniRoute and returned route headers for `temperance-coding`, `rp_32d2951c6a7a99cc`, and `tc_32d2951c6a7a99ccea221e7e`.
+- ISC-115: unit test — direct `auto/best-fast` request was forwarded unchanged with `explicit-picker-override` source.
+- ISC-116: unit test — streaming response preserved both SSE chunks and `[DONE]`.
+- ISC-117: unit test — tool-carrying automatic request selected `temperance-coding` compatibility route.
+- ISC-118: unit test/live response — OmniRoute HTTP 502 and retry/error headers passed through the relay unchanged.
+- ISC-119: request logs and unit behavior — automatic request IDs use `te_req_` UUID traces distinct from deterministic plan IDs.
+- ISC-120: macOS lifecycle probe — `launchctl print gui/$(id -u)/com.temperance.engine.openai-proxy` reported `state = running`; `/health` returned HTTP 200.
+- ISC-116/117: live mock-gateway probe — `bash tests/temperance-proxy-live.sh` traversed the real router and relay, preserved successful SSE `[DONE]` framing, returned a real `tool_calls` payload, and carried frozen route headers without relying on provider quota.
+- ISC-114: real-upstream canary — a transient relay with `TEMPERANCE_OMNIROUTE_MODEL=auto/best-coding` returned HTTP 200 and `REAL_TEMPERANCE_CANARY_OK` with automatic route, plan, correlation, and task headers; the governed `temperance-coding` request separately returned OmniRoute's explicit `[502] Combo "temperance-coding" failed — all targets exhausted`.
+- ISC-121: remains open — `opencode run -m omniroute/temperance-auto` fails before issuing an HTTP request because the existing local OpenCode SQLite schema lacks `replacement_seq`; the relay itself is covered by curl and mock/real-upstream probes.
+- Combo diagnosis: direct probes returned HTTP 200 for `opencode/deepseek-v4-flash-free`, an empty-response 502 for `opencode/big-pickle`, and account-exhausted 502 for `mimocode/mimo-auto`; the named combo's failure is therefore upstream target health/quota state, not a hidden relay route miss.

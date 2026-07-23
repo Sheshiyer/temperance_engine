@@ -174,6 +174,11 @@ check_status() {
   else
     echo "   [MISSING] AGENTS.md"
   fi
+  if [[ -L "$HOME/.config/opencode/plugins/temperance-flow.ts" || -f "$HOME/.config/opencode/plugins/temperance-flow.ts" ]]; then
+    echo "   [OK] Temperance flow plugin installed"
+  else
+    echo "   [MISSING] Temperance flow plugin"
+  fi
   echo ""
   
   # Available backends
@@ -278,6 +283,8 @@ install() {
   else
     mkdir -p "$HOME/.config/opencode/hooks"
     symlink "$REPO_ROOT/package/adapters/opencode/PromptProcessing.hook.sh" "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh"
+    mkdir -p "$HOME/.config/opencode/plugins"
+    symlink "$REPO_ROOT/package/adapters/opencode/TemperanceFlowPlugin.ts" "$HOME/.config/opencode/plugins/temperance-flow.ts"
   fi
   echo ""
   
