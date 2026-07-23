@@ -3,7 +3,9 @@
 Temperance adapts a small set of routing and resilience ideas from
 [diegosouzapw/OmniRoute](https://github.com/diegosouzapw/OmniRoute). The review
 was pinned to commit `c1bdd91e7b9681e1056c4883b3e26cd0d416108b` (2026-07-20).
-OmniRoute is a design source, not a runtime dependency or proxy.
+OmniRoute is an optional runtime gateway, not a Temperance control-plane
+dependency. The local OpenCode relay is a deliberately narrow compatibility
+seam; it does not fork OmniRoute or duplicate its provider logic.
 
 ## Boundary
 
@@ -13,7 +15,7 @@ The integration therefore replaces only the static candidate-ordering seam:
 
 ```text
 classify-task.sh
-  -> existing candidate catalog
+  -> existing candidate catalog / named portfolio
   -> routing-policy.ts (off | shadow | enforce)
   -> immutable <task>.plan.json
   -> existing parallel dispatcher and worktree safety
@@ -32,6 +34,26 @@ The following Temperance components remain authoritative:
 
 The policy receives the classifier's task type, never raw task text. It ranks
 where work runs; it does not decide what the work is.
+
+### OpenCode request path
+
+OpenCode has no supported plugin hook for replacing `input.model`. Its
+automatic `omniroute/temperance-auto` model therefore points at the local
+`package/router/temperance-openai-proxy.ts` relay on port `20129`:
+
+```text
+OpenCode chat.message
+  -> shared enrich() -> synthetic <temperance-context>
+  -> temperance-openai-proxy
+  -> multi-backend-router.sh --plan-json (single classifier)
+  -> OmniRoute /v1/chat/completions with selected model
+```
+
+The proxy preserves tool payloads, passes streaming bodies through unchanged,
+and forwards upstream status codes. Explicit picker models (`auto/*` or a
+named combo) bypass classification and remain direct operator overrides.
+Automatic requests carrying tools use the verified `temperance-coding`
+compatibility combo until a named portfolio has an accepted promotion receipt.
 
 ## Source-Anchored Matrix
 

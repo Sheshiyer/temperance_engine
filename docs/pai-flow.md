@@ -42,11 +42,13 @@ PAI Algorithm (7 phases, ALWAYS active — enforcement is future sub-project B)
    │   │     verification-before-completion ·              │    │
    │   │     finishing-a-development-branch                │    │
    │   │   temperance-parallel-dispatch (external backends)│    │
+   │   │   OpenCode auto relay (request-time portfolio)   │    │
    │   │   + ~30 more via deferred clusters (on demand)    │    │
    │   └──────────────────────────────────────────────────┘    │
    └───────────────────────────────────────────────────────────┘
   Observe/Think = agent-native (codegraph, read, memory recall)
   Enrichment: <temperance-context> block every prompt (always-on layer)
+  OpenCode automatic requests: enrich → frozen plan → OmniRoute relay
 
   Retired: package/conductor/routed-execute.sh
   Retired: docs/parallel-dispatch.md · docs/multi-surface-architecture.md → redirect stubs
@@ -58,7 +60,8 @@ Observe/Think are agent-native. The skill-cluster resolver
 skill" and "tool runs" — it is the context-economy mechanism (only active-spoke
 skills loaded; deferred clusters resolved on demand). temperance-parallel-dispatch
 is a specialist tool that fires only in Execute (and optionally Verify), not a
-default.
+default. OpenCode's `temperance-auto` model follows the same route at request
+time through the local relay; direct picker models remain explicit overrides.
 
 ## Phases and the decision framework
 

@@ -57,6 +57,8 @@ describe('routing stage', () => {
 
     expect(r.line.startsWith('routing: backends=')).toBe(true);
     expect(r.line).toContain('| task=');
+    expect(r.line).toContain('| portfolio=');
+    expect(r.line).toContain('| portfolio_source=');
     expect(r.line).toContain('| preferred=');
     expect(r.line).toContain('| skill=temperance-parallel-dispatch');
     expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);
@@ -101,6 +103,7 @@ describe('routing stage', () => {
     ]);
     const r = runRoutingWithEnv('quick refactor the module', `${shimDir}:/usr/bin:/bin`);
     expect(r.line).toContain('| task=long-horizon');
+    expect(r.line).toContain('| portfolio=te-build');
     expect(r.line).toContain('preferred=command-code:xiaomi/mimo-v2.5-pro');
     expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);
   });

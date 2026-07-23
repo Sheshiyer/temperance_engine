@@ -61,7 +61,7 @@ isa_checked="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} insi
 isa_total="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} inside && /^- \[[ x]\] ISC-[0-9]+:/{count++} END{print count+0}' "$DIR/ISA.md")"
 grep -Eq '^task: .+$' "$DIR/ISA.md" \
   && grep -q "^progress: $isa_checked/$isa_total$" "$DIR/ISA.md" \
-  && grep -q '^updated: 2026-07-22$' "$DIR/ISA.md" \
+  && grep -q '^updated: 2026-07-23$' "$DIR/ISA.md" \
   && echo "ok - ISA frontmatter normalized" \
   || { echo "FAIL - ISA frontmatter normalization missing"; fail=1; }
 grep -q '^## Principles$' "$DIR/ISA.md" && grep -q '^## Changelog$' "$DIR/ISA.md" \
@@ -123,6 +123,11 @@ grep -q 'off.*shadow.*enforce' "$OMNI_DOC" 2>/dev/null \
 [ -x "$DIR/scripts/omniroute-check.sh" ] \
   && echo "ok - OmniRoute runtime probe is executable" \
   || { echo "FAIL - scripts/omniroute-check.sh missing or not executable"; fail=1; }
+[ -x "$DIR/scripts/temperance-proxy.sh" ] \
+  && grep -q 'temperance-auto' "$OMNI_RUNTIME_DOC" \
+  && grep -q 'temperance-openai-proxy.ts' "$OMNI_DOC" \
+  && echo "ok - automatic OpenCode Temperance relay documented" \
+  || { echo "FAIL - automatic OpenCode Temperance relay documentation missing"; fail=1; }
 grep -q 'diegosouzapw/OmniRoute' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
   && grep -q 'MIT License' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
   && echo "ok - OmniRoute attribution and license recorded" \

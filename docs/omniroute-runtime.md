@@ -13,6 +13,60 @@ This avoids two classifiers and preserves filesystem-capable agents. Calling
 `/v1/chat/completions` directly would return text but would not, by itself,
 provide a coding agent with workspace tools.
 
+## OpenCode automatic flow
+
+OpenCode's plugin API cannot replace the selected model in `chat.params`. The
+local configuration therefore uses a narrow relay for one automatic model:
+
+- Relay: `http://127.0.0.1:20129/v1`
+- Automatic model: `temperance-auto`
+- Upstream: OmniRoute `http://127.0.0.1:20128/v1`
+- Lifecycle: `scripts/temperance-proxy.sh start|stop|status`
+- Persistent macOS startup: `scripts/temperance-proxy-launchd.sh install`
+
+For `temperance-auto`, the relay extracts only the latest user prompt, invokes
+`multi-backend-router.sh --plan-json` with `TEMPERANCE_BACKENDS=omniroute`,
+rewrites the request model to the frozen OmniRoute candidate, and forwards the
+original tools, tool choice, messages, and stream flag. It adds request,
+plan, correlation, task-type, and portfolio headers without logging secrets.
+If the classifier fails, the relay visibly degrades to `temperance-coding`.
+Requests using any other picker model bypass the relay's classifier entirely;
+this preserves the direct override contract. The OpenCode flow plugin still
+injects the shared PAI/ISA context for those direct requests; only provider
+selection is bypassed, not Temperance enrichment.
+
+Start the relay before selecting `omniroute/temperance-auto` in OpenCode:
+
+```bash
+scripts/temperance-proxy.sh start
+curl -fsS http://127.0.0.1:20129/health | jq .
+```
+
+For a login-persistent local service, install the user-scoped LaunchAgent:
+
+```bash
+scripts/temperance-proxy-launchd.sh install
+scripts/temperance-proxy-launchd.sh status
+```
+
+The relay is intentionally local and optional. If it is stopped, use the
+direct `omniroute/temperance-coding` or `auto/*` picker entries, or the
+`temperance-route` / `temperance-batch` CLI rails.
+
+If the relay returns OmniRoute's `[502]: All accounts exhausted` response, the
+Temperance routing seam is working but the current `temperance-coding` combo
+has no usable target. Refresh that combo's targets in Dashboard → Combos (or
+temporarily select a verified direct alias such as `auto/best-coding`); the
+relay intentionally preserves the upstream failure instead of silently
+changing a governed portfolio.
+
+The distinction is observable in OmniRoute call logs: `temperance-coding` is a
+named priority combo whose current targets are exhausted, while
+`auto/best-coding` is a separate virtual combo and may succeed through a
+different provider pool. A transient canary with the latter returned HTTP 200
+through the real Temperance relay and carried the frozen-plan headers; it does
+not promote that provider-owned alias into the governed default.
+
 ## Local configuration
 
 - Runtime: OmniRoute `3.8.48` from [`diegosouzapw/OmniRoute`](https://github.com/diegosouzapw/OmniRoute)
@@ -24,7 +78,7 @@ provide a coding agent with workspace tools.
 - Admin password: macOS Keychain service `OmniRoute Temperance Admin`
 - Scoped inference key: macOS Keychain service `OmniRoute Temperance API Key`
 - Codex profile: `~/.codex/temperance-coding.config.toml`
-- OpenCode provider: `omniroute/temperance-coding` in `~/.config/opencode/opencode.json`
+- OpenCode provider: `omniroute/temperance-coding` plus `omniroute/temperance-auto` in `~/.config/opencode/opencode.json`
 
 The two `.env` files used by this installation are mode `600`. The scoped API
 key is referenced through `OMNIROUTE_API_KEY`; it is not embedded in config or
@@ -32,10 +86,11 @@ source files.
 
 ## OpenCode model-picker modes
 
-OpenCode's picker is a **direct model override surface**. It does not run the
-Temperance classifier when a user selects a model manually. Automatic task
-modes still belong to `temperance-route` and the governed `temperance-coding`
-combo; picker selections are explicit experiments or operator overrides.
+OpenCode's picker is a **direct model override surface** for every model other
+than `temperance-auto`. Manual selections do not run the Temperance classifier.
+Automatic task modes belong to `temperance-auto` through the local relay and
+the governed `temperance-coding` combo; picker selections remain explicit
+experiments or operator overrides.
 
 The local Mac configuration exposes this curated set from OmniRoute's live
 combo catalog:
