@@ -135,10 +135,9 @@ declare -A MODEL_CATALOG=(
   ["command-code:google/gemini-3.5-flash"]="fast:parallel:1M"
   ["command-code:Qwen/Qwen3.7-Max"]="deep:frontier:128k"
   ["command-code:gpt-5.5"]="premium:general:128k"
-  # Credit-deal primaries (see classify-task.sh model_for_type, decision 2026-07-18)
-  ["command-code:tencent/Hy3"]="fast:free:256k"
+  # Live-verified primaries (expired Hy3/MiniMax-M3 deals were retired 2026-07-23)
   ["command-code:xiaomi/mimo-v2.5-pro"]="deep:long-horizon:256k"
-  ["command-code:MiniMaxAI/MiniMax-M3"]="balanced:frontier:1M"
+  ["command-code:MiniMaxAI/MiniMax-M2.7"]="balanced:general:256k"
 
   # Kimi (direct)
   ["kimi:kimi-code/kimi-for-coding"]="deep:coding:262k"

@@ -6,8 +6,12 @@ was not OmniRoute's provider catalog. The current boundary is:
 1. Temperance's shared classifier decides whether work is inline or external.
 2. External work prefers the `omniroute:temperance-coding` backend.
 3. Codex supplies the agent/tool loop while OmniRoute supplies the model API.
-4. OmniRoute's `temperance-coding` priority combo owns provider/model failover.
-5. Command Code, Grok, and Kimi remain direct outage fallbacks.
+4. OmniRoute's named combos own provider/model failover; Temperance owns which
+   combo is appropriate for the task.
+5. `temperance-coding` is the compatibility rail, while `te-fast`, `te-build`,
+   `te-reason`, `te-validate`, and `te-creative` are the five governed task
+   portfolios. `te-plan` and `te-dispatch` are role combos for orchestration.
+6. Command Code, Grok, and Kimi remain direct outage fallbacks.
 
 This avoids two classifiers and preserves filesystem-capable agents. Calling
 `/v1/chat/completions` directly would return text but would not, by itself,
@@ -54,18 +58,17 @@ direct `omniroute/temperance-coding` or `auto/*` picker entries, or the
 `temperance-route` / `temperance-batch` CLI rails.
 
 If the relay returns OmniRoute's `[502]: All accounts exhausted` response, the
-Temperance routing seam is working but the current `temperance-coding` combo
-has no usable target. Refresh that combo's targets in Dashboard → Combos (or
+Temperance routing seam is working but the selected combo has no usable target.
+Use the named portfolio's native probe and repair its dashboard targets (or
 temporarily select a verified direct alias such as `auto/best-coding`); the
 relay intentionally preserves the upstream failure instead of silently
 changing a governed portfolio.
 
 The distinction is observable in OmniRoute call logs: `temperance-coding` is a
-named priority combo whose current targets are exhausted, while
-`auto/best-coding` is a separate virtual combo and may succeed through a
-different provider pool. A transient canary with the latter returned HTTP 200
-through the real Temperance relay and carried the frozen-plan headers; it does
-not promote that provider-owned alias into the governed default.
+compatibility rail, `te-fast`/`te-build`/`te-reason`/`te-creative` are priority
+portfolios, and `te-validate` is a fusion council. `te-plan` protects the
+GitHub-first planner; `te-dispatch` is the worker fleet. `auto/*` remains a separate provider-
+owned virtual pool and is never silently promoted into a Temperance portfolio.
 
 ## Local configuration
 
@@ -73,8 +76,13 @@ not promote that provider-owned alias into the governed default.
 - Dashboard: `http://localhost:20128`
 - OpenAI-compatible API: `http://127.0.0.1:20128/v1`
 - Data: `~/.omniroute` (`.env` and SQLite are local, never repository inputs)
-- Combo: `temperance-coding`
-- Current priority targets: `oc/deepseek-v4-flash-free`, `oc/big-pickle`, then `mcode/mimo-auto`
+- Compatibility combo: `temperance-coding`
+- Governed combos: `te-fast`, `te-build`, `te-reason`, `te-validate`, `te-creative`
+- Role combos: `te-plan` (GitHub planner) and `te-dispatch` (fleet workers)
+- Compatibility targets: `codex/gpt-5.6-terra`, `github/gpt-5.4`, then
+  `nebius/Qwen/Qwen3-235B-A22B-Instruct-2507`
+- Live combo lifecycle: `scripts/omniroute-temperance-combos.sh`
+- Role combo lifecycle: `scripts/omniroute-temperance-fleet.sh`
 - Admin password: macOS Keychain service `OmniRoute Temperance Admin`
 - Scoped inference key: macOS Keychain service `OmniRoute Temperance API Key`
 - Codex profile: `~/.codex/temperance-coding.config.toml`
@@ -98,6 +106,11 @@ combo catalog:
 | Picker entry | Intended use | Governance |
 | --- | --- | --- |
 | `temperance-coding` | Governed default coding route | Temperance-compatible default |
+| `te-fast` | Proportionate, low-latency bounded work (content rail) | Temperance task portfolio |
+| `te-build` | Tool-capable reversible execution | Temperance task portfolio |
+| `te-reason` | Deliberation, assumptions, and alternatives (content rail) | Temperance task portfolio |
+| `te-validate` | Multi-model challenge and synthesis with tools | Temperance fusion council |
+| `te-creative` | Creative brief and artifact planning (text rail) | Native media workflow; not a chat fallback |
 | `auto/best-coding` | Best available coding | Explicit override |
 | `auto/best-coding-fast` | Lower-latency coding | Explicit override |
 | `auto/best-reasoning` | Deep reasoning and validation | Explicit override |
@@ -111,6 +124,20 @@ combo catalog:
 | `auto/smart` | Balanced general-purpose route | Explicit override |
 | `auto/cheap` | Cost-sensitive route | Explicit override |
 | `auto/best-free` | Free-route experiment | Experimental; no enforcement authority |
+
+The five task portfolios encode the operating philosophy in their
+operator-facing descriptions and strategy settings: proportion before power,
+reversible agency, explicit uncertainty, and synthesis over unexamined
+consensus. The OpenCode flow plugin continues to add the full Temperance/ISA
+context at the tool-loop boundary; OmniRoute remains responsible for target
+health, failover, and model execution.
+
+Native probes confirm that `te-build` and `te-validate` return function-call
+envelopes. The Antigravity-backed `te-fast` and `te-reason` routes are
+deliberation/content rails: their provider adapter may return prose even when
+the request supplies a forced tool choice, so the picker advertises
+`tool_call=false` for those two modes and the orchestrator uses `te-build` or
+`te-validate` whenever workspace tools are required.
 
 The full inventory remains available from the live API; it is intentionally not
 copied into OpenCode's picker because the catalog is provider-owned and changes
@@ -152,6 +179,37 @@ Run one small real completion through the configured combo:
 
 ```bash
 ./scripts/omniroute-check.sh --live
+```
+
+Review or apply the governed portfolio set through the authenticated local
+dashboard API. The default is a dry-run; `--apply` snapshots settings, the
+current combo inventory, and the live catalog before creating anything. The
+script refuses collisions and verifies that global `activeCombo` stays
+unchanged:
+
+```bash
+scripts/omniroute-temperance-combos.sh
+scripts/omniroute-temperance-combos.sh --apply
+```
+
+Every apply prints a timestamped rollback snapshot. If a native probe fails,
+restore that snapshot with:
+
+```bash
+scripts/omniroute-temperance-combos.sh --rollback \
+  .omniroute-backups/omniroute-combos-<timestamp>.json
+```
+
+Probe a named portfolio directly (the response is SSE even for a short
+completion) and require a tool envelope on tool-capable lanes:
+
+```bash
+export OMNIROUTE_API_KEY=$(security find-generic-password \
+  -a "$USER" -s 'OmniRoute Temperance API Key' -w)
+curl -sS -H "Authorization: Bearer $OMNIROUTE_API_KEY" \
+  -H 'content-type: application/json' \
+  -d '{"model":"te-build","messages":[{"role":"user","content":"Return exactly PORTFOLIO_OK."}],"max_tokens":32}' \
+  http://127.0.0.1:20128/v1/chat/completions
 ```
 
 Inspect every model OmniRoute currently advertises:

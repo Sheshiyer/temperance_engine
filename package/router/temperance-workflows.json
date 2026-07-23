@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "planner": {
+    "portfolio": "te-plan",
+    "purpose": "Plan and orchestrate without owning workspace mutation.",
+    "primary": {
+      "provider": "github",
+      "model": "github/gpt-5.4",
+      "reason": "GitHub OAuth is active, and this route passed a tool-call probe."
+    },
+    "escalation": [
+      {
+        "provider": "codex",
+        "model": "codex/gpt-5.6-sol-max",
+        "reason": "Codex OAuth route passed a tool-call probe; use for difficult plans."
+      },
+      {
+        "provider": "nebius",
+        "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "reason": "Backbone fallback preserves planning capacity when subscription rails throttle."
+      }
+    ],
+    "execution": "planning-only",
+    "protect_from_worker_fanout": true
+  },
+  "dispatch": {
+    "portfolio": "te-dispatch",
+    "purpose": "Fan out independent work while protecting planner and premium limits.",
+    "strategy": "role-sharded",
+    "max_parallel": 4,
+    "omniroute_workers": [
+      {
+        "role": "fast-worker",
+        "provider": "command-code",
+        "model": "command-code/deepseek/deepseek-v4-flash",
+        "capability": "tool_calling",
+        "cost_posture": "free-or-low-cost"
+      },
+      {
+        "role": "coding-worker",
+        "provider": "command-code",
+        "model": "command-code/moonshotai/Kimi-K2.7-Code",
+        "capability": "long-horizon-coding",
+        "cost_posture": "subscription-or-provider-quota"
+      },
+      {
+        "role": "build-worker",
+        "provider": "grok-cli",
+        "model": "grok-cli/grok-build",
+        "capability": "coding-and-reasoning",
+        "cost_posture": "subscription-or-provider-quota"
+      },
+      {
+        "role": "backbone-worker",
+        "provider": "nebius",
+        "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "capability": "general-tool-capable",
+        "cost_posture": "free-tier-or-api-budget"
+      }
+    ],
+    "direct_cli_fallbacks": [
+      {
+        "backend": "command-code",
+        "model": "deepseek/deepseek-v4-flash"
+      },
+      {
+        "backend": "kimi",
+        "model": "kimi-code/kimi-for-coding"
+      },
+      {
+        "backend": "grok",
+        "model": "grok-build"
+      }
+    ],
+    "selection_rule": "Temperance freezes the plan; health, quota, capability, and circuit state rank eligible candidates.",
+    "fail_open": "If the gateway or a provider is unavailable, dispatch retries the direct CLI rail, then Claude fallback."
+  },
+  "creative": {
+    "portfolio": "te-creative",
+    "purpose": "Plan creative work with Temperance context, then call native media contracts.",
+    "planner_models": [
+      "github/gpt-5.4",
+      "codex/gpt-5.6-sol-max",
+      "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507"
+    ],
+    "native_providers": [
+      {
+        "provider": "elevenlabs",
+        "connection_role": "media",
+        "models": [
+          "elevenlabs/eleven_multilingual_v2",
+          "elevenlabs/eleven_turbo_v2_5"
+        ],
+        "endpoint": "/v1/audio/speech",
+        "contract": "text-to-speech"
+      },
+      {
+        "provider": "runwayml",
+        "connection_role": "media",
+        "models": [
+          "runwayml/gen4.5",
+          "runwayml/gen4_turbo"
+        ],
+        "endpoint": "/v1/videos/generations",
+        "contract": "text-or-image-to-video"
+      }
+    ],
+    "workflow": [
+      "resolve-skill-cluster",
+      "inject-temperance-context-and-isa-pointers",
+      "create-creative-brief",
+      "plan-with-te-creative",
+      "invoke-native-media-contract",
+      "validate-artifact-and-policy",
+      "persist-artifact-and-evidence-pointer"
+    ],
+    "chat_combo_boundary": "Media models never enter a coding fallback chain; te-creative is the text planning rail only."
+  }
+}

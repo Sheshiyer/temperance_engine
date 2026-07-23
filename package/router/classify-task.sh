@@ -50,23 +50,18 @@ classify_task_type() {
 # catalog: MBR derives ROUTING_PRIORITY's command-code column from this, and
 # routing.ts renders `preferred=` from it.
 #
-# Primaries are pinned to the account's command-code credit deals so parallel
-# dispatch spends discounted/free tokens (decision 2026-07-18):
-#   tencent/Hy3            FREE  ($0/req)   -- expires 2026-07-21
-#   xiaomi/mimo-v2.5-pro   5x    ($30->150) -- permanent
-#   deepseek/deepseek-v4-pro 4x  ($30->120) -- permanent
-#   MiniMaxAI/MiniMax-M3   2.67x ($30->80)  -- expires 2026-07-21
-# On/after 2026-07-21, revert the two expiring slots (fast, validation ->
-# a durable fast model; creative, balanced -> a durable general model).
+# The 2026-07-21 command-code deals for Hy3 and MiniMax-M3 expired. The
+# classifier therefore uses live-verified command-code routes for the affected
+# slots until a new bounded deal is explicitly recorded in ISA.md.
 model_for_type() {
   case "$1" in
-    fast)         echo "command-code:tencent/Hy3" ;;
+    fast)         echo "command-code:deepseek/deepseek-v4-flash" ;;
     long-horizon) echo "command-code:xiaomi/mimo-v2.5-pro" ;;
     reasoning)    echo "command-code:deepseek/deepseek-v4-pro" ;;
-    validation)   echo "command-code:tencent/Hy3" ;;
-    creative)     echo "command-code:MiniMaxAI/MiniMax-M3" ;;
+    validation)   echo "command-code:deepseek/deepseek-v4-flash" ;;
+    creative)     echo "command-code:MiniMaxAI/MiniMax-M2.7" ;;
     inline)       echo "inline:current-session" ;;
-    *)            echo "command-code:MiniMaxAI/MiniMax-M3" ;;
+    *)            echo "command-code:MiniMaxAI/MiniMax-M2.7" ;;
   esac
 }
 

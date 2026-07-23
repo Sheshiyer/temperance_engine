@@ -123,12 +123,18 @@ fi
 
 manifest="$ROOT_DIR/package/router/omniroute-portfolios.json"
 configured_json="$(jq -c '[.task_type_portfolios | to_entries[] | .value] | unique' "$manifest" 2>/dev/null || printf '[]')"
+required_json="$(jq -c '(.required_portfolios // [.task_type_portfolios | to_entries[] | .value]) | unique' "$manifest" 2>/dev/null || printf '[]')"
 catalog_count_json="$(numeric_json_or_null '.data | length' "$body")"
 available_portfolios_json="$(jq -c --argjson configured "$configured_json" \
   '(.data // [] | map(.id) | map(select(type == "string"))) as $ids |
    $configured | map(select(. as $portfolio | $ids | index($portfolio) != null))' <<< "$body" 2>/dev/null || printf '[]')"
 missing_portfolios_json="$(jq -c --argjson configured "$configured_json" --argjson available "$available_portfolios_json" \
   '$configured - $available' <<< '{}' 2>/dev/null || printf '[]')"
+available_required_portfolios_json="$(jq -c --argjson required "$required_json" \
+  '(.data // [] | map(.id) | map(select(type == "string"))) as $ids |
+   $required | map(select(. as $portfolio | $ids | index($portfolio) != null))' <<< "$body" 2>/dev/null || printf '[]')"
+missing_required_portfolios_json="$(jq -c --argjson required "$required_json" --argjson available "$available_required_portfolios_json" \
+  '$required - $available' <<< '{}' 2>/dev/null || printf '[]')"
 compatibility_present_json="$(jq -c --arg model "$MODEL" \
   'any(.data[]?; .id == $model)' <<< "$body" 2>/dev/null || printf 'false')"
 
@@ -202,7 +208,7 @@ fi
 reasons_json="$(jq -cn \
   --argjson runtime "$runtime_available" \
   --argjson compatibility "$compatibility_present_json" \
-  --argjson missing "$missing_portfolios_json" \
+  --argjson missing "$missing_required_portfolios_json" \
   --argjson telemetry "$telemetry_available" \
   --argjson evals "$eval_available" \
   --argjson route "$router_route_ok" \
@@ -220,6 +226,8 @@ readiness_json="$(jq -cn \
   --arg model "$MODEL" --arg catalog_status "$status" \
   --argjson runtime "$runtime_available" --argjson count "$catalog_count_json" \
   --argjson configured "$configured_json" --argjson available "$available_portfolios_json" \
+  --argjson required "$required_json" --argjson required_available "$available_required_portfolios_json" \
+  --argjson required_missing "$missing_required_portfolios_json" \
   --argjson missing "$missing_portfolios_json" --argjson compatibility "$compatibility_present_json" \
   --arg telemetry_source "$telemetry_source" --argjson telemetry "$telemetry_available" \
   --argjson requests "$telemetry_request_count_json" --argjson successes "$telemetry_success_count_json" \
@@ -231,7 +239,9 @@ readiness_json="$(jq -cn \
   '{schema_version:$schema,
     runtime:{available:$runtime,version:$version,base_url:$base_url,catalog_status:$catalog_status},
     catalog:{available:$runtime,count:$count,compatibility_model:$model,compatibility_present:$compatibility,
-      configured_portfolios:$configured,available_portfolios:$available,missing_portfolios:$missing,source:$source},
+      configured_portfolios:$configured,available_portfolios:$available,missing_portfolios:$missing,
+      required_portfolios:$required,required_available_portfolios:$required_available,
+      required_missing_portfolios:$required_missing,source:$source},
     telemetry:{available:$telemetry,request_count:$requests,success_count:$successes,failure_count:$failures,source:$telemetry_source},
     evals:{available:$evals,suite_count:$suites,run_count:$runs,source:$eval_source},
     router:{verified:$route,route:(if $router_route == "" then null else $router_route end)},

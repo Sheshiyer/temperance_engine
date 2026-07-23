@@ -6,6 +6,7 @@ node_modules/
 .env.*
 !.env.example
 backups/
+.omniroute-backups/
 .temperance_engine/
 dist/
 coverage/

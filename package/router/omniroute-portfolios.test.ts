@@ -8,7 +8,7 @@ const expectedMappings = {
   "long-horizon": "te-build",
   reasoning: "te-reason",
   validation: "te-validate",
-  creative: "te-vision",
+  creative: "te-creative",
   balanced: "te-build",
 } as const;
 
@@ -53,7 +53,8 @@ describe("resolvePortfolio", () => {
 
   test("manifest stores combo names but no provider or model membership", () => {
     expect(manifest.enforcement).toBe("shadow");
-    expect(manifest.reserved_portfolios).toEqual(["te-batch"]);
+    expect(manifest.required_portfolios).toEqual(["te-fast", "te-build", "te-reason", "te-validate", "te-creative"]);
+    expect(manifest.reserved_portfolios).toEqual(["te-batch", "te-vision"]);
     expect(JSON.stringify(manifest)).not.toMatch(/provider|members|targets/);
   });
 });
