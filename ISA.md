@@ -121,7 +121,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-55: Available quota or budget state participates in automatic ranking when present.
 - [x] ISC-56: An explicit backend override wins over automatic ranking.
 - [x] ISC-57: Automatic ranking is deterministic for identical inputs and state.
-- [ ] ISC-58: An open circuit removes its backend from new automatic attempts.
+- [ ] ISC-58: An open circuit removes its backend from new automatic attempts. *(Implemented and tested in enforce mode; deliberately deferred while shadow mode is authoritative — see Decisions 2026-07-21.)*
 - [x] ISC-59: A cooldown probe can restore an open-circuit backend.
 - [x] ISC-60: External execution follows an inspectable ordered fallback list.
 - [x] ISC-61: Exhausted external fallbacks resolve to the existing subagent fallback.
@@ -313,7 +313,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-55 | unit | exhausted quota lowers or removes a candidate | pass | routing-policy test |
 | ISC-56 | unit | forced backend is selected when available | pass | routing-policy test |
 | ISC-57 | unit | identical state produces byte-identical ranking | pass | routing-policy test |
-| ISC-58 | unit | open circuit excludes backend | pass | circuit-breaker test |
+| ISC-58 | unit | open circuit excludes backend | pass (enforce mode only; shadow-mode production does not exclude — deferred per 2026-07-21 decision) | circuit-breaker test |
 | ISC-59 | unit | successful cooldown probe closes circuit | pass | circuit-breaker test |
 | ISC-60 | CLI | resolved fallback order is printed or persisted | exact order | dry-run test |
 | ISC-61 | CLI | external exhaustion returns subagent verdict | exact verdict | fallback test |

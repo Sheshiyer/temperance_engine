@@ -458,6 +458,10 @@ install() {
     else
       mkdir -p "$HOME/.kimi/skills"
       for skill in temperance-engine temperance-parallel-dispatch; do
+        # remove self-referential link left by unguarded `ln -s` re-runs
+        # (BSD ln follows a symlinked dst; cp -R would also propagate it
+        # into the desktop copies below)
+        [[ -L "$REPO_ROOT/skills/$skill/$skill" ]] && rm -f "$REPO_ROOT/skills/$skill/$skill"
         symlink "$REPO_ROOT/skills/$skill" "$HOME/.kimi/skills/$skill"
       done
     fi
@@ -470,6 +474,9 @@ install() {
       log "Would copy temperance skills into Kimi desktop daimon skills dir (real copies — the desktop scanner does not follow cross-volume symlinks)"
     else
       for skill in temperance-engine temperance-parallel-dispatch; do
+        # same self-heal as the ~/.kimi loop above: never propagate a
+        # self-referential link into the desktop copies via cp -R
+        [[ -L "$REPO_ROOT/skills/$skill/$skill" ]] && rm -f "$REPO_ROOT/skills/$skill/$skill"
         copy_skill_dir "$REPO_ROOT/skills/$skill" "$KIMI_DESKTOP_SKILLS/$skill"
       done
     fi
