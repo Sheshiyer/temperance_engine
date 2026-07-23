@@ -1,10 +1,10 @@
 ---
 project: temperance_engine
-task: Add the noesis writing fleet (te-write + te-write-critique) to OmniRoute governance
+task: Expand the noesis writing fleet with research and media sub-lanes (te-write-research + te-write-media)
 effort: E3
 phase: verify
-iteration: 2026-07-23-writing-fleet
-progress: 179/181
+iteration: 2026-07-23-writing-fleet-expansion
+progress: 185/187
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-23
@@ -245,6 +245,12 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-179: The substitution logic is implemented identically in `scripts/omniroute-temperance-planner-quota.sh` (live OmniRoute reconciliation) and `package/router/temperance-workflows.ts`'s `resolveWorkflow("planner", ...)` (advisory CLI), the latter reading the former's cached state file so both stay consistent.
 - [x] ISC-180: Because OmniRoute has no update/PATCH endpoint for an existing combo, reconciliation is snapshot-first, dry-run by default, and rollback-capable via delete-then-recreate, matching the existing role-combo lifecycle pattern; it never mutates `te-plan` when the live model order already matches the desired quota-aware order, and never changes the global `activeCombo`.
 - [x] ISC-181: The canonical verification gate passes with the planner-quota reconciler's structural and functional shell assertions and the extended `temperance-workflows.test.ts` quota-substitution cases included.
+- [x] ISC-182: The role manifest's `writing` block exposes `research` (fusion: DeepSeek V4 Pro, GitHub GPT-5.4, Codex terra, judge Codex terra, Albedo claim-mode classification) and `media` (priority: GitHub GPT-5.4, Codex sol-max, Nebius Qwen) sub-lanes, the resolver returns both without inspecting prompt text, and the workflow sequence runs claim-grounding before drafting.
+- [x] ISC-183: `te-write-research` and `te-write-media` appear only in `reserved_portfolios` as names; the five required portfolios, all task-type mappings, and the names-only manifest property are unchanged.
+- [x] ISC-184: A second snapshot-first writer lifecycle script, scoped only to the two new combos, defaults to dry-run, refuses name collisions, preflights exactly its live catalog targets, preserves `activeCombo` null, and supports rollback — split from the first writer script because `te-write`/`te-write-critique` were already live and would trip a shared collision guard.
+- [x] ISC-185: Writing-workflow documentation maps the research and media phases to their combos and states the `somatic-cantincles-mobile-app` connection as branding/content lineage only — no coded alchemical or biorhythm mechanic exists in that app, and this change touches no file outside `temperance_engine`.
+- [x] ISC-186: `te-write-media` is documented as a noesis-house-style brief writer distinct from `te-creative`'s generic brief; `te-creative`'s own manifest entry, tests, and docs remain unmodified.
+- [x] ISC-187: The canonical verification gate passes with the expansion resolver tests, portfolio manifest tests, and lifecycle shell assertions included.
 
 ## Test Strategy
 
@@ -431,6 +437,12 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-179 | consistency | reconciler and advisory CLI implement identical substitution logic via a shared cache file | identical output given identical quota input | Bun test + shell test |
 | ISC-180 | lifecycle | te-plan reconciliation is snapshot-first, dry-run default, rollback-capable, no-op when already correct | zero unintended mutations | shell test + live dry-run |
 | ISC-181 | regression | full verification includes the planner-quota reconciler and extended workflow tests | zero failures | verify-all |
+| ISC-182 | schema | resolve writing returns te-write-research fusion panel/judge and te-write-media priority panel; research precedes drafting | exact panels + workflow order | Bun test |
+| ISC-183 | manifest | research/media names live only in reserved_portfolios; required set and mappings unchanged | names-only regex + jq index | Bun test + shell gate |
+| ISC-184 | lifecycle | expansion writer script dry-run default, collision refusal, catalog preflight, activeCombo guard, rollback | all guards greppable + bash -n | combos shell gate |
+| ISC-185 | docs | routing doc maps research/media phases and frames Somatic Canticles link as narrative-only | narrative + Somatic Canticles greps | combos shell gate |
+| ISC-186 | boundary | te-write-media documented distinct from te-creative; te-creative manifest/tests untouched | diff shows te-creative block unchanged | git diff review |
+| ISC-187 | regression | full verification includes the writer-expansion suites | zero failures | verify-all |
 
 ## Features
 
@@ -477,6 +489,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | Kimi diagnostics and verification | ISC-170..ISC-171 | readiness doctor, canonical verification gate, sandbox tests | no |
 | Noesis writing fleet (drafting rail + critique council) | ISC-172..ISC-177 | role manifest, writer lifecycle script, portfolio manifest, capability fabric and routing docs | no |
 | Weekly-quota-aware planner substitution | ISC-178..ISC-181 | live OmniRoute quota poll, planner reconciler script, workflows.ts resolver, fleet docs | no |
+| Writing fleet expansion (research + media sub-lanes) | ISC-182..ISC-187 | role manifest, second writer lifecycle script, portfolio manifest, capability fabric and routing docs | no |
 
 ## Architecture
 
@@ -614,6 +627,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   refuted by: the writer script's live catalog preflight failed closed — no bare `kimi` provider prefix exists on this OmniRoute installation
   learned: catalog-derived model IDs must be probed against the live `/v1/models` inventory before being pinned in a manifest or script, not inferred from naming convention; `nebius/moonshotai/Kimi-K2.6` is the correct live route and keeps genuine failure-domain diversity from the command-code-backed primary slot
   criterion now: ISC-172 and ISC-174 require the corrected, live-verified model ID across the manifest, script, tests, and docs
+
+- 2026-07-23 | conjectured: the noesis-writer-skill's alchemical protocol powers an in-app "alchemical infusion" mechanic in the biorhythm-gated mobile app
+  refuted by: an Explore-agent search of `somatic-cantincles-mobile-app`, `Somatic-Canticles-book`, and `Selemene-engine` found zero references to "alchemical infusion" and no Nigredo/Albedo/Citrinitas/Rubedo stage system anywhere outside the skill directory; "alchemical" appears only as narrative prose flavor in the manuscript
+  learned: the skill's connection to that app is branding/content-mining lineage (source material for blog content), not a code integration; expanding the writing fleet should stay scoped to `temperance_engine`'s routing layer unless the user explicitly asks for an app-side feature
+  criterion now: ISC-185 requires the routing doc to state this distinction explicitly and requires the change to touch no file outside `temperance_engine`
 
 - 2026-07-23 | conjectured: a symlink into `daimon/skills/` would be discovered by the desktop app the same way it is by kimi-cli, regardless of which volume the target lives on
   refuted by: after the user restarted Kimi.app, neither temperance skill appeared; every other custom skill the app already recognized resolved to a same-volume path (`~/.agents/skills/...`), while the two temperance entries were the only symlinks crossing onto a different mounted volume — `kimi --print` confirmed the CLI resolves the identical symlink correctly, isolating the gap to the desktop app's own scanner
@@ -780,3 +798,9 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-23 desktop: `configure-kimi-desktop-relay.sh enable` landed the managed block in `daimon-share/config.toml` with `config_sha256` recorded; picker visibility pending the user's next app restart (the app was running and was not killed).
 - 2026-07-23 post-restart: the user restarted Kimi.app and reported the picker unchanged (three models) and the desktop skills still not recognized. Investigation found the daimon's live startup log (`configPath=.../daimon/runtime/kimi-code/config.toml`) loads a DIFFERENT config file than the one `configure-kimi-desktop-relay.sh` manages (`daimon-share/config.toml`) — the picker gap is explained by that mismatch and is left as an open follow-up (out of scope for this pass; the user confirmed the model picker is not the priority). The skills gap was root-caused and fixed: see ISC-169 changelog entry below.
 - ISC-169 fix: `bash tests/wire-batch.sh` failed to exist for kimi skill regressions until this pass; live diagnosis found every desktop skill the daimon recognized resolved to a same-volume path (`~/.agents/skills/...`), while the two temperance desktop skills were the only symlinks crossing onto a different mounted volume. `kimi --print` confirmed the CLI (Python-based) resolves the identical symlink correctly, isolating the gap to the desktop app's Node/Electron skill scanner. `wire-multi-backend.sh` now installs desktop skills as real, `.temperance-managed`-tagged copies via `copy_skill_dir()` (idempotent refresh, foreign-content backup-then-overwrite, marker-gated revert) instead of symlinks; CLI/project scopes are unaffected (still symlinks). Live fix applied and confirmed: `temperance-doctor.sh` reports `kimi_desktop_skills: true` and both desktop entries are now real directories with the managed marker.
+- ISC-182: `bun test package/router/temperance-workflows.test.ts` passed 23/23 (whole-file run, alongside the parallel planner-quota suite), including the research council's DeepSeek-v4-pro/GitHub/Codex-terra panel and judge, the media planner's GitHub/Codex-sol-max/Nebius panel, and the workflow-array ordering assertion that claim-grounding precedes drafting.
+- ISC-183: `bun test package/router/omniroute-portfolios.test.ts` passed with `reserved_portfolios` extended to include `te-write-research`/`te-write-media`; the names-only regex assertion, the five required portfolios, and all task-type mappings remained unchanged.
+- ISC-184: `scripts/omniroute-temperance-writer-expansion.sh` dry-run authenticated, snapshotted, preflighted all five live catalog targets (`command-code/deepseek/deepseek-v4-pro`, `github/gpt-5.4`, `codex/gpt-5.6-terra`, `codex/gpt-5.6-sol-max`, Nebius Qwen) on the first attempt with no ID corrections needed, and left `activeCombo=null`. `bash tests/omniroute-temperance-combos.sh` passed all 41 checks including the six new expansion-script guards.
+- ISC-185: `docs/noesis-writer-routing.md` gained a "Context: Somatic Canticles and the biorhythm mobile app" section stating the connection is branding/content lineage only, grounded in an Explore-agent search of `somatic-cantincles-mobile-app`, `Somatic-Canticles-book`, and `Selemene-engine` that found zero references to "alchemical infusion" or any Nigredo/Albedo/Citrinitas/Rubedo mechanic in any of those repos; this change's `git diff` touches no path outside `temperance_engine`.
+- ISC-186: `git diff HEAD -- package/router/temperance-workflows.json | grep -A5 -B5 '"creative"'` returned no hunks — the `creative` block is byte-identical to `HEAD`; `te-write-media`'s manifest entry, resolver branch, and docs are additive only.
+- ISC-187: `scripts/omniroute-temperance-writer-expansion.sh --apply` created `te-write-research` (id `1a042162-8b83-4a79-a64d-1c05624914c7`) and `te-write-media` (id `ffe9cc05-282c-4a9a-b0e1-b8b028f26b69`); `activeCombo` remained `null` before and after. Live native probes returned `RESEARCH_OK` from `te-write-research` (fusion judge `gpt-5.6-terra` via Codex, 749ms) and `MEDIA_OK` from `te-write-media` (priority-1 `gpt-5.4` via GitHub, 237ms).

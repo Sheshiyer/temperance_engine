@@ -61,16 +61,24 @@ Writing is a second cross-stage lane, bound to `noesis-writer-skill` and its
 composition set (`layered-context-content-skill`, `visual-prompt-skill`,
 `retrieval-skill`, `content-generator-skill`, `media-suggest-skill`,
 `transcript-processor-skill`). `te-write` drafts sections sequentially,
-`te-write-critique` scores drift and gates each commit, and `te-creative` is
-reused for image planning. Its MCP surface is deliberately minimal — Exa
-search for topical research only: vault source mining is client-side
-filesystem work over the PARA vault, Meru retrieval is a skill rather than an
-MCP lane, and brandmint/FAL image generation is client-side Python that never
-crosses the OmniRoute boundary. Knowledge stays pointer-only as everywhere
-else (brand docs, controlled vocabulary, and calibration corpus remain
-vault-side paths). An ACP lane is declared but inactive for this workflow;
-agent-protocol contracts require a separate principal-bound security design
-before any implementation.
+`te-write-critique` scores drift and gates each commit, `te-write-research`
+grounds and classifies claims before drafting begins, and `te-write-media`
+plans image briefs in the noesis house style (distinct from `te-creative`'s
+generic brief, which remains available for non-writing creative work). Its
+MCP surface is deliberately minimal — Exa search for topical research only,
+feeding facts to `te-write-research` rather than the council browsing
+itself: vault source mining is client-side filesystem work over the PARA
+vault, Meru retrieval is a skill rather than an MCP lane, and brandmint/FAL
+image generation is client-side Python that never crosses the OmniRoute
+boundary. Knowledge stays pointer-only as everywhere else (brand docs,
+controlled vocabulary, and calibration corpus remain vault-side paths). An
+ACP lane is declared but inactive for this workflow; agent-protocol
+contracts require a separate principal-bound security design before any
+implementation. The skill's connection to `somatic-cantincles-mobile-app`
+(a separate biorhythm-gated mobile app under the same brand) is
+branding/content lineage only — the skill mines that project's manuscript
+as source material; there is no coded alchemical mechanic in the app, and
+this writing fleet does not touch the app's repository.
 
 ## Knowledge usage rules
 

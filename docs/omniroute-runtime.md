@@ -85,9 +85,11 @@ The distinction is observable in OmniRoute call logs: `temperance-coding` is a
 compatibility rail, `te-fast`/`te-build`/`te-reason`/`te-creative` are priority
 portfolios, and `te-validate` is a fusion council. `te-plan` protects the
 GitHub-first planner; `te-dispatch` is the worker fleet. The writing fleet is
-role-scoped in the same way: `te-write` is a priority drafting rail and
-`te-write-critique` is a drift-scoring fusion council; neither ever enters a
-coding fallback chain. `auto/*` remains a separate provider-
+role-scoped in the same way: `te-write` is a priority drafting rail,
+`te-write-critique` and `te-write-research` are fusion councils (gate and
+ground, respectively), and `te-write-media` is a priority image-brief
+planner; none of the four ever enters a coding fallback chain. `auto/*`
+remains a separate provider-
 owned virtual pool and is never silently promoted into a Temperance portfolio.
 
 ## Local configuration
@@ -99,14 +101,18 @@ owned virtual pool and is never silently promoted into a Temperance portfolio.
 - Compatibility combo: `temperance-coding`
 - Governed combos: `te-fast`, `te-build`, `te-reason`, `te-validate`, `te-creative`
 - Role combos: `te-plan` (GitHub planner) and `te-dispatch` (fleet workers)
-- Writing combos: `te-write` (drafting rail) and `te-write-critique`
-  (drift-scoring fusion council); see
+- Writing combos: `te-write` (drafting rail), `te-write-critique`
+  (drift-scoring fusion council), `te-write-research` (claim-grounding
+  fusion council), and `te-write-media` (image-brief priority planner); see
   [`docs/noesis-writer-routing.md`](./noesis-writer-routing.md)
 - Compatibility targets: `codex/gpt-5.6-terra`, `github/gpt-5.4`, then
   `nebius/Qwen/Qwen3-235B-A22B-Instruct-2507`
 - Live combo lifecycle: `scripts/omniroute-temperance-combos.sh`
 - Role combo lifecycle: `scripts/omniroute-temperance-fleet.sh`
 - Writing combo lifecycle: `scripts/omniroute-temperance-writer.sh`
+  (te-write/te-write-critique) and
+  `scripts/omniroute-temperance-writer-expansion.sh`
+  (te-write-research/te-write-media)
 - Admin password: macOS Keychain service `OmniRoute Temperance Admin`
 - Scoped inference key: macOS Keychain service `OmniRoute Temperance API Key`
 - Codex profile: `~/.codex/temperance-coding.config.toml`
