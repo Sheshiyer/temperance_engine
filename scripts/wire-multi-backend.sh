@@ -104,6 +104,40 @@ symlink() {
   log "Symlinked: $dst → $src"
 }
 
+MANAGED_SKILL_MARKER=".temperance-managed"
+
+# The Kimi desktop app's daimon skill scanner does not follow symlinks whose
+# real target lives on a different volume/mount than daimon-share itself
+# (confirmed: every pre-existing custom skill it recognizes resolves to
+# ~/.agents/skills/... on the boot volume; a repo clone on a different mounted
+# volume is silently invisible to it even though the CLI and a plain
+# `test -e` both resolve it fine). Real copies sidestep that gap.
+# Idempotent: always refreshes to match the repo, and only ever removes a
+# destination it marked itself, so a same-named user skill is never clobbered.
+copy_skill_dir() {
+  local src="$1"
+  local dst="$2"
+
+  if $DRY_RUN; then
+    log "Would copy skill: $dst ← $src (desktop scanner needs a same-volume real directory, not a symlink)"
+    return
+  fi
+
+  if [[ -e "$dst" || -L "$dst" ]]; then
+    if [[ -f "$dst/$MANAGED_SKILL_MARKER" ]]; then
+      rm -rf "$dst"
+    else
+      backup_dir "$dst" 2>/dev/null || backup_file "$dst"
+      rm -rf "$dst"
+    fi
+  fi
+
+  mkdir -p "$(dirname "$dst")"
+  cp -R "$src" "$dst"
+  touch "$dst/$MANAGED_SKILL_MARKER"
+  log "Copied skill (desktop-safe, same-volume): $dst ← $src"
+}
+
 ensure_enrichment_core() {
   local src="$REPO_ROOT/package/enrich"
   local dst="$HOME/.claude/PAI/enrich"
@@ -249,10 +283,10 @@ check_status() {
     echo "   [N/A] Kimi CLI not installed"
   fi
   local kimi_desktop_skills="${TEMPERANCE_KIMI_DESKTOP_SKILLS:-$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/skills}"
-  if [[ -L "$kimi_desktop_skills/temperance-parallel-dispatch" && -e "$kimi_desktop_skills/temperance-parallel-dispatch" ]]; then
-    echo "   [OK] Desktop daimon skill links resolve"
+  if [[ -f "$kimi_desktop_skills/temperance-parallel-dispatch/$MANAGED_SKILL_MARKER" ]]; then
+    echo "   [OK] Desktop daimon skill copies present (real copies — the desktop scanner does not follow cross-volume symlinks)"
   elif [[ -d "$kimi_desktop_skills" ]]; then
-    echo "   [MISSING] Desktop daimon skill links"
+    echo "   [MISSING] Desktop daimon skill copies"
   else
     echo "   [N/A] Kimi desktop app not installed"
   fi
@@ -321,7 +355,7 @@ revert() {
   for skill in temperance-engine temperance-parallel-dispatch; do
     [[ -L "$HOME/.kimi/skills/$skill" ]] && rm -f "$HOME/.kimi/skills/$skill" && log "Removed: ~/.kimi/skills/$skill"
     kimi_desktop_skill="${TEMPERANCE_KIMI_DESKTOP_SKILLS:-$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/skills}/$skill"
-    [[ -L "$kimi_desktop_skill" ]] && rm -f "$kimi_desktop_skill" && log "Removed: Kimi desktop skill link $skill"
+    [[ -f "$kimi_desktop_skill/$MANAGED_SKILL_MARKER" ]] && rm -rf "$kimi_desktop_skill" && log "Removed: Kimi desktop skill copy $skill"
   done
   
   # Restore backed up files
@@ -433,14 +467,14 @@ install() {
   KIMI_DESKTOP_SKILLS="${TEMPERANCE_KIMI_DESKTOP_SKILLS:-$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/skills}"
   if [[ -d "$KIMI_DESKTOP_SKILLS" ]]; then
     if $DRY_RUN; then
-      log "Would symlink temperance skills into Kimi desktop daimon skills dir"
+      log "Would copy temperance skills into Kimi desktop daimon skills dir (real copies — the desktop scanner does not follow cross-volume symlinks)"
     else
       for skill in temperance-engine temperance-parallel-dispatch; do
-        symlink "$REPO_ROOT/skills/$skill" "$KIMI_DESKTOP_SKILLS/$skill"
+        copy_skill_dir "$REPO_ROOT/skills/$skill" "$KIMI_DESKTOP_SKILLS/$skill"
       done
     fi
   else
-    log "Kimi desktop daimon skills dir not found; skipping desktop skill links"
+    log "Kimi desktop daimon skills dir not found; skipping desktop skill copies"
   fi
   echo ""
 

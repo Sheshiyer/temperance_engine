@@ -104,11 +104,26 @@ kimi-cli merges skills across four scopes (Project > User > Extra > Built-in);
 | User (brand) | `~/.kimi/skills/` | `wire-multi-backend.sh` symlinks `temperance-engine`, `temperance-parallel-dispatch` |
 | User (brand, merged) | `~/.claude/skills/`, `~/.codex/skills/` | Already present from the Claude/Codex installs |
 | User (generic) | `~/.agents/skills/` | Skill-cluster hub tier (managed by `tier.mjs`) |
-| Desktop | `daimon-share/daimon/skills/` | `wire-multi-backend.sh` symlinks the same two skills |
+| Desktop | `daimon-share/daimon/skills/` | `wire-multi-backend.sh` copies (not symlinks) the same two skills |
 
-`temperance-doctor.sh` (`kimi_skills`) verifies the links resolve — which also
-catches the repo's volume being unmounted when the clone lives on removable
-storage.
+`temperance-doctor.sh` (`kimi_skills` for the CLI, `kimi_desktop_skills` for
+the app) verifies these resolve — the CLI check also catches the repo's
+volume being unmounted when the clone lives on removable storage.
+
+**Desktop skills are real copies, not symlinks — this is load-bearing.** The
+daimon's skill scanner does not follow a symlink whose target lives on a
+different volume/mount than `daimon-share` itself: every custom skill it
+recognized before this fix resolved to a path on the boot volume
+(`~/.agents/skills/...`); a symlink into a repo clone on another volume
+(e.g. a repo clone on removable storage) was silently invisible to it, even though `test -e`,
+`readlink -f`, and kimi-cli's own (Python-based) skill loader all resolved the
+exact same symlink without issue. `wire-multi-backend.sh` therefore installs
+the desktop copies via `copy_skill_dir()`: it refreshes them idempotently on
+every run, tags each with a `.temperance-managed` marker so a same-named user
+skill is never clobbered (foreign content is backed up, not deleted), and
+`--revert` only removes copies that carry that marker. If the repo skill
+content changes, re-run `./scripts/wire-multi-backend.sh` to refresh the
+desktop copy — it does not update automatically like the CLI's symlink does.
 
 ## Desktop app caveats
 

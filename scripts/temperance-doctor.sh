@@ -11,6 +11,7 @@ KIMI_CONFIG="${TEMPERANCE_KIMI_CONFIG:-${KIMI_HOME}/config.toml}"
 KIMI_STATE_PATH="${TEMPERANCE_STATE_DIR:-${HOME}/.temperance_engine}/relay/kimi-provider.json"
 KIMI_DESKTOP_CONFIG="${TEMPERANCE_KIMI_DESKTOP_CONFIG:-${HOME}/Library/Application Support/kimi-desktop/daimon-share/config.toml}"
 KIMI_DESKTOP_STATE_PATH="${TEMPERANCE_STATE_DIR:-${HOME}/.temperance_engine}/relay/kimi-desktop-provider.json"
+KIMI_DESKTOP_SKILLS="${TEMPERANCE_KIMI_DESKTOP_SKILLS:-${HOME}/Library/Application Support/kimi-desktop/daimon-share/daimon/skills}"
 OMNI_BASE="${TEMPERANCE_OMNIROUTE_BASE_URL:-http://127.0.0.1:20128/v1}"
 RELAY_BASE="${TEMPERANCE_PROXY_BASE_URL:-http://127.0.0.1:20129/v1}"
 JSON_MODE=false
@@ -184,6 +185,14 @@ if [[ -f "$KIMI_DESKTOP_STATE_PATH" ]] && jq -e --arg base "$RELAY_BASE" \
   kimi_desktop_state_ok=true
 fi
 set_check "kimi_desktop_state" "$kimi_desktop_state_ok" "$([[ "$kimi_desktop_state_ok" == true ]] && echo managed || echo missing-or-stale)"
+
+# Desktop skills are real copies, not symlinks: the daimon skill scanner does
+# not follow symlinks whose target lives on a different volume/mount.
+kimi_desktop_skills_ok=true
+for skill in temperance-engine temperance-parallel-dispatch; do
+  [[ -f "$KIMI_DESKTOP_SKILLS/$skill/.temperance-managed" ]] || kimi_desktop_skills_ok=false
+done
+set_check "kimi_desktop_skills" "$kimi_desktop_skills_ok" "$([[ "$kimi_desktop_skills_ok" == true ]] && echo "managed copies present" || echo "copies missing or not managed")"
 
 # Drift is warn-level: false only when a recorded sha no longer matches (the
 # app likely regenerated its config; re-run configure-kimi-desktop-relay.sh).
