@@ -9,12 +9,23 @@
  * resolution to the existing frozen router, forwards the original OpenAI
  * request (including tools), and leaves every non-automatic picker model alone.
  */
-import { appendFileSync, mkdirSync } from "node:fs"
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
+import { enrich } from "../enrich/index"
+import type { EnrichInput } from "../enrich/contract"
 
 export const AUTO_MODEL = "temperance-auto"
 export const ROUTING_MODELS = new Set([AUTO_MODEL, "temperance-routing"])
+/**
+ * Surfaces whose <temperance-context> enrichment is injected HERE, server-side.
+ * Kimi's hook runner honors block/allow only (no additionalContext), so the
+ * relay is the only seam that can carry enrichment into kimi sessions. Client-
+ * enriched surfaces (opencode plugin, claude/codex prompt hooks) must never be
+ * listed: enriching them again would stack duplicate blocks.
+ */
+export const ENRICHMENT_SURFACES = ["kimi"] as const
+const SESSION_CONTEXT_SCHEMA = "temperance-kimi-session-v1"
 const DEFAULT_PORT = 20129
 const DEFAULT_UPSTREAM = "http://127.0.0.1:20128/v1"
 const SCRIPT_DIR = import.meta.dir
@@ -44,10 +55,27 @@ export type RouteDecision = {
   error?: string
 }
 
+export type SessionContext = {
+  schema_version?: string
+  session_id?: string
+  cwd?: string
+  ts?: number
+  prompt_hash?: string
+}
+
+export type EnrichmentOutcome = {
+  surface: string | null
+  enrichment: "injected" | "skipped" | "not-applicable"
+  cwd_source: "session-context" | "relay-cwd" | null
+  prompt_hash_match: boolean | null
+}
+
 export type ProxyDependencies = {
   upstreamFetch?: typeof fetch
   planRunner?: (prompt: string) => Promise<RoutePlan>
   requestId?: () => string
+  enrichRunner?: (input: EnrichInput) => Promise<string>
+  sessionContext?: () => SessionContext | null
 }
 
 function text(value: unknown): string {
@@ -84,6 +112,120 @@ export function latestUserPrompt(messages: unknown): string {
 
 function hasTools(body: Record<string, unknown>): boolean {
   return Array.isArray(body.tools) && body.tools.length > 0 || body.tool_choice !== undefined
+}
+
+/** Surface tag set per-provider via custom_headers (mirrors the opencode plugin's chat.headers). */
+export function detectSurface(headers: Headers): string | null {
+  const value = headers.get("x-temperance-surface")
+  return value ? value.trim().toLowerCase() : null
+}
+
+function stripContextBlocks(value: string): string {
+  return value.replace(/<temperance-context>[\s\S]*?<\/temperance-context>\s*/gi, "")
+}
+
+/**
+ * Prepend a fresh <temperance-context> block to the LATEST user message only,
+ * replacing (never stacking on) any block already present there. Prior-turn
+ * messages stay byte-identical: on client-enriched surfaces history legitimately
+ * carries old blocks, and rewriting history would corrupt cache affinity.
+ */
+export function injectContext(body: Record<string, unknown>, block: string): boolean {
+  const messages = body.messages
+  const trimmed = block.trim()
+  if (!Array.isArray(messages) || !trimmed) return false
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (!message || typeof message !== "object") continue
+    const candidate = message as Record<string, unknown>
+    if (candidate.role !== "user") continue
+    const content = candidate.content
+    if (typeof content === "string") {
+      candidate.content = `${trimmed}\n\n${stripContextBlocks(content).trimStart()}`
+      return true
+    }
+    if (Array.isArray(content)) {
+      const cleaned = content.filter((part) => {
+        if (!part || typeof part !== "object") return true
+        const record = part as Record<string, unknown>
+        if (typeof record.text !== "string") return true
+        record.text = stripContextBlocks(record.text)
+        return record.text.trim().length > 0
+      })
+      cleaned.unshift({ type: "text", text: trimmed })
+      candidate.content = cleaned
+      return true
+    }
+    return false
+  }
+  return false
+}
+
+function sessionContextPath(): string {
+  return process.env.TEMPERANCE_KIMI_SESSION_CONTEXT
+    || join(process.env.TEMPERANCE_KIMI_STATE || join(process.env.HOME || ".", ".temperance_engine", "kimi"), "session-context.json")
+}
+
+/** Read the hook-written cwd sidecar; reject unknown schemas and stale entries. */
+export function readSessionContext(path: string, nowMs: number, ttlMs: number): SessionContext | null {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"))
+    if (!parsed || typeof parsed !== "object") return null
+    const candidate = parsed as SessionContext
+    if (candidate.schema_version !== SESSION_CONTEXT_SCHEMA) return null
+    if (typeof candidate.cwd !== "string" || candidate.cwd.length === 0) return null
+    if (typeof candidate.ts !== "number" || nowMs - candidate.ts > ttlMs || candidate.ts > nowMs + ttlMs) return null
+    return candidate
+  } catch {
+    return null
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`enrichment timed out after ${ms}ms`)), ms)
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value) },
+      (error) => { clearTimeout(timer); reject(error) },
+    )
+  })
+}
+
+/**
+ * Server-side enrichment for surfaces that cannot inject context client-side.
+ * Fail-open and latency-bounded: any error or timeout forwards the request
+ * unmodified, with the skip visible in the decision log.
+ */
+async function applyEnrichment(
+  body: Record<string, unknown>,
+  decision: RouteDecision,
+  surface: string | null,
+  deps: ProxyDependencies,
+): Promise<EnrichmentOutcome> {
+  const outcome: EnrichmentOutcome = { surface, enrichment: "not-applicable", cwd_source: null, prompt_hash_match: null }
+  if (!surface || !(ENRICHMENT_SURFACES as readonly string[]).includes(surface)) return outcome
+  if (!decision.prompt) {
+    outcome.enrichment = "skipped"
+    return outcome
+  }
+  const ttlMs = Number(process.env.TEMPERANCE_KIMI_SESSION_TTL_MS || 120_000)
+  const session = deps.sessionContext ? deps.sessionContext() : readSessionContext(sessionContextPath(), Date.now(), ttlMs)
+  const cwd = session?.cwd || process.cwd()
+  outcome.cwd_source = session?.cwd ? "session-context" : "relay-cwd"
+  if (session?.prompt_hash) {
+    // Advisory only: streaming retries and interleaved sessions make strict matching brittle.
+    const digest = createHash("sha256").update(decision.prompt).digest("hex")
+    outcome.prompt_hash_match = digest.startsWith(session.prompt_hash.toLowerCase())
+  }
+  const timeoutMs = Number(process.env.TEMPERANCE_ENRICH_TIMEOUT_MS || 2_000)
+  const runner = deps.enrichRunner ?? ((input: EnrichInput) => enrich(input))
+  try {
+    const block = await withTimeout(runner({ prompt: decision.prompt, cwd, surface: "kimi" }), timeoutMs)
+    outcome.enrichment = injectContext(body, block) ? "injected" : "skipped"
+  } catch {
+    outcome.enrichment = "skipped"
+  }
+  return outcome
 }
 
 function requestId(deps: ProxyDependencies): string {
@@ -212,7 +354,7 @@ function jsonResponse(value: unknown, status = 200, extra: Record<string, string
   })
 }
 
-function logDecision(decision: RouteDecision): void {
+function logDecision(decision: RouteDecision, enrichment?: EnrichmentOutcome): void {
   const path = process.env.TEMPERANCE_PROXY_LOG || join(process.env.TEMPERANCE_STATE_DIR || join(process.env.HOME || ".", ".temperance_engine", "state"), "openai-proxy.jsonl")
   try {
     mkdirSync(join(path, ".."), { recursive: true })
@@ -227,6 +369,10 @@ function logDecision(decision: RouteDecision): void {
       plan_id: decision.plan?.plan_id || null,
       correlation_id: decision.plan?.correlation_id || null,
       portfolio: decision.plan?.portfolio?.requested_portfolio || null,
+      surface: enrichment?.surface ?? null,
+      enrichment: enrichment?.enrichment ?? "not-applicable",
+      enrichment_cwd_source: enrichment?.cwd_source ?? null,
+      prompt_hash_match: enrichment?.prompt_hash_match ?? null,
       error: decision.error || null,
     })}\n`)
   } catch {
@@ -264,7 +410,8 @@ async function chatResponse(request: Request, fetchImpl: typeof fetch, deps: Pro
 
   const decision = await resolveRoute(body, deps)
   body.model = decision.routed_model
-  logDecision(decision)
+  const enrichment = await applyEnrichment(body, decision, detectSurface(request.headers), deps)
+  logDecision(decision, enrichment)
   const planHeaders: Record<string, string> = {
     "X-Temperance-Request-ID": decision.request_id,
     "X-Temperance-Route-Mode": decision.mode,
@@ -276,6 +423,7 @@ async function chatResponse(request: Request, fetchImpl: typeof fetch, deps: Pro
   if (decision.plan?.correlation_id) planHeaders["X-Temperance-Correlation-ID"] = decision.plan.correlation_id
   if (decision.plan?.task_type) planHeaders["X-Temperance-Task-Type"] = decision.plan.task_type
   if (decision.plan?.portfolio?.requested_portfolio) planHeaders["X-Temperance-Portfolio"] = decision.plan.portfolio.requested_portfolio
+  if (enrichment.surface) planHeaders["X-Temperance-Enrichment"] = enrichment.enrichment
 
   let upstream: Response
   try {
@@ -318,7 +466,7 @@ export async function handleProxyRequest(
   const url = new URL(request.url)
   const fetchImpl = deps.upstreamFetch ?? fetch
   if (url.pathname === "/health" || url.pathname === "/") {
-    return jsonResponse({ ok: true, service: "temperance-openai-proxy", automatic_model: AUTO_MODEL, upstream: upstreamBase() })
+    return jsonResponse({ ok: true, service: "temperance-openai-proxy", automatic_model: AUTO_MODEL, upstream: upstreamBase(), enrichment_surfaces: [...ENRICHMENT_SURFACES] })
   }
   try {
     if (url.pathname === "/v1/models" && request.method === "GET") return await modelsResponse(fetchImpl)

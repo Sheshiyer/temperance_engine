@@ -10,6 +10,6 @@
     "creative": "te-creative",
     "balanced": "te-build"
   },
-  "reserved_portfolios": ["te-batch", "te-vision"],
+  "reserved_portfolios": ["te-batch", "te-vision", "te-write", "te-write-critique"],
   "enforcement": "shadow"
 }

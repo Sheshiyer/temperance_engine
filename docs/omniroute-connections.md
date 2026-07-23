@@ -90,7 +90,11 @@ Codex integrations. Research/crawl, embeddings, speech, video, and image
 connections remain native capability lanes; they are intentionally not forced
 into chat combos. `te-creative` plans native media work, while `te-vision` and
 `te-batch` remain reserved until their native contracts and evidence receipts
-exist. See [the fleet workflow](omniroute-fleet.md) for the planner/worker split.
+exist. `te-write` and `te-write-critique` are role-scoped writing combos for
+the noesis drafting loop; their image generation remains a client-side
+brandmint/FAL lane and never becomes a chat fallback (see
+[the writer routing map](noesis-writer-routing.md)). See
+[the fleet workflow](omniroute-fleet.md) for the planner/worker split.
 
 The portfolio manifest is [package/router/omniroute-portfolios.json](../package/router/omniroute-portfolios.json). The authenticated lifecycle,
 pre-mutation snapshot, collision guard, native target preflight, and rollback

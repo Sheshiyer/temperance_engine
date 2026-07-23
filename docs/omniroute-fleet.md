@@ -64,6 +64,39 @@ Temperance context and ISA pointers, create a brief, call the native provider,
 validate the artifact, and record a reversible evidence pointer. Running a
 skill without this context handoff is explicitly not the creative workflow.
 
+## Writing workflow
+
+The writing fleet serves `noesis-writer-skill`'s sequential autoregressive
+loop with a hard generator/evaluator split:
+
+```text
+brand voice DNA + vault source lattice (client-side)
+  -> te-write drafts one section (priority rail)
+  -> te-write-critique scores drift and gates (fusion council)
+  -> backpropagate corrections or commit (client-side loop, max 5 iterations)
+  -> te-creative plans images; brandmint/FAL generates them client-side
+  -> quality gates, convergence proof, and evidence ledgers (client-side)
+```
+
+`te-write` runs priority failover over `command-code/MiniMaxAI/MiniMax-M2.7`,
+`nebius/moonshotai/Kimi-K2.6`, and Nebius Qwen; it drafts and never certifies its own
+output. `te-write-critique` mirrors the `te-validate` fusion shape
+(GitHub/Codex/Nebius panel, Codex terra judge) and returns one falsifiable
+verdict per section — COMMIT, REGENERATE, or FLAG; it never drafts. The
+skill's transmutation mode reuses the same rails: the council runs the
+Nigredo claim inventory and Rubedo re-verification while the drafting rail
+performs only the Citrinitas surgical edits.
+
+Lifecycle: `scripts/omniroute-temperance-writer.sh` (snapshot-first,
+collision-guarded, rollbackable). Verify the role resolution with:
+
+```bash
+bun package/router/temperance-workflows.ts resolve writing MODEL_IDS...
+```
+
+The full phase-by-phase map, client-side boundaries, and catalog caveats
+live in [docs/noesis-writer-routing.md](noesis-writer-routing.md).
+
 ## Verify the live state
 
 ```bash

@@ -63,6 +63,13 @@ describe('enrich() assembler integration', () => {
     }
   });
 
+  test('(e) kimi surface produces a well-formed block (relay-side injection contract)', async () => {
+    const block = await enrich({ ...baseInput('refactor the auth system'), surface: 'kimi' });
+    expect(block.startsWith('<temperance-context>')).toBe(true);
+    expect(block.trimEnd().endsWith('</temperance-context>')).toBe(true);
+    expect(block).toMatch(/mode\/tier:\s*ALGORITHM/);
+  });
+
   test('(d) latency smoke: enrich() completes well under 500ms', async () => {
     const input = baseInput('refactor the auth system without touching the DB to add SSO');
     // Warm one call, then measure.

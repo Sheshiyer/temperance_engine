@@ -20,10 +20,13 @@ provide a coding agent with workspace tools.
 ## OpenCode automatic flow
 
 OpenCode's plugin API cannot replace the selected model in `chat.params`. The
-local configuration therefore uses a narrow relay for one automatic model:
+local configuration therefore uses a narrow relay for one automatic model.
+The direct `omniroute` provider remains pointed at OmniRoute on `20128`; the
+automatic route is an explicit second provider named `temperance`, so stopping
+the relay never removes the direct picker modes.
 
 - Relay: `http://127.0.0.1:20129/v1`
-- Automatic model: `temperance-auto`
+- Automatic provider/model: `temperance/temperance-auto`
 - Upstream: OmniRoute `http://127.0.0.1:20128/v1`
 - Lifecycle: `scripts/temperance-proxy.sh start|stop|status`
 - Persistent macOS startup: `scripts/temperance-proxy-launchd.sh install`
@@ -39,7 +42,7 @@ this preserves the direct override contract. The OpenCode flow plugin still
 injects the shared PAI/ISA context for those direct requests; only provider
 selection is bypassed, not Temperance enrichment.
 
-Start the relay before selecting `omniroute/temperance-auto` in OpenCode:
+Start the relay before enabling `temperance/temperance-auto` in OpenCode:
 
 ```bash
 scripts/temperance-proxy.sh start
@@ -51,6 +54,20 @@ For a login-persistent local service, install the user-scoped LaunchAgent:
 ```bash
 scripts/temperance-proxy-launchd.sh install
 scripts/temperance-proxy-launchd.sh status
+```
+
+Then add the managed automatic provider with the backup-first configurator:
+
+```bash
+scripts/configure-opencode-relay.sh --enable
+opencode models temperance
+scripts/temperance-doctor.sh --require-auto
+```
+
+Disable the automatic provider without touching the direct `omniroute` provider:
+
+```bash
+scripts/configure-opencode-relay.sh --disable
 ```
 
 The relay is intentionally local and optional. If it is stopped, use the
@@ -67,7 +84,10 @@ changing a governed portfolio.
 The distinction is observable in OmniRoute call logs: `temperance-coding` is a
 compatibility rail, `te-fast`/`te-build`/`te-reason`/`te-creative` are priority
 portfolios, and `te-validate` is a fusion council. `te-plan` protects the
-GitHub-first planner; `te-dispatch` is the worker fleet. `auto/*` remains a separate provider-
+GitHub-first planner; `te-dispatch` is the worker fleet. The writing fleet is
+role-scoped in the same way: `te-write` is a priority drafting rail and
+`te-write-critique` is a drift-scoring fusion council; neither ever enters a
+coding fallback chain. `auto/*` remains a separate provider-
 owned virtual pool and is never silently promoted into a Temperance portfolio.
 
 ## Local configuration
@@ -79,14 +99,19 @@ owned virtual pool and is never silently promoted into a Temperance portfolio.
 - Compatibility combo: `temperance-coding`
 - Governed combos: `te-fast`, `te-build`, `te-reason`, `te-validate`, `te-creative`
 - Role combos: `te-plan` (GitHub planner) and `te-dispatch` (fleet workers)
+- Writing combos: `te-write` (drafting rail) and `te-write-critique`
+  (drift-scoring fusion council); see
+  [`docs/noesis-writer-routing.md`](./noesis-writer-routing.md)
 - Compatibility targets: `codex/gpt-5.6-terra`, `github/gpt-5.4`, then
   `nebius/Qwen/Qwen3-235B-A22B-Instruct-2507`
 - Live combo lifecycle: `scripts/omniroute-temperance-combos.sh`
 - Role combo lifecycle: `scripts/omniroute-temperance-fleet.sh`
+- Writing combo lifecycle: `scripts/omniroute-temperance-writer.sh`
 - Admin password: macOS Keychain service `OmniRoute Temperance Admin`
 - Scoped inference key: macOS Keychain service `OmniRoute Temperance API Key`
 - Codex profile: `~/.codex/temperance-coding.config.toml`
-- OpenCode provider: `omniroute/temperance-coding` plus `omniroute/temperance-auto` in `~/.config/opencode/opencode.json`
+- OpenCode providers: direct `omniroute/*` plus managed automatic `temperance/temperance-auto` in `~/.config/opencode/opencode.json`
+- Read-only surface check: `scripts/temperance-doctor.sh` (`--require-auto` for relay mode)
 
 The two `.env` files used by this installation are mode `600`. The scoped API
 key is referenced through `OMNIROUTE_API_KEY`; it is not embedded in config or
@@ -131,6 +156,11 @@ reversible agency, explicit uncertainty, and synthesis over unexamined
 consensus. The OpenCode flow plugin continues to add the full Temperance/ISA
 context at the tool-loop boundary; OmniRoute remains responsible for target
 health, failover, and model execution.
+
+Stage-scoped PAI skills, MCP lanes, and knowledge pointers are documented in
+[`docs/temperance-capability-fabric.md`](./temperance-capability-fabric.md).
+That seam is client-owned: OmniRoute routes the selected portfolio but does not
+execute skills, authorize MCP calls, or become the PAI memory store.
 
 Native probes confirm that `te-build` and `te-validate` return function-call
 envelopes. The Antigravity-backed `te-fast` and `te-reason` routes are

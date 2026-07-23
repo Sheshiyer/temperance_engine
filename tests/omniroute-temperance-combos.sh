@@ -34,5 +34,15 @@ check "manifest maps reasoning lane" test "$(jq -r '.task_type_portfolios.reason
 check "manifest maps validation lane" test "$(jq -r '.task_type_portfolios.validation' "$ROOT/package/router/omniroute-portfolios.json")" = te-validate
 check "runtime docs name all portfolios" sh -c "grep -q 'te-fast' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-build' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-reason' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-validate' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-creative' '$ROOT/docs/omniroute-runtime.md'"
 check "connection docs preserve native non-chat lanes" grep -q 'native capability lanes' "$ROOT/docs/omniroute-connections.md"
+check "writer lifecycle script is executable" test -x "$ROOT/scripts/omniroute-temperance-writer.sh"
+check "writer lifecycle script parses" bash -n "$ROOT/scripts/omniroute-temperance-writer.sh"
+check "writer lifecycle snapshots before mutation" grep -q 'BACKUP_PATH=' "$ROOT/scripts/omniroute-temperance-writer.sh"
+check "writer lifecycle has explicit rollback" grep -q -- '--rollback' "$ROOT/scripts/omniroute-temperance-writer.sh"
+check "writer lifecycle preserves active combo" grep -q 'activeCombo' "$ROOT/scripts/omniroute-temperance-writer.sh"
+check "writer lifecycle preflights live catalog" grep -q '/v1/models' "$ROOT/scripts/omniroute-temperance-writer.sh"
+check "workflow manifest names the writing role combos" sh -c "grep -q 'te-write' '$ROOT/package/router/temperance-workflows.json' && grep -q 'te-write-critique' '$ROOT/package/router/temperance-workflows.json'"
+check "portfolio manifest reserves writing combos names-only" sh -c "jq -e '(.reserved_portfolios | index(\"te-write\") != null) and (.reserved_portfolios | index(\"te-write-critique\") != null)' '$ROOT/package/router/omniroute-portfolios.json' >/dev/null"
+check "runtime docs name writing portfolios" sh -c "grep -q 'te-write' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-write-critique' '$ROOT/docs/omniroute-runtime.md'"
+check "writer routing doc keeps image generation client-side" sh -c "test -f '$ROOT/docs/noesis-writer-routing.md' && grep -qi 'client-side' '$ROOT/docs/noesis-writer-routing.md' && grep -qi 'FAL' '$ROOT/docs/noesis-writer-routing.md'"
 
 exit "$fail"

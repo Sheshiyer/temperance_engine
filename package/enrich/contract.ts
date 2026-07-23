@@ -1,5 +1,5 @@
 // package/enrich/contract.ts -- frozen SP0 enrichment contract. Do not fork.
-export type Surface = 'claude' | 'codex' | 'opencode';
+export type Surface = 'claude' | 'codex' | 'opencode' | 'kimi';
 export type Mode = 'MINIMAL' | 'NATIVE' | 'ALGORITHM';
 
 export interface EnrichInput { prompt: string; cwd: string; surface: Surface; }

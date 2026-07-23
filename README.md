@@ -34,6 +34,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 - **OmniRoute-backed agent routing** via `temperance-route` — Temperance classifies work, Codex supplies the tool loop, and OmniRoute owns the live model catalog and provider failover; direct CLIs remain outage fallbacks.
 - **Enrichment context** with automatic task classification — every prompt gets a `<temperance-context>` block with routing hints.
 - Optional templates for Claude Code and Codex when a user explicitly opts in.
+- **Optional Kimi surface** — kimi-cli and the Kimi desktop app opt into the governed `temperance/temperance-auto` lane via `scripts/configure-kimi-relay.sh`, with enrichment injected relay-side and the repo skills discoverable in Kimi's skill scopes (see [`docs/kimi-surface.md`](docs/kimi-surface.md)).
 - Optional local Pulse compatibility server on `localhost:31337` when Claude/Pulse compatibility is explicitly enabled.
 - Optional peon-ping phase routing for macOS users with local packs.
 - Skill-cluster resolver guidance and install hooks.
@@ -61,11 +62,22 @@ cd temperance_engine
 ./install.sh
 ./verify.sh
 
-# Optional: Wire OmniRoute-first routing with direct CLI fallbacks
-./scripts/wire-multi-backend.sh
+# Claude Code + Codex app + OpenCode surfaces
+./install.sh --with-claude --with-codex --with-opencode --skip-voice
+
+# Optional: persist the automatic OpenCode relay provider
+./install.sh --with-claude --with-codex --with-opencode --with-relay --skip-voice
+./scripts/temperance-doctor.sh --require-auto
+
+# Optional: opt Kimi (CLI and/or desktop app) into the governed relay lane
+./scripts/configure-kimi-relay.sh enable
+./scripts/configure-kimi-desktop-relay.sh enable
+./scripts/temperance-doctor.sh --require-kimi
 ```
 
-See [QUICKSTART.md](QUICKSTART.md) for multi-backend routing CLI usage.
+See [QUICKSTART.md](QUICKSTART.md) for multi-backend routing CLI usage and
+[`docs/omniroute-runtime.md`](docs/omniroute-runtime.md) for direct versus
+automatic OpenCode routing.
 
 Default install is OpenCode/Cursor-first. It does not install Claude Code or Codex templates unless you pass `--with-claude` or `--with-codex`.
 
@@ -290,6 +302,7 @@ flowchart TB
 ./install.sh --skip-opencode
 ./install.sh --skip-cursor
 ./install.sh --with-gsd
+./install.sh --with-relay
 ```
 
 Useful environment variables:

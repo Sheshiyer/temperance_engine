@@ -16,6 +16,10 @@ PROXY_BIN="${BIN_DIR}/temperance-openai-proxy.ts"
 ROUTER_DIR="${HOME}/.temperance_engine/router"
 ROUTER_SOURCE_DIR="${ROOT_DIR}/package/router"
 ROUTER_BIN="${ROUTER_DIR}/multi-backend-router.sh"
+# The proxy statically imports ../enrich/index (relay-side kimi enrichment), so
+# the deployed layout must mirror package/: bin/ and enrich/ as siblings.
+ENRICH_DIR="${HOME}/.temperance_engine/enrich"
+ENRICH_SOURCE_DIR="${ROOT_DIR}/package/enrich"
 
 install_agent() {
   mkdir -p "$PLIST_DIR" "$STATE_DIR"
@@ -31,6 +35,11 @@ install_agent() {
     cp -p "$ROUTER_SOURCE_DIR/$router_file" "$ROUTER_DIR/$router_file"
   done
   chmod 700 "$ROUTER_BIN"
+  if [[ -d "$ENRICH_DIR" ]]; then
+    mv "$ENRICH_DIR" "$ENRICH_DIR.bak.$(date +%Y%m%d-%H%M%S)"
+  fi
+  cp -R "$ENRICH_SOURCE_DIR" "$ENRICH_DIR"
+  chmod -R go-rwx "$ENRICH_DIR"
   if [[ -f "$PROXY_BIN" ]]; then
     cp -p "$PROXY_BIN" "$PROXY_BIN.bak.$(date +%Y%m%d-%H%M%S)"
   fi

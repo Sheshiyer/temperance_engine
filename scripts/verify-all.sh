@@ -17,7 +17,9 @@ fi
 run ./verify.sh
 run bun test package/enrich
 run bun test package/router/routing-policy.test.ts
+run bun test package/router/omniroute-portfolios.test.ts
 run bun test package/router/temperance-workflows.test.ts
+run bun test package/router/temperance-stage-contract.test.ts
 run bun test package/router/temperance-openai-proxy.test.ts
 run bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts
 run bun test package/adapters/opencode/TemperanceFlowPlugin.test.ts
@@ -31,6 +33,11 @@ run bash tests/dispatch-tasklist.sh
 run sh tests/sandbox-install.sh
 run sh tests/identity-tool.sh
 run bash tests/wire-batch.sh
+run bash tests/opencode-relay-config.sh
+run bash tests/kimi-relay-config.sh
+run bash tests/kimi-desktop-relay-config.sh
+run bash tests/kimi-hook.sh
+run bash tests/temperance-doctor.sh
 run bash tests/classify-task.sh
 
 printf '\n%s\n' "Temperance Engine full verification passed"

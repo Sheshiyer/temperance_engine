@@ -46,17 +46,38 @@ export function assertLiveModel(modelId: string, liveModelIds: Set<string>): voi
   }
 }
 
+let cachedLive: Set<string> | null = null;
+let cachedAt = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getLiveModelIds(baseUrl: string): Promise<Set<string>> {
+  const now = Date.now();
+  if (cachedLive && now - cachedAt < CACHE_TTL_MS) return cachedLive;
+  try {
+    const ids = await fetchLiveModelIds(baseUrl);
+    cachedLive = ids;
+    cachedAt = now;
+    return ids;
+  } catch {
+    return cachedLive ?? new Set<string>();
+  }
+}
+
 export const OmniRouteCatalogGuard: Plugin = async () => ({
-  "chat.params": async (input) => {
-    if (input.model.providerID !== "omniroute") return;
+  "chat.params": async (input, _output) => {
+    if (!input?.model || !["omniroute", "temperance"].includes(input.model.providerID)) return;
 
     const configuredBaseUrl =
-      typeof input.provider.options?.baseURL === "string"
+      typeof input.provider?.options?.baseURL === "string"
         ? input.provider.options.baseURL
         : process.env.TEMPERANCE_OMNIROUTE_BASE_URL ||
-          "http://127.0.0.1:20128/v1";
-    const liveModelIds = await fetchLiveModelIds(configuredBaseUrl);
-    assertLiveModel(input.model.id, liveModelIds);
+          input.model.providerID === "temperance"
+            ? "http://127.0.0.1:20129/v1"
+            : "http://127.0.0.1:20128/v1";
+    const liveModelIds = await getLiveModelIds(configuredBaseUrl);
+    if (liveModelIds.size > 0 && input.model.id) {
+      assertLiveModel(input.model.id, liveModelIds);
+    }
   },
 });
 
