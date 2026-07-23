@@ -4,7 +4,7 @@ task: Add the noesis writing fleet (te-write + te-write-critique) to OmniRoute g
 effort: E3
 phase: verify
 iteration: 2026-07-23-writing-fleet
-progress: 175/177
+progress: 179/181
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-23
@@ -241,6 +241,10 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-175: Writing-workflow documentation maps every noesis-writer-skill phase (including transmutation mode) to its combo or client-side boundary; FAL image generation, vault source mining, and gate ledgers remain client-side, and `te-creative` is reused for image planning.
 - [x] ISC-176: The ACP lane is declared-but-inactive in the manifest and docs, with the principal-bound security design named as the activation prerequisite and no agent-protocol implementation added.
 - [x] ISC-177: The canonical verification gate passes with the writing-fleet resolver tests, portfolio manifest tests, and lifecycle shell assertions included.
+- [x] ISC-178: The planner's github and codex slots independently substitute `kimi-coding-apikey/k3` when that slot's own live remaining quota drops below the configured threshold (default 30%), deduping to one entry when both trigger, and never substituting when kimi's own quota is also below threshold or the Nebius fallback slot itself.
+- [x] ISC-179: The substitution logic is implemented identically in `scripts/omniroute-temperance-planner-quota.sh` (live OmniRoute reconciliation) and `package/router/temperance-workflows.ts`'s `resolveWorkflow("planner", ...)` (advisory CLI), the latter reading the former's cached state file so both stay consistent.
+- [x] ISC-180: Because OmniRoute has no update/PATCH endpoint for an existing combo, reconciliation is snapshot-first, dry-run by default, and rollback-capable via delete-then-recreate, matching the existing role-combo lifecycle pattern; it never mutates `te-plan` when the live model order already matches the desired quota-aware order, and never changes the global `activeCombo`.
+- [x] ISC-181: The canonical verification gate passes with the planner-quota reconciler's structural and functional shell assertions and the extended `temperance-workflows.test.ts` quota-substitution cases included.
 
 ## Test Strategy
 
@@ -423,6 +427,10 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-175 | docs | noesis-writer-routing maps phases and keeps FAL/vault/ledgers client-side | client-side + FAL greps | combos shell gate |
 | ISC-176 | boundary | acp lane is declared-inactive with principal-bound prerequisite | status + note match | Bun test |
 | ISC-177 | regression | full verification includes writing-fleet suites | zero failures | verify-all |
+| ISC-178 | routing | github/codex slots independently substitute kimi-k3 below threshold, dedupe on both, never on kimi-low or the Nebius slot | exact model order + substitutions list | Bun test |
+| ISC-179 | consistency | reconciler and advisory CLI implement identical substitution logic via a shared cache file | identical output given identical quota input | Bun test + shell test |
+| ISC-180 | lifecycle | te-plan reconciliation is snapshot-first, dry-run default, rollback-capable, no-op when already correct | zero unintended mutations | shell test + live dry-run |
+| ISC-181 | regression | full verification includes the planner-quota reconciler and extended workflow tests | zero failures | verify-all |
 
 ## Features
 
@@ -468,6 +476,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | Kimi skills discoverability | ISC-169 | repo skills, wire-multi-backend, kimi skill scopes | yes |
 | Kimi diagnostics and verification | ISC-170..ISC-171 | readiness doctor, canonical verification gate, sandbox tests | no |
 | Noesis writing fleet (drafting rail + critique council) | ISC-172..ISC-177 | role manifest, writer lifecycle script, portfolio manifest, capability fabric and routing docs | no |
+| Weekly-quota-aware planner substitution | ISC-178..ISC-181 | live OmniRoute quota poll, planner reconciler script, workflows.ts resolver, fleet docs | no |
 
 ## Architecture
 
@@ -611,6 +620,16 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   learned: a host's skill/plugin directory scanner cannot be assumed to follow a symlink the way the shell or a Python-based CLI does; cross-volume symlinks are the likely failure class (a Node `Dirent.isDirectory()`-style check reflecting the link's own type rather than its resolved target), so a scanner-dependent install path needs empirical, in-app confirmation, not just a filesystem-level existence check
   criterion now: ISC-169 requires desktop skills to be real, marker-tagged managed copies (not symlinks) refreshed idempotently by wire-multi-backend.sh, while project/user scopes keep symlinks since those are unaffected
 
+- 2026-07-23 | conjectured: the user's "weekly rate limits for codex and github" would map directly onto an existing weekly quota window for each connection
+  refuted by: reading OmniRoute's own quota-tracking database directly showed GitHub's window is monthly (`completions`/`chat`/`premium_interactions`, reset the 1st) and Codex's is a rolling multi-day "session" window; only the Kimi Coding connections carry a genuine `window_key = "Weekly"` row
+  learned: "weekly" was the user's framing for "proactively switch before a provider's own quota runs out," not a literal shared reset cadence; the feature must read whatever window each connection's own `omniroute usage quota` percentage currently reflects rather than assuming a common period, and non-code-review "what does the user mean" ambiguity here was resolved by asking (trigger scope, chain position, kimi's own guard, and polling model) before writing code
+  criterion now: ISC-178 defines the substitution purely on live remaining-percentage per provider, independent of each provider's underlying reset cadence
+
+- 2026-07-23 | conjectured: OmniRoute's own combo failover, or one of its 18 built-in routing strategies (`headroom`, `reset-aware`), could express "prefer github/codex normally, proactively switch below 30%" without new Temperance code
+  refuted by: `failoverBeforeRetry` only reacts to actual request failures, never to a live quota percentage; `headroom` always routes to whoever has the most remaining quota with no sticky primary preference, and `reset-aware` ranks by which window resets soonest — neither expresses a threshold-gated, sticky-primary preference, and OmniRoute's combo API has no update/PATCH endpoint, only create and delete
+  learned: proactive, threshold-gated backend preference is a Temperance-owned responsibility layered on top of OmniRoute's reactive failover, implemented the same way rollback already is in this codebase — delete-then-recreate a combo from a freshly computed desired model list, snapshot-first and idempotent when no change is needed
+  criterion now: ISC-179 and ISC-180 require the reconciler and the advisory CLI to share one substitution algorithm via a cached state file, and require the live mutation path to be snapshot-first, dry-run by default, and a true no-op when the live combo already matches
+
 ## Verification
 
 - `./verify.sh` passed after checking required files, shell syntax, and hard-coded install paths.
@@ -753,6 +772,10 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-175: `docs/noesis-writer-routing.md` maps every skill phase (P1–P5 plus Nigredo/Albedo/Citrinitas/Rubedo) to its combo or client-side boundary; the shell gate confirms the doc names both combos and states FAL/client-side explicitly.
 - ISC-176: `workflowManifest.writing.acp.status === "declared-inactive"` with a note naming the principal-bound security-design prerequisite, asserted in the resolver test suite.
 - ISC-177: `./scripts/omniroute-temperance-writer.sh --apply` created `te-write` (id `c37c4438-0906-42a2-a166-11515177d63c`) and `te-write-critique` (id `988a8278-4518-465b-bcac-44884f9b814b`); `activeCombo` remained `null` before and after. Live native probes returned `WRITE_OK` from `te-write` (routed to priority-1 `MiniMaxAI/MiniMax-M2.7` via `command-code`, 622ms, zero cost) and `CRITIQUE_OK` from `te-write-critique` (fusion judge `gpt-5.6-terra` via Codex, 443ms). `./scripts/verify-all.sh` completed with `Temperance Engine full verification passed` including the extended portfolio and workflow suites.
+- ISC-178: `bun test package/router/temperance-workflows.test.ts` passed the new github-alone, both-triggered-dedupe, kimi-own-guard, missing-provider-fail-open, and non-`available`-state cases; `bash tests/omniroute-planner-quota.sh` reproduced the same six scenarios against the shell reconciler's `--status` output with identical results.
+- ISC-179: the CLI (`bun package/router/temperance-workflows.ts resolve planner ...`) was run against a hand-written state-file fixture and reproduced the exact substitution the shell reconciler computed for the same quota input; with no state file present it fails open to the unmodified candidate list.
+- ISC-180: live dry-run against the real `te-plan` combo reported `te-plan already matches the quota-aware desired order` (zero drift with healthy quotas). A live `--apply` test with a faked low-github quota reconciled the real combo to `["kimi-coding-apikey/k3","codex/gpt-5.6-sol-max","nebius/Qwen/Qwen3-235B-A22B-Instruct-2507"]` (verified via a direct `/api/combos` read), preserved `activeCombo: null`, and wrote a timestamped backup; a follow-up `--apply` with real (healthy) quota data reconciled it back to the original `["github/gpt-5.4","codex/gpt-5.6-sol-max","nebius/Qwen/Qwen3-235B-A22B-Instruct-2507"]`, confirmed byte-for-byte via a second live read (same description, strategy, and model order as before either mutation).
+- ISC-181: `./scripts/verify-all.sh` completed with `Temperance Engine full verification passed` including `tests/omniroute-planner-quota.sh` and the extended `temperance-workflows.test.ts` suite; the `com.temperance.engine.planner-quota` LaunchAgent was installed (`--install-timer`, 900s interval), its `RunAtLoad` firing confirmed no drift against live quota, and `temperance-doctor.sh --json` reported `planner_quota_state` and `planner_quota_timer` both healthy without affecting `direct_ready`/`automatic_ready`/`kimi_ready`.
 - 2026-07-23 negative path: with OmniRoute stopped, the governed kimi lane returned the relay's clean `upstream_unavailable` envelope and the session stayed resumable; the default `managed:kimi-code` lane was structurally untouched. After `omniroute serve` restarted, the same request succeeded end-to-end.
 - 2026-07-23 desktop: `configure-kimi-desktop-relay.sh enable` landed the managed block in `daimon-share/config.toml` with `config_sha256` recorded; picker visibility pending the user's next app restart (the app was running and was not killed).
 - 2026-07-23 post-restart: the user restarted Kimi.app and reported the picker unchanged (three models) and the desktop skills still not recognized. Investigation found the daimon's live startup log (`configPath=.../daimon/runtime/kimi-code/config.toml`) loads a DIFFERENT config file than the one `configure-kimi-desktop-relay.sh` manages (`daimon-share/config.toml`) — the picker gap is explained by that mismatch and is left as an open follow-up (out of scope for this pass; the user confirmed the model picker is not the priority). The skills gap was root-caused and fixed: see ISC-169 changelog entry below.

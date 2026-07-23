@@ -19,6 +19,60 @@ GitHub and Codex are separate live connections on this Mac:
 task graph, acceptance criteria, and route hints; it does not become a second
 classifier and it does not directly mutate the workspace.
 
+### Weekly-quota-aware planner substitution
+
+OmniRoute's own combo failover is reactive: `failoverBeforeRetry` only moves
+to the next priority tier after a request actually fails, and none of its 18
+built-in routing strategies express "prefer github/codex normally, but
+proactively switch to a specific backup once remaining quota drops below a
+threshold" (`headroom` always picks whoever has the most quota with no sticky
+primary preference; `reset-aware` ranks by which window resets soonest — both
+were considered and neither matches this shape). GitHub's live quota window is
+also monthly, not weekly, and Codex's is a rolling multi-day session window;
+only the Kimi Coding connections are genuinely weekly-tracked.
+
+`scripts/omniroute-temperance-planner-quota.sh` closes that gap by
+periodically polling `omniroute usage quota` for `github`, `codex`, and
+`kimi-coding-apikey`, and reconciling the live `te-plan` combo when needed:
+
+- If `github`'s remaining quota drops below the threshold (default 30%), its
+  slot substitutes `kimi-coding-apikey/k3` — independently of `codex`.
+- If `codex`'s remaining quota drops below the threshold, its slot
+  substitutes the same model — independently of `github`.
+- If both trigger at once, the result dedupes to a single `kimi-coding-apikey/k3`
+  entry rather than listing it twice.
+- Kimi's own quota is checked too: if `kimi-coding-apikey` is itself below the
+  threshold (or in a non-`available` state), no substitution happens at
+  all — the original `github`/`codex` model stays in place, falling through
+  to OmniRoute's existing reactive failover to the Nebius fallback instead.
+- The Nebius fallback slot is never substituted; it remains the final safety
+  net in every case.
+
+Because OmniRoute has no update/PATCH endpoint for an existing combo, a
+change is applied by deleting and recreating `te-plan` with the same name,
+description, strategy, and config — only the `models` array differs. This
+mirrors the snapshot-first, `--rollback`-capable pattern already used by
+`scripts/omniroute-temperance-fleet.sh`.
+
+```bash
+scripts/omniroute-temperance-planner-quota.sh --status   # read-only quota + diff report
+scripts/omniroute-temperance-planner-quota.sh --dry-run  # authenticated, no mutation
+scripts/omniroute-temperance-planner-quota.sh --apply    # reconcile te-plan if it drifted
+scripts/omniroute-temperance-planner-quota.sh --rollback FILE
+
+# Run the check automatically on a timer (default every 15 minutes):
+scripts/omniroute-temperance-planner-quota.sh --install-timer
+scripts/omniroute-temperance-planner-quota.sh --timer-status
+scripts/omniroute-temperance-planner-quota.sh --uninstall-timer
+```
+
+The same substitution logic is mirrored in
+[`package/router/temperance-workflows.ts`](../package/router/temperance-workflows.ts)'s
+`resolveWorkflow("planner", ...)`, which reads the reconciler's cached state
+file (`~/.temperance_engine/state/omniroute-planner-quota.json`) so the
+advisory CLI (`bun package/router/temperance-workflows.ts resolve planner ...`)
+stays consistent with whatever is actually live on the combo.
+
 ## Temperance Dispatch fleet
 
 `te-dispatch` is a worker portfolio, not the planner. Independent tasks are
