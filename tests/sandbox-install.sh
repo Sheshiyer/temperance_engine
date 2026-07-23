@@ -53,6 +53,13 @@ for rel in \
   ".config/opencode/AGENTS.md" \
   ".config/opencode/opencode.json" \
   ".codex/AGENTS.md" \
+  ".claude/PAI/enrich/index.ts" \
+  ".claude/PAI/router/classify-task.sh" \
+  ".claude/hooks/PromptProcessing.hook.ts" \
+  ".codex/hooks/PromptProcessing.hook.ts" \
+  ".local/bin/temperance-route" \
+  ".local/bin/temperance-dispatch" \
+  ".local/bin/temperance-batch" \
   ".cursor/templates/temperance-engine.AGENTS.md" \
   ".cursor/templates/temperance-engine.rules.mdc" \
 ; do

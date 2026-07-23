@@ -5,7 +5,8 @@
 # What this does:
 # 1. Creates backups of anything it touches
 # 2. Symlinks router to ~/.local/bin for easy access
-# 3. Updates Codex hooks to use shared enrichment core
+# 3. Ensures the shared enrichment core is present for Claude and Codex
+# 4. Installs missing prompt adapters without replacing user-owned hooks
 # 4. Creates OpenCode hooks directory and installs adapter
 # 5. Adds router to Delegation skill knowledge
 #
@@ -14,6 +15,8 @@
 #   ./scripts/wire-multi-backend.sh --dry-run    # Preview only
 #   ./scripts/wire-multi-backend.sh --revert     # Undo changes
 #   ./scripts/wire-multi-backend.sh --status     # Check current state
+#   ./scripts/wire-multi-backend.sh --refresh-enrich # Refresh the shared core
+#   ./scripts/wire-multi-backend.sh --refresh-hooks  # Replace prompt adapters
 
 set -euo pipefail
 
@@ -25,6 +28,8 @@ BACKUP_DIR="${HOME}/.temperance_engine/backups/${TIMESTAMP}"
 DRY_RUN=false
 REVERT=false
 STATUS=false
+REFRESH_ENRICH=false
+REFRESH_HOOKS=false
 
 # Parse args
 for arg in "$@"; do
@@ -32,8 +37,10 @@ for arg in "$@"; do
     --dry-run) DRY_RUN=true ;;
     --revert) REVERT=true ;;
     --status) STATUS=true ;;
+    --refresh-enrich) REFRESH_ENRICH=true ;;
+    --refresh-hooks) REFRESH_HOOKS=true ;;
     -h|--help)
-      echo "Usage: $0 [--dry-run] [--revert] [--status]"
+      echo "Usage: $0 [--dry-run] [--revert] [--status] [--refresh-enrich] [--refresh-hooks]"
       exit 0
       ;;
   esac
@@ -62,6 +69,21 @@ backup_file() {
   fi
 }
 
+backup_dir() {
+  local src="$1"
+  if [[ -d "$src" && ! -L "$src" ]]; then
+    mkdir -p "$BACKUP_DIR"
+    local name
+    name=$(basename "$src")
+    if $DRY_RUN; then
+      log "Would backup directory: $src → $BACKUP_DIR/$name"
+    else
+      cp -RP "$src" "$BACKUP_DIR/$name"
+      log "Backed up directory: $src → $BACKUP_DIR/$name"
+    fi
+  fi
+}
+
 symlink() {
   local src="$1"
   local dst="$2"
@@ -80,6 +102,42 @@ symlink() {
   mkdir -p "$(dirname "$dst")"
   ln -s "$src" "$dst"
   log "Symlinked: $dst → $src"
+}
+
+ensure_enrichment_core() {
+  local src="$REPO_ROOT/package/enrich"
+  local dst="$HOME/.claude/PAI/enrich"
+  [[ -d "$src" ]] || err "Shared enrichment source missing: $src"
+  if [[ -d "$dst" && "$REFRESH_ENRICH" != true ]]; then
+    log "Shared enrichment core already present; preserving $dst"
+    return
+  fi
+  if $DRY_RUN; then
+    [[ -e "$dst" ]] && log "Would backup directory: $dst → $BACKUP_DIR/enrich"
+    log "Would install shared enrichment core: $dst → $src"
+    return
+  fi
+  if [[ -e "$dst" ]]; then
+    backup_dir "$dst"
+    rm -rf "$dst"
+  fi
+  mkdir -p "$(dirname "$dst")"
+  cp -R "$src" "$dst"
+  log "Installed shared enrichment core: $dst"
+}
+
+ensure_prompt_hook() {
+  local src="$1"
+  local dst="$2"
+  if [[ -e "$dst" || -L "$dst" ]]; then
+    if [[ "$REFRESH_HOOKS" == true ]]; then
+      symlink "$src" "$dst"
+    else
+      log "Prompt hook already present; preserving $dst"
+    fi
+    return
+  fi
+  symlink "$src" "$dst"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -181,8 +239,32 @@ check_status() {
   fi
   echo ""
   
+  # Kimi
+  echo "5. KIMI"
+  if [[ -L "$HOME/.kimi/skills/temperance-parallel-dispatch" && -e "$HOME/.kimi/skills/temperance-parallel-dispatch" ]]; then
+    echo "   [OK] CLI skill links resolve"
+  elif [[ -d "$HOME/.kimi" ]]; then
+    echo "   [MISSING] CLI skill links (~/.kimi/skills/temperance-*)"
+  else
+    echo "   [N/A] Kimi CLI not installed"
+  fi
+  local kimi_desktop_skills="${TEMPERANCE_KIMI_DESKTOP_SKILLS:-$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/skills}"
+  if [[ -L "$kimi_desktop_skills/temperance-parallel-dispatch" && -e "$kimi_desktop_skills/temperance-parallel-dispatch" ]]; then
+    echo "   [OK] Desktop daimon skill links resolve"
+  elif [[ -d "$kimi_desktop_skills" ]]; then
+    echo "   [MISSING] Desktop daimon skill links"
+  else
+    echo "   [N/A] Kimi desktop app not installed"
+  fi
+  if [[ -f "$HOME/.temperance_engine/relay/kimi-provider.json" ]]; then
+    echo "   [OK] CLI relay provider state marker present"
+  else
+    echo "   [--] CLI relay lane not enabled (scripts/configure-kimi-relay.sh)"
+  fi
+  echo ""
+
   # Available backends
-  echo "5. AVAILABLE BACKENDS"
+  echo "6. AVAILABLE BACKENDS"
   local backends=()
   command -v command-code &>/dev/null && backends+=("command-code")
   command -v kimi &>/dev/null && backends+=("kimi")
@@ -191,7 +273,7 @@ check_status() {
   echo ""
   
   # Backups
-  echo "6. BACKUPS"
+  echo "7. BACKUPS"
   if [[ -d "$HOME/.temperance_engine/backups" ]]; then
     local count
     count=$(ls -1 "$HOME/.temperance_engine/backups" 2>/dev/null | wc -l | tr -d ' ')
@@ -232,8 +314,15 @@ revert() {
   [[ -L "$HOME/.local/bin/temperance-route" ]] && rm -f "$HOME/.local/bin/temperance-route" && log "Removed: ~/.local/bin/temperance-route"
   [[ -L "$HOME/.local/bin/temperance-dispatch" ]] && rm -f "$HOME/.local/bin/temperance-dispatch" && log "Removed: ~/.local/bin/temperance-dispatch"
   [[ -L "$HOME/.local/bin/temperance-batch" ]] && rm -f "$HOME/.local/bin/temperance-batch" && log "Removed: ~/.local/bin/temperance-batch"
-  [[ -L "$HOME/.claude/PAI/router/classify-task.sh" ]] && rm -f "$HOME/.claude/PAI/router/classify-task.sh" && log "Removed: ~/.claude/PAI/router/classify-task.sh"
+  for router_file in classify-task.sh omniroute-portfolios.ts omniroute-portfolios.json; do
+    [[ -L "$HOME/.claude/PAI/router/$router_file" ]] && rm -f "$HOME/.claude/PAI/router/$router_file" && log "Removed: ~/.claude/PAI/router/$router_file"
+  done
   [[ -L "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh" ]] && rm -f "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh" && log "Removed: OpenCode hook symlink"
+  for skill in temperance-engine temperance-parallel-dispatch; do
+    [[ -L "$HOME/.kimi/skills/$skill" ]] && rm -f "$HOME/.kimi/skills/$skill" && log "Removed: ~/.kimi/skills/$skill"
+    kimi_desktop_skill="${TEMPERANCE_KIMI_DESKTOP_SKILLS:-$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/skills}/$skill"
+    [[ -L "$kimi_desktop_skill" ]] && rm -f "$kimi_desktop_skill" && log "Removed: Kimi desktop skill link $skill"
+  done
   
   # Restore backed up files
   for f in "$backup_path"/*; do
@@ -258,6 +347,7 @@ install() {
   # 1. Router CLI to ~/.local/bin
   log "Step 1: Installing router CLI..."
   mkdir -p "$HOME/.local/bin"
+  ensure_enrichment_core
   symlink "$REPO_ROOT/package/router/multi-backend-router.sh" "$HOME/.local/bin/temperance-route"
   symlink "$REPO_ROOT/package/router/parallel-backend-dispatch.sh" "$HOME/.local/bin/temperance-dispatch"
   symlink "$REPO_ROOT/package/router/dispatch-tasklist.sh" "$HOME/.local/bin/temperance-batch"
@@ -266,7 +356,9 @@ install() {
   # enrichment hook (enrich/stages/routing.ts) resolves its
   # ../../router/classify-task.sh sibling instead of failing open to
   # task=balanced. (routing.ts also honors TEMPERANCE_ROUTER_DIR as an override.)
-  symlink "$REPO_ROOT/package/router/classify-task.sh" "$HOME/.claude/PAI/router/classify-task.sh"
+  for router_file in classify-task.sh omniroute-portfolios.ts omniroute-portfolios.json; do
+    symlink "$REPO_ROOT/package/router/$router_file" "$HOME/.claude/PAI/router/$router_file"
+  done
   
   # Check if ~/.local/bin is in PATH
   if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
@@ -290,6 +382,12 @@ install() {
   
   # 3. Check Claude Code (already wired via existing install)
   log "Step 3: Checking Claude Code..."
+  if $DRY_RUN; then
+    log "Would ensure Claude prompt adapter: ~/.claude/hooks/PromptProcessing.hook.ts"
+  else
+    mkdir -p "$HOME/.claude/hooks"
+    ensure_prompt_hook "$REPO_ROOT/package/enrich/adapters/claude-prompthook.ts" "$HOME/.claude/hooks/PromptProcessing.hook.ts"
+  fi
   if [[ -d "$HOME/.claude/PAI/enrich" ]]; then
     log "Claude Code enrichment core already installed at ~/.claude/PAI/enrich/"
   else
@@ -299,6 +397,12 @@ install() {
   
   # 4. Check Codex (existing hooks don't use shared core)
   log "Step 4: Checking Codex..."
+  if $DRY_RUN; then
+    log "Would ensure Codex prompt adapter: ~/.codex/hooks/PromptProcessing.hook.ts"
+  else
+    mkdir -p "$HOME/.codex/hooks"
+    ensure_prompt_hook "$REPO_ROOT/package/enrich/adapters/codex-prompthook.ts" "$HOME/.codex/hooks/PromptProcessing.hook.ts"
+  fi
   if [[ -f "$HOME/.codex/hooks/PromptProcessing.hook.ts" ]]; then
     if grep -q "TEMPERANCE_ENRICH_DIR\|PAI/enrich" "$HOME/.codex/hooks/PromptProcessing.hook.ts" 2>/dev/null; then
       log "Codex already uses shared enrichment core"
@@ -311,6 +415,35 @@ install() {
   fi
   echo ""
   
+  # 4b. Kimi skills (CLI + desktop daimon). Provider/hook wiring is opt-in via
+  # configure-kimi-relay.sh; this step only makes the repo skills discoverable.
+  log "Step 4b: Checking Kimi skills..."
+  if [[ -d "$HOME/.kimi" ]]; then
+    if $DRY_RUN; then
+      log "Would symlink temperance skills into ~/.kimi/skills/"
+    else
+      mkdir -p "$HOME/.kimi/skills"
+      for skill in temperance-engine temperance-parallel-dispatch; do
+        symlink "$REPO_ROOT/skills/$skill" "$HOME/.kimi/skills/$skill"
+      done
+    fi
+  else
+    log "Kimi CLI not detected (~/.kimi missing); skipping CLI skill links"
+  fi
+  KIMI_DESKTOP_SKILLS="${TEMPERANCE_KIMI_DESKTOP_SKILLS:-$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/skills}"
+  if [[ -d "$KIMI_DESKTOP_SKILLS" ]]; then
+    if $DRY_RUN; then
+      log "Would symlink temperance skills into Kimi desktop daimon skills dir"
+    else
+      for skill in temperance-engine temperance-parallel-dispatch; do
+        symlink "$REPO_ROOT/skills/$skill" "$KIMI_DESKTOP_SKILLS/$skill"
+      done
+    fi
+  else
+    log "Kimi desktop daimon skills dir not found; skipping desktop skill links"
+  fi
+  echo ""
+
   # 5. Summary
   log "Step 5: Verifying..."
   echo ""

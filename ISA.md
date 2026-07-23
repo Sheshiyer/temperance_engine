@@ -1,10 +1,10 @@
 ---
 project: temperance_engine
-task: Add governed OmniRoute portfolios, fleet roles, and creative workflow
+task: Add the noesis writing fleet (te-write + te-write-critique) to OmniRoute governance
 effort: E3
-phase: learn
-iteration: 2026-07-23-fleet-creative
-progress: 147/149
+phase: build
+iteration: 2026-07-23-writing-fleet
+progress: 169/177
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-23
@@ -213,6 +213,34 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-147: Shared creative task classification resolves to `te-creative` while role resolution remains separate from prompt classification.
 - [x] ISC-148: Local OpenCode configuration exposes live `te-plan`, `te-dispatch`, and `te-creative` picker modes without embedding credentials or copying the provider catalog.
 - [x] ISC-149: Full verification covers workflow resolver tests, lifecycle safety, live readiness, and the existing routing/dispatch regression suites.
+- [x] ISC-150: A typed Temperance stage contract maps all seven PAI phases to current portfolio contracts, skill capabilities, MCP lanes, and logical knowledge roots without copying private bodies.
+- [x] ISC-151: Typed handoffs validate stage order, status, required fields, and next-stage transitions while rejecting secret-bearing or raw-transcript payloads.
+- [x] ISC-152: Knowledge discovery is read-only and pointer-only, reporting logical roots and presence without importing file contents into OmniRoute or the repository.
+- [x] ISC-153: The shared enrichment core installs whenever Claude Code or Codex is explicitly enabled, while preserving an existing live tree unless refresh is requested.
+- [x] ISC-154: Multi-backend wiring installs the classifier, portfolio resolver, and manifest beside enrichment so every configured surface can resolve the same routing contract.
+- [x] ISC-155: The Codex UserPromptSubmit adapter invokes the shared enrichment core with `surface=codex`, emits the hook envelope, and fails open without leaking prompt bodies.
+- [x] ISC-156: OpenCode keeps direct `omniroute/*` models on port `20128` and exposes automatic `temperance/temperance-auto` through a separate relay provider on port `20129`.
+- [x] ISC-157: Relay configuration is backup-first, idempotent, reversible, and records a versioned sidecar without copying credentials or the live model catalog.
+- [x] ISC-158: `temperance-doctor.sh` distinguishes direct readiness from automatic readiness, supports offline checks, and emits no secret material.
+- [x] ISC-159: The `--with-relay` installer path provisions the macOS LaunchAgent, enables the automatic provider, and passes the live health/model/doctor probes.
+- [x] ISC-160: The canonical verification gate covers relay configuration, doctor readiness, Codex enrichment, and sandbox wiring alongside existing routing and dispatch suites.
+- [x] ISC-161: The shared enrichment contract recognizes `kimi` as a client surface and produces a well-formed context block for kimi inputs.
+- [x] ISC-162: The relay injects server-side enrichment only for requests tagged `X-Temperance-Surface: kimi`, prepending a fresh block to the latest user message without stacking blocks or rewriting prior-turn history.
+- [x] ISC-163: Relay enrichment is fail-open and latency-bounded: errors, timeouts, or missing prompts forward the request unmodified with the skip observable in the decision log and response header.
+- [x] ISC-164: The relay resolves enrichment cwd from a freshness-gated, schema-validated hook sidecar and falls back to relay cwd, logging the source and an advisory prompt-hash match.
+- [x] ISC-165: The Kimi UserPromptSubmit hook always exits 0 with empty stdout, writes the sidecar atomically with owner-only permissions, and appends kimi telemetry without ever blocking a prompt.
+- [x] ISC-166: Kimi CLI relay enable appends exactly one marker-delimited managed provider/model block with the surface header, health-gates on relay kimi-enrichment capability, and never touches `default_model` unless explicitly requested.
+- [x] ISC-167: Kimi relay disable removes everything managed and nothing else: byte-identical restore before kimi normalizes the config, semantic table/hook removal after, plus hook-copy and state-marker cleanup in both states.
+- [x] ISC-168: The desktop daimon variant parameterizes the same managed-block lifecycle, records `config_sha256` for drift detection, installs its hook copy outside the app directory, and never prints config contents.
+- [x] ISC-169: Temperance skills resolve in Kimi's project scope (committed `.agents/skills` relative symlinks), user scope (`~/.kimi/skills`), and the desktop daimon skills directory via backup-first, revertable wiring.
+- [x] ISC-170: `temperance-doctor.sh` reports an opt-in `kimi_ready` aggregate that never affects `direct_ready` and gates the exit code only under `--require-kimi`.
+- [x] ISC-171: The canonical verification gate covers kimi relay configuration, desktop configuration, hook behavior, and relay enrichment injection alongside existing suites.
+- [ ] ISC-172: The role manifest exposes a `writing` role — portfolio `te-write` with drafting order MiniMax-M2.7 → Kimi K2.6 → Nebius Qwen, and a nested fusion critique council `te-write-critique` with a Codex terra judge — and the resolver handles `writing` without inspecting prompt text.
+- [ ] ISC-173: `te-write` and `te-write-critique` appear only in `reserved_portfolios` as names; task-type mappings and the five required portfolios are unchanged, and the portfolio manifest still contains no provider or model membership.
+- [ ] ISC-174: A snapshot-first writer lifecycle script defaults to dry-run, refuses name collisions, preflights exactly its live catalog targets, preserves `activeCombo` null, and supports rollback; the lifecycle shell gate covers all of these guards.
+- [ ] ISC-175: Writing-workflow documentation maps every noesis-writer-skill phase (including transmutation mode) to its combo or client-side boundary; FAL image generation, vault source mining, and gate ledgers remain client-side, and `te-creative` is reused for image planning.
+- [ ] ISC-176: The ACP lane is declared-but-inactive in the manifest and docs, with the principal-bound security design named as the activation prerequisite and no agent-protocol implementation added.
+- [ ] ISC-177: The canonical verification gate passes with the writing-fleet resolver tests, portfolio manifest tests, and lifecycle shell assertions included.
 
 ## Test Strategy
 
@@ -367,6 +395,34 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-147 | architecture | creative classification maps to te-creative without a second classifier | exact mapping | portfolio unit test |
 | ISC-148 | config | OpenCode exposes only live role IDs without credentials | JSON + live IDs | OpenCode CLI probe |
 | ISC-149 | regression | workflow and existing routing/dispatch gates pass | zero failures | verify-all |
+| ISC-150 | schema | seven stage profiles resolve portfolios, skills, MCP lanes, and knowledge pointers | exact stage order + catalog diff | Bun test |
+| ISC-151 | safety | malformed, invalid-transition, or secret-bearing handoffs are rejected | zero unsafe handoffs | Bun test |
+| ISC-152 | safety | knowledge resolver emits logical roots only and never file bodies | pointer schema + no bodies | Bun test + CLI |
+| ISC-153 | installer | Claude or Codex opt-in installs shared enrichment with backup/refresh semantics | present + preserved | install-pai + sandbox |
+| ISC-154 | wiring | shared classifier and portfolio resolver are co-located for all configured surfaces | symlinks present | wire-multi-backend |
+| ISC-155 | hook | Codex adapter emits the shared contract and fails open | valid envelope | hook smoke + source test |
+| ISC-156 | config | direct and automatic OpenCode providers remain on separate ports and namespaces | exact URLs/models | jq + doctor |
+| ISC-157 | lifecycle | relay enable/disable backs up config and writes/removes the sidecar | clean round trip | relay config test |
+| ISC-158 | diagnostics | doctor reports direct/automatic readiness without secrets | schema + redaction | doctor test |
+| ISC-159 | macOS | LaunchAgent relay and automatic provider pass live probes | HTTP 200 + alias | launchd + curl + doctor |
+| ISC-160 | regression | full verification invokes the new relay, doctor, and wiring tests | zero failures | verify-all |
+| ISC-161 | schema | enrich accepts surface=kimi and emits a well-formed block | wrapper + classify line | Bun test |
+| ISC-162 | safety | injection fires only on the kimi surface header, latest user message only, replace-not-stack | header gate + byte-identical history | Bun test |
+| ISC-163 | resilience | enrichment error/timeout forwards unmodified with observable skip | fail-open + logged outcome | Bun test |
+| ISC-164 | context | sidecar cwd honored when fresh/valid, relay cwd otherwise | freshness + schema gates | Bun test |
+| ISC-165 | hook | kimi hook exits 0 with empty stdout across malformed/unwritable paths | never blocks | hook sandbox test |
+| ISC-166 | lifecycle | CLI enable appends one managed block, health-gated, default_model untouched | single block + comments intact | kimi relay config test |
+| ISC-167 | lifecycle | disable restores config byte-identical and removes hook + state | cmp round trip | kimi relay config test |
+| ISC-168 | lifecycle | desktop variant records config_sha256 and leaks no config contents | sha match + no-secret output | kimi desktop config test |
+| ISC-169 | wiring | skill links resolve at project, user, and desktop scopes with revert | symlinks resolve + revert clean | wire test + doctor |
+| ISC-170 | diagnostics | kimi_ready is opt-in and never affects direct_ready | exit-code semantics | doctor test |
+| ISC-171 | regression | full verification covers kimi config, hook, and enrichment suites | zero failures | verify-all |
+| ISC-172 | schema | resolve writing returns te-write drafting order plus critique council with terra judge | exact order + judge | Bun test |
+| ISC-173 | manifest | writing names live only in reserved_portfolios; required set and mappings unchanged | names-only regex + jq index | Bun test + shell gate |
+| ISC-174 | lifecycle | writer script dry-run default, collision refusal, catalog preflight, activeCombo guard, rollback | all guards greppable + bash -n | combos shell gate |
+| ISC-175 | docs | noesis-writer-routing maps phases and keeps FAL/vault/ledgers client-side | client-side + FAL greps | combos shell gate |
+| ISC-176 | boundary | acp lane is declared-inactive with principal-bound prerequisite | status + note match | Bun test |
+| ISC-177 | regression | full verification includes writing-fleet suites | zero failures | verify-all |
 
 ## Features
 
@@ -404,6 +460,14 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | Connection inventory and leverage map | ISC-122..ISC-129 | OmniRoute CLI/API, live catalog, role map, fixture test | yes |
 | Temperance combo synthesis | ISC-130..ISC-141 | dashboard combo API, live catalog, native probes, portfolio manifest | no |
 | Planner, dispatch, and creative workflow roles | ISC-142..ISC-149 | role manifest, live gateway probes, native media contracts, fleet lifecycle, OpenCode picker | no |
+| PAI capability fabric and typed stage handoffs | ISC-150..ISC-152 | stage contract, client-owned capability resolution, pointer-only knowledge roots, handoff validator | yes |
+| Claude/Codex shared enrichment wiring | ISC-153..ISC-155 | shared enrichment core, surface adapters, router companion files | no |
+| Separate OpenCode automatic relay provider | ISC-156..ISC-159 | local OpenAI-compatible relay, managed provider config, LaunchAgent lifecycle, readiness doctor | no |
+| Multi-surface integration verification | ISC-160 | sandbox, relay configuration, doctor, hook, routing, and dispatch regression suites | no |
+| Kimi surface wiring (CLI + desktop daimon) | ISC-161..ISC-168 | shared enrichment core, relay injection seam, TOML managed-block lifecycle, hook sidecar | no |
+| Kimi skills discoverability | ISC-169 | repo skills, wire-multi-backend, kimi skill scopes | yes |
+| Kimi diagnostics and verification | ISC-170..ISC-171 | readiness doctor, canonical verification gate, sandbox tests | no |
+| Noesis writing fleet (drafting rail + critique council) | ISC-172..ISC-177 | role manifest, writer lifecycle script, portfolio manifest, capability fabric and routing docs | no |
 
 ## Architecture
 
@@ -460,6 +524,9 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-23: Adopt a narrow local OpenAI-compatible relay for `temperance-auto`; OpenCode enrichment remains synthetic context, the shared router remains the sole classifier, and all explicit picker models bypass classification.
 - 2026-07-23: refined: Treat GitHub and Codex as distinct planner entitlements. `github/gpt-5.4` is the default planning rail; `codex/gpt-5.6-sol-max` is an OAuth-backed escalation route; neither model name is assumed portable to `command-code` or a direct OpenAI API key.
 - 2026-07-23: refined: Add a role layer after classification rather than a second classifier. `te-plan` protects planning, `te-dispatch` shards independent work across Command Code/Kimi/Grok/Nebius, and `te-creative` plans native media calls without placing ElevenLabs/Runway payloads in chat fallbacks.
+- 2026-07-23: refined: Keep PAI skills, MCP execution, and knowledge retrieval client-owned; add a typed seven-stage capability packet and pointer-only knowledge resolver so OmniRoute can route the selected portfolio without becoming a skill runner, MCP broker, or memory store.
+- 2026-07-23: refined: Make Claude Code, the Codex app, and OpenCode the primary local surfaces; share one fail-open enrichment core, preserve direct OmniRoute picker routes, and add a separately managed automatic relay provider.
+- 2026-07-23: refined: Treat relay configuration as an owned, reversible surface with backups and a sidecar marker; expose direct versus automatic readiness through a secret-free doctor command.
 
 ## Changelog
 
@@ -518,6 +585,21 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   refuted by: the first build probe exposed tool-only responses rejected by `minContentLength=1`, the old compatibility rail failed through an empty provider and exhausted account, and expired direct classifier deals remained pinned
   learned: portfolio themes belong in operator-facing descriptions and the Temperance context boundary, tool-capable rails must allow empty text with tool calls, and live target evidence plus reversible rollback must precede promotion
   criterion now: ISC-130 through ISC-141 record authenticated lifecycle, native probes, schema limits, shadow diffs, compatibility repair, expired-pin retirement, and docs/readiness evidence
+
+- 2026-07-23 | conjectured: importing PAI skills and knowledge directly into OmniRoute would make stage execution complete
+  refuted by: OmniRoute routes model requests but does not own local MCP authority, skill invocation, or private memory policy
+  learned: a typed capability packet plus path-only knowledge pointers preserves stage ownership, auditability, and privacy while the client performs the tool loop
+  criterion now: ISC-150 through ISC-152 require seven-stage mapping, safe handoff validation, and pointer-only knowledge discovery
+
+- 2026-07-23 | conjectured: Kimi could reuse the Claude/Codex prompt-hook pattern to inject enrichment client-side
+  refuted by: kimi-cli's hook runner (verified on 1.47.0 and 1.49.0 after repairing the broken uv venv) parses UserPromptSubmit stdout only for a permissionDecision — additionalContext is never injected
+  learned: when a host cannot inject context client-side, the relay is the enrichment seam; the client half reduces to a cwd sidecar plus telemetry, and the provider's static custom_headers carry the surface tag
+  criterion now: ISC-161 through ISC-171 require the kimi surface contract, header-gated relay injection, fail-open sidecar resolution, marker-delimited TOML lifecycle for both Kimi installs, skill discoverability across scopes, and opt-in doctor readiness
+
+- 2026-07-23 | conjectured: a marker-delimited managed block would survive in kimi's config the way it does in AGENTS.md surfaces
+  refuted by: the first live kimi run rewrote config.toml in its canonical serialization — the temperance tables survived semantically but every comment, including the managed-block markers, was dropped
+  learned: kimi treats config.toml as a database, not a user file; managed-config lifecycles need a semantic identity anchor (the state marker plus table headers), with marker-based byte-identical restore only as the pre-normalization fast path
+  criterion now: ISC-166/ISC-167 cover both states (marker and normalized), the doctor's provider check is semantic, and the deployed relay layout mirrors package/ so the proxy's static enrich import resolves
 
 ## Verification
 
@@ -634,3 +716,26 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-147: `omniroute-portfolios.json` maps the shared `creative` classifier output to `te-creative`; `temperance-workflows.ts` handles roles without inspecting prompt text.
 - ISC-148: local OpenCode JSON now exposes `te-plan`, `te-dispatch`, and `te-creative`; `opencode models omniroute` lists all three and no credential literal was added.
 - ISC-149: `./scripts/verify-all.sh` passed after the role resolver, lifecycle safety checks, live readiness probe, and existing routing/dispatch suites.
+- ISC-150: `bun test package/router/temperance-stage-contract.test.ts` passed 11/11, covering canonical stage order, catalog-backed capabilities, and current portfolio mappings.
+- ISC-151: the same contract suite rejected malformed stages, invalid next-stage transitions, forged lanes/portfolios/routes, unsupported fields, oversized shapes, and serialized secret/raw-transcript fields.
+- ISC-152: the pointer CLI reported six logical roots with presence flags; the contract suite confirmed no knowledge body fields are emitted and excluded an outside-base symlink.
+- ISC-153: `tests/sandbox-install.sh` passed shared enrichment installation for Claude/Codex opt-ins and preserved existing trees unless refresh was requested.
+- ISC-154: `bash scripts/wire-multi-backend.sh --status` showed the shared enrichment tree plus classifier, portfolio resolver, and manifest links on the live Mac.
+- ISC-155: synthetic Codex UserPromptSubmit smoke emitted a valid `<temperance-context>` block with `surface=codex`; missing optional state remained fail-open.
+- ISC-156: live OpenCode JSON retains `omniroute` at `http://127.0.0.1:20128/v1` and adds `temperance/temperance-auto` at `http://127.0.0.1:20129/v1`.
+- ISC-157: `bash tests/opencode-relay-config.sh` passed backup-first enable, direct-provider preservation, sidecar creation, and clean disable.
+- ISC-158: `bash tests/temperance-doctor.sh` passed direct offline readiness and rejected automatic readiness when the relay was absent; live `--require-auto --json` emitted no secrets.
+- ISC-159: `com.temperance.engine.openai-proxy` is running under launchd; `/health` returned HTTP 200, `/v1/models` returned 501 entries including `temperance-auto`, and the live doctor passed automatic readiness.
+- ISC-160: the focused relay, doctor, wire, and sandbox tests passed; the canonical `scripts/verify-all.sh` rerun completed with `Temperance Engine full verification passed`.
+- 2026-07-23: kimi-cli repaired via `uv tool install kimi-cli --force` (1.47.0 → 1.49.0, replacing the venv whose homebrew python was deleted); hook/provider/skill contracts re-verified unchanged against the 1.49.0 source.
+- ISC-161: `bun test package/enrich` passed 44/44 including the `surface=kimi` well-formed-block case.
+- ISC-162..164: `bun test package/router/temperance-openai-proxy.test.ts` passed 16/16 — header-gated injection, latest-message-only replace-not-stack, array-content unshift, streaming request injection, fail-open on enrich error, sidecar freshness/schema gates, and relay-cwd fallback.
+- ISC-165: `bash tests/kimi-hook.sh` passed — exit 0 with empty stdout across happy path, malformed stdin, missing cwd, and unwritable state dir; sidecar single-line 0600 with sha256-prefix prompt hash matching the relay's normalization.
+- ISC-166..167: `bash tests/kimi-relay-config.sh` passed 32 assertions — single managed block, comment survival, hooks-line rewrite with recorded original, idempotent re-enable, `--set-default` record/restore, byte-identical disable (pre-normalization), collision guard, foreign-hooks manual mode, unhealthy-relay refusal, and the full kimi-normalized semantic lifecycle (dedupe on re-enable, header-based removal on disable).
+- ISC-168: `bash tests/kimi-desktop-relay-config.sh` passed — `[[hooks]]` inside the managed block, hook copy under `~/.temperance_engine` (outside the app dir), `config_sha256` recorded and matching, no api_key material in any script output, byte-identical disable.
+- ISC-169: live `wire-multi-backend.sh` created resolving skill links in `~/.kimi/skills/` and the desktop daimon skills dir; repo `.agents/skills/` relative symlinks resolve; sandbox wire test proved `--revert` removes all four links.
+- ISC-170: `bash tests/temperance-doctor.sh` passed — kimi fixture yields `kimi_ready=true`, a broken kimi lane leaves `direct_ready=true` with exit 0, and `--require-kimi` folds the lane into the exit gate; live `--require-kimi --json` exited 0 with `direct_ready`, `automatic_ready`, and `kimi_ready` all true and no secrets.
+- ISC-171: `./scripts/verify-all.sh` completed with `Temperance Engine full verification passed` including the three new kimi suites and the extended doctor test.
+- 2026-07-23 live E2E: `kimi --print --model temperance/temperance-auto` from the repo returned the requested `TEMPERANCE_KIMI_OK` text; the relay decision log recorded `surface=kimi`, `enrichment=injected`, `enrichment_cwd_source=session-context`, `prompt_hash_match=true`, routed `temperance-coding` via `tool-safe-compatibility` (kimi requests carry tools, so the ISC-117 pin applied); the hook sidecar held the real session id and repo cwd; `mode-classifier.jsonl` gained `surface="kimi"` telemetry lines.
+- 2026-07-23 negative path: with OmniRoute stopped, the governed kimi lane returned the relay's clean `upstream_unavailable` envelope and the session stayed resumable; the default `managed:kimi-code` lane was structurally untouched. After `omniroute serve` restarted, the same request succeeded end-to-end.
+- 2026-07-23 desktop: `configure-kimi-desktop-relay.sh enable` landed the managed block in `daimon-share/config.toml` with `config_sha256` recorded; picker visibility pending the user's next app restart (the app was running and was not killed).

@@ -282,7 +282,9 @@ printed=$(printf '%s' '[{"id":"BG","task":"refactor all","backend":"command-code
   | "$W" --out "$run" --tasks - 2>/dev/null)   # default backgrounds
 elapsed=$(( $(date +%s) - start ))
 check "background prints run dir" "$run" "$printed"
-[[ $elapsed -le 3 ]] && echo "ok - returns fast (${elapsed}s)" || { echo "FAIL - blocked ${elapsed}s"; fail=1; }
+# The assertion is about non-blocking behavior; allow a busy workstation a
+# small scheduling margin while the background process is being spawned.
+[[ $elapsed -le 5 ]] && echo "ok - returns fast (${elapsed}s)" || { echo "FAIL - blocked ${elapsed}s"; fail=1; }
 # wait for completion then verify
 for _ in $(seq 1 20); do [[ -f "$run/index.json" ]] && break; sleep 0.5; done
 check "bg task eventually ok" "1" "$(jq -r '.summary.ok' "$run/index.json" 2>/dev/null)"

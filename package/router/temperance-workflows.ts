@@ -2,7 +2,7 @@
 
 import manifestJson from "./temperance-workflows.json";
 
-export type WorkflowRole = "planner" | "dispatch" | "creative";
+export type WorkflowRole = "planner" | "dispatch" | "creative" | "writing";
 
 export interface WorkflowCandidate {
   provider?: string;
@@ -13,6 +13,13 @@ export interface WorkflowCandidate {
   cost_posture?: string;
 }
 
+export interface CritiqueResolution {
+  portfolio: string;
+  judge_model: string;
+  selected: WorkflowCandidate[];
+  omitted: WorkflowCandidate[];
+}
+
 export interface WorkflowResolution {
   role: WorkflowRole;
   portfolio: string;
@@ -21,6 +28,7 @@ export interface WorkflowResolution {
   omitted: WorkflowCandidate[];
   native_providers: string[];
   workflow: string[];
+  critique?: CritiqueResolution;
 }
 
 export const workflowManifest = manifestJson as {
@@ -52,6 +60,24 @@ export const workflowManifest = manifestJson as {
     workflow: string[];
     chat_combo_boundary: string;
   };
+  writing: {
+    portfolio: string;
+    purpose: string;
+    skill: string;
+    drafting_models: string[];
+    critique: {
+      portfolio: string;
+      strategy: "fusion";
+      models: string[];
+      judge_model: string;
+      verdicts: string[];
+      scored_dimensions: string[];
+    };
+    workflow: string[];
+    transmutation_workflow: string[];
+    chat_combo_boundary: string;
+    acp: { status: "declared-inactive"; note: string };
+  };
 };
 
 function catalogSet(availableModels: readonly string[]): Set<string> {
@@ -74,7 +100,7 @@ export function resolveWorkflow(
   role: string,
   availableModels: readonly string[],
 ): WorkflowResolution {
-  const normalized = (role === "planner" || role === "dispatch" || role === "creative"
+  const normalized = (role === "planner" || role === "dispatch" || role === "creative" || role === "writing"
     ? role
     : "dispatch") as WorkflowRole;
   const catalog = catalogSet(availableModels);
@@ -98,6 +124,25 @@ export function resolveWorkflow(
       ...splitCandidates(candidates, catalog),
       native_providers: workflowManifest.creative.native_providers.map(({ provider }) => provider),
       workflow: workflowManifest.creative.workflow,
+    };
+  }
+
+  if (normalized === "writing") {
+    const drafting = workflowManifest.writing.drafting_models.map((model) => ({ model }));
+    const council = workflowManifest.writing.critique.models.map((model) => ({ model }));
+    const councilSplit = splitCandidates(council, catalog);
+    return {
+      role: normalized,
+      portfolio: workflowManifest.writing.portfolio,
+      ...splitCandidates(drafting, catalog),
+      native_providers: [],
+      workflow: workflowManifest.writing.workflow,
+      critique: {
+        portfolio: workflowManifest.writing.critique.portfolio,
+        judge_model: workflowManifest.writing.critique.judge_model,
+        selected: councilSplit.selected,
+        omitted: councilSplit.omitted,
+      },
     };
   }
 

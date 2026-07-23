@@ -115,5 +115,56 @@
       "persist-artifact-and-evidence-pointer"
     ],
     "chat_combo_boundary": "Media models never enter a coding fallback chain; te-creative is the text planning rail only."
+  },
+  "writing": {
+    "portfolio": "te-write",
+    "purpose": "Draft Tryambakam Noesis long-form content on a governed sequential rail while a separate fusion council scores drift and gates every commit.",
+    "skill": "noesis-writer-skill",
+    "drafting_models": [
+      "command-code/MiniMaxAI/MiniMax-M2.7",
+      "kimi/kimi-k2.6",
+      "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507"
+    ],
+    "critique": {
+      "portfolio": "te-write-critique",
+      "strategy": "fusion",
+      "models": [
+        "github/gpt-5.4",
+        "codex/gpt-5.6-terra",
+        "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507"
+      ],
+      "judge_model": "codex/gpt-5.6-terra",
+      "verdicts": ["COMMIT", "REGENERATE", "FLAG"],
+      "scored_dimensions": [
+        "voice-calibration",
+        "vocabulary-contamination",
+        "fractal-depth",
+        "source-lattice",
+        "albedo-claim-grammar"
+      ]
+    },
+    "workflow": [
+      "load-brand-voice-dna-client-side",
+      "mine-vault-source-lattice-client-side",
+      "draft-section-on-te-write",
+      "score-drift-on-te-write-critique",
+      "backpropagate-or-commit-section",
+      "plan-images-with-te-creative",
+      "generate-images-client-side-brandmint-fal",
+      "run-quality-gates-and-convergence-proof",
+      "persist-trace-ledger-and-evidence-pointer"
+    ],
+    "transmutation_workflow": [
+      "nigredo-blind-claim-extraction-on-te-write-critique",
+      "albedo-ledger-classification-and-coverage-review",
+      "citrinitas-surgical-transmutation-on-te-write",
+      "rubedo-verification-on-te-write-critique",
+      "persist-albedo-ledger-and-transmutation-trace-client-side"
+    ],
+    "chat_combo_boundary": "The critique council scores and gates but never drafts; te-write drafts but never certifies its own output; image generation stays client-side in brandmint/FAL and neither writing combo ever enters a coding fallback chain.",
+    "acp": {
+      "status": "declared-inactive",
+      "note": "An ACP lane is named for future editor-agent integration only; agent-protocol contracts require a separate principal-bound security design before any implementation."
+    }
   }
 }

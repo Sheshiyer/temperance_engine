@@ -49,6 +49,7 @@ PAI Algorithm (7 phases, ALWAYS active — enforcement is future sub-project B)
   Observe/Think = agent-native (codegraph, read, memory recall)
   Enrichment: <temperance-context> block every prompt (always-on layer)
   OpenCode automatic requests: enrich → frozen plan → OmniRoute relay
+  Kimi automatic requests: hook sidecar (cwd) → relay-side enrich → frozen plan → OmniRoute
 
   Retired: package/conductor/routed-execute.sh
   Retired: docs/parallel-dispatch.md · docs/multi-surface-architecture.md → redirect stubs
@@ -60,8 +61,12 @@ Observe/Think are agent-native. The skill-cluster resolver
 skill" and "tool runs" — it is the context-economy mechanism (only active-spoke
 skills loaded; deferred clusters resolved on demand). temperance-parallel-dispatch
 is a specialist tool that fires only in Execute (and optionally Verify), not a
-default. OpenCode's `temperance-auto` model follows the same route at request
+default. OpenCode's `temperance/temperance-auto` model follows the same route at request
 time through the local relay; direct picker models remain explicit overrides.
+Kimi (CLI and desktop daimon) joins the same governed lane with one difference:
+its hook runner cannot inject context, so the relay performs the enrichment
+server-side for `X-Temperance-Surface: kimi` requests (see
+[`docs/kimi-surface.md`](kimi-surface.md)).
 
 ## Phases and the decision framework
 

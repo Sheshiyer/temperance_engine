@@ -9,6 +9,7 @@ CODEX_MODE=skip
 OPENCODE_MODE=install
 CURSOR_MODE=install
 GSD_MODE=skip
+RELAY_MODE=skip
 FORCE=0
 
 for arg in "$@"; do
@@ -26,9 +27,11 @@ for arg in "$@"; do
     --skip-cursor) CURSOR_MODE=skip ;;
     --with-gsd) GSD_MODE=install ;;
     --skip-gsd) GSD_MODE=skip ;;
+    --with-relay) RELAY_MODE=install ;;
+    --skip-relay) RELAY_MODE=skip ;;
     --force) FORCE=1 ;;
     -h|--help)
-      printf '%s\n' "Usage: ./install.sh [--dry-run] [--skip-voice|--with-voice] [--with-claude|--skip-claude] [--with-codex|--skip-codex] [--with-opencode|--skip-opencode] [--with-cursor|--skip-cursor] [--with-gsd|--skip-gsd] [--force]"
+      printf '%s\n' "Usage: ./install.sh [--dry-run] [--skip-voice|--with-voice] [--with-claude|--skip-claude] [--with-codex|--skip-codex] [--with-opencode|--skip-opencode] [--with-cursor|--skip-cursor] [--with-gsd|--skip-gsd] [--with-relay|--skip-relay] [--force]"
       exit 0
       ;;
     *)
@@ -46,6 +49,7 @@ export TEMPERANCE_CODEX_MODE="$CODEX_MODE"
 export TEMPERANCE_OPENCODE_MODE="$OPENCODE_MODE"
 export TEMPERANCE_CURSOR_MODE="$CURSOR_MODE"
 export TEMPERANCE_GSD_MODE="$GSD_MODE"
+export TEMPERANCE_RELAY_MODE="$RELAY_MODE"
 export TEMPERANCE_FORCE="$FORCE"
 export PAI_HOME="${PAI_HOME:-$HOME/.claude}"
 export CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
@@ -66,6 +70,7 @@ printf '%s\n' "CODEX_MODE=$CODEX_MODE"
 printf '%s\n' "OPENCODE_MODE=$OPENCODE_MODE"
 printf '%s\n' "CURSOR_MODE=$CURSOR_MODE"
 printf '%s\n' "GSD_MODE=$GSD_MODE"
+printf '%s\n' "RELAY_MODE=$RELAY_MODE"
 printf '%s\n' "FORCE=$FORCE"
 
 sh "$ROOT_DIR/scripts/install-pai.sh"
@@ -110,6 +115,26 @@ sh "$ROOT_DIR/scripts/install-peon-ping.sh"
 sh "$ROOT_DIR/scripts/install-codegraph.sh"
 sh "$ROOT_DIR/scripts/install-gsd.sh"
 sh "$ROOT_DIR/scripts/configure-opencode.sh"
+
+# The primary local surfaces share one router/enrichment wiring pass. Keep it
+# explicit in dry-run output and let the script preserve existing user hooks.
+if test "$CLAUDE_MODE" = install || test "$CODEX_MODE" = install || test "$OPENCODE_MODE" = install; then
+  if test "$DRY_RUN" = 1; then
+    bash "$ROOT_DIR/scripts/wire-multi-backend.sh" --dry-run
+  else
+    bash "$ROOT_DIR/scripts/wire-multi-backend.sh"
+  fi
+fi
+
+if test "$RELAY_MODE" = install; then
+  if test "$DRY_RUN" = 1; then
+    printf '%s\n' "DRY_RUN: would install the Temperance relay LaunchAgent and configure the automatic OpenCode provider"
+  else
+    bash "$ROOT_DIR/scripts/temperance-proxy-launchd.sh" install
+    bash "$ROOT_DIR/scripts/configure-opencode-relay.sh" --enable
+  fi
+fi
+
 sh "$ROOT_DIR/scripts/verify-install.sh"
 
 printf '%s\n' "Install flow complete. Restart OpenCode or Cursor sessions to reload instruction surfaces. Restart Claude or Codex only if those optional surfaces were enabled."

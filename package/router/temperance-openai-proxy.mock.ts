@@ -44,11 +44,16 @@ Bun.serve({
         }],
       })
     }
+    // Echo the latest user content so relay-side enrichment injection is
+    // assertable end-to-end (tests grep for the <temperance-context> marker).
+    const messages = Array.isArray(body.messages) ? body.messages : []
+    const latestUser = [...messages].reverse().find((m) =>
+      m && typeof m === "object" && (m as Record<string, unknown>).role === "user")
     return Response.json({ id: "mock-chat", model: body.model, choices: [{
       index: 0,
       message: { role: "assistant", content: "MOCK_OK" },
       finish_reason: "stop",
-    }] })
+    }], echo: { latest_user_content: latestUser ? (latestUser as Record<string, unknown>).content ?? null : null } })
   },
 })
 

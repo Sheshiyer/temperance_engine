@@ -38,7 +38,7 @@ where work runs; it does not decide what the work is.
 ### OpenCode request path
 
 OpenCode has no supported plugin hook for replacing `input.model`. Its
-automatic `omniroute/temperance-auto` model therefore points at the local
+automatic `temperance/temperance-auto` model therefore points at the local
 `package/router/temperance-openai-proxy.ts` relay on port `20129`:
 
 ```text

@@ -25,6 +25,7 @@ function partText(part: any): string {
 }
 
 export function promptFromParts(parts: any[]): string {
+  if (!Array.isArray(parts)) return ""
   return parts.map(partText).filter(Boolean).join("\n").trim()
 }
 
@@ -37,6 +38,7 @@ export async function enrichOpenCodeMessage(
   input: { sessionID: string; messageID?: string },
   cwd: string,
 ): Promise<any[]> {
+  if (!Array.isArray(parts)) return parts || []
   const prompt = stripTemperanceContext(promptFromParts(parts))
   if (!prompt) return parts
   const context = await enrich({ prompt, cwd, surface: "opencode" })
@@ -55,11 +57,15 @@ export const TemperanceFlowPlugin: Plugin = async ({ directory }) => {
   const cwd = directory || process.cwd()
   return {
     "chat.message": async (input, output) => {
-      output.parts = await enrichOpenCodeMessage(output.parts, input, cwd)
+      if (output && Array.isArray(output.parts)) {
+        output.parts = await enrichOpenCodeMessage(output.parts, input, cwd)
+      }
     },
     "chat.headers": async (input, output) => {
-      output.headers["X-Temperance-Surface"] = "opencode"
-      output.headers["X-Temperance-Session-ID"] = input.sessionID
+      if (output && output.headers) {
+        output.headers["X-Temperance-Surface"] = "opencode"
+        output.headers["X-Temperance-Session-ID"] = input.sessionID
+      }
     },
   }
 }
