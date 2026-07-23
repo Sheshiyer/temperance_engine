@@ -216,6 +216,22 @@ if [[ "$kimi_desktop_state_ok" == true && -f "$KIMI_DESKTOP_CONFIG" ]]; then
 fi
 set_check "kimi_desktop_drift" "$kimi_desktop_drift_ok" "$kimi_desktop_drift_msg"
 
+# ── Planner quota reconciler (opt-in automation; never gates the exit code) ──
+PLANNER_QUOTA_STATE_PATH="${TEMPERANCE_PLANNER_QUOTA_STATE:-${TEMPERANCE_STATE_DIR:-${HOME}/.temperance_engine}/state/omniroute-planner-quota.json}"
+planner_quota_state_ok=false
+planner_quota_msg="not polled yet"
+if [[ -f "$PLANNER_QUOTA_STATE_PATH" ]] && jq -e '.schema_version == "temperance-planner-quota-v1"' "$PLANNER_QUOTA_STATE_PATH" >/dev/null 2>&1; then
+  planner_quota_state_ok=true
+  planner_quota_msg="checked_at=$(jq -r '.checked_at' "$PLANNER_QUOTA_STATE_PATH"), substitutions=$(jq -c '.substitutions' "$PLANNER_QUOTA_STATE_PATH")"
+fi
+set_check "planner_quota_state" "$planner_quota_state_ok" "$planner_quota_msg"
+
+planner_quota_timer_ok=false
+if launchctl print "gui/$(id -u)/com.temperance.engine.planner-quota" >/dev/null 2>&1; then
+  planner_quota_timer_ok=true
+fi
+set_check "planner_quota_timer" "$planner_quota_timer_ok" "$([[ "$planner_quota_timer_ok" == true ]] && echo "installed" || echo "not installed (scripts/omniroute-temperance-planner-quota.sh --install-timer)")"
+
 direct_ready=true
 for key in router dispatch batch enrichment classifier portfolio_resolver portfolio_manifest claude_hook codex_hook opencode_config opencode_flow opencode_guard claude_hook_contract codex_hook_contract direct_provider; do
   [[ "${result[$key]:-false}" == true ]] || direct_ready=false
