@@ -11,7 +11,7 @@ import {
 const candidates: RoutingInput["candidates"] = [
   {
     backend: "command-code",
-    model: "MiniMaxAI/MiniMax-M3",
+    model: "MiniMaxAI/MiniMax-M2.7",
     static_rank: 0,
     failure_domain: "direct",
     tier: "balanced",

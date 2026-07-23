@@ -332,6 +332,7 @@ Cursor's current rules documentation covers Project, Team, and User Rules plus `
 - `docs/parallel-dispatch.md` explains when to use parallel agent dispatch vs GSD execute-phase/workstreams.
 - `docs/omniroute-integration.md` documents deterministic shadow routing, frozen dispatch plans, circuit observations, promotion, and rollback.
 - `docs/omniroute-runtime.md` documents the live gateway, model inventory, credentials, provider onboarding, and smoke tests.
+- `docs/omniroute-connections.md` documents the read-only connection inventory and Temperance portfolio synthesis.
 - `docs/rollback.md` explains backups and recovery.
 - `UPSTREAM.md` links the relevant upstream GitHub repos and docs.
 - `assets/` contains generated public-facing banner and icon assets.

@@ -3,8 +3,8 @@ project: temperance_engine
 task: Add governed OmniRoute portfolios and evidence fabric
 effort: E3
 phase: learn
-iteration: 2026-07-23-connection-inventory
-progress: 127/129
+iteration: 2026-07-23-combo-synthesis
+progress: 139/141
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-23
@@ -193,6 +193,18 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-127: The operator report explains safe leverage lanes for agentic coding, research tools, media, and model backbones.
 - [x] ISC-128: The canonical verification gate executes the connection inventory fixture test.
 - [x] ISC-129: Current workstation evidence records 17 active connections, 488 unique model IDs, and 1 degraded gateway domain.
+- [x] ISC-130: A dashboard-authenticated combo inventory reports every configured combo with strategy, target count, and no credential material.
+- [x] ISC-131: Every new portfolio target is present in the live OmniRoute model catalog before creation.
+- [x] ISC-132: Each new portfolio has at least one successful direct content probe on its primary target.
+- [x] ISC-133: Tool-capable build targets return an OpenAI tool-call envelope on a native tool probe.
+- [x] ISC-134: The existing `temperance-coding` compatibility combo has a Temperance description and healthy fallback targets; Temperance context remains injected by the flow boundary because the OmniRoute combo schema does not persist system messages.
+- [x] ISC-135: Four new named portfolios exist: `te-fast`, `te-build`, `te-reason`, and `te-validate`.
+- [x] ISC-136: Each new portfolio uses a deterministic strategy and a role-specific Temperance theme encoded in its operator-facing description.
+- [x] ISC-137: Combo creation does not switch OmniRoute's active global combo or alter OpenCode configuration.
+- [x] ISC-138: Dashboard readback confirms each portfolio's exact model membership and strategy.
+- [x] ISC-139: New chat portfolios contain no research, crawl, embedding, audio, or media-only providers.
+- [x] ISC-140: Readiness readback identifies all four created portfolios and the compatibility rail; combo metrics expose exercised priority rails while the fusion council remains covered by its native probe.
+- [x] ISC-141: Repository portfolio mapping and operator documentation describe the four runtime portfolios and their promotion gates.
 
 ## Test Strategy
 
@@ -327,6 +339,18 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-127 | docs | report explains four leverage lanes and guardrails | present | docs continuity |
 | ISC-128 | shell | verify-all invokes fixture inventory test | match + pass | verify-all |
 | ISC-129 | live | workstation snapshot matches active connection and catalog probes | 17 / 488 / 1 | health + curl |
+| ISC-130 | API | authenticated combo inventory is redacted and complete | configured list + no secrets | dashboard API |
+| ISC-131 | catalog | every new target exists in `/v1/models` | zero missing targets | curl + jq |
+| ISC-132 | probe | primary target returns non-empty completion | HTTP 200 + content | chat completion |
+| ISC-133 | probe | build target emits tool call | HTTP 200 + `tool_calls` | chat completion |
+| ISC-134 | API | compatibility combo reads back description and healthy targets | exact fields | dashboard API |
+| ISC-135 | API | four named portfolios exist | four names | dashboard API |
+| ISC-136 | schema | strategies and descriptions are role-specific | exact strategy/description | dashboard API |
+| ISC-137 | safety | active combo and OpenCode config remain unchanged | active null + diff clean | API + readback |
+| ISC-138 | API | runtime memberships match manifest | exact target arrays | dashboard API |
+| ISC-139 | safety | portfolio targets are chat-capable providers only | zero excluded lanes | catalog + role map |
+| ISC-140 | metrics | readiness lists all portfolios; metrics expose exercised priority rails and compatibility | present | readiness + combo metrics |
+| ISC-141 | docs | mapping and promotion gates explain all four portfolios | present | docs continuity |
 
 ## Features
 
@@ -362,6 +386,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | OpenCode Temperance flow bridge | ISC-112..ISC-119 | shared enrichment, frozen router, local OpenAI relay | no |
 | Local proxy lifecycle | ISC-120..ISC-121 | macOS LaunchAgent, OpenCode runtime | no |
 | Connection inventory and leverage map | ISC-122..ISC-129 | OmniRoute CLI/API, live catalog, role map, fixture test | yes |
+| Temperance combo synthesis | ISC-130..ISC-141 | dashboard combo API, live catalog, native probes, portfolio manifest | no |
 
 ## Architecture
 
@@ -409,6 +434,8 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - 2026-07-22 12:54: refined: User explicitly expanded the boundary from OmniRoute-inspired local policy to an actual local OmniRoute runtime. Temperance remains the sole task classifier; OmniRoute becomes the preferred provider/model gateway; Codex supplies the agentic tool loop; command-code, grok, and kimi remain direct outage fallbacks.
 - 2026-07-22 12:54: Store the generated OmniRoute dashboard password and scoped Temperance inference key in macOS Keychain, keep runtime data under `~/.omniroute`, and never place either secret in repository configuration or model arguments.
 - 2026-07-23: refined: Treat the newly authenticated OmniRoute connections as four capability lanes—agentic model execution, research/tool services, media generation, and model backbones. Temperance can safely inventory and explain these lanes without copying provider credentials or the volatile full catalog; routing policy remains the authority for task selection.
+- 2026-07-23: refined: Translate the Temperance synthesis into four named chat portfolios—speed, building, deliberation, and validation—while keeping research/media connections outside chat combos and leaving promotion in shadow mode until evidence receipts exist.
+- 2026-07-23: corrected: The expired Hy3 and MiniMax-M3 command-code deals were retired from the shared classifier; fast/validation now use live-verified DeepSeek V4 Flash and creative/balanced use live-verified MiniMax M2.7 until a new bounded deal is recorded.
 - 2026-07-22 12:54: Use a named `temperance-coding` priority combo instead of OmniRoute's generic auto/free aliases because live probes showed those aliases could select an inactive Auggie subscription; configure only targets that passed direct authenticated probes.
 - 2026-07-22: refined: The single OpenCode OmniRoute option entered at the provider configuration boundary, where the `models` map declared only `temperance-coding`; expose a curated live combo set as explicit picker overrides while preserving `temperance-coding` as the governed default.
 - 2026-07-22: Root-cause checkpoint: fixing the OpenCode provider `models` map removes the missing-options symptom at ingestion; adding modes inside the router would create a second UI-specific classifier, so the router remains unchanged and user-selected picker models are treated as explicit overrides.
@@ -462,6 +489,11 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
   refuted by: the live inventory separates agentic model providers from search, crawl, embedding, audio, and media services, while OmniRoute health reports only two monitored gateway domains
   learned: connections are capability inputs, not interchangeable model routes; expose a redacted inventory and role map first, then promote only evidence-backed provider pools into named portfolios
   criterion now: ISC-122 through ISC-129 require connection inventory, capability-role mapping, health/metric evidence, fixture safety, leverage guidance, and a current workstation snapshot
+
+- 2026-07-23 | conjectured: adding combo aliases to the picker would be enough to express Temperance philosophy
+  refuted by: the first build probe exposed tool-only responses rejected by `minContentLength=1`, the old compatibility rail failed through an empty provider and exhausted account, and expired direct classifier deals remained pinned
+  learned: portfolio themes belong in operator-facing descriptions and the Temperance context boundary, tool-capable rails must allow empty text with tool calls, and live target evidence plus reversible rollback must precede promotion
+  criterion now: ISC-130 through ISC-141 record authenticated lifecycle, native probes, schema limits, shadow diffs, compatibility repair, expired-pin retirement, and docs/readiness evidence
 
 ## Verification
 
@@ -550,3 +582,23 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-127: `docs/omniroute-connections.md` documents agentic, research, media, and backbone leverage lanes with native-probe and promotion guardrails.
 - ISC-128: `./scripts/verify-all.sh` executed `tests/omniroute-connections.sh`; the full gate completed with `Temperance Engine full verification passed`.
 - ISC-129: the current live snapshot records 17 active/configured connections, 503 advertised and 488 unique model IDs, and one degraded gateway domain (`oc`).
+- ISC-130: authenticated `GET /api/combos` readback listed `temperance-coding`, `te-fast`, `te-build`, `te-reason`, and `te-validate`; the redacted report exposed names, descriptions, strategies, models, and config only.
+- ISC-131: the apply preflight checked every target against live `/v1/models` and found zero missing IDs before mutation.
+- ISC-132: native `PORTFOLIO_OK` probes returned HTTP 200 for all five named routes, including the repaired compatibility rail.
+- ISC-133: native tool probes returned `tool_calls` for both `te-build` and `te-validate`; the build lane was configured with `minContentLength=0` so tool-only responses are valid.
+- ISC-134: `temperance-coding` now reads back the Temperance compatibility description and Codex/GitHub/Nebius fallback targets; the unsupported OmniRoute system-message field was not treated as persisted state.
+- ISC-135: dashboard creation returned four new combo IDs for `te-fast`, `te-build`, `te-reason`, and `te-validate`.
+- ISC-136: readback confirmed priority strategies for fast/build/reason, fusion for validation, and distinct Temperance descriptions for every portfolio.
+- ISC-137: pre/post `/api/settings` readback remained `activeCombo=null`; the local OpenCode model map was only extended with picker entries and did not change the relay or global combo.
+- ISC-138: authenticated combo readback matched the planned target arrays and strategies exactly, including `judgeModel=codex/gpt-5.6-terra` for `te-validate`.
+- ISC-139: the new target arrays contain only chat-capable model routes; research, crawl, embedding, speech, video, and image lanes remain outside the combos.
+- ISC-140: `scripts/omniroute-check.sh --json` reported all four required portfolios available plus `temperance-coding`; combo metrics reported exercised priority rails and the validation route passed its native probe.
+- ISC-141: `package/router/omniroute-portfolios.json`, `docs/omniroute-runtime.md`, `docs/omniroute-connections.md`, and the lifecycle test document mappings, shadow enforcement, preflight, and rollback gates.
+- Advisor follow-up: rollback was exercised against the 20260723T033417Z pre-apply snapshot; readback returned only `temperance-coding` with `activeCombo=null`, then `--apply` recreated all four portfolios successfully.
+- Advisor follow-up: an eight-function, 34,553-byte tool-schema probe returned HTTP 200 with no error for all five routes; prose prompts with forced `report_status` returned tool calls for `te-validate` and `te-build`.
+- Advisor follow-up: forced prose probes returned prose on Antigravity-backed `te-fast` and `te-reason`; those are now explicitly documented and configured as content rails (`tool_call=false`), while workspace-tool work is assigned to `te-build` or `te-validate`.
+- Advisor follow-up: shadow routing receipts show `selected=temperance-coding` and `proposed=te-build|te-reason|te-validate` for matching task types; no promotion receipt was issued.
+- Advisor follow-up: a fresh authenticated dashboard session read back all five combos with `activeCombo=null`; this is the intentional shadow-mode invariant, not an unverified active pointer.
+- Advisor follow-up: a live OmniRoute restart was intentionally deferred because independent local PR-verification agents were actively using the gateway; fresh authenticated API and OpenCode CLI sessions read the persisted five-combo state, so restart is a maintenance-window follow-up rather than a hidden success claim.
+- Advisor follow-up: legacy target repro returned `oc/deepseek-v4-flash-free=200`, `oc/big-pickle=502 empty response`, and `mcode/mimo-auto=502 accounts exhausted`; the repaired compatibility rail returned HTTP 200 `PORTFOLIO_OK`.
+- Advisor follow-up: expired Hy3 and MiniMax-M3 classifier pins were retired; live-verified DeepSeek V4 Flash and MiniMax M2.7 now occupy those direct fallback slots, with classifier and dispatch tests green.

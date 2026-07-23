@@ -26,10 +26,10 @@ for SH in /bin/sh /opt/homebrew/bin/bash; do
   ck "[$SH] empty -> balanced"           "balanced"     "$(type_of "$SH" '')"
   ck "[$SH] model(long-horizon)" "command-code:xiaomi/mimo-v2.5-pro" "$(model_of "$SH" 'refactor the auth module')"
   ck "[$SH] model(reasoning)"    "command-code:deepseek/deepseek-v4-pro" "$(model_of "$SH" 'debug this failure')"
-  ck "[$SH] model(validation)"   "command-code:tencent/Hy3"              "$(model_of "$SH" 'audit the code')"
-  ck "[$SH] model(fast)"         "command-code:tencent/Hy3"              "$(model_of "$SH" 'fix typo in header')"
-  ck "[$SH] model(creative)"     "command-code:MiniMaxAI/MiniMax-M3"     "$(model_of "$SH" 'brainstorm ideas')"
-  ck "[$SH] model(balanced)"     "command-code:MiniMaxAI/MiniMax-M3"     "$(model_of "$SH" 'do the thing')"
+  ck "[$SH] model(validation)"   "command-code:deepseek/deepseek-v4-flash" "$(model_of "$SH" 'audit the code')"
+  ck "[$SH] model(fast)"         "command-code:deepseek/deepseek-v4-flash" "$(model_of "$SH" 'fix typo in header')"
+  ck "[$SH] model(creative)"     "command-code:MiniMaxAI/MiniMax-M2.7"   "$(model_of "$SH" 'brainstorm ideas')"
+  ck "[$SH] model(balanced)"     "command-code:MiniMaxAI/MiniMax-M2.7"   "$(model_of "$SH" 'do the thing')"
   ck "[$SH] model(inline)"       "inline:current-session"                 "$(model_of "$SH" 'summarize this text')"
 done
 

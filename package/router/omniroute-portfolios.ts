@@ -17,6 +17,7 @@ export type PortfolioSource = "portfolio" | "compatibility" | "direct";
 export interface PortfolioManifest {
   version: 1;
   compatibility_model: string;
+  required_portfolios: string[];
   task_type_portfolios: Record<SharedTaskType, string>;
   reserved_portfolios: string[];
   enforcement: "shadow";

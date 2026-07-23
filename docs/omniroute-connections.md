@@ -45,7 +45,7 @@ The latest local read-only probe found:
 | Research lane | Brave, Exa, Firecrawl, Jina | tool services, not coding-model fallbacks |
 | Media lane | ElevenLabs, RunwayML | speech/video/image contracts, not chat completions |
 | Unknown lane | none after mapping known connections | any future provider fails loud as unmapped |
-| Gateway health | OmniRoute healthy; `oc` degraded | the named `temperance-coding` combo still needs target repair |
+| Gateway health | OmniRoute healthy; governed portfolios probe successfully | `temperance-coding` is repaired; promotion remains shadow-gated |
 
 Metrics are evidence, not truth about every capability. A search provider can
 return a 400 to a chat-shaped probe while its native search API is healthy;
@@ -71,6 +71,28 @@ PAI / ISA / GSD
   -> Codex/OpenCode tool loop
   -> attempt evidence and ISA verification
 ```
+
+## Temperance portfolio synthesis
+
+The live combo set turns the philosophy into four differentiated operating
+modes, without promoting every connected provider into the automatic rail:
+
+| Portfolio | Temperance principle | Strategy | Verified target posture |
+| --- | --- | --- | --- |
+| `te-fast` | proportionate effort for bounded work | priority | low-latency content rail; Antigravity first, GitHub fallback |
+| `te-build` | reversible agency with inspectable evidence | priority | Codex/GitHub/Nebius tool-capable rail |
+| `te-reason` | explicit assumptions and evidence-weighted alternatives | priority | deep-thinking content rail; Antigravity, then Nebius/Codex |
+| `te-validate` | challenge, reconcile, and synthesize | fusion | GitHub/Codex/Nebius tool-capable panel with Codex judge |
+
+`temperance-coding` remains the compatibility rail for existing OpenCode and
+Codex integrations. Research/crawl, embeddings, speech, video, and image
+connections remain native capability lanes; they are intentionally not forced
+into chat combos. `te-vision` and `te-batch` remain reserved until their native
+contracts and evidence receipts exist.
+
+The portfolio manifest is [package/router/omniroute-portfolios.json](../package/router/omniroute-portfolios.json). The authenticated lifecycle,
+pre-mutation snapshot, collision guard, native target preflight, and rollback
+path are implemented in `scripts/omniroute-temperance-combos.sh`.
 
 The inventory is deliberately descriptive. It does not silently replace
 `temperance-coding`, create combos, import credentials, or turn every connected

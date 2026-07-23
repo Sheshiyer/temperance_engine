@@ -141,7 +141,7 @@ rm -f "$DIR/tests/fixtures/codex"
 # ("--help" exactly matches the router's -h|--help case unless "--" ends option parsing)
 out=$(printf '%s' '[{"id":"F1","task":"--help"}]' | "$W" --dry-run --tasks - 2>/dev/null)
 check "flag-like task -> dispatch (not swallowed as --help)" \
-  "F1 command-code MiniMaxAI/MiniMax-M3" "$out"
+  "F1 command-code MiniMaxAI/MiniMax-M2.7" "$out"
 
 # concurrency cap + atomic meta + index.json + SUMMARY.md
 ln -sf mock-backend "$DIR/tests/fixtures/command-code"
