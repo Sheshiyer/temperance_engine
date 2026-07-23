@@ -4,7 +4,7 @@ task: Expand the noesis writing fleet with research and media sub-lanes (te-writ
 effort: E3
 phase: verify
 iteration: 2026-07-23-writing-fleet-expansion
-progress: 185/187
+progress: 186/187
 mode: interactive
 started: 2026-06-12
 updated: 2026-07-23
@@ -184,7 +184,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-118: Upstream OmniRoute status codes and retry headers pass through the relay unchanged.
 - [x] ISC-119: Concurrent automatic requests receive distinct request trace identifiers.
 - [x] ISC-120: A user-scoped macOS LaunchAgent keeps the automatic relay available across shell sessions.
-- [ ] ISC-121: A fresh OpenCode interactive session completes an automatic model request through the relay.
+- [x] ISC-121: A fresh OpenCode interactive session completes an automatic model request through the relay.
 - [x] ISC-122: A read-only connection inventory reports every active OmniRoute connection with auth type and no secret material.
 - [x] ISC-123: The connection inventory joins live catalog owners to stable Temperance capability roles without copying the full model catalog into source.
 - [x] ISC-124: The inventory reports runtime health, circuit-breaker state, and observed provider success metrics in one machine-readable envelope.
@@ -376,7 +376,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | ISC-118 | unit | upstream error status and retry header survive | exact status/header | Bun test |
 | ISC-119 | unit | concurrent automatic decisions have unique request IDs | all unique | Bun test |
 | ISC-120 | macOS | LaunchAgent is loaded and health endpoint responds | running + HTTP 200 | launchctl + curl |
-| ISC-121 | integration | OpenCode auto model completes a fresh session | assistant response | OpenCode CLI |
+| ISC-121 | integration | OpenCode auto model completes a fresh session | pass (canary `TEMPERANCE_OPENCODE_OK` + real `surface:"opencode"` decision-log entries, 2026-07-24) | OpenCode CLI |
 | ISC-122 | CLI | inventory lists active provider connection metadata | count + redacted fields | connection report |
 | ISC-123 | schema | catalog owners map to capability roles without model dump | role map + no full IDs | connection report |
 | ISC-124 | schema | health, breaker, and metrics sections coexist | keys + counts | connection report |
@@ -725,7 +725,7 @@ _Last refreshed: 2026-06-22T01:11:11.274Z_
 - ISC-120: macOS lifecycle probe — `launchctl print gui/$(id -u)/com.temperance.engine.openai-proxy` reported `state = running`; `/health` returned HTTP 200.
 - ISC-116/117: live mock-gateway probe — `bash tests/temperance-proxy-live.sh` traversed the real router and relay, preserved successful SSE `[DONE]` framing, returned a real `tool_calls` payload, and carried frozen route headers without relying on provider quota.
 - ISC-114: real-upstream canary — a transient relay with `TEMPERANCE_OMNIROUTE_MODEL=auto/best-coding` returned HTTP 200 and `REAL_TEMPERANCE_CANARY_OK` with automatic route, plan, correlation, and task headers; the governed `temperance-coding` request separately returned OmniRoute's explicit `[502] Combo "temperance-coding" failed — all targets exhausted`.
-- ISC-121: remains open — `opencode run -m omniroute/temperance-auto` fails before issuing an HTTP request because the existing local OpenCode SQLite schema lacks `replacement_seq`; the relay itself is covered by curl and mock/real-upstream probes.
+- ISC-121: closed 2026-07-24 — repaired the drifted local OpenCode SQLite schema (`session_context_epoch` renamed to `session_context_epoch_legacy` and recreated with `replacement_seq`/`revision`, reversible), then `opencode run -m temperance/temperance-auto "Reply with exactly: TEMPERANCE_OPENCODE_OK"` returned the exact canary through the relay, and `~/.temperance_engine/state/openai-proxy.jsonl` recorded real non-test `surface:"opencode"` entries with plan `rp_ae462f526ee975fd`.
 - Combo diagnosis: direct probes returned HTTP 200 for `opencode/deepseek-v4-flash-free`, an empty-response 502 for `opencode/big-pickle`, and account-exhausted 502 for `mimocode/mimo-auto`; the named combo's failure is therefore upstream target health/quota state, not a hidden relay route miss.
 - ISC-122: live `scripts/omniroute-connections.sh` inventory reported 17 active connections with OAuth/API-key type labels and emitted no credential fields.
 - ISC-123: the inventory joined 23 catalog owners to four stable capability lanes while reporting counts only, with deterministic duplicate collapse and no full model-ID dump.
