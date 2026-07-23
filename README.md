@@ -175,30 +175,9 @@ graph LR
 <!-- readme-gen:start:notebooklm-table -->
 ## 📊 Repository Signals Table
 
-| Project Name | Description | Integration Type | Upstream URL | Role in Runtime | Status | Source |
-|---|---|---|---|---|---|---|
-| Personal AI Infrastructure (PAI) | Principal upstream inspiration for the PAI/Algorithm/ISA runtime pattern. Provides live infrastructure for AI assistance, memory, and instruction surfaces. | Principal / Template installation | [link](https://github.com/danielmiessler/Personal_AI_Infrastructure) | Core machine-specific runtime flow and execution logic; steering and memory (fully external). | verified / unreleased | [1], [2], [3], [4] |
-| OpenCode | Open-source coding assistant environment and configuration surface with routing context and MCP support. | Template installation / Referenced | [link](https://github.com/anomalyco/opencode) | Primary coding interface template; receives instruction templates and config; provides hooks with routing context. | verified / referenced | [1], [2], [3], [5] |
-| command-code | Primary, versatile backend supporting 35 models and an agentic execution model. | Principal | Not in source | Primary backend for versatile tasks. | verified | [5] |
-| CodeGraph | Local AST-backed code indexing, analysis, and structural search tool. | Principal / Referenced | [link](https://github.com/colbymchenry/codegraph) | Powers structural search, .agents routing rules, and runtime logic guidance. | verified / unreleased / referenced | [1], [2], [3], [4] |
-| peon-ping | Local voice notification pattern, sound pack mapping, and runtime signaling tool. | Principal / Referenced | [link](https://github.com/PeonPing/peon-ping) | Maps Algorithm phases to local sound packs; manages agent communication pings. | verified / unreleased | [1], [2], [3], [4] |
-| Cursor | AI-powered code editor with agent and project rule guidance surfaces. | Template installation / Referenced | [link](https://cursor.com/docs/rules) | Ships AGENTS.md and .cursor/rules guidance by default without Claude auth requirements. | verified / referenced | [1], [2], [3] |
-| Bun | High-performance JavaScript runtime and package manager. | Referenced / Optional | [link](https://github.com/oven-sh/bun) | Used for building scripts and running the local Pulse compatibility server on localhost:31337. | verified | [1], [2], [3] |
-| GitHub CLI (gh) | Official CLI for interacting with GitHub repositories and publishing workflows. | Referenced / Optional | [link](https://github.com/cli/cli) | Used for verifying upstream links, repository creation, and optional publishing operations. | verified / optional | [1], [2], [3] |
-| ripgrep | Fast line-oriented search tool for file and text patterns. | Referenced | [link](https://github.com/BurntSushi/ripgrep) | Dependency for efficient text searching and literal search patterns alongside structural indexing. | verified / referenced | [1], [2], [3] |
-| OpenAI Codex CLI | Local instruction, hook, and image generation surfaces. | Optional template installation / Referenced | [link](https://github.com/openai/codex) | Receives local instruction templates and provides image generation for assets when enabled. | verified / optional | [1], [2], [3] |
-| Pulse server | Compatibility server for runtime communication and Pulse-based operations. | Principal / Template installation | Not in source | Optional compatibility layer for runtime communication; skipped by default in standard install. | verified / optional | [1], [4] |
-| skill-cluster | Routing and resolution system for skill-based agent capabilities. | Principal | Not in source | Handles skill-cluster routing and resolver logic for agent skills. | verified | [1] |
-| superpowers | Runtime capability enhancements. | Principal | Not in source | Runtime core component. | verified | [4] |
-| kimi | Long-horizon coding specialist utilizing the K2.7 Code (262K) model. | Principal | Not in source | Long-horizon coding and time-critical simple tasks. | verified | [5] |
-| grok | Fast iteration tool located at ~/.grok/bin/grok. | Principal | Not in source | Fast iteration and time-critical simple tasks. | verified | [5] |
-| ParallelDispatchContext | System for parallel task dispatching. | Principal | Not in source | Hook-based parallel execution. | unreleased | [4] |
-| Enrichment core | Automatic task classification system. | Referenced | Not in source | Automatic task classification. | verified | [5] |
-| Claude Code | Optional AI product surface from Anthropic. | Optional template installation | Not in source | Receives local instruction templates only when enabled; optional compatibility target. | optional | [2], [3] |
-| Claude | Anthropic AI model templates and model-specific advisor paths. | Template installation | Not in source | Optional advisor path and template provider; skipped by default. | optional | [1] |
-| GSD (Get Stuff Done) | External workstream and task management system or configuration framework. | Referenced | Not in source | External configuration via read-only config.json; remains fully external to Temperance. | optional | [1], [4] |
-
-<sub>Full-fidelity JSON for tooling: [`.readme-notebooklm/assets/notebooklm-data-table.json`](./.readme-notebooklm/assets/notebooklm-data-table.json) · CSV: [`.readme-notebooklm/assets/notebooklm-data-table.csv`](./.readme-notebooklm/assets/notebooklm-data-table.csv)</sub>
+```datatable
+{"title": "Repository Signals", "src": "./.readme-notebooklm/assets/notebooklm-data-table.json"}
+```
 
 <!-- readme-gen:end:notebooklm-table -->
 <!-- readme-gen:start:notebooklm-metadata -->
@@ -209,7 +188,7 @@ graph LR
 - source-reference: manifest.json
 - source-count: 6
 - source-note: README.md, CHANGELOG.md, CONTRIBUTING.md, CREDITS.md, ISA.md, QUICKSTART.md
-- generated-at: 2026-07-05T03:59:11+0000
+- generated-at: 2026-07-23T19:22:54+0000
 - notebook-id: a6e54ace-8597-4c34-b679-88cb66af7ccc
 - generation-command: READMEREBUILD_PIPELINE=/path/to/run_mvp_pipeline.py bash scripts/rebuild-readme.sh 'temperance_engine' 'Sheshiyer'
 - continuity-mode: merge-queue refresh workflow
