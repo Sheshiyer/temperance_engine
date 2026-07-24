@@ -56,6 +56,22 @@ scripts/temperance-proxy-launchd.sh install
 scripts/temperance-proxy-launchd.sh status
 ```
 
+The OmniRoute server itself also needs boot persistence on macOS (upstream
+`omniroute autostart` covers Linux/systemd only). Install the router
+LaunchAgent — it stops any manually started daemon so the agent owns the
+port, runs `omniroute serve` under launchd supervision with `KeepAlive`
+(crash recovery), and verifies API health after bootstrap:
+
+```bash
+scripts/omniroute-autostart-launchd.sh install
+scripts/omniroute-autostart-launchd.sh status
+```
+
+Note: the agent runs OmniRoute under the Homebrew Node (`/opt/homebrew/bin`
+first in the agent PATH). Rebuild native modules with that same Node after a
+Homebrew Node upgrade: `cd /opt/homebrew/lib/node_modules/omniroute/dist &&
+PATH="/opt/homebrew/bin:/usr/bin:/bin" npm rebuild better-sqlite3`.
+
 Then add the managed automatic provider with the backup-first configurator:
 
 ```bash
