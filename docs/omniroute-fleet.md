@@ -19,59 +19,104 @@ GitHub and Codex are separate live connections on this Mac:
 task graph, acceptance criteria, and route hints; it does not become a second
 classifier and it does not directly mutate the workspace.
 
-### Weekly-quota-aware planner substitution
+### Availability- and quota-aware reconciliation (all governed combos)
 
 OmniRoute's own combo failover is reactive: `failoverBeforeRetry` only moves
-to the next priority tier after a request actually fails, and none of its 18
+to the next priority tier after a request actually fails, and none of its
 built-in routing strategies express "prefer github/codex normally, but
-proactively switch to a specific backup once remaining quota drops below a
-threshold" (`headroom` always picks whoever has the most quota with no sticky
-primary preference; `reset-aware` ranks by which window resets soonest — both
-were considered and neither matches this shape). GitHub's live quota window is
-also monthly, not weekly, and Codex's is a rolling multi-day session window;
-only the Kimi Coding connections are genuinely weekly-tracked.
+proactively switch to a specific backup once the provider is manually disabled
+or its remaining quota drops below a threshold" (`headroom` always picks
+whoever has the most quota with no sticky primary preference; `reset-aware`
+ranks by which window resets soonest — both were considered and neither
+matches this shape). GitHub's live quota window is monthly, Codex's is a
+rolling multi-day session window, and either provider can also be switched off
+by hand in the dashboard — a signal no quota poll can see.
 
-`scripts/omniroute-temperance-planner-quota.sh` closes that gap by
-periodically polling `omniroute usage quota` for `github`, `codex`, and
-`kimi-coding-apikey`, and reconciling the live `te-plan` combo when needed:
+`scripts/omniroute-temperance-reconcile.sh` closes that gap for **every
+governed combo**, generalizing the retired te-plan-only reconciler. It is
+policy-driven: [`package/router/omniroute-fallback-policy.json`](../package/router/omniroute-fallback-policy.json)
+(schema `temperance-fallback-v1`, registered as `fallback_policy` in
+[`omniroute-portfolios.json`](../package/router/omniroute-portfolios.json))
+declares, per combo, the BASE model list — including the original
+`codex/gpt-5.6-terra` fusion judges, so hysteresis can restore them when codex
+returns — plus per-slot substitute chains, anchors that are never substituted,
+fusion judge chains, and tier metadata. A live combo that already matches the
+computed desired (substituted) state is treated as valid, not as drift to fix.
 
-- If `github`'s remaining quota drops below the threshold (default 30%), its
-  slot substitutes `kimi-coding-apikey/k3` — independently of `codex`.
-- If `codex`'s remaining quota drops below the threshold, its slot
-  substitutes the same model — independently of `github`.
-- If both trigger at once, the result dedupes to a single `kimi-coding-apikey/k3`
-  entry rather than listing it twice.
-- Kimi's own quota is checked too: if `kimi-coding-apikey` is itself below the
-  threshold (or in a non-`available` state), no substitution happens at
-  all — the original `github`/`codex` model stays in place, falling through
-  to OmniRoute's existing reactive failover to the Nebius fallback instead.
-- The Nebius fallback slot is never substituted; it remains the final safety
-  net in every case.
+Availability signals, in precedence order:
 
-Because OmniRoute has no update/PATCH endpoint for an existing combo, a
-change is applied by deleting and recreating `te-plan` with the same name,
-description, strategy, and config — only the `models` array differs. This
-mirrors the snapshot-first, `--rollback`-capable pattern already used by
-`scripts/omniroute-temperance-fleet.sh`.
+1. **manual-disable (HARD DOWN)** — the provider is `isActive:false` via
+   `GET /api/providers`, **or** it is absent from `omniroute usage quota`
+   while at least one other provider is present (disabled providers vanish
+   from the quota report). Substitution is mandatory regardless of quota;
+   the event reason is `manual-disable`.
+2. **quota** — remaining quota below `threshold_percent` (30) substitutes;
+   the event reason is `quota`.
+3. **unknown/no data** — priority combos fail open (keep the live model,
+   never switch on missing data); fusion combos **fail closed**: verdict
+   HOLD, no mutation to that combo, exit code 3, and a `hold_reason` is
+   recorded in the state file and event log.
+
+Reconciliation rules:
+
+- **Restore hysteresis** — a substituted base model returns only when its
+  provider is `isActive:true` AND remaining ≥ `restore_hysteresis_percent`
+  (40 = threshold + 10); a live base model is never evicted by hysteresis.
+- **Dedup** — if two slots resolve to the same substitute, the later slot
+  takes its next chain entry instead of listing the model twice.
+- **Judge independence** — a fusion judge substitute must not equal any
+  post-substitution panel model; conflicting entries are skipped. (OmniRoute
+  uses `judgeModel` unconditionally with no fallback, so the judge is chosen
+  fail-closed.)
+- **Fusion panel floor** — after substitution the panel must keep ≥
+  `max(minPanel, 2)` resolvable models, else HOLD.
+- **Tier gating** — tier1 substitutes (`kimi-coding-apikey/k3`,
+  `trae/gemini-3-flash-solo`, `antigravity/*`) are pre-probed and may land
+  anywhere; tier2 bench models (`nvidia/deepseek-ai/deepseek-v4-pro`,
+  `ollama-cloud/qwen3.5:397b`) may only land in trailing/chain-end
+  positions. A tier2 model in slot position 0 yields a `requires-probe`
+  verdict in dry-run and a HOLD under `--apply` until a live probe promotes
+  it.
+
+Mutations are full-body `PUT /api/combos/:id` (OmniRoute supports PUT; there
+is no PATCH), preserving the combo id and every untouched field — only the
+`models` array and, for fusion combos, `config.judgeModel` change. Every run
+that can mutate snapshots `{settings, combos, catalog, policy, plan}` to
+`.omniroute-backups/omniroute-reconcile-<UTC>.json` first — dry-runs
+included — and the global `activeCombo` is verified unchanged afterwards.
+`te-dispatch` and `te-write` are monitoring-only entries: their providers are
+observed and reported, but they carry no substitute chains and are never
+mutated.
 
 ```bash
-scripts/omniroute-temperance-planner-quota.sh --status   # read-only quota + diff report
-scripts/omniroute-temperance-planner-quota.sh --dry-run  # authenticated, no mutation
-scripts/omniroute-temperance-planner-quota.sh --apply    # reconcile te-plan if it drifted
-scripts/omniroute-temperance-planner-quota.sh --rollback FILE
+scripts/omniroute-temperance-reconcile.sh --status    # read-only availability + diff report
+scripts/omniroute-temperance-reconcile.sh --dry-run   # authenticated, snapshots, no mutation
+scripts/omniroute-temperance-reconcile.sh --apply     # reconcile all governed combos
+scripts/omniroute-temperance-reconcile.sh --combo te-plan --apply   # scope to one combo
+scripts/omniroute-temperance-reconcile.sh --rollback FILE
 
-# Run the check automatically on a timer (default every 15 minutes):
-scripts/omniroute-temperance-planner-quota.sh --install-timer
-scripts/omniroute-temperance-planner-quota.sh --timer-status
-scripts/omniroute-temperance-planner-quota.sh --uninstall-timer
+# Run the reconciler automatically (default every 15 minutes):
+scripts/omniroute-temperance-reconcile.sh --install-timer    # label com.temperance.engine.reconcile
+scripts/omniroute-temperance-reconcile.sh --timer-status
+scripts/omniroute-temperance-reconcile.sh --uninstall-timer
 ```
 
-The same substitution logic is mirrored in
+`--install-timer` also migrates the legacy timer: it unloads
+`com.temperance.engine.planner-quota` and renames its plist to
+`.removed.<timestamp>` before installing the new label.
+`scripts/omniroute-temperance-planner-quota.sh` is **deprecated**: it is now a
+thin shim that prints a notice and execs the reconciler with
+`--combo te-plan "$@"`, so the old timer and any lingering callers keep
+working until migrated.
+
+The reconciler writes `~/.temperance_engine/state/omniroute-reconcile.json`
+(schema `temperance-reconcile-v1`) and appends to
+`~/.temperance_engine/state/omniroute-reconcile-events.jsonl`; when `te-plan`
+is in scope it also refreshes the legacy
+`~/.temperance_engine/state/omniroute-planner-quota.json`, so
 [`package/router/temperance-workflows.ts`](../package/router/temperance-workflows.ts)'s
-`resolveWorkflow("planner", ...)`, which reads the reconciler's cached state
-file (`~/.temperance_engine/state/omniroute-planner-quota.json`) so the
-advisory CLI (`bun package/router/temperance-workflows.ts resolve planner ...`)
-stays consistent with whatever is actually live on the combo.
+`resolveWorkflow("planner", ...)` advisory CLI keeps reading live quota data
+from its expected path.
 
 ## Temperance Dispatch fleet
 

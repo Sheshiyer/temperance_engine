@@ -1,0 +1,321 @@
+{
+  "schema": "temperance-fallback-v1",
+  "threshold_percent": 30,
+  "restore_hysteresis_percent": 40,
+  "tiers": {
+    "tier1": {
+      "description": "Pre-probed substitutes: already live in governed combos (or verified through live probes), so they may land in any slot position.",
+      "models": [
+        "kimi-coding-apikey/k3",
+        "trae/gemini-3-flash-solo",
+        "antigravity/gemini-3.5-flash-low",
+        "antigravity/claude-sonnet-4-6",
+        "antigravity/claude-opus-4-6-thinking"
+      ]
+    },
+    "tier2": {
+      "description": "Bench models: allowed only in trailing/chain-end positions. If a tier2 model would land in slot position 0 the combo is held with a requires-probe verdict until a live probe promotes it.",
+      "models": [
+        "nvidia/deepseek-ai/deepseek-v4-pro",
+        "ollama-cloud/qwen3.5:397b"
+      ]
+    }
+  },
+  "combos": [
+    {
+      "name": "te-fast",
+      "strategy": "priority",
+      "monitor_only": false,
+      "slots": [
+        { "model": "antigravity/gemini-3.5-flash-low", "role": "anchor" },
+        { "model": "antigravity/claude-sonnet-4-6", "role": "anchor" },
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 },
+            { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+          ]
+        }
+      ],
+      "bench": []
+    },
+    {
+      "name": "te-build",
+      "strategy": "priority",
+      "monitor_only": false,
+      "slots": [
+        {
+          "model": "codex/gpt-5.6-terra",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "kimi-coding-apikey/k3", "tier": 1 },
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 }
+          ]
+        },
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 },
+            { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+          ]
+        },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "bench": [
+        { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 },
+        { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+      ]
+    },
+    {
+      "name": "te-reason",
+      "strategy": "priority",
+      "monitor_only": false,
+      "slots": [
+        { "model": "antigravity/claude-opus-4-6-thinking", "role": "anchor" },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" },
+        {
+          "model": "codex/gpt-5.6-terra",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 },
+            { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+          ]
+        }
+      ],
+      "bench": [
+        { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+      ]
+    },
+    {
+      "name": "te-plan",
+      "strategy": "priority",
+      "monitor_only": false,
+      "slots": [
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "kimi-coding-apikey/k3", "tier": 1 },
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 }
+          ]
+        },
+        {
+          "model": "codex/gpt-5.6-sol-max",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "kimi-coding-apikey/k3", "tier": 1 },
+            { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 }
+          ]
+        },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "bench": [
+        { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 },
+        { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+      ]
+    },
+    {
+      "name": "te-creative",
+      "strategy": "priority",
+      "monitor_only": false,
+      "slots": [
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "kimi-coding-apikey/k3", "tier": 1 },
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 }
+          ]
+        },
+        {
+          "model": "codex/gpt-5.6-sol-max",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 },
+            { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+          ]
+        },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "bench": [
+        { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+      ]
+    },
+    {
+      "name": "te-write-media",
+      "strategy": "priority",
+      "monitor_only": false,
+      "slots": [
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 },
+            { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+          ]
+        },
+        {
+          "model": "codex/gpt-5.6-sol-max",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 },
+            { "model": "kimi-coding-apikey/k3", "tier": 1 }
+          ]
+        },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "bench": [
+        { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+      ]
+    },
+    {
+      "name": "te-validate",
+      "strategy": "fusion",
+      "monitor_only": false,
+      "slots": [
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "kimi-coding-apikey/k3", "tier": 1 },
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 }
+          ]
+        },
+        {
+          "model": "codex/gpt-5.6-terra",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "antigravity/claude-sonnet-4-6", "tier": 1 },
+            { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 }
+          ]
+        },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "judge": {
+        "model": "codex/gpt-5.6-terra",
+        "substitutes": [
+          { "model": "antigravity/claude-opus-4-6-thinking", "tier": 1 },
+          { "model": "kimi-coding-apikey/k3", "tier": 1 }
+        ]
+      },
+      "minPanel": 2,
+      "bench": []
+    },
+    {
+      "name": "te-write-critique",
+      "strategy": "fusion",
+      "monitor_only": false,
+      "slots": [
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 },
+            { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+          ]
+        },
+        {
+          "model": "codex/gpt-5.6-terra",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "kimi-coding-apikey/k3", "tier": 1 },
+            { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 }
+          ]
+        },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "judge": {
+        "model": "codex/gpt-5.6-terra",
+        "substitutes": [
+          { "model": "antigravity/claude-opus-4-6-thinking", "tier": 1 },
+          { "model": "kimi-coding-apikey/k3", "tier": 1 }
+        ]
+      },
+      "minPanel": 2,
+      "bench": []
+    },
+    {
+      "name": "te-write-research",
+      "strategy": "fusion",
+      "monitor_only": false,
+      "slots": [
+        { "model": "command-code/deepseek/deepseek-v4-flash", "role": "anchor" },
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 },
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 }
+          ]
+        },
+        {
+          "model": "codex/gpt-5.6-terra",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "kimi-coding-apikey/k3", "tier": 1 },
+            { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 }
+          ]
+        }
+      ],
+      "judge": {
+        "model": "codex/gpt-5.6-terra",
+        "substitutes": [
+          { "model": "antigravity/claude-opus-4-6-thinking", "tier": 1 },
+          { "model": "kimi-coding-apikey/k3", "tier": 1 }
+        ]
+      },
+      "minPanel": 2,
+      "bench": []
+    },
+    {
+      "name": "te-dispatch",
+      "strategy": "priority",
+      "monitor_only": true,
+      "slots": [
+        { "model": "command-code/deepseek/deepseek-v4-flash", "role": "anchor" },
+        { "model": "command-code/moonshotai/Kimi-K2.7-Code", "role": "anchor" },
+        { "model": "grok-cli/grok-build", "role": "anchor" },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "bench": []
+    },
+    {
+      "name": "te-write",
+      "strategy": "priority",
+      "monitor_only": true,
+      "slots": [
+        { "model": "command-code/MiniMaxAI/MiniMax-M2.7", "role": "anchor" },
+        { "model": "nebius/moonshotai/Kimi-K2.6", "role": "anchor" },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "bench": []
+    },
+    {
+      "name": "temperance-coding",
+      "strategy": "priority",
+      "monitor_only": false,
+      "slots": [
+        {
+          "model": "codex/gpt-5.6-terra",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "kimi-coding-apikey/k3", "tier": 1 },
+            { "model": "nvidia/deepseek-ai/deepseek-v4-pro", "tier": 2 }
+          ]
+        },
+        {
+          "model": "github/gpt-5.4",
+          "role": "guarded",
+          "substitutes": [
+            { "model": "trae/gemini-3-flash-solo", "tier": 1 },
+            { "model": "ollama-cloud/qwen3.5:397b", "tier": 2 }
+          ]
+        },
+        { "model": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507", "role": "anchor" }
+      ],
+      "bench": []
+    }
+  ]
+}

@@ -113,6 +113,23 @@ owned virtual pool and is never silently promoted into a Temperance portfolio.
   (te-write/te-write-critique) and
   `scripts/omniroute-temperance-writer-expansion.sh`
   (te-write-research/te-write-media)
+- Availability/quota reconciler: `scripts/omniroute-temperance-reconcile.sh`,
+  driven by `package/router/omniroute-fallback-policy.json` (schema
+  temperance-fallback-v1; registered as `fallback_policy` in
+  `omniroute-portfolios.json`). It substitutes guarded slots on
+  manual-disable (`isActive:false`, or absent from the quota report while
+  others are present) or quota below threshold, restores with hysteresis,
+  fails open for priority combos and closed (HOLD, exit 3) for fusion
+  combos, and mutates via full-body PUT preserving combo ids. Timer label
+  `com.temperance.engine.reconcile` (900s). The retired
+  `scripts/omniroute-temperance-planner-quota.sh` is a deprecated shim that
+  forwards to the reconciler with `--combo te-plan`.
+- Reconciler state: `~/.temperance_engine/state/omniroute-reconcile.json`
+  (schema temperance-reconcile-v1) plus the append-only event log
+  `~/.temperance_engine/state/omniroute-reconcile-events.jsonl` with event
+  types `run`, `substitute` (reason `quota` or `manual-disable`), `restore`,
+  `hold` (fail-closed or panel-floor), `requires-probe` (tier2 gating), and
+  `rollback`
 - Admin password: macOS Keychain service `OmniRoute Temperance Admin`
 - Scoped inference key: macOS Keychain service `OmniRoute Temperance API Key`
 - Codex profile: `~/.codex/temperance-coding.config.toml`
