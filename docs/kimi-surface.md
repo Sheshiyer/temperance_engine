@@ -71,8 +71,9 @@ discovery still applies.
 
 Both scripts edit the user/app-owned TOML by appending **one marker-delimited
 managed block** (`# --- temperance:managed:start (...) ---`) containing
-`[providers.temperance]` (relay `:20129`, `X-Temperance-Surface: kimi` header)
-and `[models."temperance/temperance-auto"]`, plus at most one tagged line
+`[providers.temperance]` (relay `:20129`, `X-Temperance-Surface: kimi` header),
+`[models."temperance/temperance-auto"]`, and the pinned `omniroute/*` portfolio
+models (see below), plus at most one tagged line
 rewrite (the `hooks = []` line on the CLI; `--set-default` optionally). The
 file stays byte-identical outside the managed region, and `disable` restores
 it exactly (recorded originals live in the state markers under
@@ -92,6 +93,47 @@ doctor's `kimi_provider` check is likewise semantic, not marker-based.
 
 `default_model` is never changed without `--set-default` — the governed lane is
 opt-in from Kimi's model picker, exactly like OpenCode's.
+
+## Pinned portfolios (`omniroute/*`)
+
+**`temperance-auto` cannot reach a named portfolio from this surface.** The relay
+pins any request carrying tools to `temperance-coding`
+(`temperance-openai-proxy.ts`, source `tool-safe-compatibility`), and kimi always
+sends tools. The classifier still runs and still resolves a portfolio — the
+response carries `X-Temperance-Portfolio: te-build` — but the routed model is
+`temperance-coding` regardless. That header is advisory on kimi.
+
+Pinning a model by name is therefore the only way to select a portfolio here. It
+takes the `explicit-picker-override` path (`mode: direct`), and **enrichment still
+applies** — injection is gated on the surface header, not on route mode. `enable`
+emits these five, all `tool_calling`-capable:
+
+| Picker entry | Combo | ctx |
+| --- | --- | --- |
+| `omniroute/te-build` | `te-build` | 1048576 |
+| `omniroute/te-validate` | `te-validate` | 200000 |
+| `omniroute/te-fast` | `te-fast` | 200000 |
+| `omniroute/best-coding` | `auto/best-coding` | 1048576 |
+| `omniroute/best-reasoning` | `auto/best-reasoning` | 1048576 |
+
+`te-reason`, `te-creative`, `te-plan`, and `te-dispatch` are deliberately absent —
+they lack `tool_calling`, so they would degrade or fail on a surface that always
+sends tools. `--no-combos` emits `temperance-auto` alone.
+
+Two reasons these are managed rather than left to the user: they carry
+`provider = "temperance"`, so a hand-authored copy becomes a dangling reference
+the moment `disable` removes the provider; and being inside the block means an
+app update that regenerates the config loses them together with everything else,
+so one `enable` restores the whole lane. The `omniroute/` prefix (rather than
+`temperance/`) is load-bearing — the user-authored guard refuses to enable when it
+finds a `[models."temperance/…` table it did not write.
+
+**Global tuning is not managed.** `[loop_control]`, `[background]`, and
+`[mcp.client]` are app-owned; both shipped configs already define
+`[loop_control]`, and emitting a second one is a duplicate-table TOML error that
+`validate_toml` would reject. Step budget, retry count, and tool timeouts stay
+hand-edited and are lost on a desktop app update — re-apply them after the
+`enable` that recovers from drift.
 
 ## Skills matrix
 

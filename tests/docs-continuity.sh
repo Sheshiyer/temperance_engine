@@ -160,6 +160,30 @@ if grep -Eiq '(sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|(api[_-]?key|secret|token|
 else
   echo "ok - OmniRoute integration surfaces contain no credential literals"
 fi
+# --- kimi pinned portfolios: managed, tool-safe, and correctly namespaced ---
+KIMI_CFG="$DIR/scripts/configure-kimi-relay.sh"
+KIMI_DOC="$DIR/docs/kimi-surface.md"
+grep -q 'omniroute/te-build|te-build' "$KIMI_CFG" \
+  && grep -q 'omniroute/te-validate|te-validate' "$KIMI_CFG" \
+  && echo "ok - kimi enable emits pinned omniroute portfolios" \
+  || { echo "FAIL - configure-kimi-relay.sh missing pinned omniroute combos"; fail=1; }
+# The omniroute/ prefix is load-bearing: a temperance/ prefix would trip the
+# script's own user-authored-table guard and break re-enable.
+grep -Eq '^\s*.omniroute/[a-z-]+\|' "$KIMI_CFG" \
+  && ! grep -Eq "^\s*'temperance/(te-|best-|auto)" "$KIMI_CFG" \
+  && echo "ok - pinned combos avoid the temperance/ guarded namespace" \
+  || { echo "FAIL - pinned combos must not use the temperance/ model namespace"; fail=1; }
+# Non-tool_calling combos must never be offered to a surface that always sends tools.
+if grep -Eq "^\s*'omniroute/(te-reason|te-creative|te-plan|te-dispatch)\|" "$KIMI_CFG"; then
+  echo "FAIL - non-tool_calling combo pinned for kimi (always sends tools)"; fail=1
+else
+  echo "ok - kimi pins only tool_calling-capable combos"
+fi
+grep -q 'tool-safe-compatibility' "$KIMI_DOC" \
+  && grep -q 'omniroute/te-build' "$KIMI_DOC" \
+  && echo "ok - kimi-surface documents the tool-safe pin and pinned portfolios" \
+  || { echo "FAIL - kimi-surface.md missing tool-safe pin / pinned portfolio docs"; fail=1; }
+
 grep -q 'bun test package/router/routing-policy.test.ts' "$DIR/scripts/verify-all.sh" \
   && grep -q 'bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts' "$DIR/scripts/verify-all.sh" \
   && grep -q 'bash tests/routing-policy.sh' "$DIR/scripts/verify-all.sh" \
