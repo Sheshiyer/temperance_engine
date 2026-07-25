@@ -211,26 +211,45 @@ strict schemas, so writing our block there risks breaking app startup. Routing
 the desktop app through the relay needs a provider shape agent-core actually
 accepts (`openai` / `anthropic` / `kimi`), which is unbuilt.
 
-**What agent-core supports in that config is much narrower than kimi-cli.** Its
-`loop_control` implements `max_steps_per_turn` only:
+**Neither desktop config is user-editable: the daimon regenerates both from a
+template on every launch.** Confirmed empirically — a single app restart reset
+`runtime/kimi-code/config.toml` back to the shipped defaults *and* wiped the
+managed block, the pinned combos, and every hand-added table from
+`daimon-share/config.toml`. The caveat above about "an app update may regenerate
+it" understates this: it is **every start**, not every update. `enable` on the
+desktop is therefore good for exactly one session, and only if the file it wrote
+were the one being read — which it is not.
 
-| key | kimi-cli | agent-core |
-| --- | --- | --- |
-| `loop_control.max_steps_per_turn` | yes | **yes** |
-| `loop_control.max_retries_per_step` | yes | no |
-| `loop_control.max_ralph_iterations` | yes | no |
-| `loop_control.reserved_context_size` | yes | no |
-| `loop_control.compaction_trigger_ratio` | yes | no |
-| `background.*` | yes | no |
-| `mcp.client.tool_call_timeout_ms` | yes | no |
+The generator is `validateDaimonKimiCodePrivateConfigToml(...)` in
+`daimon/dist/_internal/`, and it writes `loop_control.max_steps_per_turn`
+unconditionally from `DAIMON_KIMI_CODE_DEFAULT_MAX_STEPS_PER_TURN = 0x64` (100).
+That constant has one reference, no env override, and no source in
+`daimon/config.json` — **so a desktop step budget other than 100 cannot be set
+through configuration at all.** Long-horizon runs that need a bigger budget
+belong on the CLI, where kimi-cli honours `max_steps_per_turn` normally.
 
 The familiar `Turn exceeded maxSteps=N. If max_steps_per_turn is too small,
 raise it in config.toml (loop_control.max_steps_per_turn)` message is emitted by
-agent-core — so that error on the desktop app is fixed in
-`daimon/runtime/kimi-code/config.toml`, not in `~/.kimi/config.toml`. Keep hand
-edits there to supported keys: the daimon rewrites that file on startup
-(`sync=updated`), and unsupported tables are at best ignored and at worst a
-strict-schema startup failure.
+agent-core, so that error on the desktop app comes from this 100 — not from
+anything in `~/.kimi/config.toml`. The remedy the message suggests does not work
+on this surface.
+
+**Key support in the desktop bundle** (grepped across `daimon/dist` and
+`@moonshot-ai/agent-core`; "template-written" means the generator emits it, so a
+hand-edited value is replaced rather than honoured):
+
+| key | kimi-cli | desktop bundle |
+| --- | --- | --- |
+| `loop_control.max_steps_per_turn` | yes | template-written, forced to 100 |
+| `loop_control.max_retries_per_step` | yes | template-written (conditional) |
+| `loop_control.max_ralph_iterations` | yes | absent |
+| `loop_control.reserved_context_size` | yes | absent |
+| `loop_control.compaction_trigger_ratio` | yes | absent |
+| `background.*` | yes | absent |
+| `mcp.client.tool_call_timeout_ms` | yes | absent |
+
+The `absent` rows are the dangerous ones: agent-core carries strict schemas, so
+adding those tables by hand is at best ignored and at worst a startup failure.
 
 ## Rollback
 
