@@ -184,6 +184,14 @@ grep -q 'tool-safe-compatibility' "$KIMI_DOC" \
   && echo "ok - kimi-surface documents the tool-safe pin and pinned portfolios" \
   || { echo "FAIL - kimi-surface.md missing tool-safe pin / pinned portfolio docs"; fail=1; }
 
+# --- kimi desktop: agent-core reality check ---
+grep -q 'kimi_desktop_target' "$DIR/scripts/temperance-doctor.sh" \
+  && echo "ok - doctor checks the desktop agentFile target" \
+  || { echo "FAIL - temperance-doctor.sh missing kimi_desktop_target check"; fail=1; }
+grep -q 'agent-core' "$KIMI_DOC" && grep -q 'openai_legacy' "$KIMI_DOC" \
+  && echo "ok - kimi-surface documents the agent-core kernel constraint" \
+  || { echo "FAIL - kimi-surface.md missing agent-core provider-shape warning"; fail=1; }
+
 grep -q 'bun test package/router/routing-policy.test.ts' "$DIR/scripts/verify-all.sh" \
   && grep -q 'bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts' "$DIR/scripts/verify-all.sh" \
   && grep -q 'bash tests/routing-policy.sh' "$DIR/scripts/verify-all.sh" \

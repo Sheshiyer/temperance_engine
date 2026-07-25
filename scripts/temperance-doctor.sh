@@ -216,6 +216,33 @@ if [[ "$kimi_desktop_state_ok" == true && -f "$KIMI_DESKTOP_CONFIG" ]]; then
 fi
 set_check "kimi_desktop_drift" "$kimi_desktop_drift_ok" "$kimi_desktop_drift_msg"
 
+# The desktop app tells us which file its agent kernel actually loads, in
+# daimon/config.json -> agents.defaults.agentFile. A sha that still matches is
+# NOT proof the lane is live: if the app moved its agent config, the managed
+# block sits in a file nothing reads and every other kimi_desktop_* check keeps
+# reporting green while the surface is inert. Compare the two explicitly.
+#
+# Recovery is NOT simply repointing TEMPERANCE_KIMI_DESKTOP_CONFIG at the
+# agentFile: when that file is owned by the @moonshot-ai/agent-core kernel it
+# rejects the provider shape we emit (no openai_legacy type, no custom_headers),
+# so writing there can break app startup. Verify the target's parser first.
+kimi_desktop_target_ok=true
+kimi_desktop_target_msg="n/a"
+KIMI_DAIMON_CONFIG="${TEMPERANCE_KIMI_DAIMON_CONFIG:-${HOME}/Library/Application Support/kimi-desktop/daimon-share/daimon/config.json}"
+if [[ "$kimi_desktop_state_ok" == true && -f "$KIMI_DAIMON_CONFIG" ]]; then
+  agent_file="$(jq -r '.agents.defaults.agentFile // empty' "$KIMI_DAIMON_CONFIG" 2>/dev/null || true)"
+  managed_file="$(jq -r '.config_path // empty' "$KIMI_DESKTOP_STATE_PATH" 2>/dev/null || true)"
+  if [[ -n "$agent_file" && -n "$managed_file" ]]; then
+    if [[ "$agent_file" == "$managed_file" ]]; then
+      kimi_desktop_target_msg="managed config is the app's agentFile"
+    else
+      kimi_desktop_target_ok=false
+      kimi_desktop_target_msg="app loads ${agent_file##*/daimon-share/}; managed block is in ${managed_file##*/daimon-share/} -- desktop lane is INERT"
+    fi
+  fi
+fi
+set_check "kimi_desktop_target" "$kimi_desktop_target_ok" "$kimi_desktop_target_msg"
+
 # ── Planner quota reconciler (opt-in automation; never gates the exit code) ──
 PLANNER_QUOTA_STATE_PATH="${TEMPERANCE_PLANNER_QUOTA_STATE:-${TEMPERANCE_STATE_DIR:-${HOME}/.temperance_engine}/state/omniroute-planner-quota.json}"
 planner_quota_state_ok=false
