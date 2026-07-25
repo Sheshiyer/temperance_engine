@@ -226,11 +226,19 @@ if [[ -f "$PLANNER_QUOTA_STATE_PATH" ]] && jq -e '.schema_version == "temperance
 fi
 set_check "planner_quota_state" "$planner_quota_state_ok" "$planner_quota_msg"
 
+# The planner-quota script is deprecated: it forwards to omniroute-temperance-reconcile.sh,
+# whose --install-timer installs the LaunchAgent as com.temperance.engine.reconcile. Check
+# that label first; the legacy planner-quota label is still accepted for older installs.
 planner_quota_timer_ok=false
-if launchctl print "gui/$(id -u)/com.temperance.engine.planner-quota" >/dev/null 2>&1; then
+planner_quota_timer_msg="not installed (scripts/omniroute-temperance-reconcile.sh --install-timer)"
+if launchctl print "gui/$(id -u)/com.temperance.engine.reconcile" >/dev/null 2>&1; then
   planner_quota_timer_ok=true
+  planner_quota_timer_msg="installed (com.temperance.engine.reconcile)"
+elif launchctl print "gui/$(id -u)/com.temperance.engine.planner-quota" >/dev/null 2>&1; then
+  planner_quota_timer_ok=true
+  planner_quota_timer_msg="installed (legacy com.temperance.engine.planner-quota label)"
 fi
-set_check "planner_quota_timer" "$planner_quota_timer_ok" "$([[ "$planner_quota_timer_ok" == true ]] && echo "installed" || echo "not installed (scripts/omniroute-temperance-planner-quota.sh --install-timer)")"
+set_check "planner_quota_timer" "$planner_quota_timer_ok" "$planner_quota_timer_msg"
 
 direct_ready=true
 for key in router dispatch batch enrichment classifier portfolio_resolver portfolio_manifest claude_hook codex_hook opencode_config opencode_flow opencode_guard claude_hook_contract codex_hook_contract direct_provider; do

@@ -51,7 +51,6 @@ PAI Algorithm (7 phases, ALWAYS active — enforcement is future sub-project B)
   OpenCode automatic requests: enrich → frozen plan → OmniRoute relay
   Kimi automatic requests: hook sidecar (cwd) → relay-side enrich → frozen plan → OmniRoute
 
-  Retired: package/conductor/routed-execute.sh
   Retired: docs/parallel-dispatch.md · docs/multi-surface-architecture.md → redirect stubs
 ```
 
@@ -126,5 +125,3 @@ No completion claim without fresh verification evidence.
   backends via `temperance-batch`) builds on it. (Redirect stub retained.)
 - `docs/multi-surface-architecture.md` — the enrichment/router/adapter layers are
   this doc's Architecture section. (Redirect stub retained.)
-- `package/conductor/routed-execute.sh` — superseded by
-  `package/router/dispatch-tasklist.sh` (`temperance-batch`).
