@@ -1,13 +1,13 @@
 ---
 project: temperance_engine
-task: Expand the noesis writing fleet with research and media sub-lanes (te-write-research + te-write-media)
-effort: E3
+task: Close the connector-brand live-naming deferral and correct the ANSI-color scope estimate
+effort: E2
 phase: verify
-iteration: 2026-07-23-writing-fleet-expansion
-progress: 186/187
+iteration: 2026-07-28-connector-brand-live-naming
+progress: 187/188
 mode: interactive
 started: 2026-06-12
-updated: 2026-07-23
+updated: 2026-07-28
 ---
 
 ## Problem
@@ -251,6 +251,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 - [x] ISC-185: Writing-workflow documentation maps the research and media phases to their combos and states the `somatic-cantincles-mobile-app` connection as branding/content lineage only — no coded alchemical or biorhythm mechanic exists in that app, and this change touches no file outside `temperance_engine`.
 - [x] ISC-186: `te-write-media` is documented as a noesis-house-style brief writer distinct from `te-creative`'s generic brief; `te-creative`'s own manifest entry, tests, and docs remain unmodified.
 - [x] ISC-187: The canonical verification gate passes with the expansion resolver tests, portfolio manifest tests, and lifecycle shell assertions included.
+- [x] ISC-188: A connector-brand name (the Athanor, the Caduceus, the Vigil) is applied only where its underlying code prints output a human reads directly in a terminal-safe context — a user-invoked CLI's stdout/stderr (`Banner.ts`, `OpinionTracker.ts`, the proxy's boot log, the reconciler's install/apply lines). It is never applied to a machine-parsed channel (a JSONL log writer, a hook's JSON protocol response, headless stdout meant for a downstream parser) or to a Claude Code hook subprocess's stderr, whose ANSI-rendering safety across every UI surface (raw terminal vs. desktop/web app vs. IDE extension) is unverified.
 
 ## Test Strategy
 
@@ -490,6 +491,7 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 | Noesis writing fleet (drafting rail + critique council) | ISC-172..ISC-177 | role manifest, writer lifecycle script, portfolio manifest, capability fabric and routing docs | no |
 | Weekly-quota-aware planner substitution | ISC-178..ISC-181 | live OmniRoute quota poll, planner reconciler script, workflows.ts resolver, fleet docs | no |
 | Writing fleet expansion (research + media sub-lanes) | ISC-182..ISC-187 | role manifest, second writer lifecycle script, portfolio manifest, capability fabric and routing docs | no |
+| Connector-brand live-naming scope guard | ISC-188 | connector-brand Decision (2026-07-28), pai.ts ANSI-color precedent | yes |
 
 ## Architecture
 
@@ -553,6 +555,7 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
 - 2026-07-23: refined: Make Claude Code, the Codex app, and OpenCode the primary local surfaces; share one fail-open enrichment core, preserve direct OmniRoute picker routes, and add a separately managed automatic relay provider.
 - 2026-07-23: refined: Treat relay configuration as an owned, reversible surface with backups and a sidecar marker; expose direct versus automatic readiness through a secret-free doctor command.
 - 2026-07-28: Named Temperance Engine's owned connectors with alchemical proper nouns consistent with the Algorithm's phase-sigil system: PAI → the Athanor (display-only rename; `~/.claude/PAI` and `$PAI_HOME` unchanged), Temperance's own OmniRoute integration code → the Caduceus, the headless EC2 shadow runtime → the Vigil. Explicitly scoped OUT: renaming Cambium/Hermes/Plexus or any part of the separately-governed Thoughtseed production system (documented in that monorepo's own `INFRA_STATUS.md`, outside this repository), renaming third-party deps (`gsd-core`, OmniRoute the product, `hermes-agent`), and applying these names to live display text (deferred). See `docs/superpowers/specs/2026-07-28-connector-brand-design.md`.
+- 2026-07-28: Closed the live-display-text deferral above. The Athanor now appears in `~/.claude/PAI/Tools/Banner.ts`'s primary header and PAI-identity row icon (⬢→⚗, live machine files, not git-tracked — backed up before editing); the Caduceus now appears in `package/router/temperance-openai-proxy.ts`'s boot log and `scripts/omniroute-temperance-reconcile.sh`'s LaunchAgent-install/apply-complete lines (PR #29). The Vigil has no live-naming target: `package/headless`'s only stdout is machine-parsed JSON (`canonicalJson(...)`), and naming it there would corrupt a real consumer's parsing — intentionally left alone per ISC-188 rather than forced. The originally estimated "~9 files" for the companion ANSI-color extension (from the pai.ts proof-of-concept) was verified down to exactly one valid target, `OpinionTracker.ts`; see the refutation entry below and ISC-188.
 
 ## Changelog
 
@@ -651,6 +654,11 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
   refuted by: `failoverBeforeRetry` only reacts to actual request failures, never to a live quota percentage; `headroom` always routes to whoever has the most remaining quota with no sticky primary preference, and `reset-aware` ranks by which window resets soonest — neither expresses a threshold-gated, sticky-primary preference, and OmniRoute's combo API has no update/PATCH endpoint, only create and delete
   learned: proactive, threshold-gated backend preference is a Temperance-owned responsibility layered on top of OmniRoute's reactive failover, implemented the same way rollback already is in this codebase — delete-then-recreate a combo from a freshly computed desired model list, snapshot-first and idempotent when no change is needed
   criterion now: ISC-179 and ISC-180 require the reconciler and the advisory CLI to share one substitution algorithm via a cached state file, and require the live mutation path to be snapshot-first, dry-run by default, and a true no-op when the live combo already matches
+
+- 2026-07-28 | conjectured: ~9 files across `~/.claude/hooks` and `PAI/Tools` each defined their own colorizable `log()` helper in the same shape as `pai.ts`'s ANSI-color proof-of-concept, and the color pattern could be mechanically extended to all of them
+  refuted by: grepping the actual call sites (not just the function name) found `ReadmeSkillSync.hook.ts`, `ArchitectureAssetsSync.hook.ts`, `NextStepOrchestrator.hook.ts`, and `MarkitdownIntercept.hook.ts` define only a `logJsonl()` file writer with zero `console.log`/`console.error` calls — nothing to colorize; `SecurityValidator.hook.ts`'s sigil-bearing `console.error` lines run as a Claude Code hook subprocess, not a user-invoked terminal, so raw ANSI's rendering is unverified there; `handlers/VoiceNotification.ts` and `handlers/voice.ts` use no sigils at all
+  learned: a memory or prior-session claim that "file X has a log() helper" names a resemblance, not a verified fact — the function's actual call sites and execution context (user-invoked CLI vs. hook subprocess vs. file writer) determine whether it's a safe target, not its name. Only `OpinionTracker.ts` shared `pai.ts`'s exact context (a directly user-invoked `bun` CLI) and was a valid target
+  criterion now: ISC-188 requires a connector name or ANSI color to land only on output verified to be human-terminal-facing, never assumed from a memory's file list
 
 ## Verification
 
@@ -808,3 +816,4 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
 - ISC-185: `docs/noesis-writer-routing.md` gained a "Context: Somatic Canticles and the biorhythm mobile app" section stating the connection is branding/content lineage only, grounded in an Explore-agent search of `somatic-cantincles-mobile-app`, `Somatic-Canticles-book`, and `Selemene-engine` that found zero references to "alchemical infusion" or any Nigredo/Albedo/Citrinitas/Rubedo mechanic in any of those repos; this change's `git diff` touches no path outside `temperance_engine`.
 - ISC-186: `git diff HEAD -- package/router/temperance-workflows.json | grep -A5 -B5 '"creative"'` returned no hunks — the `creative` block is byte-identical to `HEAD`; `te-write-media`'s manifest entry, resolver branch, and docs are additive only.
 - ISC-187: `scripts/omniroute-temperance-writer-expansion.sh --apply` created `te-write-research` (id `1a042162-8b83-4a79-a64d-1c05624914c7`) and `te-write-media` (id `ffe9cc05-282c-4a9a-b0e1-b8b028f26b69`); `activeCombo` remained `null` before and after. Live native probes returned `RESEARCH_OK` from `te-write-research` (fusion judge `gpt-5.6-terra` via Codex, 749ms) and `MEDIA_OK` from `te-write-media` (priority-1 `gpt-5.4` via GitHub, 237ms).
+- ISC-188: grep confirmed exactly one of the ~9 originally-listed files (`OpinionTracker.ts`) has real, colorizable, user-invoked-CLI console output; the other 8 either had zero `console.log`/`console.error` calls (4 files, JSONL-only), ran in an unverified-ANSI hook-subprocess context (1 file), or used no sigils at all (2 files) — no color or connector name was applied to any of those 7, and `package/headless`'s JSON-only stdout received no Vigil naming for the same reason. `bun build OpinionTracker.ts`/`Banner.ts` (both `--target=bun`) and `bun build temperance-openai-proxy.ts --target=bun` all bundled clean; the rendered `Banner.ts` navy/navy-medium output (ANSI stripped, plain-text diffed) showed correct centering and no corruption; `bun test temperance-openai-proxy.test.ts` passed 19/19 unchanged; PR #29's `guard` and `verify` CI checks both passed before merge.

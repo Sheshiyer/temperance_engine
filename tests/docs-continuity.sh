@@ -61,7 +61,7 @@ isa_checked="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} insi
 isa_total="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} inside && /^- \[[ x]\] ISC-[0-9]+:/{count++} END{print count+0}' "$DIR/ISA.md")"
 grep -Eq '^task: .+$' "$DIR/ISA.md" \
   && grep -q "^progress: $isa_checked/$isa_total$" "$DIR/ISA.md" \
-  && grep -q '^updated: 2026-07-23$' "$DIR/ISA.md" \
+  && grep -q '^updated: 2026-07-28$' "$DIR/ISA.md" \
   && echo "ok - ISA frontmatter normalized" \
   || { echo "FAIL - ISA frontmatter normalization missing"; fail=1; }
 grep -q '^## Principles$' "$DIR/ISA.md" && grep -q '^## Changelog$' "$DIR/ISA.md" \
