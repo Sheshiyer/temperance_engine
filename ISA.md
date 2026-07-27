@@ -507,6 +507,7 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
 | [`docs/architecture/integration-map.html`](docs/architecture/integration-map.html) | ✅ current (updated 2026-07-27: OmniRoute relay + reconciler WIRED seam) | manual (LLM skill) |
 | [`docs/architecture/session-trace.html`](docs/architecture/session-trace.html) | ✅ current (updated 2026-07-27: automatic chat request trace) | manual (LLM skill) |
 | [`docs/architecture/omniroute-routing.html`](docs/architecture/omniroute-routing.html) | ✅ current (new 2026-07-27) | manual (LLM skill) |
+| [`docs/architecture/brand-connectors.html`](docs/architecture/brand-connectors.html) | ✅ current (new 2026-07-28) | manual (LLM skill) |
 | [`docs/architecture.md`](docs/architecture.md) | ✅ current (updated 2026-07-27: OmniRoute component + data-flow step) | manual (LLM skill) |
 | [`docs/architecture/notebooklm-prompt.md`](docs/architecture/notebooklm-prompt.md) | ⬜ not yet generated | manual (LLM skill) |
 
@@ -551,6 +552,7 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
 - 2026-07-23: refined: Keep PAI skills, MCP execution, and knowledge retrieval client-owned; add a typed seven-stage capability packet and pointer-only knowledge resolver so OmniRoute can route the selected portfolio without becoming a skill runner, MCP broker, or memory store.
 - 2026-07-23: refined: Make Claude Code, the Codex app, and OpenCode the primary local surfaces; share one fail-open enrichment core, preserve direct OmniRoute picker routes, and add a separately managed automatic relay provider.
 - 2026-07-23: refined: Treat relay configuration as an owned, reversible surface with backups and a sidecar marker; expose direct versus automatic readiness through a secret-free doctor command.
+- 2026-07-28: Named Temperance Engine's owned connectors with alchemical proper nouns consistent with the Algorithm's phase-sigil system: PAI -> the Athanor (display-only rename; `~/.claude/PAI` and `$PAI_HOME` unchanged), Temperance's own OmniRoute integration code -> the Caduceus, the headless EC2 shadow runtime -> the Vigil. Explicitly scoped OUT: renaming Cambium/Hermes/Plexus or any part of the separately-governed Thoughtseed production system (documented in that monorepo's own `INFRA_STATUS.md`, outside this repository), renaming third-party deps (`gsd-core`, OmniRoute the product, `hermes-agent`), and applying these names to live display text (deferred). See `docs/superpowers/specs/2026-07-28-connector-brand-design.md`.
 
 ## Changelog
 
