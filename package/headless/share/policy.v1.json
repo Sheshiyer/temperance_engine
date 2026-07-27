@@ -1,0 +1,24 @@
+{
+  "schema": "thoughtseed.temperance.shadow_policy.v1",
+  "version": "thoughtseed.temperance.shadow_policy.v1",
+  "routes": {
+    "legal:contract.create": {
+      "logicalBackend": "kimi",
+      "requiredSkills": [
+        "anthropic-skills:thoughtseed-contract-generator"
+      ],
+      "rendererPolicy": "thoughtseed.contract.renderer.v1",
+      "proofPolicy": "thoughtseed.document.pdf_readback.v1",
+      "approvalRequired": true
+    },
+    "project_management:project.update": {
+      "logicalBackend": "command-code",
+      "requiredSkills": [
+        "agentic-ops-orchestrator"
+      ],
+      "rendererPolicy": null,
+      "proofPolicy": "thoughtseed.cambium.project_readback.v1",
+      "approvalRequired": false
+    }
+  }
+}

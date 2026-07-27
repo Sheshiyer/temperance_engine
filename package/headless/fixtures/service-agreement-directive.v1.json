@@ -1,0 +1,44 @@
+{
+  "id": "business-service-agreement-canary-20260717",
+  "memberId": "shesh",
+  "idempotencyKey": "business-service-agreement-canary-20260717",
+  "payload": {
+    "type": "native_execution",
+    "schema": "thoughtseed.hermes.native_execution.v1",
+    "command": "service_agreement.draft.render",
+    "target": { "memberId": "shesh" },
+    "input": {
+      "schema": "thoughtseed.legal.service_agreement_draft_input.v1",
+      "workflowId": "thoughtseed.legal.service-agreement.draft.v1",
+      "tenantId": "thoughtseed",
+      "projectId": "thoughtseed-system-canary",
+      "clientId": "synthetic-client",
+      "gsdTaskId": "gsd-service-agreement-canary-20260717",
+      "synthetic": true,
+      "intent": "Create an internal service agreement draft for the Thoughtseed D1 lease canary",
+      "documentKind": "service_agreement",
+      "clientDisplayName": "Thoughtseed Systems Test Client",
+      "projectName": "Thoughtseed D1 Lease Canary",
+      "projectSummary": "A bounded proof that connects D1 task identity and leasing to Hermes execution, Temperance policy routing, DOCX rendering, durable artifact storage, and authenticated readback.",
+      "engagementType": "fixed_price",
+      "currency": "INR",
+      "feeMinor": 100000,
+      "deliverables": [
+        "One D1-leased synthetic business task",
+        "One pinned Thoughtseed service-agreement DOCX draft",
+        "One immutable artifact receipt with authenticated readback"
+      ],
+      "outOfScope": [
+        "External delivery, email, publication, or messaging",
+        "Electronic signature or signature request",
+        "Any legal commitment or real client agreement"
+      ],
+      "approval": {
+        "scope": "internal_canary_draft_only",
+        "observationId": "approval_draft_canary_20260717",
+        "observedAt": "2026-07-17T08:50:00.000Z"
+      },
+      "externalAction": "none"
+    }
+  }
+}

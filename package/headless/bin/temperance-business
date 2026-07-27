@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+import {
+  BUSINESS_ERROR_SCHEMA,
+  BusinessContractError,
+  runBusinessCli,
+} from "../lib/business-runtime.mjs";
+
+runBusinessCli(process.argv.slice(2)).catch((error) => {
+  const code = error instanceof BusinessContractError ? error.code : "business_execution_failed";
+  process.stderr.write(`${JSON.stringify({ schema: BUSINESS_ERROR_SCHEMA, code })}\n`);
+  process.exitCode = code === "invalid_arguments" ? 64 : 1;
+});

@@ -1,0 +1,19 @@
+{
+  "name": "@thoughtseed/temperance-headless",
+  "version": "0.2.0-business.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "standalone:audit": "node test/standalone-audit.mjs",
+    "standalone:smoke": "node test/standalone-smoke.mjs",
+    "gates": "npm test && npm run standalone:audit && npm run standalone:smoke"
+  },
+  "dependencies": {
+    "docx": "9.5.1",
+    "jszip": "3.10.1"
+  }
+}

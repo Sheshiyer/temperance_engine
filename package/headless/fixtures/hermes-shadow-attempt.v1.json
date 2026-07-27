@@ -1,0 +1,38 @@
+{
+  "schema": "thoughtseed.hermes.temperance_shadow_attempt.v1",
+  "hermes": {
+    "releaseCommit": "62bfaf78e75bfd5b88ebc0ebbd6e1db25bff48ec",
+    "directiveId": "directive_shadow_contract_0001",
+    "idempotencyKey": "shadow_contract_0001",
+    "executionId": "exec_shadow_contract_0001",
+    "claimId": "claim_shadow_contract_0001",
+    "attempt": 1,
+    "runnerId": "hermes-ec2-runner-01",
+    "hostIdentity": "ip-172-31-43-244",
+    "leaseExpiresAt": "2026-07-17T09:00:00Z"
+  },
+  "context": {
+    "tenantId": "cambium",
+    "projectId": "thoughtseed",
+    "workflowId": "legal.service_agreement.v1",
+    "taskId": "task_shadow_contract_0001",
+    "attemptId": "attempt_shadow_contract_0001"
+  },
+  "approval": {
+    "required": true,
+    "observedState": "approved",
+    "observationId": "actionrequest_shadow_0001",
+    "observedAt": "2026-07-17T08:00:00Z"
+  },
+  "intent": {
+    "domain": "legal",
+    "operation": "contract.create",
+    "summary": "Plan a Thoughtseed service agreement using the approved renderer policy.",
+    "requestedArtifact": "service_agreement",
+    "requestedBackend": "auto"
+  },
+  "proof": {
+    "policyVersion": "thoughtseed.temperance.shadow_policy.v1",
+    "expectedMode": "shadow"
+  }
+}
