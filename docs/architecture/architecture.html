@@ -23,6 +23,7 @@
     padding: 20px;
     color: var(--ink);
     line-height: 1.5;
+    background: #ffffff;
   }
   h1 {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -92,7 +93,7 @@
 <body>
 
 <h1>Temperance Engine
-  <small>A public, backup-first installer for the author's live PAI + GSD + superpowers + CodeGraph + voice runtime</small>
+  <small>A public, backup-first installer for the author's live PAI + GSD + superpowers + CodeGraph + voice runtime &mdash; now paired with a live OmniRoute multi-model routing runtime</small>
 </h1>
 
 <div class="section">
@@ -249,6 +250,10 @@
     <b>tool-inventory (services layer)</b>
     superpowers skills (brainstorming, writing-plans, subagent-driven-development, dispatching-parallel-agents, verification-before-completion, finishing-a-development-branch) &middot; temperance-parallel-dispatch (external backends command-code/grok/kimi via <code>temperance-batch</code>) &middot; Pulse compatibility server (voice, --with-voice) &middot; CodeGraph CLI (structural index)
   </div>
+  <div class="layer" style="background:#9f7aea;">
+    <b>OmniRoute routing (request-time model layer, optional)</b>
+    Local gateway on <code>:20128</code> owns provider/model failover for 12 named combos (5 governed task portfolios, planner/dispatch role combos, 4 writing combos). Automatic chat requests (OpenCode <code>temperance/temperance-auto</code>, Kimi CLI/desktop) reach it through <code>temperance-openai-proxy</code> (<code>:20129</code>), which enriches, classifies, and freezes a plan before rewriting the model. A policy-driven reconciler (<code>scripts/omniroute-temperance-reconcile.sh</code>, every 900s) substitutes below-quota or manually-disabled providers with hysteresis and fails closed on fusion combos. See <a href="omniroute-routing.html">omniroute-routing.html</a>.
+  </div>
   <div class="layer" style="background:#48bb78;">
     <b>Runtime Loop (output layer)</b>
     Observe &rarr; Think &rarr; Plan &rarr; Build &rarr; <b style="text-decoration:underline;">Execute</b> &rarr; Verify &rarr; Learn. The Execute phase invokes <code>temperance-parallel-dispatch</code> only when 2+ independent tasks would benefit from external backends; the full decision doctrine now lives in <code>docs/pai-flow.md</code>'s Execute row (superpowers dispatch vs gsd-core execute-phase/workstreams), not <code>docs/parallel-dispatch.md</code>.
@@ -264,6 +269,7 @@
       <p>Opt-in surfaces (Claude, Codex, voice, GSD)</p>
       <p>ISA-driven verification (31 ISC)</p>
       <p>Execute-phase dispatch doctrine (docs/pai-flow.md) with skill-cluster-resolved tool inventory</p>
+      <p>Optional OmniRoute runtime: 12 governed combos, provider-lane inventory, policy-driven availability reconciler</p>
     </div>
     <div class="card">
       <h3>Non-Functional</h3>
@@ -282,6 +288,8 @@
     <tr><th>Prerequisites</th><td><code>sh</code> (required); <code>bun</code>, <code>node</code>, <code>codegraph</code> CLI (optional, feature-gated)</td></tr>
     <tr><th>Workflow</th><td><code>git clone</code> &rarr; <code>./install.sh [--with-claude] [--with-codex] [--with-gsd] [--skip-voice]</code> &rarr; <code>./verify.sh</code></td></tr>
     <tr><th>Rollback</th><td>Timestamped backups under <code>$TEMPERANCE_BACKUP_DIR</code>; see <code>docs/rollback.md</code></td></tr>
+    <tr><th>OmniRoute runtime (optional)</th><td>Boot-persistent macOS LaunchAgents: <code>scripts/omniroute-autostart-launchd.sh install</code> (gateway) and <code>scripts/temperance-proxy-launchd.sh install</code> (relay). Reconciler timer: <code>scripts/omniroute-temperance-reconcile.sh --install-timer</code>.</td></tr>
+    <tr><th>Headless deployment (optional)</th><td>Route-only shadow runtime beside Hermes on EC2/systemd &mdash; <code>package/headless</code>, built via <code>scripts/build-headless-shadow.sh</code>; see <code>docs/runbooks/ec2-headless-shadow.md</code>.</td></tr>
   </table>
 </div>
 
@@ -299,6 +307,14 @@
     <div class="card">
       <h3><a href="session-trace.html">session-trace.html</a></h3>
       <p>A concrete install-to-session walkthrough, phase by phase, with failure modes traced.</p>
+    </div>
+    <div class="card">
+      <h3><a href="omniroute-routing.html">omniroute-routing.html</a></h3>
+      <p>OmniRoute gateway topology, the full combo roster, provider lanes, and the availability reconciler.</p>
+    </div>
+    <div class="card">
+      <h3><a href="brand-connectors.html">brand-connectors.html</a></h3>
+      <p>What Temperance Engine names as its own (the Athanor, the Caduceus, the Vigil) versus what it only neighbors.</p>
     </div>
   </div>
 </div>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperance Engine - Connector Brand</title>
+<style>
+  :root {
+    --data: #4299e1;
+    --processing: #ed8936;
+    --ai: #9f7aea;
+    --success: #48bb78;
+    --private: #718096;
+    --ink: #1a202c;
+    --muted: #4a5568;
+    --line: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    color: var(--ink);
+    line-height: 1.5;
+    background: #ffffff;
+  }
+  h1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  h1 small {
+    display: block;
+    font-weight: 400;
+    font-size: 15px;
+    opacity: 0.9;
+    margin-top: 8px;
+  }
+  h2 {
+    border-bottom: 3px solid var(--line);
+    padding-bottom: 8px;
+    color: var(--ink);
+  }
+  .section { margin: 36px 0; }
+  .callout {
+    background: #fffaf0;
+    border: 1px solid #fbd38d;
+    border-left: 5px solid var(--processing);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 18px 0;
+  }
+  .callout strong { color: #9c4221; }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    background: #fafafa;
+  }
+  .card h3 { margin-top: 0; font-size: 15px; color: var(--ink); }
+  .card p { margin: 4px 0; font-size: 13.5px; color: var(--muted); }
+  .layer {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: white;
+    font-size: 14px;
+  }
+  .layer b { display: block; font-size: 15px; margin-bottom: 4px; }
+  code {
+    background: #edf2f7;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+  th { background: #f7fafc; }
+</style>
+</head>
+<body>
+
+<h1>Connector Brand
+  <small>What Temperance Engine names as its own, and what it only neighbors</small>
+</h1>
+
+<div class="section">
+  <div class="callout">
+    <strong>Scope.</strong> This taxonomy covers only what Temperance Engine itself owns and controls. It does not rename, restructure, or claim authority over Cambium, Hermes, Plexus, or any part of the separately-governed Thoughtseed production system (documented in that monorepo's own <code>INFRA_STATUS.md</code>, outside this repository) &mdash; that system already has its own deliberate brand (a plant-growth metaphor: Cambium, with organs named genesis/taste/hands/will/cortex) and is governed by its own PRs and issue tracker. Temperance Engine is a parenthetical addendum to Hermes's execution body in that system's own operating model, not its architectural root. Design record: <code>docs/superpowers/specs/2026-07-28-connector-brand-design.md</code>.
+  </div>
+</div>
+
+<div class="section">
+  <h2>1. The Taxonomy</h2>
+  <svg viewBox="0 0 1080 380" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+      </marker>
+    </defs>
+
+    <rect x="440" y="10" width="200" height="60" rx="10" fill="#4a5568"/>
+    <text x="540" y="35" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Temperance Engine</text>
+    <text x="540" y="55" text-anchor="middle" fill="#e2e8f0" font-size="10">root brand</text>
+
+    <path d="M540,70 L540,95" stroke="#666" stroke-width="2" marker-end="url(#arrowB)"/>
+    <path d="M540,95 L200,95" stroke="#666" stroke-width="2"/>
+    <path d="M540,95 L880,95" stroke="#666" stroke-width="2"/>
+
+    <path d="M200,95 L200,120" stroke="#666" stroke-width="2" marker-end="url(#arrowB)"/>
+    <path d="M540,95 L540,120" stroke="#666" stroke-width="2" marker-end="url(#arrowB)"/>
+    <path d="M880,95 L880,120" stroke="#666" stroke-width="2" marker-end="url(#arrowB)"/>
+
+    <rect x="100" y="120" width="200" height="90" rx="10" fill="#4299e1"/>
+    <text x="200" y="145" text-anchor="middle" fill="white" font-size="14" font-weight="bold">⚗ the Athanor</text>
+    <text x="200" y="165" text-anchor="middle" fill="white" font-size="10.5">PAI, display-only rename</text>
+    <text x="200" y="180" text-anchor="middle" fill="#ebf8ff" font-size="9.5" font-style="italic">~/.claude/PAI unchanged</text>
+    <text x="200" y="196" text-anchor="middle" fill="#ebf8ff" font-size="9.5">sigil: ⚗ (Alembic)</text>
+
+    <rect x="440" y="120" width="200" height="90" rx="10" fill="#9f7aea"/>
+    <text x="540" y="145" text-anchor="middle" fill="white" font-size="14" font-weight="bold">🝐 the Caduceus</text>
+    <text x="540" y="165" text-anchor="middle" fill="white" font-size="10.5">Temperance's OmniRoute</text>
+    <text x="540" y="180" text-anchor="middle" fill="#f3e8ff" font-size="9.5" font-style="italic">proxy/reconciler/portfolios</text>
+    <text x="540" y="196" text-anchor="middle" fill="#f3e8ff" font-size="9.5">sigil: 🝐 (Caduceus)</text>
+
+    <rect x="780" y="120" width="200" height="90" rx="10" fill="#718096"/>
+    <text x="880" y="145" text-anchor="middle" fill="white" font-size="14" font-weight="bold">☽ the Vigil</text>
+    <text x="880" y="165" text-anchor="middle" fill="white" font-size="10.5">package/headless EC2</text>
+    <text x="880" y="180" text-anchor="middle" fill="#edf2f7" font-size="9.5" font-style="italic">shadow runtime</text>
+    <text x="880" y="196" text-anchor="middle" fill="#edf2f7" font-size="9.5">sigil: ☽ (Moon)</text>
+
+    <path d="M540,210 L540,235" stroke="#666" stroke-width="2" marker-end="url(#arrowB)"/>
+    <rect x="420" y="235" width="240" height="45" rx="8" fill="#f7fafc" stroke="#e2e8f0"/>
+    <text x="540" y="255" text-anchor="middle" font-size="10.5" fill="#4a5568">"the routing gateway"</text>
+    <text x="540" y="270" text-anchor="middle" font-size="9.5" fill="#4a5568">(OmniRoute product, real name kept)</text>
+
+    <path d="M880,210 L880,235" stroke="#666" stroke-width="2" marker-end="url(#arrowB)"/>
+    <rect x="780" y="235" width="200" height="45" rx="8" fill="#f7fafc" stroke="#e2e8f0"/>
+    <text x="880" y="255" text-anchor="middle" font-size="10.5" fill="#4a5568">"Hermes"</text>
+    <text x="880" y="270" text-anchor="middle" font-size="9.5" fill="#4a5568">(EC2 neighbor, real name kept)</text>
+
+    <rect x="60" y="310" width="960" height="55" rx="8" fill="#fffaf0" stroke="#fbd38d"/>
+    <text x="540" y="332" text-anchor="middle" font-size="11" fill="#9c4221" font-weight="bold">Neighbors, not connectors -- no Temperance branding invented</text>
+    <text x="540" y="350" text-anchor="middle" font-size="10" fill="#9c4221">Cambium &middot; Plexus &middot; Telegram &middot; TeamForge &middot; Thoughtseed product branches &middot; Cloudflare Vectorize &middot; NVIDIA NIM embeddings</text>
+  </svg>
+</div>
+
+<div class="section">
+  <h2>2. Connector Reference</h2>
+  <table>
+    <tr><th>Name</th><th>Referent</th><th>Sigil</th><th>Why</th></tr>
+    <tr><td><b>the Athanor</b></td><td>PAI (<code>~/.claude/PAI</code>) &mdash; display-only rename, technical paths unchanged</td><td>⚗</td><td>The athanor is the alchemical furnace that sustains the Great Work day after day &mdash; the vessel hosting the Algorithm's 7-phase Nigredo&rarr;Rubedo loop.</td></tr>
+    <tr><td><b>the Caduceus</b></td><td>Temperance's own OmniRoute integration code (<code>package/router/*</code> &mdash; the proxy, the reconciler, the governed portfolios)</td><td>🝐</td><td>The herald's staff &mdash; the classical symbol for routing and exchange between parties. A real alchemical glyph exists for it (U+1F750).</td></tr>
+    <tr><td><b>the Vigil</b></td><td><code>package/headless</code>, the EC2 shadow runtime that co-locates with Hermes</td><td>☽</td><td>Night-watch, silent observation &mdash; captures "runs beside Hermes, watches, never touches Hermes's own units" better than the old generic "shadow" label.</td></tr>
+  </table>
+  <p style="font-size:13px;color:#4a5568;">"The Grimoire" (the skill-cluster resolver, <code>~/.agents/skill-clusters</code>) is sometimes used in passing prose as a nickname &mdash; it is <em>not</em> a fourth connector. It's shared infrastructure Temperance doesn't exclusively own, so it gets no table row, no sigil, and no diagram placement here.</p>
+</div>
+
+<div class="section">
+  <h2>3. Referenced By Their Real Names</h2>
+  <table>
+    <tr><th>System</th><th>Role</th><th>Treatment</th></tr>
+    <tr><td><code>gsd-core</code></td><td>Recommended-default workflow backbone</td><td>"the workflow-backbone connector" in prose; the tool keeps its real name (third-party, <code>open-gsd/gsd-core</code>)</td></tr>
+    <tr><td>OmniRoute</td><td>The routing gateway product the Caduceus connects to</td><td>Real name kept; NVIDIA appears here only as one tier-2 bench provider row in the routing table, not its own connector</td></tr>
+    <tr><td>Hermes</td><td>EC2 execution-body neighbor (NousResearch <code>hermes-agent</code>)</td><td>Real name kept; the Vigil co-locates <em>with</em> it, never claims it</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>4. Neighbors, Not Connectors</h2>
+  <p style="font-size:13.5px;color:#4a5568;">These belong to the separate, live, actively-governed Thoughtseed production system. Temperance Engine has no code touching any of them directly and invents no branding for them.</p>
+  <table>
+    <tr><th>System</th><th>Actual relationship</th></tr>
+    <tr><td>Cambium</td><td>The "conductor-of-conductors" Worker at <code>curious.thoughtseed.space</code>; owns the Cloudflare D1/KV/R2/Vectorize plane. Temperance Engine has zero lines of code touching it.</td></tr>
+    <tr><td>Plexus</td><td>The native member assistant in the Thoughtseed operating model; unrelated to Temperance's own routing or algorithm surfaces.</td></tr>
+    <tr><td>Telegram</td><td>Founder/operator ingress for the Thoughtseed system; Temperance Engine has no Telegram surface.</td></tr>
+    <tr><td>TeamForge</td><td>Retired plane in the Thoughtseed system; not part of Temperance Engine at any point.</td></tr>
+    <tr><td>Thoughtseed product branches (Fitcheck, Vantyx, Snow Gloves OS, IVerif)</td><td>Client-facing product branches under Cambium; entirely outside Temperance Engine's scope.</td></tr>
+    <tr><td>Cloudflare Vectorize (<code>cambium-cortex</code>)</td><td>Bound inside Cambium's own Worker, reached only indirectly &mdash; Hermes has its own <code>cortex-vectorize-client.ts</code>. Temperance Engine's repo has no <code>wrangler.toml</code>, no Cloudflare config, and no code calling Vectorize.</td></tr>
+    <tr><td>NVIDIA NIM embeddings (<code>nv-embedqa-e5-v5</code>)</td><td>Feeds Cambium's Vectorize cortex, called from Cambium/Hermes code, not Temperance's. Temperance's only real NVIDIA touchpoint is the unrelated OmniRoute tier-2 bench model entry (<code>nvidia/deepseek-ai/deepseek-v4-pro</code>) &mdash; a routing-table row, not an integration.</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>5. What Hasn't Changed Yet</h2>
+  <div class="callout">
+    <strong>Deferred.</strong> This is a documentation-only pass. The Athanor/Caduceus/Vigil names do not yet appear anywhere in live output &mdash; <code>~/.claude/PAI/Tools/Banner.ts</code>'s startup banner still says "PAI," hook <code>console.log</code> calls are unchanged, and no CLI output reflects this taxonomy. Applying these names to live display text is an explicit, separate follow-up (see Decision D4 in the design spec) &mdash; not assumed to have happened just because this doc exists.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Deep Dives</h2>
+  <div class="grid">
+    <div class="card">
+      <h3><a href="architecture.html">architecture.html</a></h3>
+      <p>Productization narrative, install orchestration, and the full layered system view.</p>
+    </div>
+    <div class="card">
+      <h3><a href="system-internals.html">system-internals.html</a></h3>
+      <p>Component-by-component mechanics: exact flags, env vars, file writes, endpoints.</p>
+    </div>
+    <div class="card">
+      <h3><a href="integration-map.html">integration-map.html</a></h3>
+      <p>Which seams are real code paths (WIRED) versus documentation-only (REFERENCE ONLY).</p>
+    </div>
+    <div class="card">
+      <h3><a href="session-trace.html">session-trace.html</a></h3>
+      <p>Concrete walkthroughs, including an automatic chat request end to end.</p>
+    </div>
+    <div class="card">
+      <h3><a href="omniroute-routing.html">omniroute-routing.html</a></h3>
+      <p>OmniRoute gateway topology, the full combo roster, provider lanes, and the availability reconciler &mdash; what the Caduceus actually does.</p>
+    </div>
+  </div>
+</div>
+
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Design record: <code>docs/superpowers/specs/2026-07-28-connector-brand-design.md</code>. Source of truth for the neighbor boundary: the Thoughtseed monorepo's own <code>INFRA_STATUS.md</code> (outside this repository).</p>
+
+</body>
+</html>

@@ -10,7 +10,7 @@
     --private: #718096; --ink: #1a202c; --muted: #4a5568; --line: #e2e8f0;
   }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; background: #ffffff; }
   h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 10px; }
   h1 small { display: block; font-weight: 400; font-size: 15px; opacity: 0.9; margin-top: 8px; }
   h2 { border-bottom: 3px solid var(--line); padding-bottom: 8px; }
@@ -83,7 +83,21 @@
   </table>
 </div>
 
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>integration-map.html</code> (seams).</p>
+<div class="section">
+  <h2>Part D &mdash; An Automatic Chat Request (OmniRoute Relay)</h2>
+  <p><b>A separate, request-time trace</b> &mdash; not a phase of Parts A&ndash;C above. This is what happens when the user is chatting in OpenCode or Kimi with the automatic model selected, independent of whether a session is inside the 7-phase loop at all.</p>
+  <ol style="font-size:13.5px;color:var(--muted);">
+    <li><b>Model resolves to <code>temperance/temperance-auto</code>.</b> OpenCode: the user selected it, or it's the configured default. Kimi: the user pinned one of the five <code>omniroute/*</code> picker aliases, or left <code>temperance-auto</code> selected directly &mdash; either way kimi always sends tools.</li>
+    <li><b>Enrichment.</b> OpenCode's flow plugin already added <code>&lt;temperance-context&gt;</code> client-side before the request left the editor &mdash; the relay sees <code>X-Temperance-Surface</code> absent and skips its own enrichment. Kimi sent no such header value that the OpenCode plugin would have set; instead its <code>UserPromptSubmit.hook.sh</code> already wrote <code>~/.temperance_engine/kimi/session-context.json</code> (cwd + session id) on the last prompt, and the request carries <code>X-Temperance-Surface: kimi</code> &mdash; the relay reads that sidecar (TTL 120s) and runs the shared <code>enrich()</code> itself, prepending <code>&lt;temperance-context&gt;</code> to only the latest user message.</li>
+    <li><b>Classification.</b> The relay calls <code>multi-backend-router.sh --plan-json</code> with <code>TEMPERANCE_BACKENDS=omniroute</code>, producing a frozen route: <code>task_type</code>, the resolved portfolio, and <code>selected_order</code>.</li>
+    <li><b>Model rewrite.</b> OpenCode requests without tools: the frozen portfolio's model is substituted directly. Kimi (and any OpenCode request carrying tools): pinned to <code>temperance-coding</code> regardless of the resolved portfolio &mdash; the <code>X-Temperance-Portfolio</code> response header still reports what the classifier picked, but it's advisory only on a tool-sending surface.</li>
+    <li><b>Forward to OmniRoute.</b> Tools, tool_choice, messages, and the stream flag pass through unchanged; the gateway key comes from <code>OMNIROUTE_API_KEY</code>, then <code>OMNIROUTE_API_KEY_FILE</code>, then Keychain. OmniRoute (<code>:20128</code>) resolves the named combo to a live provider/model and streams the response back (SSE, even for short completions).</li>
+    <li><b>Reconciler runs independently.</b> Every 900s (or on demand via <code>--apply</code>), <code>omniroute-temperance-reconcile.sh</code> has already checked this combo's provider health/quota and substituted any guarded slot that fell below threshold or went manually-disabled &mdash; step 5 always dispatches to whatever the combo currently points at, never to a specific provider the relay itself chose.</li>
+  </ol>
+  <p style="font-size:13px;color:var(--muted);"><b>Failure modes:</b> classifier failure &rarr; relay degrades visibly to <code>temperance-coding</code>, request still completes. Resolved combo has no usable target &rarr; OmniRoute's own <code>[502]: All accounts exhausted</code> passes through unchanged; the relay never silently swaps to a different governed portfolio. Full mechanics: <code>system-internals.html</code> &sect;7. Full combo/provider reference: <a href="omniroute-routing.html">omniroute-routing.html</a>.</p>
+</div>
+
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>integration-map.html</code> (seams) &middot; <code>omniroute-routing.html</code> (routing reference).</p>
 
 </body>
 </html>
