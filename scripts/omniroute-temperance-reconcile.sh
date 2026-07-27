@@ -153,7 +153,7 @@ EOF
       chmod 600 "$PLIST_PATH"
       launchctl bootout "$domain/$LABEL" 2>/dev/null || true
       launchctl bootstrap "$domain" "$PLIST_PATH"
-      echo "Installed $LABEL at $PLIST_PATH (runs --apply every ${TIMER_INTERVAL}s)"
+      echo "the Caduceus: installed $LABEL at $PLIST_PATH (runs --apply every ${TIMER_INTERVAL}s)"
       exit 0
       ;;
     uninstall)
@@ -588,6 +588,6 @@ done
 active_after="$(jq -c '.activeCombo // null' <<<"$(api_get /api/settings)")"
 [ "$active_after" = "$active_before" ] || { echo "Global activeCombo changed unexpectedly: before=$active_before after=$active_after" >&2; exit 1; }
 printf 'Global activeCombo after: %s (unchanged)\n' "$active_after"
-printf 'Applied snapshot: %s (use --rollback %s to restore)\n' "$BACKUP_PATH" "$BACKUP_PATH"
+printf 'the Caduceus: applied snapshot %s (use --rollback %s to restore)\n' "$BACKUP_PATH" "$BACKUP_PATH"
 
 jq -e '.any_hold | not' <<<"$plan" >/dev/null && exit 0 || exit 3

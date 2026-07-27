@@ -497,6 +497,6 @@ if (import.meta.main) {
     hostname,
     fetch: (request) => handleProxyRequest(request),
   })
-  console.log(`Temperance OpenAI proxy listening on http://${hostname}:${port}`)
+  console.log(`the Caduceus: Temperance OpenAI proxy listening on http://${hostname}:${port}`)
   console.log(`Automatic model: ${AUTO_MODEL}; upstream: ${upstreamBase()}`)
 }
