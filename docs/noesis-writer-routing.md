@@ -157,3 +157,7 @@ confirmed against the live `/v1/models` catalog on 2026-07-23. Timeouts are
 drafting-sized (`te-write` 240s/120s) because long-form sections routinely
 exceed reasoning-answer lengths; the councils reuse the validation-style
 timeouts (180s/90s for research, 120s/60s for the shorter media brief).
+
+## Gotchas
+
+- **SSE is the dispatch contract.** Calling `/v1/chat/completions` with `"stream": false` (or omitted against these combos' validation config) can fail over into empty-response `bad_gateway` errors even when the priority model is healthy; the streaming SSE path succeeds. Always dispatch with `-N` and concatenate `delta.content` (2026-07-24).

@@ -327,6 +327,18 @@ function upstreamBase(): string {
 
 function gatewayKey(): string {
   if (process.env.OMNIROUTE_API_KEY) return process.env.OMNIROUTE_API_KEY
+  // File-backed key: the systemd-native shape (a 0640 file owned by the service user,
+  // or LoadCredential=). The Keychain branch below is darwin-only, so on Linux this is
+  // the only way the relay can find a key without putting it in the unit's environment.
+  const keyFile = process.env.OMNIROUTE_API_KEY_FILE
+  if (keyFile) {
+    try {
+      return readFileSync(keyFile, "utf8").trim()
+    } catch {
+      // Fall through: an unreadable key file behaves like no key at all, which
+      // forwardedHeaders() already handles by sending no authorization header.
+    }
+  }
   if (process.platform === "darwin" && process.env.USER) {
     const result = Bun.spawnSync([
       "security", "find-generic-password", "-a", process.env.USER,

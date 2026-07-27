@@ -276,3 +276,63 @@ describe("Temperance OpenAI proxy", () => {
     expect((await response.json()).error.message).toBe("rate limited")
   })
 })
+
+describe("gateway key resolution", () => {
+  async function authHeaderWith(env: Record<string, string | undefined>): Promise<string | null> {
+    const saved: Record<string, string | undefined> = {}
+    for (const [k, v] of Object.entries(env)) {
+      saved[k] = process.env[k]
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
+    let seen: string | null = null
+    try {
+      await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: "hi" }],
+      }), {
+        planRunner: async () => plan(),
+        upstreamFetch: async (_url, init) => {
+          seen = new Headers(init?.headers).get("authorization")
+          return new Response(JSON.stringify({ choices: [] }), { headers: { "content-type": "application/json" } })
+        },
+      })
+    } finally {
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[k]
+        else process.env[k] = v
+      }
+    }
+    return seen
+  }
+
+  test("reads the key from OMNIROUTE_API_KEY_FILE when the env var is unset", async () => {
+    // This is the path EC2/systemd depends on: the Keychain fallback is darwin-only,
+    // so without a file source the relay has no way to find a key on Linux.
+    const dir = mkdtempSync(join(tmpdir(), "temperance-key-"))
+    const keyPath = join(dir, "omniroute-proxy.key")
+    writeFileSync(keyPath, "sk-from-file\n")
+    expect(await authHeaderWith({
+      OMNIROUTE_API_KEY: undefined,
+      OMNIROUTE_API_KEY_FILE: keyPath,
+    })).toBe("Bearer sk-from-file")
+  })
+
+  test("OMNIROUTE_API_KEY still wins over the key file", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "temperance-key-"))
+    const keyPath = join(dir, "omniroute-proxy.key")
+    writeFileSync(keyPath, "sk-from-file")
+    expect(await authHeaderWith({
+      OMNIROUTE_API_KEY: "sk-from-env",
+      OMNIROUTE_API_KEY_FILE: keyPath,
+    })).toBe("Bearer sk-from-env")
+  })
+
+  test("an unreadable key file degrades to no authorization header, not a crash", async () => {
+    expect(await authHeaderWith({
+      OMNIROUTE_API_KEY: undefined,
+      OMNIROUTE_API_KEY_FILE: join(tmpdir(), "definitely-not-here-temperance.key"),
+      TEMPERANCE_OMNIROUTE_KEYCHAIN_SERVICE: "temperance-test-absent-service",
+    })).toBeNull()
+  })
+})

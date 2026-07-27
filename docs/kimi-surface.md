@@ -71,8 +71,9 @@ discovery still applies.
 
 Both scripts edit the user/app-owned TOML by appending **one marker-delimited
 managed block** (`# --- temperance:managed:start (...) ---`) containing
-`[providers.temperance]` (relay `:20129`, `X-Temperance-Surface: kimi` header)
-and `[models."temperance/temperance-auto"]`, plus at most one tagged line
+`[providers.temperance]` (relay `:20129`, `X-Temperance-Surface: kimi` header),
+`[models."temperance/temperance-auto"]`, and the pinned `omniroute/*` portfolio
+models (see below), plus at most one tagged line
 rewrite (the `hooks = []` line on the CLI; `--set-default` optionally). The
 file stays byte-identical outside the managed region, and `disable` restores
 it exactly (recorded originals live in the state markers under
@@ -92,6 +93,47 @@ doctor's `kimi_provider` check is likewise semantic, not marker-based.
 
 `default_model` is never changed without `--set-default` — the governed lane is
 opt-in from Kimi's model picker, exactly like OpenCode's.
+
+## Pinned portfolios (`omniroute/*`)
+
+**`temperance-auto` cannot reach a named portfolio from this surface.** The relay
+pins any request carrying tools to `temperance-coding`
+(`temperance-openai-proxy.ts`, source `tool-safe-compatibility`), and kimi always
+sends tools. The classifier still runs and still resolves a portfolio — the
+response carries `X-Temperance-Portfolio: te-build` — but the routed model is
+`temperance-coding` regardless. That header is advisory on kimi.
+
+Pinning a model by name is therefore the only way to select a portfolio here. It
+takes the `explicit-picker-override` path (`mode: direct`), and **enrichment still
+applies** — injection is gated on the surface header, not on route mode. `enable`
+emits these five, all `tool_calling`-capable:
+
+| Picker entry | Combo | ctx |
+| --- | --- | --- |
+| `omniroute/te-build` | `te-build` | 1048576 |
+| `omniroute/te-validate` | `te-validate` | 200000 |
+| `omniroute/te-fast` | `te-fast` | 200000 |
+| `omniroute/best-coding` | `auto/best-coding` | 1048576 |
+| `omniroute/best-reasoning` | `auto/best-reasoning` | 1048576 |
+
+`te-reason`, `te-creative`, `te-plan`, and `te-dispatch` are deliberately absent —
+they lack `tool_calling`, so they would degrade or fail on a surface that always
+sends tools. `--no-combos` emits `temperance-auto` alone.
+
+Two reasons these are managed rather than left to the user: they carry
+`provider = "temperance"`, so a hand-authored copy becomes a dangling reference
+the moment `disable` removes the provider; and being inside the block means an
+app update that regenerates the config loses them together with everything else,
+so one `enable` restores the whole lane. The `omniroute/` prefix (rather than
+`temperance/`) is load-bearing — the user-authored guard refuses to enable when it
+finds a `[models."temperance/…` table it did not write.
+
+**Global tuning is not managed.** `[loop_control]`, `[background]`, and
+`[mcp.client]` are app-owned; both shipped configs already define
+`[loop_control]`, and emitting a second one is a duplicate-table TOML error that
+`validate_toml` would reject. Step budget, retry count, and tool timeouts stay
+hand-edited and are lost on a desktop app update — re-apply them after the
+`enable` that recovers from drift.
 
 ## Skills matrix
 
@@ -139,7 +181,75 @@ desktop copy — it does not update automatically like the CLI's symlink does.
   print config contents, and backups are written `chmod 600` in a `700` dir.
 - Which daimon config file the runtime authoritatively loads was probed
   behaviorally at enable time; override with `TEMPERANCE_KIMI_DESKTOP_CONFIG`
-  if an app update moves it.
+  if an app update moves it. **It has moved** — see below.
+
+## Desktop app 3.1.5: the agent kernel is not kimi-cli
+
+Verified 2026-07-25 against Kimi.app 3.1.5 / daimon-bundle 0.5.49. The desktop
+agent kernel is **`@moonshot-ai/agent-core`** (bundled JS), not the Python
+kimi-cli. The two share a config *shape* but not a config *schema*, and the
+runtime logs its real path on every start:
+
+```
+daimon/logs/adapter.log:
+  startup kimi-code paths homeDir=…/daimon/runtime/kimi-code/home
+                          configPath=…/daimon/runtime/kimi-code/config.toml
+```
+
+`daimon/config.json` → `agents.defaults.agentFile` names the same file.
+`daimon-share/config.toml` — the file `configure-kimi-desktop-relay.sh` targets —
+appears **zero** times in any log. The managed block therefore sits in a file the
+app never reads: on 3.1.5 the desktop lane is inert, even though `enable`
+succeeds and every sha/state check stays green. `temperance-doctor.sh` now
+detects exactly this as `kimi_desktop_target` (warn-level; the CLI lane is
+unaffected).
+
+**Do not "fix" it by repointing `TEMPERANCE_KIMI_DESKTOP_CONFIG` at the
+agentFile.** agent-core does not implement the provider shape we emit — zero
+occurrences of `openai_legacy` or `custom_headers` in the bundle — and it carries
+strict schemas, so writing our block there risks breaking app startup. Routing
+the desktop app through the relay needs a provider shape agent-core actually
+accepts (`openai` / `anthropic` / `kimi`), which is unbuilt.
+
+**Neither desktop config is user-editable: the daimon regenerates both from a
+template on every launch.** Confirmed empirically — a single app restart reset
+`runtime/kimi-code/config.toml` back to the shipped defaults *and* wiped the
+managed block, the pinned combos, and every hand-added table from
+`daimon-share/config.toml`. The caveat above about "an app update may regenerate
+it" understates this: it is **every start**, not every update. `enable` on the
+desktop is therefore good for exactly one session, and only if the file it wrote
+were the one being read — which it is not.
+
+The generator is `validateDaimonKimiCodePrivateConfigToml(...)` in
+`daimon/dist/_internal/`, and it writes `loop_control.max_steps_per_turn`
+unconditionally from `DAIMON_KIMI_CODE_DEFAULT_MAX_STEPS_PER_TURN = 0x64` (100).
+That constant has one reference, no env override, and no source in
+`daimon/config.json` — **so a desktop step budget other than 100 cannot be set
+through configuration at all.** Long-horizon runs that need a bigger budget
+belong on the CLI, where kimi-cli honours `max_steps_per_turn` normally.
+
+The familiar `Turn exceeded maxSteps=N. If max_steps_per_turn is too small,
+raise it in config.toml (loop_control.max_steps_per_turn)` message is emitted by
+agent-core, so that error on the desktop app comes from this 100 — not from
+anything in `~/.kimi/config.toml`. The remedy the message suggests does not work
+on this surface.
+
+**Key support in the desktop bundle** (grepped across `daimon/dist` and
+`@moonshot-ai/agent-core`; "template-written" means the generator emits it, so a
+hand-edited value is replaced rather than honoured):
+
+| key | kimi-cli | desktop bundle |
+| --- | --- | --- |
+| `loop_control.max_steps_per_turn` | yes | template-written, forced to 100 |
+| `loop_control.max_retries_per_step` | yes | template-written (conditional) |
+| `loop_control.max_ralph_iterations` | yes | absent |
+| `loop_control.reserved_context_size` | yes | absent |
+| `loop_control.compaction_trigger_ratio` | yes | absent |
+| `background.*` | yes | absent |
+| `mcp.client.tool_call_timeout_ms` | yes | absent |
+
+The `absent` rows are the dangerous ones: agent-core carries strict schemas, so
+adding those tables by hand is at best ignored and at worst a startup failure.
 
 ## Rollback
 

@@ -11,5 +11,6 @@
     "balanced": "te-build"
   },
   "reserved_portfolios": ["te-batch", "te-vision", "te-write", "te-write-critique", "te-write-research", "te-write-media"],
+  "fallback_policy": "package/router/omniroute-fallback-policy.json",
   "enforcement": "shadow"
 }

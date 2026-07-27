@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+USER="${USER:-$(id -un)}"
 BASE_URL="${TEMPERANCE_OMNIROUTE_ADMIN_URL:-http://127.0.0.1:20128}"
 BASE_URL="${BASE_URL%/}"
 BACKUP_DIR="${TEMPERANCE_OMNIROUTE_BACKUP_DIR:-$PWD/.omniroute-backups}"
@@ -92,6 +93,7 @@ api_mutate() {
 
 settings="$(api_get /api/settings)"
 combos="$(api_get /api/combos)"
+providers="$(api_get /api/providers)"
 catalog="$(curl -sS -f -H "Authorization: Bearer $INFERENCE_KEY" "$BASE_URL/v1/models")"
 
 active_before="$(jq -c '.activeCombo // null' <<<"$settings")"
@@ -101,15 +103,15 @@ if [ "$active_before" != "null" ]; then
 fi
 
 new_names_json='["te-fast","te-build","te-reason","te-validate"]'
-if [ "$MODE" != "rollback" ]; then
-  for name in te-fast te-build te-reason te-validate; do
-    if jq -e --arg name "$name" 'any(.combos[]?; .name == $name)' <<<"$combos" >/dev/null; then
-      echo "Refusing to overwrite existing combo: $name" >&2
-      exit 1
-    fi
-  done
-fi
+# Idempotency: existing combos are never refused here. Per-combo actions
+# (create / unchanged / differs) are planned after the payloads are built
+# below; differs means "report and skip" for te-* and "PUT-repair" for the
+# governed temperance-coding rail.
 
+# Catalog preflight: a model missing from the live catalog fails the run,
+# unless its provider is currently disabled (isActive:false) -- a disabled
+# provider's models legitimately vanish from /v1/models and availability is
+# governed by the reconciler, not by this script.
 for model in \
   antigravity/gemini-3.5-flash-low \
   antigravity/claude-sonnet-4-6 \
@@ -118,10 +120,17 @@ for model in \
   codex/gpt-5.6-terra \
   nebius/Qwen/Qwen3-235B-A22B-Instruct-2507
 do
-  jq -e --arg model "$model" 'any(.data[]?; .id == $model)' <<<"$catalog" >/dev/null || {
+  if jq -e --arg model "$model" 'any(.data[]?; .id == $model)' <<<"$catalog" >/dev/null; then
+    continue
+  fi
+  provider="${model%%/*}"
+  if jq -e --arg p "$provider" \
+    'any(.connections[]?; ((.provider // .name) == $p) and .isActive == false)' <<<"$providers" >/dev/null; then
+    echo "Catalog note: $model absent because provider $provider is disabled (isActive:false); continuing." >&2
+  else
     echo "Required live catalog model is missing: $model" >&2
     exit 1
-  }
+  fi
 done
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -210,50 +219,147 @@ validate_payload="$(combo_payload \
   'Temperance validation council: challenge the proposed answer, identify failure modes, reconcile disagreements, and return a concise evidence-backed synthesis.' \
   fusion "$validate_models" "$validate_config" codex/gpt-5.6-terra "$fusion_tuning")"
 
-compatibility_id="$(jq -er '.combos[] | select(.name=="temperance-coding") | .id' <<<"$combos")"
+# Canonical projection used for idempotent body comparison: server-managed
+# fields (id, isHidden, sortOrder, createdAt, updatedAt, version, per-model
+# id/kind/providerId/weight) are stripped; key order is normalized.
+canon_body() {
+  jq -cS '{
+    name,
+    description: (.description // null),
+    systemMessage: (.systemMessage // null),
+    strategy,
+    models: [.models[].model],
+    config
+  }'
+}
+
+# Prints one of: create | unchanged | differs
+combo_action() {
+  local name="$1" payload="$2" live
+  live="$(jq -c --arg n "$name" '([.combos[] | select(.name == $n)] | .[0]) // empty' <<<"$combos")"
+  if [ -z "$live" ]; then
+    printf 'create'
+    return 0
+  fi
+  if [ "$(canon_body <<<"$live")" = "$(canon_body <<<"$payload")" ]; then
+    printf 'unchanged'
+  else
+    printf 'differs'
+  fi
+}
+
+payload_for() {
+  case "$1" in
+    te-fast) printf '%s' "$fast_payload" ;;
+    te-build) printf '%s' "$build_payload" ;;
+    te-reason) printf '%s' "$reason_payload" ;;
+    te-validate) printf '%s' "$validate_payload" ;;
+    temperance-coding) printf '%s' "$compatibility_payload" ;;
+  esac
+}
+
+action_for() {
+  case "$1" in
+    te-fast) printf '%s' "$action_te_fast" ;;
+    te-build) printf '%s' "$action_te_build" ;;
+    te-reason) printf '%s' "$action_te_reason" ;;
+    te-validate) printf '%s' "$action_te_validate" ;;
+    temperance-coding) printf '%s' "$action_compatibility" ;;
+  esac
+}
+
+# Governed compatibility rail body: exact last-known body recovered from
+# .omniroute-backups/omniroute-writer-expansion-20260723T174830Z.json (the
+# original carries no systemMessage field; the governed
+# responseValidation.forbiddenSubstrings guard is retained).
 compatibility_payload="$(jq -nc \
   --arg name temperance-coding \
   --arg description 'Temperance Engine compatibility rail: tool-capable execution, observable failover, and reversible policy boundaries.' \
-  --arg systemMessage 'Temperance compatibility rail: preserve the frozen plan, use tools when needed, make reversible changes, and leave inspectable evidence.' \
   --argjson models "$build_models" \
   --argjson config "$build_config" \
-  '{name:$name,description:$description,systemMessage:$systemMessage,models:$models,strategy:"priority",config:($config | .responseValidation.forbiddenSubstrings=["subscription for thoughtseedlabs@gmail.com is inactive"])}')"
+  '{name:$name,description:$description,models:$models,strategy:"priority",config:($config | .responseValidation.forbiddenSubstrings=["subscription for thoughtseedlabs@gmail.com is inactive"])}')"
+
+action_te_fast="$(combo_action te-fast "$fast_payload")"
+action_te_build="$(combo_action te-build "$build_payload")"
+action_te_reason="$(combo_action te-reason "$reason_payload")"
+action_te_validate="$(combo_action te-validate "$validate_payload")"
+action_compatibility="$(combo_action temperance-coding "$compatibility_payload")"
 
 printf 'OmniRoute %s authenticated; backup snapshot: %s\n' "$MODE" "$BACKUP_PATH"
 printf 'Current combos: %s\n' "$(jq -r '[.combos[].name] | join(", ")' <<<"$combos")"
-printf 'Planned portfolios: te-fast, te-build, te-reason, te-validate\n'
+printf 'Plan: te-fast=%s te-build=%s te-reason=%s te-validate=%s temperance-coding=%s\n' \
+  "$action_te_fast" "$action_te_build" "$action_te_reason" "$action_te_validate" "$action_compatibility"
 printf 'Global activeCombo before: %s\n' "$active_before"
 
 if [ "$MODE" = "dry-run" ]; then
-  printf '\n-- te-fast --\n%s\n' "$fast_payload"
-  printf '\n-- te-build --\n%s\n' "$build_payload"
-  printf '\n-- te-reason --\n%s\n' "$reason_payload"
-  printf '\n-- te-validate --\n%s\n' "$validate_payload"
-  printf '\n-- temperance-coding repair --\n%s\n' "$compatibility_payload"
+  printf '\n-- te-fast (%s) --\n%s\n' "$action_te_fast" "$fast_payload"
+  printf '\n-- te-build (%s) --\n%s\n' "$action_te_build" "$build_payload"
+  printf '\n-- te-reason (%s) --\n%s\n' "$action_te_reason" "$reason_payload"
+  printf '\n-- te-validate (%s) --\n%s\n' "$action_te_validate" "$validate_payload"
+  printf '\n-- temperance-coding (%s; governed repair target) --\n%s\n' "$action_compatibility" "$compatibility_payload"
   exit 0
 fi
 
 if [ "$MODE" = "rollback" ]; then
   old_combos="$(jq -er '.combos.combos' "$ROLLBACK_PATH")"
-  old_compatibility="$(jq -er '.[] | select(.name=="temperance-coding")' <<<"$old_combos")"
+  old_compatibility="$(jq -c '([.[] | select(.name=="temperance-coding")] | .[0]) // empty' <<<"$old_combos")"
   current_combos="$(api_get /api/combos)"
+  # Delete only planned combos that were ABSENT in the snapshot (i.e. the
+  # ones the apply actually created); pre-existing ones are left untouched.
   while IFS= read -r combo_id; do
     [ -n "$combo_id" ] || continue
     api_mutate DELETE "/api/combos/$combo_id" '{}' >/dev/null
     printf 'Rolled back created combo id=%s\n' "$combo_id"
-  done < <(jq -r --argjson names "$(jq -er '.plannedNewComboNames' "$ROLLBACK_PATH")" '.combos[] | select(.name as $n | $names | index($n)) | .id' <<<"$current_combos")
-  api_mutate PUT "/api/combos/$(jq -er '.id' <<<"$old_compatibility")" "$old_compatibility" >/dev/null
-  printf 'Restored temperance-coding from %s\n' "$ROLLBACK_PATH"
+  done < <(jq -r \
+    --argjson names "$(jq -er '.plannedNewComboNames' "$ROLLBACK_PATH")" \
+    --argjson existing "$(jq -c '[.[].name]' <<<"$old_combos")" \
+    '.combos[] | select(.name as $n | (($names | index($n)) != null) and (($existing | index($n)) == null)) | .id' \
+    <<<"$current_combos")
+  live_compatibility_id="$(jq -r '([.combos[] | select(.name=="temperance-coding")] | .[0].id) // empty' <<<"$current_combos")"
+  if [ -n "$old_compatibility" ]; then
+    if [ -n "$live_compatibility_id" ]; then
+      api_mutate PUT "/api/combos/$live_compatibility_id" \
+        "$(jq -c --arg id "$live_compatibility_id" '.id = $id' <<<"$old_compatibility")" >/dev/null
+      printf 'Restored temperance-coding id=%s from %s\n' "$live_compatibility_id" "$ROLLBACK_PATH"
+    else
+      api_mutate POST /api/combos \
+        "$(jq -c 'del(.id,.createdAt,.updatedAt,.version,.isHidden,.sortOrder)' <<<"$old_compatibility")" >/dev/null
+      printf 'Recreated temperance-coding from %s\n' "$ROLLBACK_PATH"
+    fi
+  elif [ -n "$live_compatibility_id" ]; then
+    api_mutate DELETE "/api/combos/$live_compatibility_id" '{}' >/dev/null
+    printf 'Deleted temperance-coding id=%s (absent in snapshot %s)\n' "$live_compatibility_id" "$ROLLBACK_PATH"
+  fi
   exit 0
 fi
 
-for payload in "$fast_payload" "$build_payload" "$reason_payload" "$validate_payload"; do
-  response="$(api_mutate POST /api/combos "$payload")"
-  printf 'Created %s id=%s\n' "$(jq -r .name <<<"$response")" "$(jq -r .id <<<"$response")"
+collisions=0
+for name in te-fast te-build te-reason te-validate temperance-coding; do
+  payload="$(payload_for "$name")"
+  action="$(action_for "$name")"
+  case "$action" in
+    create)
+      response="$(api_mutate POST /api/combos "$payload")"
+      printf 'Created %s id=%s\n' "$(jq -r .name <<<"$response")" "$(jq -r .id <<<"$response")"
+      ;;
+    unchanged)
+      printf 'Present unchanged: %s (skipped)\n' "$name"
+      ;;
+    differs)
+      if [ "$name" = "temperance-coding" ]; then
+        live_compatibility_id="$(jq -r '([.combos[] | select(.name=="temperance-coding")] | .[0].id) // empty' <<<"$combos")"
+        api_mutate PUT "/api/combos/$live_compatibility_id" "$payload" >/dev/null
+        printf 'Repaired temperance-coding compatibility rail id=%s (PUT to governed body)\n' "$live_compatibility_id"
+      else
+        printf 'COLLISION: %s exists with a different body; reported and skipped (not overwritten).\n' "$name" >&2
+        collisions=$((collisions + 1))
+      fi
+      ;;
+  esac
 done
-
-api_mutate PUT "/api/combos/$compatibility_id" "$compatibility_payload" >/dev/null
-printf 'Updated temperance-coding compatibility rail id=%s\n' "$compatibility_id"
+if [ "$collisions" -gt 0 ]; then
+  printf '%s existing combo(s) differ from the script base body and were left untouched (reconciler-managed live state).\n' "$collisions" >&2
+fi
 
 settings_after="$(api_get /api/settings)"
 active_after="$(jq -c '.activeCombo // null' <<<"$settings_after")"

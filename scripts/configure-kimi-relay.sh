@@ -25,6 +25,29 @@ DIRECT_BASE_URL="${TEMPERANCE_OMNIROUTE_BASE_URL:-http://127.0.0.1:20128/v1}"
 PROVIDER_ID="temperance"
 MODEL_KEY="temperance/temperance-auto"
 MODEL_ID="temperance-auto"
+
+# Pinned OmniRoute portfolios, emitted inside the managed block.
+#
+# Why they are managed rather than left to the user: they carry
+# provider = "temperance", so a hand-authored copy is a dangling reference the
+# moment disable removes the provider. Managing them keeps enable/disable
+# symmetric and makes them survive an app update that regenerates the config.
+#
+# Why the key prefix is "omniroute/" and not "temperance/": the user-authored
+# guard below refuses to enable when a [models."temperance/... table it did not
+# write is present, and strip_semantic_tables only clears the exact
+# temperance-auto table. A separate namespace keeps re-enable idempotent.
+#
+# Only tool_calling-capable combos belong here. Kimi always sends tools, so
+# te-reason / te-creative / te-plan / te-dispatch would degrade or fail.
+# Fields: model-key|upstream-model|max_context_size|capabilities|display_name
+PINNED_COMBOS=(
+  'omniroute/te-build|te-build|1048576|"image_in"|TE Build (long-horizon)'
+  'omniroute/te-validate|te-validate|200000|"image_in", "thinking"|TE Validate (review/verify)'
+  'omniroute/te-fast|te-fast|200000|"image_in"|TE Fast (cheap turns)'
+  'omniroute/best-coding|auto/best-coding|1048576|"thinking"|Auto Best Coding'
+  'omniroute/best-reasoning|auto/best-reasoning|1048576|"thinking"|Auto Best Reasoning'
+)
 HOOK_SOURCE="${TEMPERANCE_KIMI_HOOK_SOURCE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/package/adapters/kimi/UserPromptSubmit.hook.sh}"
 HOOK_INSTALL_PATH="${TEMPERANCE_KIMI_HOOK_PATH:-${KIMI_HOME}/hooks/temperance-user-prompt-submit.sh}"
 RECORD_SHA="${TEMPERANCE_KIMI_RECORD_SHA:-0}"
@@ -35,6 +58,7 @@ DEFAULT_TAG="# temperance:managed-default"
 
 DRY_RUN=false
 NO_HOOK=false
+NO_COMBOS=false
 SET_DEFAULT=false
 ACTION="enable"
 
@@ -44,20 +68,32 @@ for arg in "$@"; do
     disable|--disable) ACTION="disable" ;;
     --dry-run) DRY_RUN=true ;;
     --no-hook) NO_HOOK=true ;;
+    --no-combos) NO_COMBOS=true ;;
     --set-default) SET_DEFAULT=true ;;
     -h|--help)
       cat <<'USAGE'
-Usage: configure-kimi-relay.sh [enable|disable] [--dry-run] [--no-hook] [--set-default]
+Usage: configure-kimi-relay.sh [enable|disable] [--dry-run] [--no-hook]
+                               [--no-combos] [--set-default]
 
 enable        Append the managed `temperance` provider block (relay :20129),
-              register the Temperance UserPromptSubmit hook, and record a state
-              marker. Never touches default_model unless --set-default.
+              the pinned omniroute/* portfolio models, register the Temperance
+              UserPromptSubmit hook, and record a state marker. Never touches
+              default_model unless --set-default.
 disable       Remove the managed block, restore any rewritten lines exactly,
               remove the installed hook copy and the state marker.
 --dry-run     Print the would-be changes without touching any file.
 --no-hook     Skip hook installation/registration (provider lane only).
+--no-combos   Skip the pinned omniroute/* portfolio models (temperance-auto
+              only). Note that on kimi temperance-auto always lands on
+              temperance-coding, because the relay's tool-safe rule pins any
+              request carrying tools -- pinning is the only way to reach a
+              named portfolio from this surface.
 --set-default Also point default_model at the governed lane (recorded and
               restored on disable).
+
+Global tuning (loop_control / background / mcp.client) is deliberately NOT
+managed: those tables are app-owned, both shipped configs already define
+[loop_control], and emitting a second one is a duplicate-table TOML error.
 USAGE
       exit 0
       ;;
@@ -105,11 +141,17 @@ strip_managed_block() { # stdin -> stdout without the managed region
 # strip them by TABLE HEADER instead of by marker, plus any [[hooks]] entry
 # whose command is our installed hook.
 strip_semantic_tables() { # stdin -> stdout
-  awk -v hook_path="$HOOK_INSTALL_PATH" '
+  local combo_headers="|"
+  local spec
+  for spec in "${PINNED_COMBOS[@]}"; do
+    combo_headers+="[models.\"${spec%%|*}\"]|"
+  done
+  awk -v hook_path="$HOOK_INSTALL_PATH" -v combo_headers="$combo_headers" '
     function is_our_header(line) {
       return line == "[providers.temperance]" \
         || line == "[providers.temperance.custom_headers]" \
-        || line == "[models.\"temperance/temperance-auto\"]"
+        || line == "[models.\"temperance/temperance-auto\"]" \
+        || index(combo_headers, "|" line "|") > 0
     }
     function flush_hooks(  i) {
       if (!ours) for (i = 0; i < nbuf; i++) print buf[i]
@@ -224,6 +266,22 @@ if [[ "$ACTION" == enable ]]; then
     echo "provider = \"${PROVIDER_ID}\""
     echo "model = \"${MODEL_ID}\""
     echo "max_context_size = 200000"
+    if ! $NO_COMBOS; then
+      echo ""
+      echo "# Pinned OmniRoute portfolios. On this surface temperance-auto always"
+      echo "# resolves to temperance-coding (the relay pins any request carrying"
+      echo "# tools), so these are the only way to reach a named portfolio."
+      for spec in "${PINNED_COMBOS[@]}"; do
+        IFS='|' read -r combo_key combo_model combo_ctx combo_caps combo_name <<<"$spec"
+        echo ""
+        echo "[models.\"${combo_key}\"]"
+        echo "provider = \"${PROVIDER_ID}\""
+        echo "model = \"${combo_model}\""
+        echo "max_context_size = ${combo_ctx}"
+        [[ -n "$combo_caps" ]] && echo "capabilities = [${combo_caps}]"
+        [[ -n "$combo_name" ]] && echo "display_name = \"${combo_name}\""
+      done
+    fi
     if [[ "$hook_mode" == "managed-block" ]]; then
       echo ""
       echo "[[hooks]]"
