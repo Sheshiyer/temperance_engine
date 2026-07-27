@@ -10,7 +10,7 @@
     --private: #718096; --ink: #1a202c; --muted: #4a5568; --line: #e2e8f0;
   }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; background: #ffffff; }
   h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 10px; }
   h1 small { display: block; font-weight: 400; font-size: 15px; opacity: 0.9; margin-top: 8px; }
   h2 { border-bottom: 3px solid var(--line); padding-bottom: 8px; }
@@ -164,6 +164,17 @@
 </div>
 
 <div class="section">
+  <h2>5b. OmniRoute Relay &amp; Reconciler Seam <span class="badge wired">WIRED</span> &mdash; the live multi-model routing seam</h2>
+  <p>The largest addition since this map was last generated: a local OmniRoute gateway (<code>:20128</code>) now owns provider/model failover for 12 named combos. Two sub-seams are both genuinely WIRED, not documentation-only:</p>
+  <table>
+    <tr><th>Sub-seam</th><th>Real code path</th></tr>
+    <tr><td>Automatic chat relay</td><td><code>package/router/temperance-openai-proxy.ts</code> (<code>:20129</code>) intercepts OpenCode's <code>temperance/temperance-auto</code> and Kimi CLI/desktop requests, runs the shared <code>enrich()</code>, calls <code>multi-backend-router.sh --plan-json</code> for a frozen route, rewrites the request model, and forwards to OmniRoute. Explicit picker models (<code>auto/*</code>, a named <code>te-*</code>/<code>omniroute/*</code> combo) bypass this seam entirely and hit OmniRoute directly.</td></tr>
+    <tr><td>Availability reconciler</td><td><code>scripts/omniroute-temperance-reconcile.sh</code> reads <code>package/router/omniroute-fallback-policy.json</code>, polls live quota/health via OmniRoute's authenticated API, and mutates combo models with full-body <code>PUT /api/combos/:id</code> when a provider is manually disabled or below threshold. Installed as a LaunchAgent (<code>com.temperance.engine.reconcile</code>, 900s) &mdash; a real, scheduled, mutating process, not advisory text.</td></tr>
+  </table>
+  <p>Kimi is the sharper case: its hook runner cannot inject <code>&lt;temperance-context&gt;</code> (no <code>additionalContext</code> support), so enrichment moves server-side to the relay, gated on <code>X-Temperance-Surface: kimi</code> so client-enriched surfaces are never double-enriched &mdash; the same relay code path serves both surfaces, but the enrichment injection point genuinely differs between them. Full detail: <a href="omniroute-routing.html">omniroute-routing.html</a>.</p>
+</div>
+
+<div class="section">
   <h2>6. What Is Explicitly Not Stitched</h2>
   <table>
     <tr><th>Gap</th><th>Why it's left this way</th></tr>
@@ -174,7 +185,7 @@
   </table>
 </div>
 
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>session-trace.html</code> (concrete walkthrough).</p>
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>session-trace.html</code> (concrete walkthrough) &middot; <code>omniroute-routing.html</code> (routing seams in depth).</p>
 
 </body>
 </html>

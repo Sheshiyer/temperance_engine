@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperance Engine - OmniRoute Routing</title>
+<style>
+  :root {
+    --data: #4299e1;
+    --processing: #ed8936;
+    --ai: #9f7aea;
+    --success: #48bb78;
+    --private: #718096;
+    --fusion: #d53f8c;
+    --ink: #1a202c;
+    --muted: #4a5568;
+    --line: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    color: var(--ink);
+    line-height: 1.5;
+    background: #ffffff;
+  }
+  h1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  h1 small {
+    display: block;
+    font-weight: 400;
+    font-size: 15px;
+    opacity: 0.9;
+    margin-top: 8px;
+  }
+  h2 {
+    border-bottom: 3px solid var(--line);
+    padding-bottom: 8px;
+    color: var(--ink);
+  }
+  h3 { color: var(--ink); }
+  .section { margin: 36px 0; }
+  .callout {
+    background: #fffaf0;
+    border: 1px solid #fbd38d;
+    border-left: 5px solid var(--processing);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 18px 0;
+  }
+  .callout strong { color: #9c4221; }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    background: #fafafa;
+  }
+  .card h3 { margin-top: 0; font-size: 15px; color: var(--ink); }
+  .card p { margin: 4px 0; font-size: 13.5px; color: var(--muted); }
+  .layer {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    color: white;
+    font-size: 14px;
+  }
+  .layer b { display: block; font-size: 15px; margin-bottom: 4px; }
+  code {
+    background: #edf2f7;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f7fafc; }
+  .pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+<h1>OmniRoute Routing
+  <small>The live multi-model gateway, governed portfolios, provider lanes, and availability reconciler behind Temperance's automatic routing</small>
+</h1>
+
+<div class="section">
+  <div class="callout">
+    <strong>Scope.</strong> This doc is the OmniRoute reference: the local gateway topology, every governed combo and its strategy, the provider/connection lanes, and the policy-driven reconciler that keeps combos pointed at healthy providers. For the productization narrative see <code>architecture.html</code>; for install mechanics see <code>system-internals.html</code>; for wired-vs-reference seams see <code>integration-map.html</code>. Full prose lives in <code>docs/omniroute-runtime.md</code>, <code>docs/omniroute-fleet.md</code>, <code>docs/omniroute-connections.md</code>, and <code>docs/kimi-surface.md</code>.
+  </div>
+</div>
+
+<div class="section">
+  <h2>1. Local Topology</h2>
+  <svg viewBox="0 0 1080 320" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+      </marker>
+    </defs>
+
+    <rect x="10" y="30" width="200" height="130" rx="10" fill="#718096"/>
+    <text x="110" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Client surfaces</text>
+    <text x="110" y="78" text-anchor="middle" fill="white" font-size="11">OpenCode temperance-auto</text>
+    <text x="110" y="94" text-anchor="middle" fill="white" font-size="11">Kimi CLI / desktop</text>
+    <text x="110" y="110" text-anchor="middle" fill="white" font-size="11">Claude Code / Codex</text>
+    <text x="110" y="126" text-anchor="middle" fill="white" font-size="11">(direct picker overrides)</text>
+    <text x="110" y="146" text-anchor="middle" fill="#e2e8f0" font-size="10" font-style="italic">explicit models bypass the relay</text>
+
+    <path d="M212,80 L268,80" stroke="#666" stroke-width="2" marker-end="url(#arrowA)"/>
+    <text x="240" y="72" text-anchor="middle" font-size="9.5" fill="#4a5568">automatic only</text>
+
+    <rect x="270" y="30" width="220" height="130" rx="10" fill="var(--processing)"/>
+    <text x="380" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">temperance-openai-proxy</text>
+    <text x="380" y="74" text-anchor="middle" fill="white" font-size="11">:20129 (relay, optional)</text>
+    <text x="380" y="94" text-anchor="middle" fill="white" font-size="10.5">enrich() -&gt; classify -&gt; frozen plan</text>
+    <text x="380" y="110" text-anchor="middle" fill="white" font-size="10.5">rewrite model -&gt; forward tools/stream</text>
+    <text x="380" y="126" text-anchor="middle" fill="white" font-size="10.5">X-Temperance-Surface: kimi|opencode</text>
+    <text x="380" y="146" text-anchor="middle" fill="#fffaf0" font-size="9.5" font-style="italic">fails open -&gt; temperance-coding</text>
+
+    <path d="M492,80 L548,80" stroke="#666" stroke-width="2" marker-end="url(#arrowA)"/>
+
+    <rect x="550" y="30" width="220" height="130" rx="10" fill="var(--ai)"/>
+    <text x="660" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">OmniRoute gateway</text>
+    <text x="660" y="74" text-anchor="middle" fill="white" font-size="11">:20128 dashboard + /v1 API</text>
+    <text x="660" y="94" text-anchor="middle" fill="white" font-size="10.5">named combos own failover</text>
+    <text x="660" y="110" text-anchor="middle" fill="white" font-size="10.5">17 connections, 503 advertised models</text>
+    <text x="660" y="126" text-anchor="middle" fill="white" font-size="10.5">~/.omniroute (.env + SQLite)</text>
+    <text x="660" y="146" text-anchor="middle" fill="#f3e8ff" font-size="9.5" font-style="italic">reconciler mutates combos via PUT</text>
+
+    <path d="M772,80 L828,80" stroke="#666" stroke-width="2" marker-end="url(#arrowA)"/>
+
+    <rect x="830" y="30" width="240" height="130" rx="10" fill="var(--success)"/>
+    <text x="950" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Provider lanes</text>
+    <text x="950" y="76" text-anchor="middle" fill="white" font-size="11">Agentic: GitHub, Codex, Command Code,</text>
+    <text x="950" y="90" text-anchor="middle" fill="white" font-size="11">Grok CLI, Kimi, Antigravity</text>
+    <text x="950" y="108" text-anchor="middle" fill="white" font-size="11">Backbone: Nebius, NVIDIA, Ollama Cloud</text>
+    <text x="950" y="126" text-anchor="middle" fill="white" font-size="11">Research: Brave, Exa, Firecrawl, Jina</text>
+    <text x="950" y="144" text-anchor="middle" fill="white" font-size="11">Media: ElevenLabs, RunwayML</text>
+
+    <rect x="270" y="200" width="500" height="90" rx="10" fill="#f7fafc" stroke="var(--line)"/>
+    <text x="520" y="222" text-anchor="middle" font-size="12" fill="var(--ink)" font-weight="bold">scripts/omniroute-temperance-reconcile.sh</text>
+    <text x="520" y="242" text-anchor="middle" font-size="10.5" fill="var(--muted)">policy-driven, every 900s (com.temperance.engine.reconcile)</text>
+    <text x="520" y="258" text-anchor="middle" font-size="10.5" fill="var(--muted)">reads live quota/health, PUTs substituted combo models</text>
+    <text x="520" y="274" text-anchor="middle" font-size="10.5" fill="var(--muted)">snapshot-first -&gt; .omniroute-backups/*.json, rollbackable</text>
+    <path d="M520,200 L660,166" stroke="#9f7aea" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrowA)"/>
+  </svg>
+  <div class="legend">
+    <span><span class="swatch" style="background:#718096"></span>Client surface (host)</span>
+    <span><span class="swatch" style="background:var(--processing)"></span>Local relay (optional)</span>
+    <span><span class="swatch" style="background:var(--ai)"></span>OmniRoute gateway</span>
+    <span><span class="swatch" style="background:var(--success)"></span>Upstream provider lanes</span>
+  </div>
+  <p style="font-size:13px;color:var(--muted);">Explicit picker models (<code>auto/*</code> or a named <code>te-*</code>/<code>omniroute/*</code> combo) always bypass the relay's classifier and hit OmniRoute directly &mdash; only the <code>temperance/temperance-auto</code> model routes through the proxy. If the relay is stopped, direct <code>omniroute/temperance-coding</code> picker entries and the <code>temperance-route</code> / <code>temperance-batch</code> CLI rails keep working.</p>
+</div>
+
+<div class="section">
+  <h2>2. The Combo Roster</h2>
+  <p style="font-size:13.5px;color:var(--muted);">Every combo is declared once in <code>package/router/omniroute-fallback-policy.json</code> (schema <code>temperance-fallback-v1</code>) and registered in <code>package/router/omniroute-portfolios.json</code>. Strategy determines reconciler behavior: <span class="pill" style="background:var(--data)">priority</span> combos fail open on unknown data and substitute below-threshold slots; <span class="pill" style="background:var(--fusion)">fusion</span> combos fail closed (HOLD) on unknown judge/panel data; <span class="pill" style="background:var(--private)">monitor-only</span> combos are observed but never mutated.</p>
+  <table>
+    <tr><th>Combo</th><th>Strategy</th><th>Role</th><th>Primary target(s)</th></tr>
+    <tr><td><code>temperance-coding</code></td><td><span class="pill" style="background:var(--data)">priority</span></td><td>Compatibility rail</td><td><code>codex/gpt-5.6-terra</code> &rarr; <code>github/gpt-5.4</code> &rarr; Nebius Qwen; tool-safe default for any request carrying tools without a resolved portfolio</td></tr>
+    <tr><td><code>te-fast</code></td><td><span class="pill" style="background:var(--data)">priority</span></td><td>Governed portfolio</td><td>Low-latency content rail; Antigravity first, GitHub fallback</td></tr>
+    <tr><td><code>te-build</code></td><td><span class="pill" style="background:var(--data)">priority</span></td><td>Governed portfolio</td><td>Codex/GitHub/Nebius tool-capable rail</td></tr>
+    <tr><td><code>te-reason</code></td><td><span class="pill" style="background:var(--data)">priority</span></td><td>Governed portfolio</td><td>Deep-thinking content rail; Antigravity then Nebius/Codex</td></tr>
+    <tr><td><code>te-validate</code></td><td><span class="pill" style="background:var(--fusion)">fusion</span></td><td>Governed portfolio</td><td>GitHub/Codex/Nebius tool-capable panel, Codex judge</td></tr>
+    <tr><td><code>te-creative</code></td><td><span class="pill" style="background:var(--data)">priority</span></td><td>Governed portfolio</td><td>GitHub/Codex/Nebius text planning; ElevenLabs/Runway stay native</td></tr>
+    <tr><td><code>te-plan</code></td><td><span class="pill" style="background:var(--data)">priority</span></td><td>Role: planner</td><td><code>github/gpt-5.4</code> default, <code>codex/gpt-5.6-sol-max</code> escalation, Nebius Qwen fallback; Nebius is an anchor (never substituted)</td></tr>
+    <tr><td><code>te-dispatch</code></td><td><span class="pill" style="background:var(--private)">monitor-only</span></td><td>Role: worker fleet</td><td>Command Code DeepSeek Flash, Kimi Code, Grok Build, Nebius Qwen backbone</td></tr>
+    <tr><td><code>te-write</code></td><td><span class="pill" style="background:var(--private)">monitor-only</span></td><td>Writing: drafting</td><td>Command Code MiniMax-M2.7, Nebius Kimi-K2.6, Nebius Qwen</td></tr>
+    <tr><td><code>te-write-critique</code></td><td><span class="pill" style="background:var(--fusion)">fusion</span></td><td>Writing: drift-scoring council</td><td>Mirrors <code>te-validate</code> panel shape, Codex terra judge; COMMIT / REGENERATE / FLAG, never drafts</td></tr>
+    <tr><td><code>te-write-research</code></td><td><span class="pill" style="background:var(--fusion)">fusion</span></td><td>Writing: claim-grounding council</td><td>Command Code DeepSeek-v4-pro, GitHub, Codex terra (judge); runs before drafting, never drafts</td></tr>
+    <tr><td><code>te-write-media</code></td><td><span class="pill" style="background:var(--data)">priority</span></td><td>Writing: image-brief planner</td><td>Same roster as <code>te-creative</code>; text planning only, brandmint/FAL generates client-side</td></tr>
+  </table>
+  <p style="font-size:13px;color:var(--muted);">Reserved names not yet promoted to live combos: <code>te-batch</code>, <code>te-vision</code>. Creating a combo in OmniRoute does <strong>not</strong> make it appear in OpenCode's picker &mdash; each <code>te-*</code> combo must also be added to <code>~/.config/opencode/opencode.json</code>'s static <code>models</code> map (see <code>docs/omniroute-fleet.md#opencode-picker-registration</code>).</p>
+</div>
+
+<div class="section">
+  <h2>3. Provider &amp; Connection Lanes</h2>
+  <p style="font-size:13.5px;color:var(--muted);">The workstation snapshot: 17 connections configured, 16 active (one Kimi Coding OAuth connection is quota-banned; its API-key route stays active). 503 advertised models, 488 unique after dedup. Lanes are deliberately not flattened into one fallback chain &mdash; a provider being connected is not enough to become an automatic route.</p>
+  <table>
+    <tr><th>Lane</th><th>Example connections</th><th>Temperance use</th><th>Promotion rule</th></tr>
+    <tr><td>Agentic</td><td>GitHub, Codex, Command Code, Grok CLI, Kimi (API-key), Antigravity</td><td>Tool-capable coding, planning, parallel-dispatch work</td><td>Native tool-loop success + health evidence + a named combo</td></tr>
+    <tr><td>Backbone</td><td>Nebius, NVIDIA, Ollama Cloud</td><td>General model pools behind named combos</td><td>Direct probe, inspect tool/reasoning capability, then issue a promotion receipt</td></tr>
+    <tr><td>Research</td><td>Brave, Exa, Firecrawl, Jina</td><td>Bounded search/crawl/embedding tools inside research skills</td><td>Kept separate from model routing; probe each native API contract</td></tr>
+    <tr><td>Media</td><td>ElevenLabs, RunwayML</td><td>Speech (<code>/v1/audio/speech</code>) and video (<code>/v1/videos/generations</code>) contracts</td><td>Native adapters only, never a chat fallback</td></tr>
+    <tr><td>Unknown</td><td>&mdash;</td><td>Any future connection not yet mapped</td><td>Reported <code>role: unmapped</code>; never eligible for promotion</td></tr>
+  </table>
+  <p style="font-size:13px;color:var(--muted);">Read-only inventory: <code>scripts/omniroute-connections.sh --json</code> (envelope <code>temperance-omniroute-connections-v1</code>, redacts every key/token). Fixture test: <code>tests/omniroute-connections.sh</code>.</p>
+</div>
+
+<div class="section">
+  <h2>4. Availability Reconciler</h2>
+  <div class="layer" style="background:var(--data);">
+    <b>1 &middot; manual-disable (HARD DOWN)</b>
+    Provider is <code>isActive:false</code> via <code>GET /api/providers</code>, or absent from <code>omniroute usage quota</code> while &ge;1 other provider is present. Substitution is mandatory regardless of quota.
+  </div>
+  <div class="layer" style="background:var(--processing);">
+    <b>2 &middot; quota</b>
+    Remaining quota below <code>threshold_percent</code> (30%). A substituted base model only returns once its provider is <code>isActive:true</code> AND remaining &ge; <code>restore_hysteresis_percent</code> (40%) &mdash; hysteresis prevents flapping at the boundary.
+  </div>
+  <div class="layer" style="background:var(--ai);">
+    <b>3 &middot; unknown / no data</b>
+    Priority combos fail open (keep the live model, never switch on missing data). Fusion combos fail closed: verdict HOLD, no mutation, exit code 3, reason recorded in the state file and event log.
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h3>Dedup</h3>
+      <p>If two slots resolve to the same substitute, the later slot advances to its next chain entry instead of duplicating the model.</p>
+    </div>
+    <div class="card">
+      <h3>Judge independence</h3>
+      <p>A fusion judge substitute must never equal any post-substitution panel model; conflicting candidates are skipped.</p>
+    </div>
+    <div class="card">
+      <h3>Fusion panel floor</h3>
+      <p>After substitution the panel must keep &ge; <code>max(minPanel, 2)</code> resolvable models, else HOLD.</p>
+    </div>
+    <div class="card">
+      <h3>Tier gating</h3>
+      <p>Tier1 substitutes may land anywhere; tier2 bench models only in trailing/chain-end positions &mdash; a tier2 model in slot 0 yields <code>requires-probe</code> (dry-run) or HOLD (apply).</p>
+    </div>
+  </div>
+  <p style="font-size:13.5px;color:var(--muted);margin-top:14px;">Mutations are full-body <code>PUT /api/combos/:id</code> (OmniRoute has no PATCH), preserving the combo id and every untouched field. Every run that can mutate snapshots <code>{settings, combos, catalog, policy, plan}</code> to <code>.omniroute-backups/omniroute-reconcile-&lt;UTC&gt;.json</code> first &mdash; dry-runs included &mdash; and the global <code>activeCombo</code> is verified unchanged afterward.</p>
+  <table>
+    <tr><th>Command</th><th>Effect</th></tr>
+    <tr><td><code>omniroute-temperance-reconcile.sh --status</code></td><td>Read-only availability + diff report</td></tr>
+    <tr><td><code>omniroute-temperance-reconcile.sh --dry-run</code></td><td>Authenticated, snapshots, no mutation</td></tr>
+    <tr><td><code>omniroute-temperance-reconcile.sh --apply</code></td><td>Reconcile all governed combos</td></tr>
+    <tr><td><code>omniroute-temperance-reconcile.sh --combo te-plan --apply</code></td><td>Scope to one combo</td></tr>
+    <tr><td><code>omniroute-temperance-reconcile.sh --rollback FILE</code></td><td>Restore governed combos from a snapshot</td></tr>
+    <tr><td><code>omniroute-temperance-reconcile.sh --install-timer</code></td><td>LaunchAgent <code>com.temperance.engine.reconcile</code>, every 900s; migrates the legacy planner-quota timer</td></tr>
+  </table>
+  <p style="font-size:13px;color:var(--muted);"><code>scripts/omniroute-temperance-planner-quota.sh</code> is a <strong>deprecated shim</strong>: it prints a notice and execs the reconciler with <code>--combo te-plan</code>, so old callers and the legacy timer keep working until migrated. State: <code>~/.temperance_engine/state/omniroute-reconcile.json</code> (schema <code>temperance-reconcile-v1</code>) plus an append-only <code>omniroute-reconcile-events.jsonl</code> (<code>run</code>, <code>substitute</code>, <code>restore</code>, <code>hold</code>, <code>requires-probe</code>, <code>rollback</code>).</p>
+</div>
+
+<div class="section">
+  <h2>5. Surface Adapters: OpenCode vs. Kimi</h2>
+  <p style="font-size:13.5px;color:var(--muted);">Both automatic surfaces route through the same relay and the same classifier, but they inject Temperance's <code>&lt;temperance-context&gt;</code> block at different points, because only one of them has a client-side hook capable of it.</p>
+  <table>
+    <tr><th></th><th>OpenCode <code>temperance/temperance-auto</code></th><th>Kimi CLI / desktop</th></tr>
+    <tr><td>Enrichment injection</td><td>Client-side: the OpenCode flow plugin adds <code>&lt;temperance-context&gt;</code> before the request reaches the relay</td><td>Relay-side: <code>UserPromptSubmit</code> hook runner only supports <code>permissionDecision</code>, no <code>additionalContext</code> &mdash; the proxy enriches instead</td></tr>
+    <tr><td>cwd resolution</td><td>Plugin runs inside the project</td><td><code>package/adapters/kimi/UserPromptSubmit.hook.sh</code> writes <code>~/.temperance_engine/kimi/session-context.json</code> every prompt (TTL 120s, falls back to relay cwd)</td></tr>
+    <tr><td>Request tag</td><td>(none needed &mdash; enrichment already applied)</td><td><code>X-Temperance-Surface: kimi</code> gates relay-side enrichment so client-enriched surfaces are never double-enriched</td></tr>
+    <tr><td>Named portfolio reachability</td><td>Automatic route resolves a governed portfolio via the classifier</td><td><strong>Cannot</strong> reach a named portfolio automatically &mdash; kimi always sends tools, so the relay pins tool-carrying requests to <code>temperance-coding</code> regardless (the resolved <code>X-Temperance-Portfolio</code> header is advisory only)</td></tr>
+    <tr><td>Explicit portfolio access</td><td>Direct picker entries (<code>te-build</code>, <code>auto/*</code>, ...) bypass the classifier entirely</td><td>Five pinned <code>omniroute/*</code> picker aliases (<code>te-build</code>, <code>te-validate</code>, <code>te-fast</code>, <code>auto/best-coding</code>, <code>auto/best-reasoning</code>) &mdash; enrichment still applies, only routing is direct</td></tr>
+  </table>
+  <p style="font-size:13px;color:var(--muted);">Observability for both: <code>~/.temperance_engine/state/openai-proxy.jsonl</code> (<code>surface</code>, <code>enrichment</code>, <code>enrichment_cwd_source</code>, <code>prompt_hash_match</code>) and the <code>X-Temperance-Enrichment</code> response header. The Kimi <strong>desktop</strong> lane (agent-core kernel, not kimi-cli) is currently inert on daimon-bundle 0.5.49 &mdash; the daemon regenerates its config from a template on every launch and never reads the file the relay-enable script writes; the CLI lane is unaffected. See <code>docs/kimi-surface.md</code> for the full caveat.</p>
+</div>
+
+<div class="section">
+  <h2>6. Headless Deployment (EC2 Shadow)</h2>
+  <p style="font-size:13.5px;color:var(--muted);">A route-only Temperance release can run beside Hermes on EC2 without touching Hermes units, installing a model backend, or granting approval &mdash; <code>package/headless</code> is the standalone runtime, fail-closed on unknown fields, missing approval observations, and missing policy routes.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Build</h3>
+      <p><code>scripts/build-headless-shadow.sh</code> refuses a dirty tree, runs <code>test</code> + <code>standalone:audit</code> + <code>standalone:smoke</code>, emits a typed result (release id, source commit, archive path, SHA-256).</p>
+    </div>
+    <div class="card">
+      <h3>Install</h3>
+      <p><code>scripts/install-headless-shadow-archive.sh</code> installs idempotently under <code>/opt/temperance-headless/releases/&lt;version&gt;-&lt;commit12&gt;</code> as a dedicated nologin <code>temperance-shadow</code> user &mdash; no <code>current</code> symlink.</p>
+    </div>
+    <div class="card">
+      <h3>Key resolution</h3>
+      <p>The Keychain lookup is darwin-only; <code>temperance-openai-proxy.ts</code> also reads <code>OMNIROUTE_API_KEY_FILE</code> (0640, <code>LoadCredential=</code>) so the systemd/Linux relay can supply a gateway key without an env var.</p>
+    </div>
+    <div class="card">
+      <h3>Health</h3>
+      <p><code>scripts/capture-ec2-shadow-health.sh</code> captures before/after snapshots keyed by a stable session id. Full runbook: <code>docs/runbooks/ec2-headless-shadow.md</code>.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Deep Dives</h2>
+  <div class="grid">
+    <div class="card">
+      <h3><a href="architecture.html">architecture.html</a></h3>
+      <p>Productization narrative, install orchestration, and the full layered system view.</p>
+    </div>
+    <div class="card">
+      <h3><a href="system-internals.html">system-internals.html</a></h3>
+      <p>Component-by-component mechanics: exact flags, env vars, file writes, endpoints.</p>
+    </div>
+    <div class="card">
+      <h3><a href="integration-map.html">integration-map.html</a></h3>
+      <p>Which seams are real code paths (WIRED) versus documentation-only (REFERENCE ONLY).</p>
+    </div>
+    <div class="card">
+      <h3><a href="session-trace.html">session-trace.html</a></h3>
+      <p>Concrete walkthroughs, including an automatic chat request end to end.</p>
+    </div>
+  </div>
+</div>
+
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Generated for Temperance Engine via <code>architecture-diagram-creator</code>. Source of truth: <code>docs/omniroute-runtime.md</code>, <code>docs/omniroute-fleet.md</code>, <code>docs/omniroute-connections.md</code>, <code>docs/kimi-surface.md</code>, <code>package/router/omniroute-fallback-policy.json</code>, <code>package/router/omniroute-portfolios.json</code>, <code>ISA.md</code>.</p>
+
+</body>
+</html>

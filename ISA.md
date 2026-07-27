@@ -496,16 +496,18 @@ Configure a secured local OmniRoute runtime as the preferred external gateway, m
 <!-- arch-assets:start -->
 
 _Auto-maintained by `ArchitectureAssetsSync.hook.ts` on release events._  
-_Last refreshed: 2026-06-22T01:11:11.274Z_
+_Last refreshed: 2026-07-27T13:28:31.000Z_
 
 | Asset | Status | How it's generated |
 |---|---|---|
 | [`docs/architecture/SERVICES.md`](docs/architecture/SERVICES.md) | ✅ current | auto (file scan) |
 | [`docs/architecture/DEPENDENCY-GRAPH.md`](docs/architecture/DEPENDENCY-GRAPH.md) | ✅ current | auto (file scan) |
-| [`docs/architecture/architecture.html`](docs/architecture/architecture.html) | ✅ current (generated 2026-07-01) | manual (LLM skill) |
-| [`docs/architecture/system-internals.html`](docs/architecture/system-internals.html) | ✅ current (generated 2026-07-01) | manual (LLM skill) |
-| [`docs/architecture/integration-map.html`](docs/architecture/integration-map.html) | ✅ current (generated 2026-07-01) | manual (LLM skill) |
-| [`docs/architecture/session-trace.html`](docs/architecture/session-trace.html) | ✅ current (generated 2026-07-01) | manual (LLM skill) |
+| [`docs/architecture/architecture.html`](docs/architecture/architecture.html) | ✅ current (updated 2026-07-27: OmniRoute layer + deep-dive link) | manual (LLM skill) |
+| [`docs/architecture/system-internals.html`](docs/architecture/system-internals.html) | ✅ current (updated 2026-07-27: relay/reconciler/headless mechanics) | manual (LLM skill) |
+| [`docs/architecture/integration-map.html`](docs/architecture/integration-map.html) | ✅ current (updated 2026-07-27: OmniRoute relay + reconciler WIRED seam) | manual (LLM skill) |
+| [`docs/architecture/session-trace.html`](docs/architecture/session-trace.html) | ✅ current (updated 2026-07-27: automatic chat request trace) | manual (LLM skill) |
+| [`docs/architecture/omniroute-routing.html`](docs/architecture/omniroute-routing.html) | ✅ current (new 2026-07-27) | manual (LLM skill) |
+| [`docs/architecture.md`](docs/architecture.md) | ✅ current (updated 2026-07-27: OmniRoute component + data-flow step) | manual (LLM skill) |
 | [`docs/architecture/notebooklm-prompt.md`](docs/architecture/notebooklm-prompt.md) | ⬜ not yet generated | manual (LLM skill) |
 
 **To refresh LLM-generated assets:** invoke `/refresh-architecture` in any Claude Code session.
