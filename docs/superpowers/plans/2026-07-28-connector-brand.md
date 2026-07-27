@@ -133,7 +133,7 @@ Write this exact file content (the `<style>` block is copied verbatim from `docs
 
 <div class="section">
   <div class="callout">
-    <strong>Scope.</strong> This taxonomy covers only what Temperance Engine itself owns and controls. It does not rename, restructure, or claim authority over Cambium, Hermes, Plexus, or any part of the separately-governed Thoughtseed production system (see <code>/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/INFRA_STATUS.md</code>) &mdash; that system already has its own deliberate brand (a plant-growth metaphor: Cambium, with organs named genesis/taste/hands/will/cortex) and is governed by its own PRs and issue tracker. Temperance Engine is a parenthetical addendum to Hermes's execution body in that system's own operating model, not its architectural root. Design record: <code>docs/superpowers/specs/2026-07-28-connector-brand-design.md</code>.
+    <strong>Scope.</strong> This taxonomy covers only what Temperance Engine itself owns and controls. It does not rename, restructure, or claim authority over Cambium, Hermes, Plexus, or any part of the separately-governed Thoughtseed production system (documented in that monorepo's own <code>INFRA_STATUS.md</code>, outside this repository) &mdash; that system already has its own deliberate brand (a plant-growth metaphor: Cambium, with organs named genesis/taste/hands/will/cortex) and is governed by its own PRs and issue tracker. Temperance Engine is a parenthetical addendum to Hermes's execution body in that system's own operating model, not its architectural root. Design record: <code>docs/superpowers/specs/2026-07-28-connector-brand-design.md</code>.
   </div>
 </div>
 
@@ -262,7 +262,7 @@ Write this exact file content (the `<style>` block is copied verbatim from `docs
   </div>
 </div>
 
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Design record: <code>docs/superpowers/specs/2026-07-28-connector-brand-design.md</code>. Source of truth for the neighbor boundary: <code>/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/INFRA_STATUS.md</code>.</p>
+<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Design record: <code>docs/superpowers/specs/2026-07-28-connector-brand-design.md</code>. Source of truth for the neighbor boundary: the Thoughtseed monorepo's own <code>INFRA_STATUS.md</code> (outside this repository).</p>
 
 </body>
 </html>
@@ -299,7 +299,7 @@ Expected: three `OK:` lines, no `AssertionError`.
 
 - [ ] **Step 4: Render in the browser and visually verify**
 
-Navigate the Browser pane to `file:///Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/docs/architecture/brand-connectors.html`, screenshot the full page top to bottom (scroll through all 6 sections), and confirm:
+Run `pwd` in this worktree to get its absolute root path, then navigate the Browser pane to `file://<worktree-root>/docs/architecture/brand-connectors.html`. Screenshot the full page top to bottom (scroll through all 6 sections), and confirm:
 - The header/scope callout is legible (not dark-on-black — confirms `background: #ffffff` took effect).
 - The taxonomy SVG renders without overlapping text or broken boxes.
 - All 5 Deep-Dive links are present and styled as links (blue/underlined).
@@ -380,7 +380,7 @@ Expected: `OK`.
 
 - [ ] **Step 4: Render and click the new link**
 
-Navigate the Browser pane to `file:///Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/docs/architecture/architecture.html`, scroll to Deep Dives, confirm the 5th card renders, click it, confirm it loads `brand-connectors.html`.
+Run `pwd` in this worktree to get its absolute root path, then navigate the Browser pane to `file://<worktree-root>/docs/architecture/architecture.html`. Scroll to Deep Dives, confirm the 5th card renders, click it, confirm it loads `brand-connectors.html`.
 
 Expected: card renders correctly, link resolves.
 
@@ -441,7 +441,7 @@ Expected: `OK`.
 
 - [ ] **Step 4: Render and verify**
 
-Navigate the Browser pane to `file:///Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/docs/architecture/omniroute-routing.html`, confirm the scope callout renders with the new sentence and the link is styled/clickable, click it, confirm it loads `brand-connectors.html`.
+Run `pwd` in this worktree to get its absolute root path, then navigate the Browser pane to `file://<worktree-root>/docs/architecture/omniroute-routing.html`. Confirm the scope callout renders with the new sentence and the link is styled/clickable, click it, confirm it loads `brand-connectors.html`.
 
 Expected: clean render, working link.
 
@@ -490,7 +490,7 @@ Run: `grep -n "^## Decisions" ISA.md` to find the Decisions section, then find i
 Using the Edit tool, append this new bullet after the last existing Decisions entry (match the exact text of that last line as your anchor so the insertion point is unambiguous):
 
 ```
-- 2026-07-28: Named Temperance Engine's owned connectors with alchemical proper nouns consistent with the Algorithm's phase-sigil system: PAI -> the Athanor (display-only rename; `~/.claude/PAI` and `$PAI_HOME` unchanged), Temperance's own OmniRoute integration code -> the Caduceus, the headless EC2 shadow runtime -> the Vigil. Explicitly scoped OUT: renaming Cambium/Hermes/Plexus or any part of the separately-governed Thoughtseed production system (`/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/INFRA_STATUS.md`), renaming third-party deps (`gsd-core`, OmniRoute the product, `hermes-agent`), and applying these names to live display text (deferred). See `docs/superpowers/specs/2026-07-28-connector-brand-design.md`.
+- 2026-07-28: Named Temperance Engine's owned connectors with alchemical proper nouns consistent with the Algorithm's phase-sigil system: PAI -> the Athanor (display-only rename; `~/.claude/PAI` and `$PAI_HOME` unchanged), Temperance's own OmniRoute integration code -> the Caduceus, the headless EC2 shadow runtime -> the Vigil. Explicitly scoped OUT: renaming Cambium/Hermes/Plexus or any part of the separately-governed Thoughtseed production system (documented in that monorepo's own `INFRA_STATUS.md`, outside this repository), renaming third-party deps (`gsd-core`, OmniRoute the product, `hermes-agent`), and applying these names to live display text (deferred). See `docs/superpowers/specs/2026-07-28-connector-brand-design.md`.
 ```
 
 - [ ] **Step 4: Verify both edits landed correctly**

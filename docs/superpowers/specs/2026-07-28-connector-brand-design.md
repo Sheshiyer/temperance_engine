@@ -20,9 +20,9 @@ native vocabulary, with no consistent naming layer tying them together as
 the literal request ("Temperance Engine as the main arch" for *everything*,
 including Cloudflare Vectorize and NVIDIA) does not match reality: those
 two belong to a much larger, live, actively-governed production system
-(Thoughtseed: Cambium + Hermes + Plexus + Telegram, documented in
-`/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/INFRA_STATUS.md`)
-in which Temperance Engine is a parenthetical addendum to Hermes's
+(Thoughtseed: Cambium + Hermes + Plexus + Telegram, documented in that
+monorepo's own `INFRA_STATUS.md`, outside this repository) in which
+Temperance Engine is a parenthetical addendum to Hermes's
 execution body, not an architectural root. That system already has its
 own deliberate, actively-maintained brand (a plant-growth metaphor:
 Cambium, organs named genesis/taste/hands/will/cortex) governed by its own
