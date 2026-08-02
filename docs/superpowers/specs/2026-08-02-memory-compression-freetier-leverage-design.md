@@ -142,6 +142,58 @@ seven excluded ones including an unknown-portfolio fail-closed case). `bun
 test package/router package/adapters` (302 pass). `bash scripts/verify-all.sh`
 (full green).
 
+### Implementation note (2026-08-02, later still same session): headroom probed properly — still not promoted, for a different reason than before
+
+The earlier probe never actually exercised headroom: its dashboard config
+page (`/dashboard/context/headroom`) states a documented **minimum-8-row**
+threshold for "homogeneous JSON array" detection, and the prior test's array
+had only 4 rows nested under a `{"rows": [...]}` key besides. Rebuilt with 12
+rows and tried the array both nested and top-level, both `role: "tool"` and
+`role: "user"` — still `"headroom: skipped (no eligible content)"` every
+time the array was mixed with other text (the `<temperance-context>`
+wrapper, tool-schema marker, etc.) in the same message. Isolating the
+variable found the real trigger condition: headroom only detects a
+homogeneous array when it is essentially the **sole content** of a message —
+a **pure top-level JSON array**, unmixed with prose. Confirmed live: a
+message containing only the 12-row array triggered `techniquesUsed:
+["headroom-smartcrusher"]` with 26-57% savings depending on input formatting.
+
+**This changes what headroom actually is, and why it's still not promoted.**
+It's not a whitespace-cleanup pass like `lite` — it's a full format
+conversion. The triggering output above wasn't the original JSON at all; it
+was rewritten into a compact `[12]{id,name,status,score,owner}:` + CSV-row
+"TOON" format. `techniquesUsed`/`engineBreakdown` and the dashboard's own
+description ("Lossless tabular compaction... with `[N rows]` count markers")
+call this lossless at the *transport* level — the original data is
+recoverable from the TOON encoding. But the actual risk was never transport
+loss, it's **model comprehension**: whether the downstream LLM correctly
+parses TOON-formatted tool results the same way it would parse JSON. That's
+an LLM-capability question, not a byte-survival question, and this repo has
+zero documentation anywhere (`grep -rn -i toon docs/ package/router/*.ts`
+returns nothing) claiming any model in the fleet has been verified against
+it.
+
+**A second, structural finding**: because headroom only fires on
+array-only messages, and `injectContext()` only ever prepends the
+`<temperance-context>` wrapper to the latest **user** message (never to
+`role: "tool"` messages), the two conditions are mutually exclusive in real
+traffic — confirmed directly: mixing the wrapper into the same message as
+the triggering array made headroom skip entirely (`no eligible content`),
+consistent with the sole-content requirement above. So the wrapper-survival
+gate this doc built (`contextWrapperOrderPreserved`) is the wrong gate for
+headroom specifically — it structurally cannot fire on wrapper-bearing
+content, so passing or failing that gate proves nothing about headroom's
+actual risk. The open question for headroom is exclusively "does the model
+read TOON correctly," which needs an end-to-end generation test (send a real
+tool result through headroom, confirm the model's next turn correctly uses
+the data), not another transport-layer probe.
+
+**Still not promoted.** Given the format-conversion risk is real and
+unverified, and per this doc's own conservative promotion rule (no promotion
+without positive fidelity evidence), headroom stays off — this time for a
+documented, specific reason (unverified model comprehension of TOON) rather
+than "never got exercised." `lite` remains the only promoted engine.
+
 ---
 
 ## 3. OmniGlyph
