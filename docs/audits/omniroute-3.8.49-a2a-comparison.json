@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-01T19:18:00Z",
+  "purpose": "Read-only comparison evidence; this artifact does not install or promote OmniRoute 3.8.49.",
+  "installed": {
+    "version": "3.8.48",
+    "package_root": "/opt/homebrew/lib/node_modules/omniroute",
+    "readiness_source_digest": "0bade31c873be02bdd6b39a0aebef66bcbcd3d9f6e145574ba155ee0a7caa7f9"
+  },
+  "candidate": {
+    "version": "3.8.49",
+    "registry_tarball_sha1": "28f1e2f6c5bd5a3752ff077915ab6fa1810e0281",
+    "registry_tarball_integrity": "sha512-8D+vfSVzn5LLYPdYrufe/pOGTiyMqd6D1BgE2v7FxoAhcSir3R2BSH8m80KuXHyuTz66N46+uSB4s7eGUviMFQ==",
+    "readiness_source_digest": "6798c5aad568106ec2ac834aa081e4dff0a27dfa22c1e97ddf0e7c8d72d28836"
+  },
+  "byte_identical_source_files": [
+    {
+      "path": "bin/cli/commands/a2a.mjs",
+      "sha256": "f9cfac36a782e18c0741181f397bda50696e0998ec134a61a701dbd5e414ba71"
+    },
+    {
+      "path": "open-sse/mcp-server/schemas/a2a.ts",
+      "sha256": "c28b653af3598e89bd52e9b3235e792065430e1e1d03d4f7f8c94f8504d712ea"
+    },
+    {
+      "path": "open-sse/mcp-server/tools/agentSkillTools.ts",
+      "sha256": "b968259959c87b3d2f138c36f4ef3d52902160b49ea1be53273e755c61f8b090"
+    },
+    {
+      "path": "src/lib/skills/a2a.ts",
+      "sha256": "d1d39d3760ff281ecd0b32daa8f70d39f5e5f42eb204249270e71ee4888bb2f1"
+    },
+    {
+      "path": "src/lib/a2a/taskExecution.ts",
+      "sha256": "87416c1d8fea999d6a148e84ee28b3e7c3ef4c9349757576e4a299d5e0aa7bfc"
+    },
+    {
+      "path": "src/lib/a2a/taskManager.ts",
+      "sha256": "b5fbe39296555b6e59ec90013786ee2ef9acd8ec0c57f0f761dcaf5dc9d2a4ed"
+    }
+  ],
+  "known_changed_source_files": [
+    {
+      "path": "src/lib/a2a/skills/costAnalysis.ts",
+      "installed_sha256": "b5b079ad51daa12b8f5872a42745307e26f9a33690b56103ac43e1047bf05649",
+      "candidate_sha256": "a31c044b24c3968ba9875387ab553369b2f8072db031904a96abb9da44adb69f",
+      "classification": "numeric helper import refactor; not an authorization-boundary change"
+    }
+  ],
+  "readiness_digest_equal": false,
+  "readiness_blockers_equal": true,
+  "shared_blockers": [
+    "rpc_scoped_principal_missing",
+    "task_route_guard_missing",
+    "ambient_manage_principal_present",
+    "task_owner_binding_missing",
+    "skill_allowlist_unbounded",
+    "cli_server_create_mismatch",
+    "live_probe_receipt_missing",
+    "handler_dataflow_proof_unavailable",
+    "signed_probe_missing",
+    "signed_safety_evidence_missing"
+  ],
+  "conclusion": "The compiled readiness digest changes between packages, so the route bundles are not claimed byte-identical. Both packages produce the same fail-closed safety blockers, and the inspected source-level CLI, schema, task, and skill-control files are byte-identical. Version 3.8.49 therefore supplies no evidence that closes the native A2A promotion gate."
+}
