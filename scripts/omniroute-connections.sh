@@ -6,6 +6,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$ROOT_DIR/scripts/lib/omniroute-curl.sh"
 ROLE_MAP="${TEMPERANCE_OMNIROUTE_ROLE_MAP:-$ROOT_DIR/package/router/omniroute-connection-roles.json}"
 BASE_URL="${TEMPERANCE_OMNIROUTE_BASE_URL:-http://127.0.0.1:20128/v1}"
 BASE_URL="${BASE_URL%/}"
@@ -70,9 +71,7 @@ else
       -s "${TEMPERANCE_OMNIROUTE_KEYCHAIN_SERVICE:-OmniRoute Temperance API Key}" \
       -w 2>/dev/null || true)"
   fi
-  HEADERS=()
-  [[ -n "$GATEWAY_AUTH" ]] && HEADERS=(-H "Authorization: Bearer $GATEWAY_AUTH")
-  RAW_CATALOG="$(curl -sS --connect-timeout 2 --max-time 10 "${HEADERS[@]}" \
+  RAW_CATALOG="$(omniroute_curl_bearer "$GATEWAY_AUTH" -sS --connect-timeout 2 --max-time 10 \
     "$BASE_URL/models" 2>/dev/null || true)"
   CATALOG_JSON="$(extract_json "$RAW_CATALOG" 2>/dev/null || printf '{"data":[]}')"
   SOURCE="live"

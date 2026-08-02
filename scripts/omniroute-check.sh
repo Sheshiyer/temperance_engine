@@ -4,6 +4,7 @@
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$ROOT_DIR/scripts/lib/omniroute-curl.sh"
 BASE_URL="${TEMPERANCE_OMNIROUTE_BASE_URL:-http://127.0.0.1:20128/v1}"
 BASE_URL="${BASE_URL%/}"
 [[ "$BASE_URL" == */v1 ]] || BASE_URL="$BASE_URL/v1"
@@ -34,8 +35,6 @@ if [[ -z "$GATEWAY_AUTH" ]] && command -v security >/dev/null 2>&1; then
     -s "${TEMPERANCE_OMNIROUTE_KEYCHAIN_SERVICE:-OmniRoute Temperance API Key}" \
     -w 2>/dev/null || true)"
 fi
-headers=()
-[[ -n "$GATEWAY_AUTH" ]] && headers=(-H "Authorization: Bearer $GATEWAY_AUTH")
 
 extract_json() {
   local raw="$1" candidate
@@ -51,10 +50,9 @@ extract_json() {
 cli_json() {
   command -v omniroute >/dev/null 2>&1 || return 1
   local -a args=(--no-color --quiet --output json)
-  [[ -n "$GATEWAY_AUTH" ]] && args+=(--api-key "$GATEWAY_AUTH")
   [[ -n "$CLI_BASE_URL" ]] && args+=(--base-url "$CLI_BASE_URL")
   local raw parsed
-  raw="$(omniroute "${args[@]}" "$@" 2>/dev/null || true)"
+  raw="$(OMNIROUTE_API_KEY="$GATEWAY_AUTH" omniroute "${args[@]}" "$@" 2>/dev/null || true)"
   parsed="$(extract_json "$raw" 2>/dev/null || true)"
   [[ -n "$parsed" ]] && printf '%s\n' "$parsed"
 }
@@ -108,8 +106,8 @@ if [[ -n "$fixture" ]]; then
     catalog_source="invalid readiness fixture"
   fi
 else
-  raw="$(curl -sS --connect-timeout 2 --max-time 10 -w $'\n%{http_code}' \
-    "${headers[@]}" "$BASE_URL/models" 2>/dev/null || true)"
+  raw="$(omniroute_curl_bearer "$GATEWAY_AUTH" -sS --connect-timeout 2 --max-time 10 -w $'\n%{http_code}' \
+    "$BASE_URL/models" 2>/dev/null || true)"
   status="${raw##*$'\n'}"
   body="${raw%$'\n'*}"
   if [[ "$status" == "200" ]] && jq -e '.data | type == "array"' <<< "$body" >/dev/null 2>&1; then
@@ -277,8 +275,8 @@ jq -r '.data | group_by(.owned_by)[] | "  \(.[0].owned_by // "unknown")\t\(lengt
 if $LIVE; then
   payload="$(jq -cn --arg model "$MODEL" \
     '{model:$model,messages:[{role:"user",content:"Reply with exactly OMNIROUTE_OK"}],stream:false,max_tokens:128}')"
-  raw="$(curl -sS --connect-timeout 2 --max-time 90 -w $'\n%{http_code}' \
-    "${headers[@]}" -H 'Content-Type: application/json' --data-binary "$payload" \
+  raw="$(omniroute_curl_bearer_payload "$GATEWAY_AUTH" "$payload" -sS --connect-timeout 2 --max-time 90 -w $'\n%{http_code}' \
+    -H 'Content-Type: application/json' \
     "$BASE_URL/chat/completions" 2>/dev/null || true)"
   status="${raw##*$'\n'}"
   body="${raw%$'\n'*}"

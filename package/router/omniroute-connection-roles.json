@@ -3,7 +3,7 @@
   "unknown_policy": "unmapped-not-eligible",
   "roles": {
     "agentic": [
-      "antigravity", "auggie", "aug", "codex", "cx", "command-code", "cmd",
+      "agy", "antigravity", "auggie", "aug", "codex", "cx", "command-code", "cmd",
       "github", "gh", "grok-cli", "gc", "kimi-coding", "kmc", "kimi-coding-apikey", "kmca", "trae", "tr"
     ],
     "research": [

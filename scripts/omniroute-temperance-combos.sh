@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib/omniroute-curl.sh"
 USER="${USER:-$(id -un)}"
 BASE_URL="${TEMPERANCE_OMNIROUTE_ADMIN_URL:-http://127.0.0.1:20128}"
 BASE_URL="${BASE_URL%/}"
@@ -54,11 +56,13 @@ trap 'rm "$COOKIE_PATH" 2>/dev/null || true' EXIT
 ADMIN_PASSWORD="$(security find-generic-password -a "$USER" -s "$ADMIN_SERVICE" -w)"
 INFERENCE_KEY="$(security find-generic-password -a "$USER" -s "$API_KEY_SERVICE" -w)"
 
-login_status="$(curl -sS -o "$BACKUP_DIR/login.$$.json" -w '%{http_code}' \
+login_payload="$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
+unset ADMIN_PASSWORD
+login_status="$(omniroute_curl_payload "$login_payload" -sS -o "$BACKUP_DIR/login.$$.json" -w '%{http_code}' \
   -c "$COOKIE_PATH" \
   -H 'content-type: application/json' \
-  -d "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')" \
   "$BASE_URL/api/auth/login")"
+unset login_payload
 case "$login_status" in
   2*) ;;
   *) echo "OmniRoute admin login failed (HTTP $login_status)" >&2; exit 1 ;;
@@ -76,14 +80,12 @@ api_mutate() {
   local payload="$3"
   local response="$BACKUP_DIR/mutate.$$.json"
   local status
-  status="$(curl -sS -o "$response" -w '%{http_code}' \
+  status="$(omniroute_curl_csrf_payload "$CSRF" "$payload" -sS -o "$response" -w '%{http_code}' \
     -X "$method" \
     -b "$COOKIE_PATH" \
     -H 'origin: http://127.0.0.1:20128' \
     -H 'referer: http://127.0.0.1:20128/dashboard' \
     -H 'content-type: application/json' \
-    -H "x-csrf-token: $CSRF" \
-    -d "$payload" \
     "$BASE_URL$path")"
   case "$status" in
     2*) cat "$response" ;;
@@ -94,7 +96,8 @@ api_mutate() {
 settings="$(api_get /api/settings)"
 combos="$(api_get /api/combos)"
 providers="$(api_get /api/providers)"
-catalog="$(curl -sS -f -H "Authorization: Bearer $INFERENCE_KEY" "$BASE_URL/v1/models")"
+catalog="$(omniroute_curl_bearer "$INFERENCE_KEY" -sS -f "$BASE_URL/v1/models")"
+unset INFERENCE_KEY
 
 active_before="$(jq -c '.activeCombo // null' <<<"$settings")"
 if [ "$active_before" != "null" ]; then

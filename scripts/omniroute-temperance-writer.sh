@@ -4,6 +4,8 @@
 # global activeCombo.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib/omniroute-curl.sh"
 BASE_URL="${TEMPERANCE_OMNIROUTE_ADMIN_URL:-http://127.0.0.1:20128}"
 BASE_URL="${BASE_URL%/}"
 BACKUP_DIR="${TEMPERANCE_OMNIROUTE_BACKUP_DIR:-$PWD/.omniroute-backups}"
@@ -44,25 +46,28 @@ mkdir -p "$BACKUP_DIR"
 TMP_DIR="$(mktemp -d)"
 ADMIN_PASSWORD="$(security find-generic-password -a "$USER" -s "$ADMIN_SERVICE" -w)"
 INFERENCE_KEY="$(security find-generic-password -a "$USER" -s "$API_KEY_SERVICE" -w)"
-login_http="$(curl -sS -o "$TMP_DIR/login.json" -w '%{http_code}' -c "$TMP_DIR/cookie" \
+login_payload="$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
+unset ADMIN_PASSWORD
+login_http="$(omniroute_curl_payload "$login_payload" -sS -o "$TMP_DIR/login.json" -w '%{http_code}' -c "$TMP_DIR/cookie" \
   -H 'content-type: application/json' \
-  -d "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')" \
   "$BASE_URL/api/auth/login")"
+unset login_payload
 case "$login_http" in 2*) ;; *) echo "OmniRoute admin login failed (HTTP $login_http)" >&2; exit 1 ;; esac
 CSRF="$(curl -sS -f -b "$TMP_DIR/cookie" "$BASE_URL/api/auth/csrf" | jq -er '.token')"
 
 api_get() { curl -sS -f -b "$TMP_DIR/cookie" "$BASE_URL$1"; }
 api_mutate() {
   local method="$1" path="$2" payload="$3" response="$TMP_DIR/mutate.json" http
-  http="$(curl -sS -o "$response" -w '%{http_code}' -X "$method" -b "$TMP_DIR/cookie" \
+  http="$(omniroute_curl_csrf_payload "$CSRF" "$payload" -sS -o "$response" -w '%{http_code}' -X "$method" -b "$TMP_DIR/cookie" \
     -H 'origin: http://127.0.0.1:20128' -H 'referer: http://127.0.0.1:20128/dashboard' \
-    -H 'content-type: application/json' -H "x-csrf-token: $CSRF" -d "$payload" "$BASE_URL$path")"
+    -H 'content-type: application/json' "$BASE_URL$path")"
   case "$http" in 2*) cat "$response" ;; *) echo "OmniRoute mutation failed: $method $path (HTTP $http)" >&2; cat "$response" >&2; return 1 ;; esac
 }
 
 settings="$(api_get /api/settings)"
 combos="$(api_get /api/combos)"
-catalog="$(curl -sS -f -H "Authorization: Bearer $INFERENCE_KEY" "$BASE_URL/v1/models")"
+catalog="$(omniroute_curl_bearer "$INFERENCE_KEY" -sS -f "$BASE_URL/v1/models")"
+unset INFERENCE_KEY
 active_before="$(jq -c '.activeCombo // null' <<<"$settings")"
 [ "$active_before" = "null" ] || { echo "Refusing to proceed: global activeCombo is $active_before" >&2; exit 1; }
 
