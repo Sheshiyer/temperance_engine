@@ -20,6 +20,7 @@ const liveFleet = [
   "command-code/zai-org/GLM-5.2",
   "antigravity/claude-opus-4-6-thinking",
   "command-code/moonshotai/Kimi-K3",
+  "trae/gpt-5.4",
 ];
 
 function quota(providers: Record<string, { remaining: number | null; state?: string }>): PlannerQuotaState {
@@ -134,7 +135,7 @@ describe("Temperance workflow roles", () => {
     expect(resolution.portfolio).toBe("te-review");
     expect(resolution.selected.map(({ model }) => model)).toEqual([
       "codex/gpt-5.6-sol-max",
-      "github/gpt-5.4",
+      "trae/gpt-5.4",
       "command-code/zai-org/GLM-5.2",
     ]);
     expect(resolution.native_providers).toEqual([]);
@@ -144,14 +145,14 @@ describe("Temperance workflow roles", () => {
     const withoutReviewModels = liveFleet.filter(
       (model) =>
         model !== "codex/gpt-5.6-sol-max" &&
-        model !== "github/gpt-5.4" &&
+        model !== "trae/gpt-5.4" &&
         model !== "command-code/zai-org/GLM-5.2",
     );
     const resolution = resolveWorkflow("review", withoutReviewModels);
     expect(resolution.selected).toEqual([]);
     expect(resolution.omitted.map(({ model }) => model)).toEqual([
       "codex/gpt-5.6-sol-max",
-      "github/gpt-5.4",
+      "trae/gpt-5.4",
       "command-code/zai-org/GLM-5.2",
     ]);
     expect(resolution.source).toBe("direct");

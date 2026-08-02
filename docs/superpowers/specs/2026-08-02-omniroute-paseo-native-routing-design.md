@@ -667,6 +667,49 @@ exactly (`temperance-coding` reports `unchanged`; the other four report
 captured before every mutating run in `.omniroute-backups/`, per the
 script's existing safety design.
 
+## 20. Phase 0 third review (2026-08-02, later same session): re-audit clean, one adopted combo had the same dead-model problem
+
+Re-ran the live combo audit again per the operator's request. Result: no
+change since §19 -- same 16 combos, and all 5 previously-fixed combos'
+model lists held steady (no re-drift in the intervening time). Also
+diffed `te-swarm-s` and `te-review` (adopted in §18, never brought under
+`omniroute-temperance-combos.sh`'s management) against their recorded copies
+in `temperance-workflows.json`: both matched exactly, byte-for-byte on
+description/models/strategy/config. No drift on either.
+
+**But `te-review` had the same dead-model problem §19 just fixed elsewhere,
+independent of drift.** Its second fallback slot was still `github/gpt-5.4`
+-- confirmed dead (`github` provider `isActive:false`) -- and this wasn't
+new: it was already wrong when the combo was adopted in §18, just not
+caught because §18's diff check only compared repo-vs-live, and both sides
+agreed on the (broken) value. Operator decision (via AskUserQuestion): fix
+now. Found a clean replacement: `trae` (the same newly-connected provider
+from §19) has its own `trae/gpt-5.4` -- the identical model, routed through
+a live provider instead of the disabled `github` connector. Confirmed
+present in the live catalog before using it.
+
+Since `te-review` isn't managed by `omniroute-temperance-combos.sh`, applied
+the fix via a small throwaway script (same Keychain-login + CSRF + backup-
+snapshot pattern as the managed reconciler, deleted after use) doing a
+single targeted PUT: fetch `te-review`, swap only the `github/gpt-5.4`
+model entry to `trae/gpt-5.4`, leave everything else untouched, PUT, verify
+by re-fetching. Confirmed live: `["codex/gpt-5.6-sol-max", "trae/gpt-5.4",
+"command-code/zai-org/GLM-5.2"]`.
+
+Updated `package/router/temperance-workflows.json`'s `review.models` to
+match (left `purpose` text unchanged -- still describes "GitHub Copilot's"
+seat, which remains a fair description of what `gpt-5.4` represents even
+though it's now routed via `trae`). Updated
+`package/router/temperance-workflows.test.ts`: added `trae/gpt-5.4` to
+`liveFleet` (did **not** remove the still-present `github/gpt-5.4` entry --
+that's load-bearing for unrelated planner/quota-substitution tests) and
+updated both `review`-role tests' expected model from `github/gpt-5.4` to
+`trae/gpt-5.4`.
+
+Verified: `bun test package/router/temperance-workflows.test.ts` (26 pass).
+`bash scripts/verify-all.sh` (full green). `te-swarm-s` needed no
+equivalent fix -- none of its three models reference a disabled provider.
+
 ## 18. Phase 0 implementation note (2026-08-02, same session): combo hygiene done live; te-swarm-s and te-review adopted, not removed
 
 §5's Phase 0 assumed a plain `te-*` prefix check was sufficient to find

@@ -36,7 +36,7 @@
     "purpose": "Code review lane: Codex and GitHub Copilot get first routed seats, GLM-5.2 as subscription backstop.",
     "models": [
       "codex/gpt-5.6-sol-max",
-      "github/gpt-5.4",
+      "trae/gpt-5.4",
       "command-code/zai-org/GLM-5.2"
     ]
   },
