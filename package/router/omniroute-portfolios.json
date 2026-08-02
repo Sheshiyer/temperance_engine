@@ -1,7 +1,7 @@
 {
   "version": 1,
   "compatibility_model": "temperance-coding",
-  "required_portfolios": ["te-fast", "te-build", "te-reason", "te-validate", "te-creative"],
+  "required_portfolios": ["te-algorithm", "te-fast", "te-build", "te-reason", "te-validate", "te-creative"],
   "task_type_portfolios": {
     "fast": "te-fast",
     "long-horizon": "te-build",
@@ -10,7 +10,7 @@
     "creative": "te-creative",
     "balanced": "te-build"
   },
-  "reserved_portfolios": ["te-batch", "te-vision", "te-write", "te-write-critique", "te-write-research", "te-write-media"],
+  "reserved_portfolios": ["te-batch", "te-vision", "te-write", "te-write-critique", "te-write-research", "te-write-media", "te-orchestrate", "te-free-burst", "te-review", "te-swarm-s"],
   "fallback_policy": "package/router/omniroute-fallback-policy.json",
   "enforcement": "shadow"
 }

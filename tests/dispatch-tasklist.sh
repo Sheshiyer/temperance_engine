@@ -9,6 +9,12 @@ export TEMPERANCE_STATE_DIR="$TEST_STATE_DIR"
 trap 'rm -rf "$TEST_STATE_DIR"' EXIT
 fail=0
 check(){ if [[ "$2" == "$3" ]]; then echo "ok - $1"; else echo "FAIL - $1: exp[$2] got[$3]"; fail=1; fi; }
+file_mode(){
+  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null
+}
+codex_args(){
+  awk '/^MOCK_CODEX_ARGS_START$/{capture=1; next} /^MOCK_CODEX_ARGS_END$/{capture=0} capture'
+}
 
 # Bash 4 has no EPOCHREALTIME. Exercise the portable branch directly and
 # require distinct millisecond values so parallel completion order is not
@@ -89,8 +95,117 @@ rm -f "$DIR/tests/fixtures/command-code"
 # retains workspace tools. A mocked Codex binary proves argv-safe prompt passage
 # and final metadata without calling a live model.
 ln -sf mock-codex "$DIR/tests/fixtures/codex"
+omni_direct_default="$(mktemp)"
+(
+  unset TEMPERANCE_OMNIROUTE_CODEX_ISOLATED
+  OMNIROUTE_API_KEY=test-key "$DIR/package/router/omniroute-codex.sh" \
+    te-dispatch "inspect the adapter defaults"
+) >"$omni_direct_default" 2>&1
+if codex_args < "$omni_direct_default" | grep -qx -- '--ignore-user-config'; then
+  echo "ok - OmniRoute isolates Codex user config by default"
+else
+  echo "FAIL - default OmniRoute isolation flag missing"; fail=1
+fi
+ignore_user_line="$(codex_args < "$omni_direct_default" | awk '$0=="--ignore-user-config"{print NR; exit}')"
+prompt_delim_line="$(codex_args < "$omni_direct_default" | awk '$0=="--"{print NR; exit}')"
+if [[ -n "$ignore_user_line" && -n "$prompt_delim_line" ]] && (( ignore_user_line < prompt_delim_line )); then
+  echo "ok - isolation flag stays before the prompt delimiter"
+else
+  echo "FAIL - isolation flag ordering is wrong"; fail=1
+fi
+if ! codex_args < "$omni_direct_default" | grep -qx -- '--ignore-rules'; then
+  echo "ok - OmniRoute never adds --ignore-rules"
+else
+  echo "FAIL - forbidden --ignore-rules flag present"; fail=1
+fi
+
+omni_direct_empty="$(mktemp)"
+TEMPERANCE_OMNIROUTE_CODEX_ISOLATED= OMNIROUTE_API_KEY=test-key \
+  "$DIR/package/router/omniroute-codex.sh" te-dispatch "inspect empty isolation override" \
+  >"$omni_direct_empty" 2>&1
+if codex_args < "$omni_direct_empty" | grep -qx -- '--ignore-user-config'; then
+  echo "ok - empty isolation env still isolates"
+else
+  echo "FAIL - empty isolation env disabled isolation"; fail=1
+fi
+
+omni_direct_one="$(mktemp)"
+TEMPERANCE_OMNIROUTE_CODEX_ISOLATED=1 OMNIROUTE_API_KEY=test-key \
+  "$DIR/package/router/omniroute-codex.sh" te-dispatch "inspect numeric isolation override" \
+  >"$omni_direct_one" 2>&1
+if codex_args < "$omni_direct_one" | grep -qx -- '--ignore-user-config'; then
+  echo "ok - nonzero isolation env still isolates"
+else
+  echo "FAIL - nonzero isolation env disabled isolation"; fail=1
+fi
+
+omni_direct_other="$(mktemp)"
+TEMPERANCE_OMNIROUTE_CODEX_ISOLATED=custom OMNIROUTE_API_KEY=test-key \
+  "$DIR/package/router/omniroute-codex.sh" te-dispatch "inspect arbitrary isolation override" \
+  >"$omni_direct_other" 2>&1
+if codex_args < "$omni_direct_other" | grep -qx -- '--ignore-user-config'; then
+  echo "ok - arbitrary isolation env still isolates"
+else
+  echo "FAIL - arbitrary isolation env disabled isolation"; fail=1
+fi
+
+omni_direct_optout="$(mktemp)"
+TEMPERANCE_OMNIROUTE_CODEX_ISOLATED=0 OMNIROUTE_API_KEY=super-secret \
+  "$DIR/package/router/omniroute-codex.sh" te-dispatch "inspect explicit isolation opt-out" \
+  >"$omni_direct_optout" 2>&1
+if ! codex_args < "$omni_direct_optout" | grep -qx -- '--ignore-user-config' \
+    && grep -qF 'TEMPERANCE_OMNIROUTE_CODEX_ISOLATED=0 disables Codex user-config isolation' "$omni_direct_optout" \
+    && ! grep -qF 'super-secret' "$omni_direct_optout"; then
+  echo "ok - exact-zero isolation opt-out warns without leaking credentials"
+else
+  echo "FAIL - exact-zero isolation opt-out behavior is wrong"; fail=1
+fi
+
+profile_home="$(mktemp -d)"
+touch "$profile_home/temperance-coding.config.toml"
+omni_direct_configured="$(mktemp)"
+CODEX_HOME="$profile_home" OMNIROUTE_API_KEY=test-key \
+  TEMPERANCE_OMNIROUTE_BASE_URL="http://127.0.0.1:20128" \
+  TEMPERANCE_OMNIROUTE_WIRE_API="responses" \
+  TEMPERANCE_OMNIROUTE_CODEX_SANDBOX="workspace-write" \
+  TEMPERANCE_CORRELATION_ID="tc_test_route" \
+  "$DIR/package/router/omniroute-codex.sh" te-dispatch "inspect the explicit routing configuration" \
+  >"$omni_direct_configured" 2>&1
+configured_args="$(codex_args < "$omni_direct_configured")"
+for expected in \
+  'exec' \
+  '-m' \
+  'te-dispatch' \
+  'model_provider="omniroute"' \
+  'model_providers.omniroute.name="OmniRoute"' \
+  'model_providers.omniroute.base_url="http://127.0.0.1:20128/v1"' \
+  'model_providers.omniroute.env_key="OMNIROUTE_API_KEY"' \
+  'model_providers.omniroute.wire_api="responses"' \
+  'model_providers.omniroute.requires_openai_auth=false' \
+  'approval_policy="never"' \
+  '--sandbox' \
+  'workspace-write' \
+  '--ephemeral' \
+  '--skip-git-repo-check' \
+  '--color' \
+  'never' \
+  '--profile' \
+  'temperance-coding' \
+  'X-Temperance-Correlation-ID' \
+  'tc_test_route'
+do
+  if grep -qF -- "$expected" <<< "$configured_args"; then
+    :
+  else
+    echo "FAIL - OmniRoute configuration missing [$expected]"; fail=1
+  fi
+done
+rm -f "$omni_direct_default" "$omni_direct_empty" "$omni_direct_one" \
+  "$omni_direct_other" "$omni_direct_optout" "$omni_direct_configured"
+rm -rf "$profile_home"
+
 run=$(mktemp -d)
-payload='[{"id":"OMNI","task":"refactor the auth module safely","backend":"omniroute","model":"temperance-coding"}]'
+payload='[{"id":"OMNI","task":"refactor the auth module safely","backend":"omniroute","model":"te-dispatch"}]'
 printf '%s' "$payload" \
   | OMNIROUTE_API_KEY=test-key TEMPERANCE_BACKENDS="omniroute command-code" \
     "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
@@ -98,7 +213,7 @@ check "OmniRoute agent backend succeeds through Codex" "ok" \
   "$(jq -r '.tasks[0].status' "$run/index.json" 2>/dev/null)"
 check "OmniRoute backend recorded in attempt envelope" "omniroute" \
   "$(jq -r '.tasks[0].attempts[0].backend' "$run/index.json" 2>/dev/null)"
-check "OmniRoute model recorded in attempt envelope" "temperance-coding" \
+check "OmniRoute model recorded in attempt envelope" "te-dispatch" \
   "$(jq -r '.tasks[0].attempts[0].model' "$run/index.json" 2>/dev/null)"
 omni_correlation="$(jq -r '.tasks[0].correlation_id' "$run/index.json" 2>/dev/null)"
 check "OmniRoute attempt correlation matches metadata" "$omni_correlation" \
@@ -116,6 +231,212 @@ if grep -qF "MOCK_CODEX_CORRELATION=$omni_correlation" "$run/OMNI.out" \
   echo "ok - OmniRoute Codex request carries correlation header"
 else
   echo "FAIL - OmniRoute Codex correlation header missing"; fail=1
+fi
+if grep -qF 'model_context_window=128000' "$run/OMNI.out" \
+    && grep -qF 'model_auto_compact_token_limit=108000' "$run/OMNI.out"; then
+  echo "ok - Spark fleet advertises its bounded context contract"
+else
+  echo "FAIL - Spark fleet context contract missing"; fail=1
+fi
+non_spark_out="$(mktemp)"
+OMNIROUTE_API_KEY=test-key "$DIR/package/router/omniroute-codex.sh" \
+  temperance-coding "inspect the bounded adapter contract" >"$non_spark_out" 2>&1
+if grep -qF 'model_context_window=200000' "$non_spark_out" \
+    && grep -qF 'model_auto_compact_token_limit=170000' "$non_spark_out"; then
+  echo "ok - non-Spark portfolios retain their existing context contract"
+else
+  echo "FAIL - non-Spark context contract changed"; fail=1
+fi
+rm -f "$non_spark_out"
+
+# A zero-exit OmniRoute/Codex transport diagnostic is not task completion.
+# Freeze one explicit fallback chain so the validator can fail the malformed
+# gateway attempt without inventing a route after execution has started.
+stream_mock_dir="$(mktemp -d)"
+stream_router="$stream_mock_dir/router.sh"
+stream_codex="$stream_mock_dir/codex"
+cat > "$stream_router" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' '{"policy_version":"test","mode":"enforce","plan_id":"rp_stream","correlation_id":"tc_router_shared","input_hash":"same","task_type":"coding","decision_time_ms":1000,"diverged":false,"status":"ok","static_order":[{"backend":"omniroute","model":"te-dispatch","static_rank":0,"failure_domain":"gateway"},{"backend":"command-code","model":"x","static_rank":1,"failure_domain":"direct"}],"proposed_order":[{"backend":"omniroute","model":"te-dispatch","static_rank":0,"failure_domain":"gateway"},{"backend":"command-code","model":"x","static_rank":1,"failure_domain":"direct"}],"selected_order":[{"backend":"omniroute","model":"te-dispatch","static_rank":0,"failure_domain":"gateway"},{"backend":"command-code","model":"x","static_rank":1,"failure_domain":"direct"}],"candidates":[]}'
+EOF
+cat > "$stream_codex" <<'EOF'
+#!/usr/bin/env bash
+# Mirrors real `codex`'s -o/--output-last-message contract: the caller
+# (omniroute-codex.sh) reads the final message from that file, not stdout.
+out_file=""
+all_args=("$@")
+while [[ $# -gt 0 ]]; do
+  if [[ "$1" == "-o" ]]; then out_file="$2"; fi
+  shift
+done
+content=""
+case " ${all_args[*]} " in
+  *" NO_ONLY "*) content=$'NO\n' ;;
+  *" BAD_STREAM "*) content=$'OutputTextDelta without active item\n' ;;
+  *" BLANK_STREAM "*) content=$'\n' ;;
+  *" SHORT_TAIL "*) content=$'OutputTextDelta without active item\ntokens used\n69,384\nAL\n' ;;
+  *" NOISY_NO "*)
+    content=$'WARN plugin cache unavailable\n{"type":"tool","status":"completed"}\ntokens used\n1,234\nNO\n'
+    ;;
+  *" NOISY_DIAG "*)
+    content=$'WARN provider trace\ntool completed successfully\ntokens used\n2,345\nOutputTextDelta without active item\n'
+    ;;
+  *" VALID_STREAM "*)
+    content=$'OutputTextDelta without active item\nCompleted the requested refactor with verified tests.\n'
+    ;;
+  *) content=$'Completed substantive OmniRoute work.\n' ;;
+esac
+if [[ -n "$out_file" ]]; then
+  printf '%s' "$content" > "$out_file"
+else
+  printf '%s' "$content"
+fi
+exit 0
+EOF
+chmod +x "$stream_router" "$stream_codex"
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+
+no_run="$(mktemp -d)"
+printf '%s' '[{"id":"NOFALSE","task":"NO_ONLY refactor the auth module"}]' \
+  | PATH="$stream_mock_dir:$PATH" TEMPERANCE_ROUTER="$stream_router" \
+    TEMPERANCE_BACKENDS="omniroute command-code" OMNIROUTE_API_KEY=test-key \
+    "$W" --foreground --out "$no_run" --tasks - >/dev/null 2>&1
+check "literal NO falls through frozen fallback" "command-code" \
+  "$(jq -r '.tasks[0].backend' "$no_run/index.json" 2>/dev/null)"
+check "literal NO attempt is failed despite exit zero" "failed:65" \
+  "$(jq -r '.tasks[0].attempts[0] | "\(.status):\(.exit)"' "$no_run/index.json" 2>/dev/null)"
+check "literal NO uses only the frozen two-attempt chain" "2" \
+  "$(jq -r '.tasks[0].attempts | length' "$no_run/index.json" 2>/dev/null)"
+
+diagnostic_run="$(mktemp -d)"
+printf '%s' '[{"id":"DIAGFALSE","task":"BAD_STREAM refactor the auth module"}]' \
+  | PATH="$stream_mock_dir:$PATH" TEMPERANCE_ROUTER="$stream_router" \
+    TEMPERANCE_BACKENDS="omniroute command-code" OMNIROUTE_API_KEY=test-key \
+    "$W" --foreground --out "$diagnostic_run" --tasks - >/dev/null 2>&1
+check "inactive-item diagnostic falls through frozen fallback" "command-code" \
+  "$(jq -r '.tasks[0].backend' "$diagnostic_run/index.json" 2>/dev/null)"
+check "inactive-item diagnostic is recorded failed" "failed:65" \
+  "$(jq -r '.tasks[0].attempts[0] | "\(.status):\(.exit)"' "$diagnostic_run/index.json" 2>/dev/null)"
+
+noisy_no_run="$(mktemp -d)"
+printf '%s' '[{"id":"NOISYNO","task":"NOISY_NO refactor the auth module"}]' \
+  | PATH="$stream_mock_dir:$PATH" TEMPERANCE_ROUTER="$stream_router" \
+    TEMPERANCE_BACKENDS="omniroute command-code" OMNIROUTE_API_KEY=test-key \
+    "$W" --foreground --out "$noisy_no_run" --tasks - >/dev/null 2>&1
+check "noisy trace ending in NO falls through frozen fallback" "command-code:failed:65" \
+  "$(jq -r '.tasks[0] | "\(.backend):\(.attempts[0].status):\(.attempts[0].exit)"' "$noisy_no_run/index.json" 2>/dev/null)"
+
+noisy_diagnostic_run="$(mktemp -d)"
+printf '%s' '[{"id":"NOISYDIAG","task":"NOISY_DIAG refactor the auth module"}]' \
+  | PATH="$stream_mock_dir:$PATH" TEMPERANCE_ROUTER="$stream_router" \
+    TEMPERANCE_BACKENDS="omniroute command-code" OMNIROUTE_API_KEY=test-key \
+    "$W" --foreground --out "$noisy_diagnostic_run" --tasks - >/dev/null 2>&1
+check "noisy trace ending in inactive-item diagnostic falls back" "command-code:failed:65" \
+  "$(jq -r '.tasks[0] | "\(.backend):\(.attempts[0].status):\(.attempts[0].exit)"' "$noisy_diagnostic_run/index.json" 2>/dev/null)"
+
+blank_run="$(mktemp -d)"
+printf '%s' '[{"id":"BLANKFALSE","task":"BLANK_STREAM refactor the auth module"}]' \
+  | PATH="$stream_mock_dir:$PATH" TEMPERANCE_ROUTER="$stream_router" \
+    TEMPERANCE_BACKENDS="omniroute command-code" OMNIROUTE_API_KEY=test-key \
+    "$W" --foreground --out "$blank_run" --tasks - >/dev/null 2>&1
+check "blank OmniRoute completion falls through frozen fallback" "command-code" \
+  "$(jq -r '.tasks[0].backend' "$blank_run/index.json" 2>/dev/null)"
+
+short_tail_run="$(mktemp -d)"
+printf '%s' '[{"id":"SHORTFALSE","task":"SHORT_TAIL refactor the auth module"}]' \
+  | PATH="$stream_mock_dir:$PATH" TEMPERANCE_ROUTER="$stream_router" \
+    TEMPERANCE_BACKENDS="omniroute command-code" OMNIROUTE_API_KEY=test-key \
+    "$W" --foreground --out "$short_tail_run" --tasks - >/dev/null 2>&1
+check "truncated two-character tail falls through frozen fallback" "command-code:failed:65" \
+  "$(jq -r '.tasks[0] | "\(.backend):\(.attempts[0].status):\(.attempts[0].exit)"' "$short_tail_run/index.json" 2>/dev/null)"
+
+valid_stream_run="$(mktemp -d)"
+printf '%s' '[{"id":"VALIDOMNI","task":"VALID_STREAM refactor the auth module"}]' \
+  | PATH="$stream_mock_dir:$PATH" TEMPERANCE_ROUTER="$stream_router" \
+    TEMPERANCE_BACKENDS="omniroute command-code" OMNIROUTE_API_KEY=test-key \
+    "$W" --foreground --out "$valid_stream_run" --tasks - >/dev/null 2>&1
+check "substantive OmniRoute output remains successful" "omniroute:ok:1" \
+  "$(jq -r '.tasks[0] | "\(.backend):\(.status):\(.attempts | length)"' "$valid_stream_run/index.json" 2>/dev/null)"
+rm -rf "$stream_mock_dir"
+rm -f "$DIR/tests/fixtures/command-code"
+
+tmpgit_perm=$(mktemp -d); ( cd "$tmpgit_perm" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+perm_run="$(mktemp -d)"
+( cd "$tmpgit_perm" && printf '%s' '[{"id":"PERM","task":"WRITE=file-perm.txt:hello-perm do work","backend":"command-code","model":"x"}]' \
+  | "$W" --foreground --worktree --apply-worktree --out "$perm_run" --tasks - >/dev/null 2>&1 )
+check "output directory mode is 700" "700" "$(file_mode "$perm_run")"
+for artifact in \
+  "$perm_run/PERM.plan.json" \
+  "$perm_run/PERM.out" \
+  "$perm_run/PERM.meta.json" \
+  "$perm_run/PERM.diff" \
+  "$perm_run/SUMMARY.md" \
+  "$perm_run/index.json" \
+  "$perm_run/MERGE-REPORT.md"
+do
+  check "dispatcher artifact mode 600: $(basename "$artifact")" "600" "$(file_mode "$artifact")"
+done
+rm -f "$DIR/tests/fixtures/command-code"
+
+real_git="$(command -v git)"
+tmpgit_leak=$(mktemp -d); ( cd "$tmpgit_leak" && git init -q && git commit -q --allow-empty -m init )
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+leak_run="$(mktemp -d)"
+git_wrapper_dir="$(mktemp -d)"
+cat > "$git_wrapper_dir/git" <<EOF
+#!/usr/bin/env bash
+if [[ "\${1:-}" == "worktree" && "\${2:-}" == "remove" ]]; then
+  exit 1
+fi
+exec "$real_git" "\$@"
+EOF
+chmod +x "$git_wrapper_dir/git"
+( cd "$tmpgit_leak" && printf '%s' '[{"id":"LEAKMODE","task":"WRITE=file-leak.txt:hello-leak do work","backend":"command-code","model":"x"}]' \
+  | PATH="$git_wrapper_dir:$PATH" "$W" --foreground --worktree --out "$leak_run" --tasks - >/dev/null 2>&1 )
+[[ -f "$leak_run/.leaks" ]] && echo "ok - leak artifact recorded when worktree cleanup fails" || { echo "FAIL - leak artifact missing"; fail=1; }
+check "dispatcher artifact mode 600: .leaks" "600" "$(file_mode "$leak_run/.leaks")"
+rm -f "$DIR/tests/fixtures/command-code"
+
+cat > "$DIR/tests/fixtures/command-code" <<'EOF'
+#!/usr/bin/env bash
+umask
+EOF
+chmod +x "$DIR/tests/fixtures/command-code"
+umask_run="$(mktemp -d)"
+(
+  umask 0027
+  printf '%s' '[{"id":"UMASK","task":"report inherited umask","backend":"command-code","model":"x"}]' \
+    | "$W" --foreground --out "$umask_run" --tasks - >/dev/null 2>&1
+)
+check "worker observes caller umask unchanged" "0027" "$(tr -d '\r\n' < "$umask_run/UMASK.out")"
+rm -f "$DIR/tests/fixtures/command-code"
+
+# A caller-supplied --out directory is a security boundary. If its mode cannot
+# be established as 700, dispatch must stop before publishing a plan or output.
+chmod_fail_out="$(mktemp -d)"
+chmod 755 "$chmod_fail_out"
+chmod_fail_bin="$(mktemp -d)"
+real_chmod="$(command -v chmod)"
+cat > "$chmod_fail_bin/chmod" <<EOF
+#!/usr/bin/env bash
+for arg in "\$@"; do
+  if [[ "\$arg" == "$chmod_fail_out" ]]; then
+    exit 1
+  fi
+done
+exec "$real_chmod" "\$@"
+EOF
+chmod +x "$chmod_fail_bin/chmod"
+printf '%s' '[{"id":"MODEFAIL","task":"refactor safely","backend":"command-code","model":"x"}]' \
+  | PATH="$chmod_fail_bin:$PATH" "$W" --foreground --out "$chmod_fail_out" --tasks - \
+    >/dev/null 2>&1
+check "unsecured caller output directory fails closed" "5" "$?"
+if compgen -G "$chmod_fail_out/*.plan.json" >/dev/null \
+    || compgen -G "$chmod_fail_out/*.out" >/dev/null; then
+  echo "FAIL - unsecured output directory received dispatcher artifacts"; fail=1
+else
+  echo "ok - unsecured output directory receives no dispatcher artifacts"
 fi
 
 # Gateway failure and direct fallback remain one trace even though execution
@@ -141,7 +462,7 @@ rm -f "$DIR/tests/fixtures/codex"
 # ("--help" exactly matches the router's -h|--help case unless "--" ends option parsing)
 out=$(printf '%s' '[{"id":"F1","task":"--help"}]' | "$W" --dry-run --tasks - 2>/dev/null)
 check "flag-like task -> dispatch (not swallowed as --help)" \
-  "F1 command-code MiniMaxAI/MiniMax-M2.7" "$out"
+  "F1 command-code poolside/laguna-s-2.1-free" "$out"
 
 # concurrency cap + atomic meta + index.json + SUMMARY.md
 ln -sf mock-backend "$DIR/tests/fixtures/command-code"
@@ -157,6 +478,38 @@ st=$(jq -r '.status' "$run/A.meta.json" 2>/dev/null)
 check "A meta status ok" "ok" "$st"
 # SUMMARY.md exists
 [[ -f "$run/SUMMARY.md" ]] && echo "ok - SUMMARY.md written" || { echo "FAIL - no SUMMARY.md"; fail=1; }
+rm -f "$DIR/tests/fixtures/command-code"
+
+# Router fingerprints are decision evidence, not execution identities. Four
+# tasks frozen against the same same-second plan must still receive four unique
+# per-execution/per-task correlations, each preserved through its own attempts.
+ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+correlation_run="$(mktemp -d)"
+correlation_router="$correlation_run/router.sh"
+cat > "$correlation_router" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' '{"policy_version":"test","mode":"enforce","plan_id":"rp_same_second","correlation_id":"tc_shared_fingerprint","input_hash":"same","task_type":"coding","decision_time_ms":1000,"diverged":false,"status":"ok","static_order":[{"backend":"command-code","model":"x","static_rank":0,"failure_domain":"direct"}],"proposed_order":[{"backend":"command-code","model":"x","static_rank":0,"failure_domain":"direct"}],"selected_order":[{"backend":"command-code","model":"x","static_rank":0,"failure_domain":"direct"}],"candidates":[]}'
+EOF
+chmod +x "$correlation_router"
+printf '%s' '[{"id":"CORR1","task":"refactor all files"},{"id":"CORR2","task":"refactor all files"},{"id":"CORR3","task":"refactor all files"},{"id":"CORR4","task":"refactor all files"}]' \
+  | TEMPERANCE_ROUTER="$correlation_router" TEMPERANCE_BACKENDS="command-code" \
+    "$W" --foreground --out "$correlation_run" --tasks - >/dev/null 2>&1
+check "four same-second tasks receive unique correlations" "true" \
+  "$(jq -r '[.tasks[].correlation_id] | length == 4 and (unique | length == 4)' "$correlation_run/index.json" 2>/dev/null)"
+check "plan correlations are unique across same-second tasks" "true" \
+  "$(jq -s 'map(.correlation_id) | length == 4 and (unique | length == 4)' "$correlation_run"/CORR*.plan.json 2>/dev/null)"
+check "metadata and attempts keep one correlation per task" "true" \
+  "$(jq -r 'all(.tasks[]; . as $task | ([.attempts[].correlation_id] | unique) == [$task.correlation_id])' "$correlation_run/index.json" 2>/dev/null)"
+check "attempt metadata is duplicate-free" "true" \
+  "$(jq -r 'all(.tasks[]; ([.attempts[].attempt_index] | length) == ([.attempts[].attempt_index] | unique | length))' "$correlation_run/index.json" 2>/dev/null)"
+
+correlation_run_two="$(mktemp -d)"
+printf '%s' '[{"id":"CORR1","task":"refactor all files"}]' \
+  | TEMPERANCE_ROUTER="$correlation_router" TEMPERANCE_BACKENDS="command-code" \
+    "$W" --foreground --out "$correlation_run_two" --tasks - >/dev/null 2>&1
+check "separate executions receive distinct correlations" "true" \
+  "$(jq -n --arg first "$(jq -r '.tasks[0].correlation_id' "$correlation_run/index.json")" \
+    --arg second "$(jq -r '.tasks[0].correlation_id' "$correlation_run_two/index.json")" '$first != $second')"
 rm -f "$DIR/tests/fixtures/command-code"
 
 # OmniRoute-inspired policy seam: preclassification must freeze exactly one
@@ -380,29 +733,87 @@ rm -rf "$badout"
 # "batch process is interrupted mid-run". The trap itself is still installed on
 # EXIT INT TERM in dispatch-tasklist.sh so a real interactive Ctrl-C (delivered to
 # a foreground process group, not a single backgrounded PID) is also covered.
-# flakes if the signal races the fork; retry once acceptable
+# The worker deliberately ignores TERM and would create a late artifact after
+# two seconds if it survived. This proves cleanup freezes/kills/reaps the whole
+# process tree before worktree removal and final permission hardening.
 sigterm_leftover() {
+  local tmpgit sigbin pidfile statusfile run wrapper_pid wrapper_status count alive
+  local before_manifest after_manifest stable p artifact
   tmpgit=$(mktemp -d); ( cd "$tmpgit" && git init -q && git commit -q --allow-empty -m init )
-  ln -sf mock-backend "$DIR/tests/fixtures/command-code"
+  sigbin=$(mktemp -d)
+  pidfile=$(mktemp)
+  statusfile=$(mktemp)
+  cat > "$sigbin/command-code" <<'EOF'
+#!/usr/bin/env bash
+trap '' TERM
+sleep 2 &
+child=$!
+printf '%s %s\n' "$$" "$child" > "$SIGNAL_PID_FILE"
+wait "$child"
+printf 'late\n' > "$SIGNAL_LATE_FILE"
+printf 'MOCK_OUTPUT_START\nlate\nMOCK_OUTPUT_END\n'
+EOF
+  chmod +x "$sigbin/command-code"
   run=$(mktemp -d)
   (
     cd "$tmpgit"
-    printf '%s' '[{"id":"SLOW","task":"SLEEP=5 something","backend":"command-code","model":"x"}]' \
-      | "$W" --foreground --worktree --out "$run" --tasks - >/dev/null 2>&1 &
+    printf '%s' '[{"id":"SLOW","task":"something","backend":"command-code","model":"x"}]' \
+      | SIGNAL_PID_FILE="$pidfile" SIGNAL_LATE_FILE="$run/LATE.generated" \
+        PATH="$sigbin:$PATH" "$W" --foreground --worktree --out "$run" --tasks - >/dev/null 2>&1 &
     wrapper_pid=$!
-    sleep 1
+    for _ in {1..50}; do [[ -s "$pidfile" ]] && break; sleep 0.1; done
     kill -TERM "$wrapper_pid" 2>/dev/null
     wait "$wrapper_pid" 2>/dev/null
+    wrapper_status=$?
+    printf '%s\n' "$wrapper_status" > "$statusfile"
   )
-  sleep 0.5
-  cd "$tmpgit" && git worktree list | grep -c "wt-SLOW" || true
+  before_manifest="$(
+    while IFS= read -r artifact; do
+      printf '%s:%s\n' "$artifact" "$(file_mode "$artifact")"
+    done < <(find "$run" -maxdepth 1 -type f | sort)
+  )"
+  sleep 2.5
+  after_manifest="$(
+    while IFS= read -r artifact; do
+      printf '%s:%s\n' "$artifact" "$(file_mode "$artifact")"
+    done < <(find "$run" -maxdepth 1 -type f | sort)
+  )"
+  [[ "$before_manifest" == "$after_manifest" ]] && stable=true || stable=false
+  count="$(cd "$tmpgit" && git worktree list | grep -c "wt-SLOW" || true)"
+  alive=0
+  if [[ -s "$pidfile" ]]; then
+    for p in $(<"$pidfile"); do
+      kill -0 "$p" 2>/dev/null && alive=$((alive+1))
+    done
+  fi
+  printf '%s\t%s\t%s\t%s\t%s\n' "$count" "$run" "$alive" "$stable" "$(<"$statusfile")"
+  rm -rf "$sigbin" "$pidfile" "$statusfile"
 }
-leftover="$(sigterm_leftover)"
-if [[ "$leftover" != "0" ]]; then
-  leftover="$(sigterm_leftover)"   # retry once — signal timing can race the fork
-fi
+sigterm_result="$(sigterm_leftover)"
+leftover="${sigterm_result%%$'\t'*}"
+sigterm_rest="${sigterm_result#*$'\t'}"
+sigterm_run="${sigterm_rest%%$'\t'*}"
+sigterm_rest="${sigterm_rest#*$'\t'}"
+sigterm_alive="${sigterm_rest%%$'\t'*}"
+sigterm_rest="${sigterm_rest#*$'\t'}"
+sigterm_stable="${sigterm_rest%%$'\t'*}"
+sigterm_status="${sigterm_rest#*$'\t'}"
 check "SIGTERM during --worktree leaves no leftover worktree" "0" "$leftover"
-rm -f "$DIR/tests/fixtures/command-code"
+check "SIGTERM exits with conventional status 143" "143" "$sigterm_status"
+check "SIGTERM leaves no live worker descendants" "0" "$sigterm_alive"
+check "SIGTERM creates no artifacts after cleanup returns" "true" "$sigterm_stable"
+check "SIGTERM run directory remains mode 700" "700" "$(file_mode "$sigterm_run")"
+interrupted_modes_ok=true
+shopt -s nullglob
+for artifact in "$sigterm_run"/* "$sigterm_run"/.[!.]* "$sigterm_run"/..?*; do
+  [[ -f "$artifact" ]] || continue
+  if [[ "$(file_mode "$artifact")" != "600" ]]; then
+    interrupted_modes_ok=false
+    break
+  fi
+done
+shopt -u nullglob
+check "SIGTERM retained artifacts remain mode 600" "true" "$interrupted_modes_ok"
 
 # unresolved router -> marker + exit 2
 err=$(printf '%s' '[{"id":"X","task":"y"}]' | TEMPERANCE_ROUTER=/nonexistent "$W" --tasks - 2>&1 >/dev/null)

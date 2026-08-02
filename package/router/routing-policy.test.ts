@@ -270,6 +270,66 @@ describe("planRouting", () => {
     expect(plan.proposed_order).toEqual(plan.static_order);
     expect(plan.selected_order).toEqual(plan.static_order);
   });
+
+  test("stale open circuits remain excluded before their cooldown", () => {
+    const plan = planRouting(
+      input({
+        mode: "enforce",
+        now_ms: 2_000_000,
+        observation_max_age_ms: 100_000,
+        observations: {
+          version: 1,
+          updated_at_ms: 1_000_000,
+          backends: {
+            "command-code": {
+              health: 0.01,
+              health_updated_at_ms: 1_000_000,
+              circuit_state: "open",
+              circuit_updated_at_ms: 1_000_000,
+              cooldown_until_ms: 3_000_000,
+            },
+            grok: {
+              health: 0.9,
+              health_updated_at_ms: 1_950_000,
+            },
+          },
+        },
+      }),
+    );
+
+    const commandCode = plan.candidates.find(({ backend }) => backend === "command-code");
+    expect(commandCode?.effective_circuit_state).toBe("open");
+    expect(commandCode?.eligible).toBeFalse();
+    expect(commandCode?.factors.health).toBe(0.5);
+    expect(plan.selected_order.some(({ backend }) => backend === "command-code")).toBeFalse();
+  });
+
+  test("stale open circuits become bounded half-open probes after cooldown", () => {
+    const plan = planRouting(
+      input({
+        mode: "enforce",
+        now_ms: 2_000_000,
+        observation_max_age_ms: 100_000,
+        observations: {
+          version: 1,
+          updated_at_ms: 1_000_000,
+          backends: {
+            "command-code": {
+              circuit_state: "open",
+              circuit_updated_at_ms: 1_000_000,
+              cooldown_until_ms: 1_500_000,
+            },
+          },
+        },
+      }),
+    );
+
+    const commandCode = plan.candidates.find(({ backend }) => backend === "command-code");
+    expect(commandCode?.effective_circuit_state).toBe("half_open");
+    expect(commandCode?.eligible).toBeTrue();
+    expect(commandCode?.reasons).toContain("cooldown-probe");
+    expect(commandCode?.factors.circuit).toBe(0.25);
+  });
 });
 
 describe("reduceObservations", () => {

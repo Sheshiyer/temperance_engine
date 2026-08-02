@@ -53,7 +53,14 @@ describe("resolvePortfolio", () => {
 
   test("manifest stores combo names but no provider or model membership", () => {
     expect(manifest.enforcement).toBe("shadow");
-    expect(manifest.required_portfolios).toEqual(["te-fast", "te-build", "te-reason", "te-validate", "te-creative"]);
+    expect(manifest.required_portfolios).toEqual([
+      "te-algorithm",
+      "te-fast",
+      "te-build",
+      "te-reason",
+      "te-validate",
+      "te-creative",
+    ]);
     expect(manifest.reserved_portfolios).toEqual([
       "te-batch",
       "te-vision",
@@ -61,6 +68,10 @@ describe("resolvePortfolio", () => {
       "te-write-critique",
       "te-write-research",
       "te-write-media",
+      "te-orchestrate",
+      "te-free-burst",
+      "te-review",
+      "te-swarm-s",
     ]);
     expect(JSON.stringify(manifest)).not.toMatch(/provider|members|targets/);
   });

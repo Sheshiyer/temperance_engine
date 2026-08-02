@@ -22,6 +22,8 @@ an active GSD phase only when at least one ratification signal is present.
 | Routed parallel dispatch bridge | Completed dependency and reference-only bridge | no new active phase | `docs/superpowers/specs/2026-07-04-routed-parallel-dispatch-bridge-design.md` |
 | Integrated system hardening | Approved design pending user review | no | `docs/superpowers/specs/2026-07-02-integrated-system-hardening-design.md` |
 | GSD hook wiring and external conversion | Plan exists, no ratified local spec | no | `docs/superpowers/plans/2026-07-06-gsd-hook-wiring-and-ratandevelopers-conversion.md` |
+| OmniRoute Paseo-native routing overhaul | Ratified by operator request via `/superpowers:brainstorm` dialogue, 2026-08-02 | queued (not yet promoted to `config.json` active_milestone) | `docs/superpowers/specs/2026-08-02-omniroute-paseo-native-routing-design.md` |
+| Memory, compression, OmniGlyph, and free-tier leverage | Ratified by operator review request, 2026-08-02 | queued (not yet promoted to `config.json` active_milestone) | `docs/superpowers/specs/2026-08-02-memory-compression-freetier-leverage-design.md` |
 
 ## Verification Requirements
 

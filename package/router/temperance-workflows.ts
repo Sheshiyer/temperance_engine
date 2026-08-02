@@ -5,7 +5,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import manifestJson from "./temperance-workflows.json";
 
-export type WorkflowRole = "planner" | "dispatch" | "creative" | "writing";
+export type WorkflowRole = "planner" | "dispatch" | "creative" | "writing" | "bulk" | "review" | "swarm";
 
 export interface WorkflowCandidate {
   provider?: string;
@@ -52,7 +52,9 @@ export interface WorkflowResolution {
 
 /**
  * Live per-provider quota, as written by
- * scripts/omniroute-temperance-planner-quota.sh (schema temperance-planner-quota-v1).
+ * scripts/omniroute-temperance-reconcile.sh (schema temperance-planner-quota-v1).
+ * scripts/omniroute-temperance-planner-quota.sh is a deprecated forwarding shim
+ * to `reconcile.sh --combo te-plan`; it no longer holds its own logic.
  * `remaining` is a 0-100 percentage from `omniroute usage quota`; `state`
  * mirrors that command's own state field (e.g. "available").
  */
@@ -90,12 +92,20 @@ function belowThreshold(state: PlannerQuotaProviderState | undefined, thresholdP
 }
 
 /**
- * Mirrors scripts/omniroute-temperance-planner-quota.sh's substitution logic:
- * each guarded slot (github, codex) independently substitutes to kimi-k3 when
- * its own remaining quota drops below the threshold, unless kimi's own quota
- * is also below the threshold (fail through to the original model, letting
- * OmniRoute's existing reactive failover to Nebius apply instead). Both slots
- * triggering dedupes to a single kimi-k3 entry.
+ * A simplified, TE-PLAN-SPECIFIC approximation of
+ * scripts/omniroute-temperance-reconcile.sh's general guarded-slot
+ * substitution logic (resolve_slot() in its jq policy engine, which handles
+ * every governed combo generically: tier1/tier2 chains, hysteresis restore,
+ * anchor-vs-guarded roles, fusion judges). This function hardcodes the
+ * te-plan case only: each guarded slot (github, codex) independently
+ * substitutes to kimi-k3 when its own remaining quota drops below the
+ * threshold, unless kimi's own quota is also below the threshold (fail
+ * through to the original model, letting OmniRoute's existing reactive
+ * failover to Nebius apply instead). Both slots triggering dedupes to a
+ * single kimi-k3 entry. This is NOT a strict mirror of reconcile.sh's richer
+ * substitution chain -- it exists as the offline/advisory resolveWorkflow()
+ * approximation (see docs/omniroute-fleet.md); reconcile.sh's live jq engine
+ * remains the actual source of truth for what OmniRoute's te-plan combo runs.
  */
 function applyPlannerQuota(
   candidates: WorkflowCandidate[],
@@ -148,8 +158,25 @@ export const workflowManifest = manifestJson as {
     execution: string;
     protect_from_worker_fanout: boolean;
   };
+  bulk: {
+    portfolio: string;
+    purpose: string;
+    models: string[];
+  };
+  review: {
+    portfolio: string;
+    purpose: string;
+    models: string[];
+  };
+  swarm: {
+    portfolio: string;
+    purpose: string;
+    models: string[];
+  };
   dispatch: {
     portfolio: string;
+    purpose: string;
+    strategy: "round-robin";
     max_parallel: number;
     omniroute_workers: WorkflowCandidate[];
     direct_cli_fallbacks: WorkflowCandidate[];
@@ -225,10 +252,43 @@ export function resolveWorkflow(
   availableModels: readonly string[],
   quotaState?: PlannerQuotaState,
 ): WorkflowResolution {
-  const normalized = (role === "planner" || role === "dispatch" || role === "creative" || role === "writing"
+  const normalized = (role === "planner" || role === "dispatch" || role === "creative" || role === "writing" || role === "bulk" || role === "review" || role === "swarm"
     ? role
     : "dispatch") as WorkflowRole;
   const catalog = catalogSet(availableModels);
+
+  if (normalized === "bulk") {
+    const candidates = workflowManifest.bulk.models.map((model) => ({ model }));
+    return {
+      role: normalized,
+      portfolio: workflowManifest.bulk.portfolio,
+      ...splitCandidates(candidates, catalog),
+      native_providers: [],
+      workflow: ["freeze-plan", "route-te-free-burst", "collect-evidence"],
+    };
+  }
+
+  if (normalized === "review") {
+    const candidates = workflowManifest.review.models.map((model) => ({ model }));
+    return {
+      role: normalized,
+      portfolio: workflowManifest.review.portfolio,
+      ...splitCandidates(candidates, catalog),
+      native_providers: [],
+      workflow: ["freeze-plan", "route-te-review", "collect-evidence"],
+    };
+  }
+
+  if (normalized === "swarm") {
+    const candidates = workflowManifest.swarm.models.map((model) => ({ model }));
+    return {
+      role: normalized,
+      portfolio: workflowManifest.swarm.portfolio,
+      ...splitCandidates(candidates, catalog),
+      native_providers: [],
+      workflow: ["freeze-plan", "route-te-swarm-s", "collect-evidence"],
+    };
+  }
 
   if (normalized === "planner") {
     const baseCandidates = [workflowManifest.planner.primary, ...workflowManifest.planner.escalation];
@@ -293,7 +353,7 @@ export function resolveWorkflow(
     portfolio: workflowManifest.dispatch.portfolio,
     ...splitCandidates(workflowManifest.dispatch.omniroute_workers, catalog),
     native_providers: [],
-    workflow: ["freeze-plan", "shard-independent-tasks", "dispatch-workers", "collect-evidence"],
+    workflow: ["freeze-plan", "shard-independent-tasks", "round-robin-workers", "collect-evidence"],
   };
 }
 

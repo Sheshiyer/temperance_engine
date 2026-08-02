@@ -23,6 +23,21 @@
   },
   "combos": [
     {
+      "name": "te-algorithm",
+      "strategy": "priority",
+      "monitor_only": false,
+      "capability_policy": {
+        "required_tier": "S",
+        "silent_downgrade": false,
+        "continuity_profile": "temperance-continuity"
+      },
+      "slots": [
+        { "model": "codex/gpt-5.6-sol-max", "role": "anchor" },
+        { "model": "antigravity/claude-opus-4-6-thinking", "role": "anchor" }
+      ],
+      "bench": []
+    },
+    {
       "name": "te-fast",
       "strategy": "priority",
       "monitor_only": false,
@@ -274,6 +289,7 @@
       "strategy": "priority",
       "monitor_only": true,
       "slots": [
+        { "model": "codex/gpt-5.3-codex-spark", "role": "anchor" },
         { "model": "command-code/deepseek/deepseek-v4-flash", "role": "anchor" },
         { "model": "command-code/moonshotai/Kimi-K2.7-Code", "role": "anchor" },
         { "model": "grok-cli/grok-build", "role": "anchor" },

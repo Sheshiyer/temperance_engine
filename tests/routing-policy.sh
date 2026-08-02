@@ -80,6 +80,25 @@ off_chain=$(env "${common_env[@]}" TEMPERANCE_ROUTING_POLICY=off \
 check "off kill switch restores static order" "command-code" \
   "$(head -n 1 <<< "$off_chain" | cut -f1)"
 
+printf '%s\n' 'enforce' > "$TMP/routing-policy-mode"
+file_mode_plan=$(env "${common_env[@]}" \
+  TEMPERANCE_ROUTING_POLICY_FILE="$TMP/routing-policy-mode" \
+  "$ROUTER" --plan-json "refactor the entire auth layer")
+check "per-host policy file enables enforce mode" "enforce" \
+  "$(jq -r '.mode' <<< "$file_mode_plan")"
+file_override_plan=$(env "${common_env[@]}" \
+  TEMPERANCE_ROUTING_POLICY_FILE="$TMP/routing-policy-mode" \
+  TEMPERANCE_ROUTING_POLICY=off \
+  "$ROUTER" --plan-json "refactor the entire auth layer")
+check "environment kill switch overrides policy file" "off" \
+  "$(jq -r '.mode' <<< "$file_override_plan")"
+printf '%s\n' 'invalid' > "$TMP/routing-policy-mode"
+invalid_file_plan=$(env "${common_env[@]}" \
+  TEMPERANCE_ROUTING_POLICY_FILE="$TMP/routing-policy-mode" \
+  "$ROUTER" --plan-json "refactor the entire auth layer")
+check "invalid policy file fails safe to shadow" "shadow" \
+  "$(jq -r '.mode' <<< "$invalid_file_plan")"
+
 forced=$(env "${common_env[@]}" TEMPERANCE_ROUTING_POLICY=enforce \
   "$ROUTER" --plan-json --backend kimi --model forced-model "refactor the entire auth layer")
 check "forced backend wins adaptive policy" "kimi" \
@@ -176,5 +195,66 @@ second_probe=$(TEMPERANCE_BACKENDS="command-code" \
   "$ROUTER" --plan-json "refactor the entire auth layer")
 check "duplicate half-open probe is unavailable" "unavailable" \
   "$(jq -r '.status' <<< "$second_probe")"
+
+printf '%s\n' '{
+  "version": 1,
+  "updated_at_ms": 100000,
+  "backends": {
+    "command-code": {
+      "health": 0.01,
+      "health_updated_at_ms": 100000,
+      "circuit_state":"open",
+      "circuit_updated_at_ms":100000,
+      "cooldown_until_ms":2000000
+    },
+    "grok": {"health": 0.9, "health_updated_at_ms": 950000}
+  }
+}' > "$TMP/stale-open.json"
+stale_open=$(TEMPERANCE_BACKENDS="command-code grok" \
+  TEMPERANCE_ROUTING_POLICY=enforce \
+  TEMPERANCE_ROUTING_STATE="$TMP/stale-open.json" \
+  TEMPERANCE_ROUTING_NOW_MS=1000000 \
+  TEMPERANCE_ROUTING_OBSERVATION_MAX_AGE_MS=100000 \
+  "$ROUTER" --plan-json "refactor the entire auth layer")
+check "stale open circuit remains excluded until cooldown" "false" \
+  "$(jq -r '[.selected_order[].backend] | index("command-code") != null' <<< "$stale_open")"
+check "stale open circuit retains explicit exclusion reason" "circuit-open" \
+  "$(jq -r '.candidates[] | select(.backend=="command-code") | .reasons[0]' <<< "$stale_open")"
+
+POLICY_TS="$ROOT/package/router/routing-policy.ts"
+
+printf '%s\n' '{
+  "version": 1,
+  "updated_at_ms": 500000,
+  "backends": {
+    "omniroute": {"health": 0.9, "health_updated_at_ms": 500000}
+  }
+}' > "$TMP/set-observation.json"
+bun "$POLICY_TS" set-observation --state "$TMP/set-observation.json" \
+  --backend omniroute --now-ms 1000000 --quota-remaining 0.4 >/dev/null
+check "set-observation writes quota without disturbing existing health" "0.9" \
+  "$(jq -r '.backends.omniroute.health' "$TMP/set-observation.json")"
+check "set-observation persists the quota value" "0.4" \
+  "$(jq -r '.backends.omniroute.quota_remaining' "$TMP/set-observation.json")"
+check "set-observation stamps its own freshness independent of health" "1000000" \
+  "$(jq -r '.backends.omniroute.quota_updated_at_ms' "$TMP/set-observation.json")"
+check "set-observation leaves health's own timestamp untouched" "500000" \
+  "$(jq -r '.backends.omniroute.health_updated_at_ms' "$TMP/set-observation.json")"
+
+quota_plan=$(TEMPERANCE_BACKENDS="omniroute" \
+  TEMPERANCE_ROUTING_POLICY=shadow \
+  TEMPERANCE_ROUTING_STATE="$TMP/set-observation.json" \
+  TEMPERANCE_ROUTING_NOW_MS=1000001 \
+  TEMPERANCE_OMNIROUTE_MODEL="temperance-coding" \
+  "$ROUTER" --plan-json "refactor the entire auth layer")
+check "real quota signal reaches the scorer's quota factor" "0.4" \
+  "$(jq -r '.candidates[] | select(.backend=="omniroute") | .factors.quota' <<< "$quota_plan")"
+
+if bun "$POLICY_TS" set-observation --state "$TMP/set-observation.json" --backend omniroute --now-ms 1000002 >/dev/null 2>&1; then
+  echo "FAIL - set-observation should require at least one metric flag"
+  fail=1
+else
+  echo "ok - set-observation rejects a call with no metric flags"
+fi
 
 exit "$fail"

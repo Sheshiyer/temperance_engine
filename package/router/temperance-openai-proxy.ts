@@ -14,6 +14,7 @@ import { join } from "node:path"
 import { createHash, randomUUID } from "node:crypto"
 import { enrich } from "../enrich/index"
 import type { EnrichInput } from "../enrich/contract"
+import { assertLiveModel, getLiveModelIds } from "./omniroute-catalog-guard"
 
 export const AUTO_MODEL = "temperance-auto"
 export const ROUTING_MODELS = new Set([AUTO_MODEL, "temperance-routing"])
@@ -28,6 +29,19 @@ export const ENRICHMENT_SURFACES = ["kimi"] as const
 const SESSION_CONTEXT_SCHEMA = "temperance-kimi-session-v1"
 const DEFAULT_PORT = 20129
 const DEFAULT_UPSTREAM = "http://127.0.0.1:20128/v1"
+const OMNIROUTE_COMPRESSION_HEADER = "x-omniroute-compression"
+const OMNIROUTE_COMPRESSION_MODE = "off"
+
+export function automaticReadiness(): { ready: boolean; reason: string | null } {
+  const value = (process.env.TEMPERANCE_AUTO_READY || "").trim().toLowerCase()
+  const ready = ["1", "true", "yes", "on"].includes(value)
+  return {
+    ready,
+    reason: ready
+      ? null
+      : (process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON || "A verified S-tier coordinator is unavailable on this host."),
+  }
+}
 const SCRIPT_DIR = import.meta.dir
 const DEFAULT_ROUTER = join(SCRIPT_DIR, "multi-backend-router.sh")
 
@@ -76,6 +90,7 @@ export type ProxyDependencies = {
   requestId?: () => string
   enrichRunner?: (input: EnrichInput) => Promise<string>
   sessionContext?: () => SessionContext | null
+  liveModelIds?: (baseUrl: string) => Promise<Set<string>>
 }
 
 function text(value: unknown): string {
@@ -359,6 +374,14 @@ function forwardedHeaders(request: Request): Headers {
   return headers
 }
 
+/** Freeze OmniRoute compression only after every client and route header exists. */
+function enforceCompressionBoundary(headers: Headers): void {
+  for (const key of [...headers.keys()]) {
+    if (key.toLowerCase() === OMNIROUTE_COMPRESSION_HEADER) headers.delete(key)
+  }
+  headers.set(OMNIROUTE_COMPRESSION_HEADER, OMNIROUTE_COMPRESSION_MODE)
+}
+
 function jsonResponse(value: unknown, status = 200, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(value), {
     status,
@@ -366,15 +389,30 @@ function jsonResponse(value: unknown, status = 200, extra: Record<string, string
   })
 }
 
-function logDecision(decision: RouteDecision, enrichment?: EnrichmentOutcome): void {
+function logDecision(
+  decision: RouteDecision,
+  enrichment?: EnrichmentOutcome,
+  requestHeaders: Headers = new Headers(),
+  upstreamHeaders: Headers = new Headers(),
+  transportError: string | null = null,
+): void {
   const path = process.env.TEMPERANCE_PROXY_LOG || join(process.env.TEMPERANCE_STATE_DIR || join(process.env.HOME || ".", ".temperance_engine", "state"), "openai-proxy.jsonl")
   try {
     mkdirSync(join(path, ".."), { recursive: true })
     appendFileSync(path, `${JSON.stringify({
       timestamp: new Date().toISOString(),
       request_id: decision.request_id,
+      session_id: requestHeaders.get("x-temperance-session-id") || upstreamHeaders.get("x-omniroute-session-id"),
+      task_id: decision.plan?.correlation_id || decision.request_id,
+      profile: requestHeaders.get("x-temperance-profile") ||
+        (decision.requested_model === AUTO_MODEL ? "temperance-auto" : "explicit-picker"),
+      capability_tier: requestHeaders.get("x-temperance-capability-tier") ||
+        (decision.requested_model === AUTO_MODEL ? "S" : "operator-override"),
+      decision: decision.source,
       requested_model: decision.requested_model,
       routed_model: decision.routed_model,
+      resolved_provider: upstreamHeaders.get("x-omniroute-provider"),
+      resolved_model: upstreamHeaders.get("x-omniroute-model"),
       mode: decision.mode,
       source: decision.source,
       task_type: decision.plan?.task_type || null,
@@ -385,11 +423,138 @@ function logDecision(decision: RouteDecision, enrichment?: EnrichmentOutcome): v
       enrichment: enrichment?.enrichment ?? "not-applicable",
       enrichment_cwd_source: enrichment?.cwd_source ?? null,
       prompt_hash_match: enrichment?.prompt_hash_match ?? null,
-      error: decision.error || null,
+      error: transportError || decision.error || null,
     })}\n`)
   } catch {
     // Telemetry is advisory; the request path remains fail-open.
   }
+}
+
+export type StreamAttribution = {
+  provider: string | null
+  model: string | null
+}
+
+const MAX_ATTRIBUTION_LINE_LENGTH = 1_024
+const ATTRIBUTION_TRAILER = /^:\s*x-omniroute-(provider|model)=([^\u0000-\u0020\u007f]{1,256})\s*$/iu
+
+/**
+ * Incrementally read OmniRoute's SSE attribution trailers without retaining
+ * response content. State is bounded to one short control line; oversized
+ * data lines are discarded until their next newline.
+ */
+export function createStreamAttributionParser(): {
+  push: (chunk: string, final?: boolean) => StreamAttribution
+  value: () => StreamAttribution
+} {
+  let pending = ""
+  let droppingOversizedLine = false
+  let ignoreLeadingLf = false
+  const attribution: StreamAttribution = { provider: null, model: null }
+
+  const inspect = (line: string): void => {
+    const match = ATTRIBUTION_TRAILER.exec(line.replace(/\r$/, ""))
+    if (!match) return
+    if (match[1].toLowerCase() === "provider") attribution.provider = match[2]
+    else attribution.model = match[2]
+  }
+
+  const snapshot = (): StreamAttribution => ({ ...attribution })
+
+  const finishLine = (): void => {
+    if (!droppingOversizedLine) inspect(pending)
+    pending = ""
+    droppingOversizedLine = false
+  }
+
+  return {
+    push(chunk: string, final = false): StreamAttribution {
+      for (const character of chunk) {
+        if (ignoreLeadingLf) {
+          ignoreLeadingLf = false
+          if (character === "\n") continue
+        }
+        if (character === "\r") {
+          finishLine()
+          ignoreLeadingLf = true
+          continue
+        }
+        if (character === "\n") {
+          finishLine()
+          continue
+        }
+        if (droppingOversizedLine) continue
+        pending += character
+        if (pending.length > MAX_ATTRIBUTION_LINE_LENGTH) {
+          pending = ""
+          droppingOversizedLine = true
+        }
+      }
+
+      if (final) {
+        if (pending || droppingOversizedLine) finishLine()
+        ignoreLeadingLf = false
+      }
+      return snapshot()
+    },
+    value: snapshot,
+  }
+}
+
+function streamWithDeferredReceipt(
+  upstream: Response,
+  decision: RouteDecision,
+  enrichment: EnrichmentOutcome,
+  requestHeaders: Headers,
+  responseHeaders: Headers,
+): Response {
+  if (!upstream.body) {
+    logDecision(decision, enrichment, requestHeaders, new Headers(), "stream_body_missing")
+    return new Response(null, { status: upstream.status, headers: responseHeaders })
+  }
+
+  const reader = upstream.body.getReader()
+  const decoder = new TextDecoder()
+  const parser = createStreamAttributionParser()
+  let logged = false
+
+  const finish = (transportError: string | null = null): void => {
+    if (logged) return
+    logged = true
+    const attribution = parser.push(decoder.decode(), true)
+    const receiptHeaders = new Headers(upstream.headers)
+    receiptHeaders.delete("x-omniroute-provider")
+    receiptHeaders.delete("x-omniroute-model")
+    if (attribution.provider) receiptHeaders.set("x-omniroute-provider", attribution.provider)
+    if (attribution.model) receiptHeaders.set("x-omniroute-model", attribution.model)
+    const receiptError = transportError ||
+      (!attribution.provider || !attribution.model ? "stream_attribution_missing" : null)
+    logDecision(decision, enrichment, requestHeaders, receiptHeaders, receiptError)
+  }
+
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const result = await reader.read()
+        if (result.done) {
+          finish()
+          controller.close()
+          return
+        }
+        parser.push(decoder.decode(result.value, { stream: true }))
+        controller.enqueue(result.value)
+      } catch (error) {
+        finish("stream_read_error")
+        controller.error(error)
+      }
+    },
+    async cancel(reason) {
+      finish("stream_cancelled")
+      await reader.cancel(reason)
+    },
+  })
+
+  return new Response(body, { status: upstream.status, headers: responseHeaders })
 }
 
 async function modelsResponse(fetchImpl: typeof fetch): Promise<Response> {
@@ -420,10 +585,81 @@ async function chatResponse(request: Request, fetchImpl: typeof fetch, deps: Pro
     return jsonResponse({ error: { message: error instanceof Error ? error.message : "invalid JSON", type: "invalid_request_error" } }, 400)
   }
 
+  const requested = text(body.model) || compatibilityModel()
+  const readiness = automaticReadiness()
+  if (ROUTING_MODELS.has(requested) && !readiness.ready) {
+    const decision: RouteDecision = {
+      requested_model: requested,
+      routed_model: requested,
+      mode: "automatic",
+      source: "s-tier-fail-closed",
+      plan: null,
+      prompt: latestUserPrompt(body.messages),
+      request_id: requestId(deps),
+      error: readiness.reason || "S-tier unavailable",
+    }
+    const headers = {
+      "Retry-After": "60",
+      "X-Temperance-Request-ID": decision.request_id,
+      "X-Temperance-Route-Mode": decision.mode,
+      "X-Temperance-Route-Source": decision.source,
+      "X-Temperance-Requested-Model": decision.requested_model,
+      "X-Temperance-Routed-Model": decision.routed_model,
+    }
+    logDecision(decision, undefined, request.headers, new Headers(), decision.error || null)
+    return jsonResponse({
+      error: {
+        message: readiness.reason,
+        type: "temperance_s_tier_unavailable",
+        code: "s_tier_unavailable",
+      },
+    }, 503, headers)
+  }
+
+  // Explicit-picker models (any caller naming a specific model rather than
+  // temperance-auto/temperance-routing) must exist in OmniRoute's live
+  // catalog before this proxy forwards them. Automatic routing never needs
+  // this check: multi-backend-router.sh's portfolio resolution already only
+  // ever proposes models fetched live from OmniRoute (see
+  // resolve_portfolio_for_type/omniroute_catalog_json). This closes the same
+  // staleness gap package/adapters/opencode/OmniRouteCatalogGuard.ts closes
+  // for OpenCode's picker -- ported here so every caller of this proxy gets
+  // it, not just OpenCode.
+  if (!ROUTING_MODELS.has(requested)) {
+    try {
+      const ids = await (deps.liveModelIds ?? getLiveModelIds)(upstreamBase())
+      assertLiveModel(requested, ids)
+    } catch (error) {
+      const denied: RouteDecision = {
+        requested_model: requested,
+        routed_model: requested,
+        mode: "direct",
+        source: "explicit-picker-denied-stale-catalog",
+        plan: null,
+        prompt: latestUserPrompt(body.messages),
+        request_id: requestId(deps),
+        error: error instanceof Error ? error.message : String(error),
+      }
+      const headers = {
+        "X-Temperance-Request-ID": denied.request_id,
+        "X-Temperance-Route-Mode": denied.mode,
+        "X-Temperance-Route-Source": denied.source,
+        "X-Temperance-Requested-Model": denied.requested_model,
+      }
+      logDecision(denied, undefined, request.headers, new Headers(), denied.error || null)
+      return jsonResponse({
+        error: {
+          message: denied.error,
+          type: "temperance_model_denied",
+          code: "model_denied",
+        },
+      }, 404, headers)
+    }
+  }
+
   const decision = await resolveRoute(body, deps)
   body.model = decision.routed_model
   const enrichment = await applyEnrichment(body, decision, detectSurface(request.headers), deps)
-  logDecision(decision, enrichment)
   const planHeaders: Record<string, string> = {
     "X-Temperance-Request-ID": decision.request_id,
     "X-Temperance-Route-Mode": decision.mode,
@@ -445,17 +681,38 @@ async function chatResponse(request: Request, fetchImpl: typeof fetch, deps: Pro
         const h = forwardedHeaders(request)
         for (const [key, value] of Object.entries(planHeaders)) h.set(key, value)
         h.set("content-type", "application/json")
+        enforceCompressionBoundary(h)
         return h
       })(),
       body: JSON.stringify(body),
     })
   } catch (error) {
+    logDecision(
+      decision,
+      enrichment,
+      request.headers,
+      new Headers(),
+      error instanceof Error ? error.message : String(error),
+    )
     return jsonResponse({ error: { message: `OmniRoute upstream unavailable: ${error instanceof Error ? error.message : String(error)}`, type: "upstream_unavailable" } }, 503, planHeaders)
   }
 
   const headers = new Headers(upstream.headers)
   for (const [key, value] of Object.entries(planHeaders)) headers.set(key, value)
-  if (body.stream === true || !upstream.ok) return new Response(upstream.body, { status: upstream.status, headers })
+  if (body.stream === true && upstream.ok) {
+    return streamWithDeferredReceipt(upstream, decision, enrichment, request.headers, headers)
+  }
+  if (!upstream.ok) {
+    logDecision(
+      decision,
+      enrichment,
+      request.headers,
+      upstream.headers,
+      `upstream_http_${upstream.status}`,
+    )
+    return new Response(upstream.body, { status: upstream.status, headers })
+  }
+  logDecision(decision, enrichment, request.headers, upstream.headers)
 
   // Preserve the OpenAI response shape while making the selected route visible
   // in a header; the requested synthetic id remains client-facing for buffered
@@ -478,7 +735,16 @@ export async function handleProxyRequest(
   const url = new URL(request.url)
   const fetchImpl = deps.upstreamFetch ?? fetch
   if (url.pathname === "/health" || url.pathname === "/") {
-    return jsonResponse({ ok: true, service: "temperance-openai-proxy", automatic_model: AUTO_MODEL, upstream: upstreamBase(), enrichment_surfaces: [...ENRICHMENT_SURFACES] })
+    const readiness = automaticReadiness()
+    return jsonResponse({
+      ok: true,
+      service: "temperance-openai-proxy",
+      automatic_model: AUTO_MODEL,
+      automatic_ready: readiness.ready,
+      automatic_unavailable_reason: readiness.reason,
+      upstream: upstreamBase(),
+      enrichment_surfaces: [...ENRICHMENT_SURFACES],
+    })
   }
   try {
     if (url.pathname === "/v1/models" && request.method === "GET") return await modelsResponse(fetchImpl)

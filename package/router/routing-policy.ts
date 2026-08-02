@@ -300,10 +300,20 @@ function freshObservation(
     raw.circuit_state !== undefined ||
     raw.cooldown_until_ms !== undefined ||
     raw.probe_claimed_until_ms !== undefined;
-  if (
-    hasCircuitSignal &&
-    signalFresh(raw.circuit_updated_at_ms, state.updated_at_ms, nowMs, maxAgeMs)
-  ) {
+  const circuitIsFresh = signalFresh(
+    raw.circuit_updated_at_ms,
+    state.updated_at_ms,
+    nowMs,
+    maxAgeMs,
+  );
+  // Health, quota, cost, and latency observations may safely decay to neutral.
+  // An unresolved circuit may not: forgetting an old OPEN/HALF_OPEN state would
+  // silently turn a failed backend into a healthy-looking neutral candidate.
+  // Preserve it until an actual successful attempt closes the circuit. Once its
+  // cooldown elapses, effectiveCircuit() exposes exactly one HALF_OPEN probe.
+  const circuitNeedsResolution =
+    raw.circuit_state === "open" || raw.circuit_state === "half_open";
+  if (hasCircuitSignal && (circuitIsFresh || circuitNeedsResolution)) {
     if (raw.circuit_state !== undefined) fresh.circuit_state = raw.circuit_state;
     if (raw.cooldown_until_ms !== undefined) fresh.cooldown_until_ms = raw.cooldown_until_ms;
     if (raw.probe_claimed_until_ms !== undefined) {
@@ -641,6 +651,86 @@ async function claimCommand(args: string[]): Promise<void> {
   }
 }
 
+// set-observation: persists a real quota_remaining and/or cost_efficiency
+// signal for one backend, under the same lock/atomic-write discipline as
+// claim/observe. Reuses reduceObservations's per-field freshness model
+// (each field carries its own _updated_at_ms) rather than replacing the
+// whole backend record, so it composes safely with reduceObservations's
+// health/circuit writes from dispatch attempt outcomes -- callers only ever
+// own the fields they actually have real data for.
+//
+// This exists because scoreCandidate()'s quota/cost_efficiency factors
+// (WEIGHTS.quota=0.15, WEIGHTS.cost_efficiency=0.10) had no writer at all:
+// they always fell back to the neutral 0.5 default. The only backend this
+// command is currently wired to (scripts/omniroute-temperance-reconcile.sh)
+// is "omniroute", derived from the fraction of governed-combo providers
+// reconcile.sh's own classify() reports as not quota/hard-down-constrained.
+// command-code/kimi/grok have no equivalent live quota signal anywhere in
+// this repo, and cost_efficiency has no computed source for any backend --
+// both stay at the neutral 0.5 default until a real signal exists. Do not
+// synthesize one; a fabricated number would be worse than the documented gap.
+async function setObservationCommand(args: string[]): Promise<void> {
+  const stateIndex = args.indexOf("--state");
+  const backendIndex = args.indexOf("--backend");
+  const nowIndex = args.indexOf("--now-ms");
+  const quotaIndex = args.indexOf("--quota-remaining");
+  const costIndex = args.indexOf("--cost-efficiency");
+  if (
+    stateIndex < 0 ||
+    !args[stateIndex + 1] ||
+    backendIndex < 0 ||
+    !args[backendIndex + 1] ||
+    nowIndex < 0 ||
+    !args[nowIndex + 1]
+  ) {
+    throw new Error(
+      "set-observation requires --state FILE --backend NAME --now-ms N " +
+        "[--quota-remaining 0..1] [--cost-efficiency 0..1]",
+    );
+  }
+  if (quotaIndex < 0 && costIndex < 0) {
+    throw new Error("set-observation requires at least one of --quota-remaining or --cost-efficiency");
+  }
+  const statePath = args[stateIndex + 1];
+  const backend = args[backendIndex + 1];
+  const nowMs = Number(args[nowIndex + 1]);
+  if (!Number.isFinite(nowMs)) throw new Error("--now-ms must be a finite number");
+  const quotaRemaining = quotaIndex >= 0 ? Number(args[quotaIndex + 1]) : undefined;
+  const costEfficiency = costIndex >= 0 ? Number(args[costIndex + 1]) : undefined;
+  if (quotaRemaining !== undefined && !Number.isFinite(quotaRemaining)) {
+    throw new Error("--quota-remaining must be a finite number in [0,1]");
+  }
+  if (costEfficiency !== undefined && !Number.isFinite(costEfficiency)) {
+    throw new Error("--cost-efficiency must be a finite number in [0,1]");
+  }
+
+  mkdirSync(dirname(statePath), { recursive: true });
+  const lockPath = `${statePath}.lock`;
+  await acquireLock(lockPath);
+  try {
+    const state: ObservationState = existsSync(statePath)
+      ? JSON.parse(readFileSync(statePath, "utf8"))
+      : { version: 1, updated_at_ms: 0, backends: {} };
+    state.version = 1;
+    state.backends ??= {};
+    const observation: BackendObservation = { ...(state.backends[backend] ?? {}) };
+    if (quotaRemaining !== undefined) {
+      observation.quota_remaining = clamp(quotaRemaining);
+      observation.quota_updated_at_ms = nowMs;
+    }
+    if (costEfficiency !== undefined) {
+      observation.cost_efficiency = clamp(costEfficiency);
+      observation.cost_efficiency_updated_at_ms = nowMs;
+    }
+    state.backends[backend] = observation;
+    state.updated_at_ms = Math.max(state.updated_at_ms ?? 0, nowMs);
+    writeStateAtomic(statePath, state, `set-observation.${nowMs}`);
+    process.stdout.write(`${JSON.stringify(state)}\n`);
+  } finally {
+    rmSync(lockPath, { recursive: true, force: true });
+  }
+}
+
 async function observeCommand(args: string[]): Promise<void> {
   const stateIndex = args.indexOf("--state");
   const runIndex = args.indexOf("--index");
@@ -687,8 +777,14 @@ async function main(): Promise<void> {
     await claimCommand(args);
     return;
   }
+  if (command === "set-observation") {
+    await setObservationCommand(args);
+    return;
+  }
   throw new Error(
-    "usage: routing-policy.ts plan | observe --state FILE --index FILE | claim --state FILE --backend NAME --now-ms N --claim-id ID",
+    "usage: routing-policy.ts plan | observe --state FILE --index FILE | " +
+      "claim --state FILE --backend NAME --now-ms N --claim-id ID | " +
+      "set-observation --state FILE --backend NAME --now-ms N [--quota-remaining 0..1] [--cost-efficiency 0..1]",
   );
 }
 

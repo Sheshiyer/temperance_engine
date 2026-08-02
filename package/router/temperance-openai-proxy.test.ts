@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test"
-import { mkdtempSync, writeFileSync } from "node:fs"
+import { afterAll, beforeEach, describe, expect, test } from "bun:test"
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { handleProxyRequest, injectContext, latestUserPrompt, readSessionContext, resolveRoute } from "./temperance-openai-proxy"
+import { automaticReadiness, handleProxyRequest, injectContext, latestUserPrompt, readSessionContext, resolveRoute } from "./temperance-openai-proxy"
 
 function plan(model = "te-build") {
   return {
@@ -24,8 +24,133 @@ function request(body: Record<string, unknown>, stream = false, headers: Record<
 
 const KIMI_HEADERS = { "x-temperance-surface": "kimi" }
 const TEST_BLOCK = "<temperance-context>\nmode/tier: ALGORITHM / E3 | reason: test | source: classifier\n</temperance-context>"
+const ORIGINAL_AUTO_READY = process.env.TEMPERANCE_AUTO_READY
+const ORIGINAL_PROXY_LOG = process.env.TEMPERANCE_PROXY_LOG
+
+beforeEach(() => {
+  process.env.TEMPERANCE_AUTO_READY = "1"
+  process.env.TEMPERANCE_PROXY_LOG = join(mkdtempSync(join(tmpdir(), "temperance-proxy-test-")), "routes.jsonl")
+})
+
+afterAll(() => {
+  if (ORIGINAL_AUTO_READY === undefined) delete process.env.TEMPERANCE_AUTO_READY
+  else process.env.TEMPERANCE_AUTO_READY = ORIGINAL_AUTO_READY
+  if (ORIGINAL_PROXY_LOG === undefined) delete process.env.TEMPERANCE_PROXY_LOG
+  else process.env.TEMPERANCE_PROXY_LOG = ORIGINAL_PROXY_LOG
+})
 
 describe("Temperance OpenAI proxy", () => {
+  test("fails automatic routing closed when readiness evidence is absent", () => {
+    const previousReady = process.env.TEMPERANCE_AUTO_READY
+    const previousReason = process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON
+    delete process.env.TEMPERANCE_AUTO_READY
+    delete process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON
+    try {
+      expect(automaticReadiness()).toEqual({
+        ready: false,
+        reason: "A verified S-tier coordinator is unavailable on this host.",
+      })
+    } finally {
+      if (previousReady === undefined) delete process.env.TEMPERANCE_AUTO_READY
+      else process.env.TEMPERANCE_AUTO_READY = previousReady
+      if (previousReason === undefined) delete process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON
+      else process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON = previousReason
+    }
+  })
+
+  test("fails automatic routing closed for an unrecognized readiness value", () => {
+    const previousReady = process.env.TEMPERANCE_AUTO_READY
+    process.env.TEMPERANCE_AUTO_READY = "unknown"
+    try {
+      expect(automaticReadiness().ready).toBe(false)
+    } finally {
+      if (previousReady === undefined) delete process.env.TEMPERANCE_AUTO_READY
+      else process.env.TEMPERANCE_AUTO_READY = previousReady
+    }
+  })
+
+  test("accepts only explicit affirmative readiness strings", () => {
+    const previousReady = process.env.TEMPERANCE_AUTO_READY
+    try {
+      for (const value of ["1", "true", "TRUE", "yes", "on", " on "]) {
+        process.env.TEMPERANCE_AUTO_READY = value
+        expect(automaticReadiness().ready).toBe(true)
+      }
+      for (const value of ["", "0", "false", "no", "off", "null", "undefined", "unknown"]) {
+        process.env.TEMPERANCE_AUTO_READY = value
+        expect(automaticReadiness().ready).toBe(false)
+      }
+    } finally {
+      if (previousReady === undefined) delete process.env.TEMPERANCE_AUTO_READY
+      else process.env.TEMPERANCE_AUTO_READY = previousReady
+    }
+  })
+
+  test("fails automatic routing closed when this host has no verified S tier", async () => {
+    const previousReady = process.env.TEMPERANCE_AUTO_READY
+    const previousReason = process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON
+    const previousLog = process.env.TEMPERANCE_PROXY_LOG
+    const receiptDir = mkdtempSync(join(tmpdir(), "temperance-s-gate-"))
+    process.env.TEMPERANCE_AUTO_READY = "0"
+    process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON = "Authenticate an S-tier coordinator before Algorithm mode."
+    process.env.TEMPERANCE_PROXY_LOG = join(receiptDir, "routes.jsonl")
+    let upstreamCalls = 0
+    try {
+      expect(automaticReadiness()).toEqual({
+        ready: false,
+        reason: "Authenticate an S-tier coordinator before Algorithm mode.",
+      })
+      const response = await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: "plan the migration" }],
+      }), {
+        upstreamFetch: async () => {
+          upstreamCalls += 1
+          return new Response("unexpected")
+        },
+        requestId: () => "s-gate",
+      })
+      expect(response.status).toBe(503)
+      expect(response.headers.get("X-Temperance-Route-Source")).toBe("s-tier-fail-closed")
+      expect(response.headers.get("Retry-After")).toBe("60")
+      expect((await response.json()).error.code).toBe("s_tier_unavailable")
+      expect(upstreamCalls).toBe(0)
+
+      const health = await handleProxyRequest(new Request("http://127.0.0.1:20129/health"))
+      expect((await health.json()).automatic_ready).toBe(false)
+    } finally {
+      if (previousReady === undefined) delete process.env.TEMPERANCE_AUTO_READY
+      else process.env.TEMPERANCE_AUTO_READY = previousReady
+      if (previousReason === undefined) delete process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON
+      else process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON = previousReason
+      if (previousLog === undefined) delete process.env.TEMPERANCE_PROXY_LOG
+      else process.env.TEMPERANCE_PROXY_LOG = previousLog
+    }
+  })
+
+  test("the S-tier gate never blocks an explicit Native or continuity model", async () => {
+    const previousReady = process.env.TEMPERANCE_AUTO_READY
+    process.env.TEMPERANCE_AUTO_READY = "false"
+    let forwarded: Record<string, unknown> | undefined
+    try {
+      const response = await handleProxyRequest(request({
+        model: "te-fast",
+        messages: [{ role: "user", content: "quick bounded task" }],
+      }), {
+        upstreamFetch: async (_url, init) => {
+          forwarded = JSON.parse(String(init?.body))
+          return new Response(JSON.stringify({ choices: [] }), { headers: { "content-type": "application/json" } })
+        },
+        liveModelIds: async () => new Set(["te-fast"]),
+      })
+      expect(response.status).toBe(200)
+      expect(forwarded?.model).toBe("te-fast")
+    } finally {
+      if (previousReady === undefined) delete process.env.TEMPERANCE_AUTO_READY
+      else process.env.TEMPERANCE_AUTO_READY = previousReady
+    }
+  })
+
   test("extracts the latest user prompt without reclassifying message parts", () => {
     expect(latestUserPrompt([
       { role: "system", content: "system" },
@@ -73,6 +198,68 @@ describe("Temperance OpenAI proxy", () => {
     expect(first.plan?.correlation_id).toBe(second.plan?.correlation_id)
   })
 
+  test("route receipts bind session, task, profile, tier, and concrete attribution", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "temperance-route-receipt-"))
+    const logPath = join(dir, "routes.jsonl")
+    const previous = process.env.TEMPERANCE_PROXY_LOG
+    process.env.TEMPERANCE_PROXY_LOG = logPath
+    try {
+      await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: "refactor the API" }],
+      }, false, {
+        "x-temperance-session-id": "session-test",
+        "x-temperance-profile": "temperance-algorithm",
+        "x-temperance-capability-tier": "S",
+      }), {
+        planRunner: async () => plan("te-algorithm"),
+        upstreamFetch: async () => new Response(JSON.stringify({
+          id: "receipt-test",
+          model: "gpt-5.6-sol-max",
+          choices: [],
+        }), {
+          headers: {
+            "content-type": "application/json",
+            "x-omniroute-provider": "codex",
+            "x-omniroute-model": "gpt-5.6-sol-max",
+            "x-omniroute-session-id": "omniroute-session",
+          },
+        }),
+        requestId: () => "request-test",
+      })
+      const receipt = JSON.parse(readFileSync(logPath, "utf8").trim())
+      expect(receipt.session_id).toBe("session-test")
+      expect(receipt.task_id).toBe("tc_test")
+      expect(receipt.profile).toBe("temperance-algorithm")
+      expect(receipt.capability_tier).toBe("S")
+      expect(receipt.decision).toBe("frozen-plan")
+      expect(receipt.resolved_provider).toBe("codex")
+      expect(receipt.resolved_model).toBe("gpt-5.6-sol-max")
+    } finally {
+      if (previous === undefined) delete process.env.TEMPERANCE_PROXY_LOG
+      else process.env.TEMPERANCE_PROXY_LOG = previous
+    }
+  })
+
+  test("buffered receipts preserve missing OmniRoute attribution as null", async () => {
+    const logPath = process.env.TEMPERANCE_PROXY_LOG!
+    const response = await handleProxyRequest(request({
+      model: "temperance-auto",
+      messages: [{ role: "user", content: "buffer without attribution" }],
+    }), {
+      planRunner: async () => plan("te-build"),
+      upstreamFetch: async () => new Response(JSON.stringify({ choices: [] }), {
+        headers: { "content-type": "application/json" },
+      }),
+      requestId: () => "buffered-null-attribution",
+    })
+    expect(response.status).toBe(200)
+    const receipt = JSON.parse(readFileSync(logPath, "utf8").trim())
+    expect(receipt.resolved_provider).toBeNull()
+    expect(receipt.resolved_model).toBeNull()
+    expect(receipt.error).toBeNull()
+  })
+
   test("passes direct requests and routing headers through unchanged", async () => {
     let forwarded: Record<string, unknown> | undefined
     const response = await handleProxyRequest(request({
@@ -86,11 +273,113 @@ describe("Temperance OpenAI proxy", () => {
         })
       },
       requestId: () => "direct-request",
+      liveModelIds: async () => new Set(["auto/best-fast"]),
     })
     expect(response.status).toBe(200)
     expect(forwarded?.model).toBe("auto/best-fast")
     expect(response.headers.get("X-Temperance-Route-Mode")).toBe("direct")
     expect((await response.json()).model).toBe("auto/best-fast")
+  })
+
+  test("denies an explicit model absent from the live catalog without forwarding upstream", async () => {
+    let upstreamCalled = false
+    const response = await handleProxyRequest(request({
+      model: "stale/removed-model",
+      messages: [{ role: "user", content: "quick answer" }],
+    }), {
+      upstreamFetch: async () => {
+        upstreamCalled = true
+        return new Response(JSON.stringify({ choices: [] }), { headers: { "content-type": "application/json" } })
+      },
+      requestId: () => "denied-request",
+      liveModelIds: async () => new Set(["auto/best-fast", "te-fast"]),
+    })
+    expect(response.status).toBe(404)
+    expect(upstreamCalled).toBe(false)
+    expect(response.headers.get("X-Temperance-Route-Source")).toBe("explicit-picker-denied-stale-catalog")
+    expect((await response.json()).error.code).toBe("model_denied")
+  })
+
+  test("fails closed (denies, does not fail open) when the live catalog itself is unreachable", async () => {
+    let upstreamCalled = false
+    const response = await handleProxyRequest(request({
+      model: "auto/best-fast",
+      messages: [{ role: "user", content: "quick answer" }],
+    }), {
+      upstreamFetch: async () => {
+        upstreamCalled = true
+        return new Response(JSON.stringify({ choices: [] }), { headers: { "content-type": "application/json" } })
+      },
+      liveModelIds: async () => { throw new Error("OmniRoute catalog unavailable (HTTP 503)") },
+    })
+    expect(response.status).toBe(404)
+    expect(upstreamCalled).toBe(false)
+    expect((await response.json()).error.message).toMatch(/catalog unavailable/i)
+  })
+
+  test("automatic routing is never subject to the explicit-picker catalog guard", async () => {
+    let liveModelIdsCalled = false
+    const response = await handleProxyRequest(request({
+      model: "temperance-auto",
+      messages: [{ role: "user", content: "quick answer" }],
+    }), {
+      planRunner: async () => plan("te-fast"),
+      upstreamFetch: async () => new Response(JSON.stringify({ choices: [] }), { headers: { "content-type": "application/json" } }),
+      liveModelIds: async () => { liveModelIdsCalled = true; return new Set() },
+    })
+    expect(response.status).toBe(200)
+    expect(liveModelIdsCalled).toBe(false)
+  })
+
+  test("forces a client compression-on request to literal off upstream", async () => {
+    let outbound = new Headers()
+    let outboundBody = ""
+    const originalBody = {
+      model: "auto/best-fast",
+      messages: [{ role: "user", content: "keep this prompt byte-stable" }],
+    }
+    const expectedBody = JSON.stringify({ ...originalBody, stream: false })
+    const response = await handleProxyRequest(request(originalBody, false, { "x-omniroute-compression": "on" }), {
+      upstreamFetch: async (_url, init) => {
+        outbound = new Headers(init?.headers)
+        outboundBody = String(init?.body ?? "")
+        return new Response(JSON.stringify({ choices: [] }), {
+          headers: { "content-type": "application/json" },
+        })
+      },
+      requestId: () => "compression-on",
+      liveModelIds: async () => new Set(["auto/best-fast"]),
+    })
+
+    const compressionEntries = [...outbound.entries()].filter(([key]) =>
+      key.toLowerCase() === "x-omniroute-compression"
+    )
+    expect(compressionEntries).toEqual([["x-omniroute-compression", "off"]])
+    expect(outboundBody).toBe(expectedBody)
+    expect(response.headers.get("x-omniroute-compression")).toBeNull()
+  })
+
+  test("canonicalizes a mixed-case compression header after route metadata", async () => {
+    let outbound = new Headers()
+    await handleProxyRequest(request({
+      model: "temperance-auto",
+      messages: [{ role: "user", content: "route without compression" }],
+    }, false, { "X-OmNiRoUtE-CoMpReSsIoN": "engine:caveman" }), {
+      planRunner: async () => plan("te-build"),
+      upstreamFetch: async (_url, init) => {
+        outbound = new Headers(init?.headers)
+        return new Response(JSON.stringify({ choices: [] }), {
+          headers: { "content-type": "application/json" },
+        })
+      },
+      requestId: () => "compression-mixed-case",
+    })
+
+    const compressionEntries = [...outbound.entries()].filter(([key]) =>
+      key.toLowerCase() === "x-omniroute-compression"
+    )
+    expect(compressionEntries).toEqual([["x-omniroute-compression", "off"]])
+    expect(outbound.get("x-temperance-route-source")).toBe("frozen-plan")
   })
 
   test("preserves streaming bytes and forwards frozen-plan headers", async () => {
@@ -116,6 +405,180 @@ describe("Temperance OpenAI proxy", () => {
     expect(forwarded?.model).toBe("te-build")
     expect(response.headers.get("X-Temperance-Correlation-ID")).toBe("tc_test")
     expect(await response.text()).toContain("data: [DONE]")
+  })
+
+  test("finalizes streaming receipts from split OmniRoute attribution trailers", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "temperance-stream-receipt-"))
+    const logPath = join(dir, "routes.jsonl")
+    const previous = process.env.TEMPERANCE_PROXY_LOG
+    process.env.TEMPERANCE_PROXY_LOG = logPath
+    const chunks = [
+      `data: ${"x".repeat(1_100)}\r`,
+      '\n: x-omniroute-provi',
+      'der=tr@edge\r\n: x-omniroute-model=gemini-3-',
+      'flash-solo@edge\rdata: [DONE]\r\n\r\n',
+    ]
+    const expectedBytes = new TextEncoder().encode(chunks.join(""))
+    try {
+      const upstreamStream = new ReadableStream({
+        start(controller) {
+          for (const chunk of chunks) controller.enqueue(new TextEncoder().encode(chunk))
+          controller.close()
+        },
+      })
+      const response = await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: "stream the receipt" }],
+      }, true, {
+        "x-temperance-session-id": "stream-session",
+        "x-temperance-profile": "temperance-auto",
+        "x-temperance-capability-tier": "S",
+      }), {
+        planRunner: async () => plan("temperance-coding"),
+        upstreamFetch: async () => new Response(upstreamStream, {
+          status: 200,
+          headers: {
+            "content-type": "text/event-stream",
+            "x-omniroute-provider": "stale-provider",
+            "x-omniroute-model": "stale-model",
+          },
+        }),
+        requestId: () => "stream-receipt-request",
+      })
+
+      expect(existsSync(logPath)).toBe(false)
+      const returnedBytes = new Uint8Array(await response.arrayBuffer())
+      expect(Array.from(returnedBytes)).toEqual(Array.from(expectedBytes))
+      const lines = readFileSync(logPath, "utf8").trim().split("\n")
+      expect(lines).toHaveLength(1)
+      const receipt = JSON.parse(lines[0])
+      expect(receipt.session_id).toBe("stream-session")
+      expect(receipt.resolved_provider).toBe("tr@edge")
+      expect(receipt.resolved_model).toBe("gemini-3-flash-solo@edge")
+      expect(receipt.error).toBeNull()
+    } finally {
+      if (previous === undefined) delete process.env.TEMPERANCE_PROXY_LOG
+      else process.env.TEMPERANCE_PROXY_LOG = previous
+    }
+  })
+
+  test("marks a completed stream without both attribution trailers as failed", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "temperance-stream-missing-"))
+    const logPath = join(dir, "routes.jsonl")
+    const previous = process.env.TEMPERANCE_PROXY_LOG
+    process.env.TEMPERANCE_PROXY_LOG = logPath
+    try {
+      const response = await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: "missing attribution" }],
+      }, true), {
+        planRunner: async () => plan("temperance-coding"),
+        upstreamFetch: async () => new Response(": x-omniroute-provider=tr\n\ndata: [DONE]\n\n", {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        }),
+      })
+      await response.text()
+      const receipt = JSON.parse(readFileSync(logPath, "utf8").trim())
+      expect(receipt.resolved_provider).toBe("tr")
+      expect(receipt.resolved_model).toBeNull()
+      expect(receipt.error).toBe("stream_attribution_missing")
+    } finally {
+      if (previous === undefined) delete process.env.TEMPERANCE_PROXY_LOG
+      else process.env.TEMPERANCE_PROXY_LOG = previous
+    }
+  })
+
+  test("records cancellation before propagating it upstream", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "temperance-stream-cancel-"))
+    const logPath = join(dir, "routes.jsonl")
+    const previous = process.env.TEMPERANCE_PROXY_LOG
+    process.env.TEMPERANCE_PROXY_LOG = logPath
+    let cancelCalls = 0
+    try {
+      const upstreamStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("data: partial\n\n"))
+        },
+        cancel() {
+          cancelCalls += 1
+        },
+      })
+      const response = await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: "cancel this stream" }],
+      }, true), {
+        planRunner: async () => plan("temperance-coding"),
+        upstreamFetch: async () => new Response(upstreamStream, {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        }),
+      })
+      const reader = response.body!.getReader()
+      await reader.read()
+      await reader.cancel("test cancellation")
+      expect(cancelCalls).toBe(1)
+      const lines = readFileSync(logPath, "utf8").trim().split("\n")
+      expect(lines).toHaveLength(1)
+      expect(JSON.parse(lines[0]).error).toBe("stream_cancelled")
+    } finally {
+      if (previous === undefined) delete process.env.TEMPERANCE_PROXY_LOG
+      else process.env.TEMPERANCE_PROXY_LOG = previous
+    }
+  })
+
+  test("marks a successful streaming response with no body as failed", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "temperance-stream-bodyless-"))
+    const logPath = join(dir, "routes.jsonl")
+    const previous = process.env.TEMPERANCE_PROXY_LOG
+    process.env.TEMPERANCE_PROXY_LOG = logPath
+    try {
+      const response = await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: "bodyless stream" }],
+      }, true), {
+        planRunner: async () => plan("temperance-coding"),
+        upstreamFetch: async () => new Response(null, {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        }),
+      })
+      expect(await response.text()).toBe("")
+      const receipt = JSON.parse(readFileSync(logPath, "utf8").trim())
+      expect(receipt.error).toBe("stream_body_missing")
+      expect(receipt.resolved_provider).toBeNull()
+      expect(receipt.resolved_model).toBeNull()
+    } finally {
+      if (previous === undefined) delete process.env.TEMPERANCE_PROXY_LOG
+      else process.env.TEMPERANCE_PROXY_LOG = previous
+    }
+  })
+
+  test("marks a non-success streaming response as an upstream HTTP error", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "temperance-stream-http-error-"))
+    const logPath = join(dir, "routes.jsonl")
+    const previous = process.env.TEMPERANCE_PROXY_LOG
+    process.env.TEMPERANCE_PROXY_LOG = logPath
+    try {
+      const response = await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: "rate limited stream" }],
+      }, true), {
+        planRunner: async () => plan("temperance-coding"),
+        upstreamFetch: async () => new Response("data: rate limited\n\n", {
+          status: 429,
+          headers: { "content-type": "text/event-stream", "retry-after": "2" },
+        }),
+      })
+      expect(response.status).toBe(429)
+      expect(response.headers.get("retry-after")).toBe("2")
+      expect(await response.text()).toBe("data: rate limited\n\n")
+      const receipt = JSON.parse(readFileSync(logPath, "utf8").trim())
+      expect(receipt.error).toBe("upstream_http_429")
+    } finally {
+      if (previous === undefined) delete process.env.TEMPERANCE_PROXY_LOG
+      else process.env.TEMPERANCE_PROXY_LOG = previous
+    }
   })
 
   test("injects enrichment into the latest user message for kimi-surface requests", async () => {

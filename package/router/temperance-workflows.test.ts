@@ -6,6 +6,7 @@ const liveFleet = [
   "github/gpt-5.4",
   "codex/gpt-5.6-sol-max",
   "codex/gpt-5.6-terra",
+  "codex/gpt-5.3-codex-spark",
   "command-code/deepseek/deepseek-v4-flash",
   "command-code/moonshotai/Kimi-K2.7-Code",
   "command-code/MiniMaxAI/MiniMax-M2.7",
@@ -14,6 +15,11 @@ const liveFleet = [
   "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
   "kimi-coding-apikey/k3",
   "command-code/deepseek/deepseek-v4-pro",
+  "opencode/deepseek-v4-flash-free",
+  "command-code/poolside/laguna-s-2.1-free",
+  "command-code/zai-org/GLM-5.2",
+  "antigravity/claude-opus-4-6-thinking",
+  "command-code/moonshotai/Kimi-K3",
 ];
 
 function quota(providers: Record<string, { remaining: number | null; state?: string }>): PlannerQuotaState {
@@ -38,19 +44,48 @@ describe("Temperance workflow roles", () => {
     ]);
   });
 
-  test("dispatch fleet contains Command Code, Kimi, Grok, and Nebius roles", () => {
+  test("dispatch fleet round-robins Spark, Command Code, Kimi, Grok, and Nebius", () => {
     const resolution = resolveWorkflow("dispatch", liveFleet);
     expect(resolution.selected.map(({ provider }) => provider)).toEqual([
+      "codex",
       "command-code",
       "command-code",
       "grok-cli",
       "nebius",
     ]);
+    expect(workflowManifest.dispatch.strategy).toBe("round-robin");
+    expect(resolution.selected[0]).toMatchObject({
+      role: "spark-fast-worker",
+      model: "codex/gpt-5.3-codex-spark",
+      capability: "low-latency-targeted-coding",
+      cost_posture: "separate-codex-spark-preview-rate-limit",
+    });
     expect(workflowManifest.dispatch.direct_cli_fallbacks.map(({ backend }) => backend)).toEqual([
       "command-code",
       "kimi",
       "grok",
     ]);
+  });
+
+  test("dispatch omits Spark when its exact catalog identifier is unavailable", () => {
+    const withoutSpark = liveFleet.filter((model) => model !== "codex/gpt-5.3-codex-spark");
+    const resolution = resolveWorkflow("dispatch", withoutSpark);
+    expect(resolution.selected.map(({ model }) => model)).not.toContain("codex/gpt-5.3-codex-spark");
+    expect(resolution.omitted.map(({ model }) => model)).toContain("codex/gpt-5.3-codex-spark");
+    expect(workflowManifest.dispatch.direct_cli_fallbacks.map(({ backend }) => backend)).toEqual([
+      "command-code",
+      "kimi",
+      "grok",
+    ]);
+  });
+
+  test("Spark remains scoped to dispatch rather than planning or validation roles", () => {
+    const spark = "codex/gpt-5.3-codex-spark";
+    expect(workflowManifest.planner.primary.model).not.toBe(spark);
+    expect(workflowManifest.planner.escalation.map(({ model }) => model)).not.toContain(spark);
+    expect(workflowManifest.creative.planner_models).not.toContain(spark);
+    expect(workflowManifest.writing.drafting_models).not.toContain(spark);
+    expect(workflowManifest.writing.critique.models).not.toContain(spark);
   });
 
   test("creative role retains native media providers outside chat combos", () => {
@@ -67,6 +102,88 @@ describe("Temperance workflow roles", () => {
   test("unknown role fails safe into dispatch rather than classifying prompts", () => {
     expect(resolveWorkflow("new-task-type", liveFleet).role).toBe("dispatch");
     expect(resolveWorkflow("writing", liveFleet).role).toBe("writing");
+  });
+
+  test("bulk role resolves the zero-cost burst lane to its two live-catalog models", () => {
+    const resolution = resolveWorkflow("bulk", liveFleet);
+    expect(resolution.role).toBe("bulk");
+    expect(resolution.portfolio).toBe("te-free-burst");
+    expect(resolution.selected.map(({ model }) => model)).toEqual([
+      "opencode/deepseek-v4-flash-free",
+      "command-code/poolside/laguna-s-2.1-free",
+    ]);
+    expect(resolution.native_providers).toEqual([]);
+  });
+
+  test("bulk role omits its models when neither is in the live catalog", () => {
+    const withoutBulkModels = liveFleet.filter(
+      (model) => model !== "opencode/deepseek-v4-flash-free" && model !== "command-code/poolside/laguna-s-2.1-free",
+    );
+    const resolution = resolveWorkflow("bulk", withoutBulkModels);
+    expect(resolution.selected).toEqual([]);
+    expect(resolution.omitted.map(({ model }) => model)).toEqual([
+      "opencode/deepseek-v4-flash-free",
+      "command-code/poolside/laguna-s-2.1-free",
+    ]);
+    expect(resolution.source).toBe("direct");
+  });
+
+  test("review role resolves the code review lane to its three live-catalog models", () => {
+    const resolution = resolveWorkflow("review", liveFleet);
+    expect(resolution.role).toBe("review");
+    expect(resolution.portfolio).toBe("te-review");
+    expect(resolution.selected.map(({ model }) => model)).toEqual([
+      "codex/gpt-5.6-sol-max",
+      "github/gpt-5.4",
+      "command-code/zai-org/GLM-5.2",
+    ]);
+    expect(resolution.native_providers).toEqual([]);
+  });
+
+  test("review role omits its models when none is in the live catalog", () => {
+    const withoutReviewModels = liveFleet.filter(
+      (model) =>
+        model !== "codex/gpt-5.6-sol-max" &&
+        model !== "github/gpt-5.4" &&
+        model !== "command-code/zai-org/GLM-5.2",
+    );
+    const resolution = resolveWorkflow("review", withoutReviewModels);
+    expect(resolution.selected).toEqual([]);
+    expect(resolution.omitted.map(({ model }) => model)).toEqual([
+      "codex/gpt-5.6-sol-max",
+      "github/gpt-5.4",
+      "command-code/zai-org/GLM-5.2",
+    ]);
+    expect(resolution.source).toBe("direct");
+  });
+
+  test("swarm role resolves the S-tier swarm lane to its three live-catalog models", () => {
+    const resolution = resolveWorkflow("swarm", liveFleet);
+    expect(resolution.role).toBe("swarm");
+    expect(resolution.portfolio).toBe("te-swarm-s");
+    expect(resolution.selected.map(({ model }) => model)).toEqual([
+      "antigravity/claude-opus-4-6-thinking",
+      "kimi-coding-apikey/k3",
+      "command-code/moonshotai/Kimi-K3",
+    ]);
+    expect(resolution.native_providers).toEqual([]);
+  });
+
+  test("swarm role omits its models when none is in the live catalog", () => {
+    const withoutSwarmModels = liveFleet.filter(
+      (model) =>
+        model !== "antigravity/claude-opus-4-6-thinking" &&
+        model !== "kimi-coding-apikey/k3" &&
+        model !== "command-code/moonshotai/Kimi-K3",
+    );
+    const resolution = resolveWorkflow("swarm", withoutSwarmModels);
+    expect(resolution.selected).toEqual([]);
+    expect(resolution.omitted.map(({ model }) => model)).toEqual([
+      "antigravity/claude-opus-4-6-thinking",
+      "kimi-coding-apikey/k3",
+      "command-code/moonshotai/Kimi-K3",
+    ]);
+    expect(resolution.source).toBe("direct");
   });
 
   test("writing role drafts on te-write in the decided priority order", () => {

@@ -1,0 +1,15 @@
+{
+  "providers": {
+    "impl": "omniroute-dispatch",
+    "ui": "claude/claude-fable-5",
+    "research": "omniroute-write-research",
+    "planning": "omniroute-plan",
+    "audit": "omniroute-validate"
+  },
+  "preferences": [
+    "Use the Spark-enabled dispatch portfolio for parallel implementation work.",
+    "Keep planning, research, implementation, and audit on distinct Temperance portfolios.",
+    "Use native Claude for artistic, visual, interaction, and human-skill-oriented work.",
+    "Treat provider quotas as independent pools and keep provider/model attribution in every fleet receipt."
+  ]
+}
