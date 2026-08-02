@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${OMNIROUTE_MOCK_STATE_DIR:?OMNIROUTE_MOCK_STATE_DIR is required}"
+if [[ -n "${TEMPERANCE_OMNIROUTE_ADMIN_PASSWORD:-}" || -n "${OMNIROUTE_API_KEY:-}" ]]; then
+  echo "credential environment leaked into curl child" >&2
+  exit 91
+fi
+method="GET"
+output_file=""
+write_format=""
+payload="{}"
+data_seen=false
+url=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -X) method="$2"; shift 2 ;;
+    -o) output_file="$2"; shift 2 ;;
+    -w) write_format="$2"; shift 2 ;;
+    -d) payload="$2"; data_seen=true; shift 2 ;;
+    --data-binary)
+      payload_arg="$2"
+      if [[ "$payload_arg" == @* ]]; then
+        payload="$(<"${payload_arg#@}")"
+      else
+        payload="$payload_arg"
+      fi
+      data_seen=true
+      shift 2
+      ;;
+    -H|-b|-c) shift 2 ;;
+    -s|-S|-sS|-f) shift ;;
+    http://*|https://*) url="$1"; shift ;;
+    *) shift ;;
+  esac
+done
+
+$data_seen && [ "$method" = "GET" ] && method="POST"
+path="${url#*://}"
+path="/${path#*/}"
+response='{}'
+http=200
+
+case "$method $path" in
+  "GET /api/settings")
+    response="$(<"$state_dir/settings.json")"
+    ;;
+  "GET /api/combos")
+    response="$(<"$state_dir/combos.json")"
+    ;;
+  "GET /api/auth/csrf")
+    response='{"token":"mock-csrf"}'
+    ;;
+  "GET /v1/models")
+    response="$(<"$state_dir/catalog.json")"
+    ;;
+  "POST /api/auth/login")
+    response='{"ok":true}'
+    ;;
+  "POST /api/combos")
+    next_id="mock-$(date +%s%N)"
+    stored_response="$(jq -c --arg id "$next_id" '
+      . + {id:$id,updatedAt:"server-managed"}
+      | .models = [(.models // [])[] | . + {id:"server-model",kind:"model"}]
+      | .config = ((.config // {}) + {serverManaged:true})
+    ' <<<"$payload")"
+    jq -c --argjson combo "$stored_response" '.combos += [$combo]' \
+      "$state_dir/combos.json" >"$state_dir/combos.next"
+    mv "$state_dir/combos.next" "$state_dir/combos.json"
+    response="$stored_response"
+    [ "${OMNIROUTE_MOCK_MALFORMED_SUCCESS_IDS:-0}" != "1" ] \
+      || response='{"ok":true}'
+    ;;
+  "PUT /api/combos/"*)
+    combo_id="${path##*/}"
+    stored_response="$(jq -c --arg id "$combo_id" '
+      . + {id:$id,updatedAt:"server-managed"}
+      | .models = [(.models // [])[] | . + {id:"server-model",kind:"model"}]
+      | .config = ((.config // {}) + {serverManaged:true})
+    ' <<<"$payload")"
+    jq -c --arg id "$combo_id" --argjson combo "$stored_response" \
+      '.combos |= map(if .id == $id then $combo else . end)' \
+      "$state_dir/combos.json" >"$state_dir/combos.next"
+    mv "$state_dir/combos.next" "$state_dir/combos.json"
+    response="$stored_response"
+    [ "${OMNIROUTE_MOCK_MALFORMED_SUCCESS_IDS:-0}" != "1" ] \
+      || response='{"ok":true}'
+    ;;
+  "DELETE /api/combos/"*)
+    combo_id="${path##*/}"
+    response='{"ok":true}'
+    jq -c --arg id "$combo_id" '.combos |= map(select(.id != $id))' \
+      "$state_dir/combos.json" >"$state_dir/combos.next"
+    mv "$state_dir/combos.next" "$state_dir/combos.json"
+    ;;
+  *)
+    response='{"error":"unhandled mock curl route"}'
+    http=404
+    ;;
+esac
+
+if [ "$method" != "GET" ] && [ "$path" != "/api/auth/login" ]; then
+  jq -nc --arg method "$method" --arg path "$path" --argjson payload "$payload" \
+    '{method:$method,path:$path,payload:$payload}' >>"$state_dir/mutations.jsonl"
+fi
+
+if [ -n "$output_file" ]; then
+  printf '%s\n' "$response" >"$output_file"
+else
+  printf '%s\n' "$response"
+fi
+[ -z "$write_format" ] || printf '%s' "$http"
