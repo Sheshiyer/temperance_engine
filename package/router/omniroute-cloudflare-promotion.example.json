@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "temperance.omniroute-cloudflare-promotion",
+  "accountId": "replace-with-exact-account-id",
+  "zoneId": "replace-with-exact-zone-id",
+  "zone": "example.com",
+  "hostname": "ai.example.com",
+  "origin": "http://127.0.0.1:20128",
+  "names": {
+    "tunnel": "temperance-ai-example-com",
+    "accessApplication": "temperance-ai-example-com",
+    "accessPolicy": "temperance-ai-example-com-service-auth",
+    "serviceToken": "temperance-ai-example-com-client",
+    "remoteKey": "temperance-ai-example-com",
+    "connector": "temperance-ai-example-com"
+  },
+  "access": {
+    "teamName": "replace-with-team-name",
+    "audTag": "replace-with-access-audience"
+  },
+  "approval": {
+    "keyId": "replace-with-approval-key-id",
+    "publicKeySpkiSha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "remoteKey": {
+    "model": "gh/claude-sonnet-5",
+    "probePassed": true,
+    "policy": {
+      "logging": "disabled",
+      "endpoints": [
+        "/v1/chat/completions"
+      ],
+      "session": {
+        "maxRequests": 64,
+        "maxDurationSeconds": 3600
+      },
+      "rate": {
+        "requestsPerMinute": 30,
+        "burst": 5
+      },
+      "spendUsd": {
+        "daily": 5,
+        "weekly": 20
+      }
+    }
+  },
+  "paths": {
+    "cloudflareTokenFile": "/var/lib/temperance-secrets/cloudflare-api-token",
+    "connectorTokenFile": "/var/lib/temperance-secrets/cloudflared-tunnel-token",
+    "journalDirectory": "/var/lib/temperance-engine/cloudflare-promotion",
+    "receiptFile": "/var/lib/temperance-engine/cloudflare-promotion/receipt.json"
+  },
+  "limits": {
+    "operationTimeoutMs": 10000,
+    "connectionPollIntervalMs": 100,
+    "connectionPollAttempts": 5,
+    "approvalMaxAgeMs": 300000
+  }
+}
