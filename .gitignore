@@ -12,5 +12,6 @@ dist/
 coverage/
 .codegraph/
 .worktrees/
+.wrangler/
 # self-referential links left by unguarded `ln -s` re-runs (BSD ln follows symlinked dst)
 skills/temperance-*/temperance-*
