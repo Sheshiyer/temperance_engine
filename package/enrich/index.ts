@@ -1,5 +1,5 @@
 // package/enrich/index.ts -- SP0 enrichment assembler (SHARED, frozen wiring). Do not fork.
-// Contract: enrich() runs resolve() then the six pure stages in fixed order, drops empty lines,
+// Contract: enrich() runs resolve() then the eight pure stages in fixed order, drops empty lines,
 // and wraps the survivors in a <temperance-context> block. It NEVER throws.
 //
 // Block shape (stubs emit mostly-empty lines, so early output is sparse -- that is expected):
@@ -8,6 +8,7 @@
 //   intent: ... | not: ...
 //   guardrails: ... | anti: ...
 //   isa: ...
+//   context-sources: {"pai":...,"gsd":...,"skills":...,"material":"pointers-only"}
 //   memory: worked=... failed=... open=...
 //   dispatch: ...        # only when planningPresent
 //   </temperance-context>
@@ -17,12 +18,22 @@ import { classify } from './stages/classify';
 import { intent } from './stages/intent';
 import { guardrails } from './stages/guardrails';
 import { isaPointer } from './stages/isaPointer';
+import { contextSources } from './stages/contextSources';
 import { memory } from './stages/memory';
 import { dispatch } from './stages/dispatch';
 import { routing } from './stages/routing';
 
 // Fixed stage order. Implementers own one entry each; the order is frozen here.
-const STAGES: Stage[] = [classify, intent, guardrails, isaPointer, memory, dispatch, routing];
+const STAGES: Stage[] = [
+  classify,
+  intent,
+  guardrails,
+  isaPointer,
+  contextSources,
+  memory,
+  dispatch,
+  routing,
+];
 
 const OPEN = '<temperance-context>';
 const CLOSE = '</temperance-context>';

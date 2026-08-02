@@ -1,15 +1,24 @@
 #!/usr/bin/env bash
 # package/adapters/command-code/generate-agents-md.sh
 # Generates a Command Code-compatible AGENTS.md with SP0 enrichment context embedded.
-# Pure bash implementation (no ts-node dependency).
+# Preserves the existing Bash ISA/memory renderer and delegates only the
+# pointer catalog to the canonical Bun resolver/serializer.
 #
 # Usage:
 #   ./generate-agents-md.sh --task "implement auth" --cwd /path/to/project
 #   ./generate-agents-md.sh --task "implement auth" --model deepseek-v4-flash
 #
-# Output: writes AGENTS.md to stdout (pipe to file or temp workspace).
+# Output: buffers and validates the complete document, then writes it to stdout.
+# This file never promotes a project file; the dispatcher owns its private
+# same-directory AGENTS.md.tmp -> AGENTS.md rename.
 
 set -euo pipefail
+umask 077
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTEXT_SOURCES_HELPER="$SCRIPT_DIR/context-sources-line.ts"
+AGENTS_VALIDATOR="$SCRIPT_DIR/validate-agents-md.ts"
+BUN_BIN="$(command -v bun || true)"
 
 # Defaults
 TASK=""
@@ -17,6 +26,15 @@ CWD="$(pwd)"
 MODEL=""
 MAX_TURNS=""
 ISA_PATH=""
+CONTEXT_SOURCES_LINE=""
+AGENTS_OUTPUT=""
+
+cleanup() {
+  if [[ -n "${AGENTS_OUTPUT:-}" ]]; then
+    rm -f "$AGENTS_OUTPUT"
+  fi
+}
+trap cleanup EXIT INT TERM HUP
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -121,7 +139,7 @@ newest_failure() {
 }
 
 # Main generation
-main() {
+render() {
   local isa_path
   if [[ -n "$ISA_PATH" ]]; then
     isa_path="$ISA_PATH"
@@ -236,6 +254,13 @@ EOF
   fi
 
   cat <<EOF
+### Context Source Pointers
+
+$CONTEXT_SOURCES_LINE
+
+EOF
+
+  cat <<EOF
 ## Operating Instructions
 
 1. **Focus on the objective** - Complete the task described above
@@ -259,4 +284,41 @@ When complete, provide:
 EOF
 }
 
-main
+main() {
+  if [[ -z "$BUN_BIN" || ! -x "$BUN_BIN" ]]; then
+    echo "Command Code context-source projection requires Bun" >&2
+    return 127
+  fi
+  if [[ ! -r "$CONTEXT_SOURCES_HELPER" || ! -r "$AGENTS_VALIDATOR" ]]; then
+    echo "Command Code context-source adapter is incomplete" >&2
+    return 127
+  fi
+
+  if ! CONTEXT_SOURCES_LINE=$("$BUN_BIN" "$CONTEXT_SOURCES_HELPER" --cwd "$CWD"); then
+    echo "Command Code context-source projection failed" >&2
+    return 1
+  fi
+  case "$CONTEXT_SOURCES_LINE" in
+    context-sources:\ *) ;;
+    *)
+      echo "Command Code context-source projection returned an invalid line" >&2
+      return 1
+      ;;
+  esac
+  case "$CONTEXT_SOURCES_LINE" in
+    *$'\n'*|*$'\r'*|*$'\342\200\250'*|*$'\342\200\251'*)
+      echo "Command Code context-source projection returned multiple lines" >&2
+      return 1
+      ;;
+  esac
+
+  AGENTS_OUTPUT=$(mktemp "${TMPDIR:-/tmp}/temperance-command-code-agents.XXXXXX")
+  render > "$AGENTS_OUTPUT"
+  if ! "$BUN_BIN" "$AGENTS_VALIDATOR" --file "$AGENTS_OUTPUT"; then
+    echo "Refusing invalid Command Code AGENTS.md" >&2
+    return 1
+  fi
+  command cat "$AGENTS_OUTPUT"
+}
+
+main "$@"

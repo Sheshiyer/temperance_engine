@@ -15,7 +15,7 @@ This adapter bridges Temperance Engine's SP0 enrichment to Command Code sessions
                          ▼
 ┌──────────────────────────────────────────────────────────┐
 │              COMMAND CODE AGENTS.MD                      │
-│  Task context + guardrails + memory                      │
+│  Task context + guardrails + memory + pointer catalog    │
 └────────────────────────┬─────────────────────────────────┘
                          │
         ┌────────────────┼────────────────┐
@@ -31,7 +31,7 @@ This adapter bridges Temperance Engine's SP0 enrichment to Command Code sessions
 ### Generate AGENTS.md (standalone)
 
 ```bash
-npx ts-node generate-agents-md.ts \
+bun generate-agents-md.ts \
   --task "implement auth middleware" \
   --cwd /path/to/project \
   --model deepseek-v4-flash \
@@ -88,9 +88,9 @@ npx ts-node generate-agents-md.ts \
 ```
 /tmp/temperance-dispatch/
 ├── workspaces/
-│   ├── deepseek-v4-flash_12345/
+│   ├── deepseek-v4-flash.A1b2C3/
 │   │   └── AGENTS.md
-│   └── kimi-k2.7-code_12346/
+│   └── kimi-k2.7-code.D4e5F6/
 │       └── AGENTS.md
 ├── logs/
 │   ├── deepseek-v4-flash_0.log
@@ -119,12 +119,20 @@ bash(`
 `)
 ```
 
-## Fail-Open Behavior
+## Failure behavior
 
-The adapter inherits SP0's fail-open contract:
-- If ISA resolution fails → minimal AGENTS.md with task only
-- If enrichment throws → fallback to basic context
-- If command-code fails → logged, other sessions continue
+- Missing ISA or any individual unsafe/missing pointer degrades independently.
+- Missing Bun, projection failure, malformed pointer JSON, or a forged second
+  `context-sources:` line stops that task before `command-code` launches.
+- Every successful render contains exactly one pointer-only line with ordered
+  keys `pai`, `gsd`, `skills`, and `material`.
+- Same-model tasks receive distinct owner-only temporary workspaces.
+- A later `command-code` execution failure is logged while independent tasks
+  continue.
+
+Absolute pointer paths are runtime metadata. The default temporary dispatch
+tree is private but persists until explicitly removed or reclaimed by the
+operating system; redact the pointer line before sharing result artifacts.
 
 ## License
 

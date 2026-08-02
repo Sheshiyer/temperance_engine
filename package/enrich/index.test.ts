@@ -70,6 +70,16 @@ describe('enrich() assembler integration', () => {
     expect(block).toMatch(/mode\/tier:\s*ALGORITHM/);
   });
 
+  test('shared clients and direct Command Code emit exactly one pointer-only source line', async () => {
+    for (const surface of ['claude', 'codex', 'opencode', 'kimi', 'command-code'] as const) {
+      const block = await enrich({ ...baseInput('refactor the auth system'), surface });
+      const lines = block.split('\n').filter((line) => line.startsWith('context-sources: '));
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain('"material":"pointers-only"');
+      expect(lines[0]).not.toMatch(/[\r\u2028\u2029]/u);
+    }
+  });
+
   test('(d) latency smoke: enrich() completes well under 500ms', async () => {
     const input = baseInput('refactor the auth system without touching the DB to add SSO');
     // Warm one call, then measure.

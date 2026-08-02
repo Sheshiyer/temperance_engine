@@ -1,17 +1,19 @@
-#!/usr/bin/env npx ts-node
+#!/usr/bin/env bun
 // package/adapters/command-code/generate-agents-md.ts
 // Generates a Command Code-compatible AGENTS.md with SP0 enrichment context embedded.
 //
 // Usage:
-//   npx ts-node generate-agents-md.ts --task "implement auth" --cwd /path/to/project
-//   npx ts-node generate-agents-md.ts --task "implement auth" --model deepseek-v4-flash
+//   bun generate-agents-md.ts --task "implement auth" --cwd /path/to/project
+//   bun generate-agents-md.ts --task "implement auth" --model deepseek-v4-flash
 //
 // Output: writes AGENTS.md to stdout (pipe to file or temp workspace).
 
-import { resolve } from '../../enrich/resolver';
 import type { EnrichInput, ResolvedContext } from '../../enrich/contract';
+import { resolve } from '../../enrich/resolver';
+import { renderCommandCodeContextSources } from './context-sources-line';
+import { assertCommandCodeAgentsMd } from './validate-agents-md';
 
-interface GenerateOptions {
+export interface GenerateOptions {
   task: string;
   cwd: string;
   model?: string;
@@ -19,8 +21,7 @@ interface GenerateOptions {
   maxTurns?: number;
 }
 
-function parseArgs(): GenerateOptions {
-  const args = process.argv.slice(2);
+export function parseArgs(args = process.argv.slice(2)): GenerateOptions {
   const opts: GenerateOptions = { task: '', cwd: process.cwd() };
   
   for (let i = 0; i < args.length; i++) {
@@ -100,10 +101,11 @@ function formatMemory(memory: ResolvedContext['memory']): string {
   return lines.length > 0 ? lines.join('\n') : 'No memory pointers available.';
 }
 
-function generateAgentsMd(opts: GenerateOptions, ctx: ResolvedContext): string {
+export function generateAgentsMd(opts: GenerateOptions, ctx: ResolvedContext): string {
   const { objective, notWants } = extractIntent(opts.task);
   const guardrails = formatGuardrails(ctx.isa);
   const memory = formatMemory(ctx.memory);
+  const contextSourcesLine = renderCommandCodeContextSources(ctx);
   
   const modelHint = opts.model ? `\nRecommended model: \`${opts.model}\`` : '';
   const maxTurnsHint = opts.maxTurns ? `\nMax turns: ${opts.maxTurns}` : '';
@@ -129,6 +131,10 @@ ${memory}
 
 ${ctx.isaPath ? `### ISA Reference\n\nActive ISA: \`${ctx.isaPath}\`` : ''}
 
+### Context Source Pointers
+
+${contextSourcesLine}
+
 ## Operating Instructions
 
 1. **Focus on the objective** - Complete the task described above
@@ -152,7 +158,7 @@ When complete, provide:
 `;
 }
 
-async function main() {
+export async function main() {
   const opts = parseArgs();
   
   if (!opts.task) {
@@ -163,7 +169,7 @@ async function main() {
   const input: EnrichInput = {
     prompt: opts.task,
     cwd: opts.cwd,
-    surface: 'opencode', // Command Code treated as opencode-family surface
+    surface: 'command-code',
   };
   
   try {
@@ -175,11 +181,12 @@ async function main() {
     }
     
     const agentsMd = generateAgentsMd(opts, ctx);
+    assertCommandCodeAgentsMd(agentsMd);
     console.log(agentsMd);
-  } catch (err) {
-    console.error('Error generating AGENTS.md:', err);
-    process.exit(1);
+  } catch {
+    console.error('Error generating AGENTS.md');
+    process.exitCode = 1;
   }
 }
 
-main();
+if (import.meta.main) void main();

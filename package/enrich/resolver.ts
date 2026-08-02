@@ -13,10 +13,12 @@
 //              ~/.claude/MEMORY/LEARNING/FAILURES/. worked/open => project MEMORY.md near cwd/work
 //              dir + newest REFLECTIONS|SIGNALS file. null when nothing is found.
 //   planning : planningPresent/planningState from a `.planning` dir near cwd (else false/null).
+//   sources  : fixed PAI/GSD/skill-index PATHS only, resolved by explicit root allowlists.
 // `home` override (default process.env.HOME) lets tests point resolution at a fixture home.
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { EnrichInput, ResolvedContext } from './contract';
+import { resolveContextSources } from './contextSources';
 
 export interface ResolveOptions { home?: string; }
 
@@ -31,6 +33,7 @@ function emptyContext(input: EnrichInput): ResolvedContext {
     memory: { ...EMPTY_MEMORY },
     planningPresent: false,
     planningState: null,
+    contextSources: { pai: null, gsd: null, skills: null },
   };
 }
 
@@ -315,6 +318,14 @@ export async function resolve(input: EnrichInput, opts: ResolveOptions = {}): Pr
     } catch {
       ctx.planningPresent = false;
       ctx.planningState = null;
+    }
+
+    // Fixed client-owned context-source pointers. The dedicated resolver uses
+    // metadata and canonical paths only; it never reads a pointed file body.
+    try {
+      ctx.contextSources = resolveContextSources({ home, cwd });
+    } catch {
+      ctx.contextSources = { pai: null, gsd: null, skills: null };
     }
 
     return ctx;
