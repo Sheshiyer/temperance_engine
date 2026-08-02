@@ -585,6 +585,88 @@ stay on OpenCode indefinitely — that decision was never made this session and
 determines whether "retire OpenCode" is even the right eventual goal for the
 EC2 surface, versus keeping it as permanent shared infrastructure.
 
+## 19. Phase 0 second review (2026-08-02, later same session): re-audited live, found and fixed real model drift, and discovered a permanent false-positive in the diff check
+
+Re-ran the live combo audit per the operator's request. The combo list itself
+was unchanged since §18 (same 16, zero new rogue entries), but the reconciler's
+own "differs" plan line — present on every single run this session including
+the very first one, before any changes — turned out to hide a real, fixable
+issue underneath a permanent, unfixable one. Both needed separating out.
+
+**Real and fixed: model-list drift on 5 governed combos.** `te-fast`,
+`te-build`, `te-reason`, `te-validate`, and `temperance-coding` all had model
+lists live that no longer matched `scripts/omniroute-temperance-combos.sh`'s
+own definitions, substituting in two newly-connected, live-confirmed
+providers (`trae/*`, direct `nvidia/*`) in place of models the script still
+named. Root cause for at least one substitution: `github/gpt-5.4` -- present
+in 4 of these 5 definitions -- is **dead**, confirmed live (`github` provider
+`isActive:false`); any combo still naming it carries a permanently-unusable
+fallback slot. The other substitutions (`codex/gpt-5.6-terra`,
+`antigravity/claude-sonnet-4-6`) replaced models that are still live and
+viable, suggesting broader curation, not just dead-link cleanup. Provenance:
+`te-fast` carries `_v3: {source: "routing-v3-proposal.md", applied:
+2026-07-26}` -- the same external source and timestamp as `te-swarm-s`/
+`te-review`/`te-free-burst` from §0/§18. The other four were bulk-updated
+together on 2026-07-23 (clustered `updatedAt` timestamps, no `_v3` tag) --
+likely an earlier pass by the same or a related process, predating when it
+started tagging its writes. **This is the first evidence the external
+process modifies existing governed combos, not just adds new ungoverned
+ones** -- a materially different risk than §0/§18's finding.
+
+Operator decision (via AskUserQuestion): adopt the new models, restore each
+combo's Temperance `systemMessage`. Updated `fast_models`/`build_models`/
+`reason_models`/`validate_models` in `scripts/omniroute-temperance-combos.sh`
+to the confirmed-live model picks (dropping `github/gpt-5.4` everywhere).
+Verified via dry-run diff against a fresh live snapshot: description,
+strategy, models, and config now match exactly for all 5 -- the only
+remaining reported difference was `systemMessage`.
+
+**Attempted repair, then discovered why it can't work.** The script's
+`--apply` mode by design auto-repairs only `temperance-coding` (the
+"governed repair target") and reports every other differing combo as a
+collision without overwriting it -- a deliberate safety guard against
+silently clobbering combos that might carry intentional live customization,
+which the finding above shows is a real possibility. Respecting that design
+rather than weakening it permanently, applied this specific, pre-approved
+fix as a one-time PUT (a patched throwaway copy of the script, deleted after
+use, extending the repair branch to all 4 lanes for this run only) instead
+of changing the committed script's collision-reporting behavior for future
+runs. All 4 PUTs returned 200. Re-fetching, however, showed `systemMessage`
+still absent -- not `null`, but **absent as a key entirely**. Checked
+`te-validate` specifically: its nested `config.judgeModel` and
+`config.fusionTuning` persisted exactly as sent, proving PUT itself works
+and accepts nested config fields. Checked all 16 live combos for
+`has("systemMessage")`: **every single one, including externally-created
+`te-swarm-s`/`te-review` and combos never flagged as differing at all
+(`te-dispatch`, `te-creative`, `te-write`, etc.), returns false.** This
+OmniRoute instance's combo API does not support a top-level `systemMessage`
+field on any combo, full stop -- it isn't drift, isn't tampering, and isn't
+fixable by any request shape. `scripts/omniroute-temperance-combos.sh`'s own
+`combo_payload()` has been sending a field the server silently drops on
+every POST and PUT, for every combo, since before this session started.
+
+**Consequence, documented so it isn't re-chased later:** `te-fast`,
+`te-build`, `te-reason`, `te-validate`, and `temperance-coding` will report
+`differs` on every future dry-run for as long as
+`scripts/omniroute-temperance-combos.sh` includes `systemMessage` in
+`canon_body()`'s comparison -- this is now a permanent, harmless
+false-positive on that one field, not a sign of new drift. The model-list
+fix above is real and confirmed; do not mistake the residual `differs`
+status for evidence it didn't take. Left the script unchanged beyond the
+model-list correction: `combo_payload()` still sends `systemMessage` (a
+no-op today, but free to start working if OmniRoute ever adds support), and
+`canon_body()` still compares it (preserves the signal in case that
+changes) -- narrowing the comparison to silently exclude the field was a
+separate, not-yet-made decision this note flags rather than makes
+unilaterally.
+
+Verified: fresh dry-run after the one-time repair confirms all 5 combos'
+description/strategy/models/config now match the script's intended state
+exactly (`temperance-coding` reports `unchanged`; the other four report
+`differs` on `systemMessage` only, per the above). Rollback snapshots
+captured before every mutating run in `.omniroute-backups/`, per the
+script's existing safety design.
+
 ## 18. Phase 0 implementation note (2026-08-02, same session): combo hygiene done live; te-swarm-s and te-review adopted, not removed
 
 §5's Phase 0 assumed a plain `te-*` prefix check was sufficient to find

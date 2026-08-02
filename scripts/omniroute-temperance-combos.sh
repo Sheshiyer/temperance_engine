@@ -191,10 +191,17 @@ combo_payload() {
     }'
 }
 
-fast_models="$(models_json antigravity/gemini-3.5-flash-low antigravity/claude-sonnet-4-6 github/gpt-5.4)"
-build_models="$(models_json codex/gpt-5.6-terra github/gpt-5.4 nebius/Qwen/Qwen3-235B-A22B-Instruct-2507)"
-reason_models="$(models_json antigravity/claude-opus-4-6-thinking nebius/Qwen/Qwen3-235B-A22B-Instruct-2507 codex/gpt-5.6-terra)"
-validate_models="$(models_json github/gpt-5.4 codex/gpt-5.6-terra nebius/Qwen/Qwen3-235B-A22B-Instruct-2507)"
+# github/gpt-5.4 dropped from every slot below: the github provider is
+# currently disabled (isActive:false) live, confirmed via /v1/models -- any
+# combo still naming it would carry a permanently-dead fallback entry.
+# Model picks otherwise match the live, operator-curated state as of the
+# 2026-08-02 combo-hygiene review (see design doc
+# 2026-08-02-omniroute-paseo-native-routing-design.md's Phase 0 second
+# review): trae and nvidia are newly-connected, live-confirmed providers.
+fast_models="$(models_json nebius/Qwen/Qwen3-235B-A22B-Instruct-2507 antigravity/gemini-3.5-flash-low trae/gemini-3-flash-solo)"
+build_models="$(models_json kimi-coding-apikey/k3 trae/gemini-3-flash-solo nebius/Qwen/Qwen3-235B-A22B-Instruct-2507)"
+reason_models="$(models_json antigravity/claude-opus-4-6-thinking nebius/Qwen/Qwen3-235B-A22B-Instruct-2507 nvidia/deepseek-ai/deepseek-v4-pro)"
+validate_models="$(models_json kimi-coding-apikey/k3 antigravity/claude-sonnet-4-6 nebius/Qwen/Qwen3-235B-A22B-Instruct-2507)"
 fast_config="$(config_json 60000 30000 1)"
 build_config="$(config_json 120000 60000 0)"
 reason_config="$(config_json 180000 90000 1)"
