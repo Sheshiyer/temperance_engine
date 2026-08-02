@@ -50,18 +50,31 @@ classify_task_type() {
 # catalog: MBR derives ROUTING_PRIORITY's command-code column from this, and
 # routing.ts renders `preferred=` from it.
 #
-# The 2026-07-21 command-code deals for Hy3 and MiniMax-M3 expired. The
-# classifier therefore uses live-verified command-code routes for the affected
-# slots until a new bounded deal is explicitly recorded in ISA.md.
+# The 2026-07-21 command-code deals for Hy3 and MiniMax-M3 expired. On
+# 2026-07-28 new bounded FREE deals were recorded in ISA.md for the two
+# vacated high-volume slots, restoring the 2026-07-18 decision's
+# free/credit-deal intent. Every pin below was re-verified against the live
+# command-code catalog: `command-code --list-models` (CLI v1.4.3, 2026-07-28).
 model_for_type() {
   case "$1" in
-    fast)         echo "command-code:deepseek/deepseek-v4-flash" ;;
+    # 2026-07-28: FREE "fast lightweight-MoE coding & agentic work"; succeeds
+    # the expired tencent/Hy3 FREE deal. Src: command-code --list-models v1.4.3.
+    fast)         echo "command-code:inclusionai/ling-3.0-flash-free" ;;
+    # 2026-07-28: 5x permanent credit deal (ISA 2026-07-18); still listed.
+    # Src: command-code --list-models v1.4.3, 2026-07-28.
     long-horizon) echo "command-code:xiaomi/mimo-v2.5-pro" ;;
+    # 2026-07-28: 4x permanent credit deal (ISA 2026-07-18); still listed.
+    # Src: command-code --list-models v1.4.3, 2026-07-28.
     reasoning)    echo "command-code:deepseek/deepseek-v4-pro" ;;
-    validation)   echo "command-code:deepseek/deepseek-v4-flash" ;;
-    creative)     echo "command-code:MiniMaxAI/MiniMax-M2.7" ;;
+    # 2026-07-28: same FREE deal as fast (high-volume slot).
+    validation)   echo "command-code:inclusionai/ling-3.0-flash-free" ;;
+    # 2026-07-28: FREE "open-weight agentic coding and long-horizon work";
+    # succeeds the expired MiniMaxAI/MiniMax-M3 2.67x deal.
+    # Src: command-code --list-models v1.4.3, 2026-07-28.
+    creative)     echo "command-code:poolside/laguna-s-2.1-free" ;;
     inline)       echo "inline:current-session" ;;
-    *)            echo "command-code:MiniMaxAI/MiniMax-M2.7" ;;
+    # balanced default: same FREE deal as creative.
+    *)            echo "command-code:poolside/laguna-s-2.1-free" ;;
   esac
 }
 

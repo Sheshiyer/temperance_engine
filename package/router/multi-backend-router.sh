@@ -64,6 +64,28 @@ unset _src _sdir
 # shellcheck source=classify-task.sh
 . "$SCRIPT_DIR/classify-task.sh"
 
+omniroute_gateway_auth() {
+  if [[ -n "${OMNIROUTE_API_KEY:-}" ]]; then
+    printf '%s' "$OMNIROUTE_API_KEY"
+    return
+  fi
+  if [[ "$(uname -s 2>/dev/null || true)" == Darwin ]] && command -v security >/dev/null 2>&1; then
+    security find-generic-password -a "${USER:-$(id -un)}" \
+      -s "${TEMPERANCE_OMNIROUTE_KEYCHAIN_SERVICE:-OmniRoute Temperance API Key}" \
+      -w 2>/dev/null || true
+  fi
+}
+
+omniroute_catalog_fetch() {
+  local url="$1" auth="${2:-}"
+  if [[ -n "$auth" ]]; then
+    printf 'header = "Authorization: Bearer %s"\n' "$auth" | \
+      curl -fsS --config - --connect-timeout 1 --max-time 3 "$url"
+  else
+    curl -fsS --connect-timeout 1 --max-time 3 "$url"
+  fi
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Backend Detection
 # ─────────────────────────────────────────────────────────────────────────────
@@ -83,10 +105,10 @@ detect_backends() {
   omni_base="${omni_base%/}"
   [[ "$omni_base" == */v1 ]] || omni_base="$omni_base/v1"
   local omni_model="${TEMPERANCE_OMNIROUTE_MODEL:-temperance-coding}"
-  local -a omni_headers=()
-  [[ -n "${OMNIROUTE_API_KEY:-}" ]] && omni_headers=(-H "Authorization: Bearer $OMNIROUTE_API_KEY")
+  local omni_auth=""
+  omni_auth="$(omniroute_gateway_auth)"
   if command -v codex >/dev/null 2>&1 && command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-    if curl -fsS --connect-timeout 1 --max-time 3 "${omni_headers[@]}" "$omni_base/models" 2>/dev/null \
+    if omniroute_catalog_fetch "$omni_base/models" "$omni_auth" 2>/dev/null \
       | jq -e --arg model "$omni_model" '.data[]? | select(.id == $model)' >/dev/null 2>&1; then
       backends+=("omniroute")
     fi
@@ -135,8 +157,14 @@ declare -A MODEL_CATALOG=(
   ["command-code:google/gemini-3.5-flash"]="fast:parallel:1M"
   ["command-code:Qwen/Qwen3.7-Max"]="deep:frontier:128k"
   ["command-code:gpt-5.5"]="premium:general:128k"
-  # Live-verified primaries (expired Hy3/MiniMax-M3 deals were retired 2026-07-23)
+  # Classifier primaries (pins live in classify-task.sh model_for_type;
+  # re-verified vs `command-code --list-models` v1.4.3 on 2026-07-28).
+  # FREE deals restored to the slots vacated by the expired Hy3/MiniMax-M3
+  # deals; context for the two FREE routes is conservative (unverified).
   ["command-code:xiaomi/mimo-v2.5-pro"]="deep:long-horizon:256k"
+  ["command-code:inclusionai/ling-3.0-flash-free"]="fast:speed:128k"
+  ["command-code:poolside/laguna-s-2.1-free"]="balanced:general:128k"
+  # Still-valid catalog member, no longer a classifier primary.
   ["command-code:MiniMaxAI/MiniMax-M2.7"]="balanced:general:256k"
 
   # Kimi (direct)
@@ -195,11 +223,11 @@ omniroute_catalog_json() {
   local omni_base="${TEMPERANCE_OMNIROUTE_BASE_URL:-http://127.0.0.1:20128/v1}"
   omni_base="${omni_base%/}"
   [[ "$omni_base" == */v1 ]] || omni_base="$omni_base/v1"
-  local -a omni_headers=()
-  [[ -n "${OMNIROUTE_API_KEY:-}" ]] && omni_headers=(-H "Authorization: Bearer $OMNIROUTE_API_KEY")
+  local omni_auth=""
+  omni_auth="$(omniroute_gateway_auth)"
   local catalog=""
   if command -v curl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-    catalog="$(curl -fsS --connect-timeout 1 --max-time 3 "${omni_headers[@]}" "$omni_base/models" 2>/dev/null || true)"
+    catalog="$(omniroute_catalog_fetch "$omni_base/models" "$omni_auth" 2>/dev/null || true)"
     if jq -e 'type == "object" and (.data|type == "array")' <<< "$catalog" >/dev/null 2>&1; then
       jq -c . <<< "$catalog"
       return
@@ -335,8 +363,15 @@ apply_portfolio_promotion_overlay() {
 }
 
 routing_policy_mode() {
-  case "${TEMPERANCE_ROUTING_POLICY:-shadow}" in
-    off|shadow|enforce) printf '%s\n' "${TEMPERANCE_ROUTING_POLICY:-shadow}" ;;
+  local configured="${TEMPERANCE_ROUTING_POLICY:-}" policy_file
+  if [[ -z "$configured" ]]; then
+    policy_file="${TEMPERANCE_ROUTING_POLICY_FILE:-${TEMPERANCE_STATE_DIR:-$HOME/.temperance_engine/state}/routing-policy-mode}"
+    if [[ -f "$policy_file" ]]; then
+      IFS= read -r configured < "$policy_file" || configured=""
+    fi
+  fi
+  case "${configured:-shadow}" in
+    off|shadow|enforce) printf '%s\n' "${configured:-shadow}" ;;
     *) printf '%s\n' "shadow" ;;
   esac
 }
@@ -509,7 +544,7 @@ route_plan_for_type_json() { # task_type [force_backend] [force_model] [disposit
   if command -v bun >/dev/null 2>&1 && [[ -f "$POLICY_RUNNER" ]]; then
     output="$(printf '%s' "$input" | bun "$POLICY_RUNNER" plan 2>/dev/null)" || output=""
     if [[ -n "$output" ]] && valid_policy_plan <<< "$output"; then
-      if [[ "$mode" == "enforce" && "${TEMPERANCE_ROUTING_CLAIM_PROBES:-0}" == "1" ]]; then
+      if [[ "$mode" == "enforce" && "${TEMPERANCE_ROUTING_CLAIM_PROBES:-1}" == "1" ]]; then
         local probe_backend claim_result claimed lease_ms
         lease_ms="${TEMPERANCE_ROUTING_PROBE_LEASE_MS:-600000}"
         while IFS= read -r probe_backend; do

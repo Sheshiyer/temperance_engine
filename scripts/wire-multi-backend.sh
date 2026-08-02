@@ -16,6 +16,7 @@
 #   ./scripts/wire-multi-backend.sh --revert     # Undo changes
 #   ./scripts/wire-multi-backend.sh --status     # Check current state
 #   ./scripts/wire-multi-backend.sh --refresh-enrich # Refresh the shared core
+#   ./scripts/wire-multi-backend.sh --refresh-enrich-only # Refresh only shared core
 #   ./scripts/wire-multi-backend.sh --refresh-hooks  # Replace prompt adapters
 
 set -euo pipefail
@@ -23,12 +24,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="${HOME}/.temperance_engine/backups/${TIMESTAMP}"
+BACKUP_ROOT="${TEMPERANCE_BACKUP_DIR:-${HOME}/.temperance_engine/backups}"
+# Multiple idempotency/revert probes can run within one second. Include the
+# process id so separate invocations never reuse a backup directory and copy a
+# directory onto a same-named symlink from an earlier invocation.
+BACKUP_DIR="${BACKUP_ROOT}/${TIMESTAMP}-$$"
 
 DRY_RUN=false
 REVERT=false
 STATUS=false
 REFRESH_ENRICH=false
+REFRESH_ENRICH_ONLY=false
 REFRESH_HOOKS=false
 
 # Parse args
@@ -38,9 +44,10 @@ for arg in "$@"; do
     --revert) REVERT=true ;;
     --status) STATUS=true ;;
     --refresh-enrich) REFRESH_ENRICH=true ;;
+    --refresh-enrich-only) REFRESH_ENRICH=true; REFRESH_ENRICH_ONLY=true ;;
     --refresh-hooks) REFRESH_HOOKS=true ;;
     -h|--help)
-      echo "Usage: $0 [--dry-run] [--revert] [--status] [--refresh-enrich] [--refresh-hooks]"
+      echo "Usage: $0 [--dry-run] [--revert] [--status] [--refresh-enrich] [--refresh-enrich-only] [--refresh-hooks]"
       exit 0
       ;;
   esac
@@ -81,6 +88,45 @@ backup_dir() {
       cp -RP "$src" "$BACKUP_DIR/$name"
       log "Backed up directory: $src → $BACKUP_DIR/$name"
     fi
+  fi
+}
+
+backup_existing_path() {
+  local src="$1"
+  [[ -e "$src" || -L "$src" ]] || return 0
+  local name
+  name=$(basename "$src")
+  if [[ -L "$src" || -f "$src" ]]; then
+    if $DRY_RUN; then
+      log "Would backup: $src → $BACKUP_DIR/$name"
+    else
+      if ! mkdir -p "$BACKUP_DIR"; then
+        warn "Failed to create backup directory: $BACKUP_DIR"
+        return 1
+      fi
+      if ! cp -P "$src" "$BACKUP_DIR/$name"; then
+        warn "Failed to backup path: $src"
+        return 1
+      fi
+      log "Backed up: $src → $BACKUP_DIR/$name"
+    fi
+  elif [[ -d "$src" ]]; then
+    if $DRY_RUN; then
+      log "Would backup directory: $src → $BACKUP_DIR/$name"
+    else
+      if ! mkdir -p "$BACKUP_DIR"; then
+        warn "Failed to create backup directory: $BACKUP_DIR"
+        return 1
+      fi
+      if ! cp -RP "$src" "$BACKUP_DIR/$name"; then
+        warn "Failed to backup directory: $src"
+        return 1
+      fi
+      log "Backed up directory: $src → $BACKUP_DIR/$name"
+    fi
+  else
+    warn "Refusing unsupported destination type: $src"
+    return 1
   fi
 }
 
@@ -141,22 +187,51 @@ copy_skill_dir() {
 ensure_enrichment_core() {
   local src="$REPO_ROOT/package/enrich"
   local dst="$HOME/.claude/PAI/enrich"
+  local parent staged retired=""
   [[ -d "$src" ]] || err "Shared enrichment source missing: $src"
   if [[ -d "$dst" && "$REFRESH_ENRICH" != true ]]; then
     log "Shared enrichment core already present; preserving $dst"
     return
   fi
   if $DRY_RUN; then
-    [[ -e "$dst" ]] && log "Would backup directory: $dst → $BACKUP_DIR/enrich"
+    if [[ -e "$dst" || -L "$dst" ]]; then
+      backup_existing_path "$dst" || err "Unsupported enrichment destination: $dst"
+    fi
     log "Would install shared enrichment core: $dst → $src"
     return
   fi
-  if [[ -e "$dst" ]]; then
-    backup_dir "$dst"
-    rm -rf "$dst"
+
+  # Build the full replacement beside the destination before touching the live
+  # path. A copy failure therefore leaves the prior core byte-intact.
+  parent=$(dirname "$dst")
+  mkdir -p "$parent"
+  staged=$(mktemp -d "$parent/.enrich.staging.XXXXXX")
+  if ! cp -R "$src/." "$staged/"; then
+    rm -rf "$staged"
+    err "Failed to stage shared enrichment core from $src"
   fi
-  mkdir -p "$(dirname "$dst")"
-  cp -R "$src" "$dst"
+
+  if [[ -e "$dst" || -L "$dst" ]]; then
+    if ! backup_existing_path "$dst"; then
+      rm -rf "$staged"
+      err "Refusing to replace unsupported enrichment destination: $dst"
+    fi
+    retired=$(mktemp -d "$parent/.enrich.previous.XXXXXX")
+    rmdir "$retired"
+    if ! mv "$dst" "$retired"; then
+      rm -rf "$staged"
+      err "Failed to retire prior enrichment core: $dst"
+    fi
+  fi
+
+  if ! mv "$staged" "$dst"; then
+    rm -rf "$staged"
+    if [[ -n "$retired" && ! -e "$dst" && ! -L "$dst" ]]; then
+      mv "$retired" "$dst" || err "Install failed and prior enrichment restore also failed: $retired"
+    fi
+    err "Failed to promote staged enrichment core: $dst"
+  fi
+  [[ -z "$retired" ]] || rm -rf "$retired"
   log "Installed shared enrichment core: $dst"
 }
 
@@ -172,6 +247,15 @@ ensure_prompt_hook() {
     return
   fi
   symlink "$src" "$dst"
+}
+
+refresh_enrichment_only() {
+  log "Refreshing only the shared enrichment core..."
+  $DRY_RUN && log "(DRY RUN - no changes will be made)"
+  ensure_enrichment_core
+  if ! $DRY_RUN; then
+    log "Scoped enrichment refresh complete: $HOME/.claude/PAI/enrich"
+  fi
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -219,6 +303,20 @@ check_status() {
   else
     echo "   [NOT INSTALLED] ~/.local/bin/temperance-batch"
   fi
+  echo ""
+
+  # Governed native launchers
+  local launcher launcher_target
+  for launcher in temperance-opencode temperance-claude; do
+    if [[ -L "$HOME/.local/bin/$launcher" ]]; then
+      launcher_target=$(readlink "$HOME/.local/bin/$launcher")
+      echo "   [INSTALLED] ~/.local/bin/$launcher → $launcher_target"
+    elif [[ -f "$HOME/.local/bin/$launcher" ]]; then
+      echo "   [INSTALLED] ~/.local/bin/$launcher (file, not symlink)"
+    else
+      echo "   [NOT INSTALLED] ~/.local/bin/$launcher"
+    fi
+  done
   echo ""
 
   # Claude Code
@@ -328,26 +426,28 @@ revert() {
   log "Reverting multi-backend wiring..."
   
   # List available backups
-  if [[ ! -d "$HOME/.temperance_engine/backups" ]]; then
+  if [[ ! -d "$BACKUP_ROOT" ]]; then
     warn "No backups found at ~/.temperance_engine/backups/"
     return 1
   fi
   
   local latest
-  latest=$(ls -1t "$HOME/.temperance_engine/backups" 2>/dev/null | head -1)
+  latest=$(ls -1t "$BACKUP_ROOT" 2>/dev/null | head -1)
   
   if [[ -z "$latest" ]]; then
     warn "No backups found"
     return 1
   fi
   
-  local backup_path="$HOME/.temperance_engine/backups/$latest"
+  local backup_path="$BACKUP_ROOT/$latest"
   log "Using backup: $backup_path"
   
   # Remove symlinks we created
   [[ -L "$HOME/.local/bin/temperance-route" ]] && rm -f "$HOME/.local/bin/temperance-route" && log "Removed: ~/.local/bin/temperance-route"
   [[ -L "$HOME/.local/bin/temperance-dispatch" ]] && rm -f "$HOME/.local/bin/temperance-dispatch" && log "Removed: ~/.local/bin/temperance-dispatch"
   [[ -L "$HOME/.local/bin/temperance-batch" ]] && rm -f "$HOME/.local/bin/temperance-batch" && log "Removed: ~/.local/bin/temperance-batch"
+  [[ -L "$HOME/.local/bin/temperance-opencode" ]] && rm -f "$HOME/.local/bin/temperance-opencode" && log "Removed: ~/.local/bin/temperance-opencode"
+  [[ -L "$HOME/.local/bin/temperance-claude" ]] && rm -f "$HOME/.local/bin/temperance-claude" && log "Removed: ~/.local/bin/temperance-claude"
   for router_file in classify-task.sh omniroute-portfolios.ts omniroute-portfolios.json; do
     [[ -L "$HOME/.claude/PAI/router/$router_file" ]] && rm -f "$HOME/.claude/PAI/router/$router_file" && log "Removed: ~/.claude/PAI/router/$router_file"
   done
@@ -385,6 +485,8 @@ install() {
   symlink "$REPO_ROOT/package/router/multi-backend-router.sh" "$HOME/.local/bin/temperance-route"
   symlink "$REPO_ROOT/package/router/parallel-backend-dispatch.sh" "$HOME/.local/bin/temperance-dispatch"
   symlink "$REPO_ROOT/package/router/dispatch-tasklist.sh" "$HOME/.local/bin/temperance-batch"
+  symlink "$REPO_ROOT/package/router/omniroute-opencode.sh" "$HOME/.local/bin/temperance-opencode"
+  symlink "$REPO_ROOT/package/router/omniroute-claude.sh" "$HOME/.local/bin/temperance-claude"
 
   # Co-locate the shared classifier at the PAI router path so the installed
   # enrichment hook (enrich/stages/routing.ts) resolves its
@@ -508,7 +610,9 @@ install() {
 # ─────────────────────────────────────────────────────────────────────────────
 
 main() {
-  if $STATUS; then
+  if $REFRESH_ENRICH_ONLY; then
+    refresh_enrichment_only
+  elif $STATUS; then
     check_status
   elif $REVERT; then
     revert

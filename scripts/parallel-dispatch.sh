@@ -15,6 +15,7 @@
 # ]
 
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -91,6 +92,7 @@ done
 
 # Setup directories
 mkdir -p "$DISPATCH_DIR" "$LOG_DIR"
+mkdir -p "$DISPATCH_DIR/workspaces"
 TIMESTAMP=$(date +%Y%m%dT%H%M%S)
 RESULT_DIR="${OUTPUT_DIR:-$DISPATCH_DIR/results/$TIMESTAMP}"
 mkdir -p "$RESULT_DIR"
@@ -99,39 +101,29 @@ mkdir -p "$RESULT_DIR"
 generate_workspace() {
   local task="$1"
   local model="$2"
-  local workspace="$DISPATCH_DIR/workspaces/${model//\//_}_$$"
+  local safe_model="${model//\//_}"
+  local workspace
+  workspace=$(mktemp -d "$DISPATCH_DIR/workspaces/${safe_model}.XXXXXX")
+  chmod 700 "$workspace"
   
-  mkdir -p "$workspace"
-  
-  # Generate AGENTS.md with SP0 enrichment (bash adapter)
-  if [[ -x "$ADAPTER" ]]; then
-    "$ADAPTER" \
-      --task "$task" \
-      --cwd "$CWD" \
-      --model "$model" \
-      --max-turns "$MAX_TURNS" \
-      > "$workspace/AGENTS.md" 2>/dev/null || {
-        # Fallback: create minimal AGENTS.md
-        cat > "$workspace/AGENTS.md" <<EOF
-# Task Context
-
-**Objective:** $task
-**Model:** $model
-
-Follow best practices and verify your work.
-EOF
-      }
-  else
-    # Fallback: create minimal AGENTS.md
-    cat > "$workspace/AGENTS.md" <<EOF
-# Task Context
-
-**Objective:** $task
-**Model:** $model
-
-Follow best practices and verify your work.
-EOF
+  if [[ ! -x "$ADAPTER" ]]; then
+    echo "[dispatch] Command Code adapter unavailable: $ADAPTER" >&2
+    return 127
   fi
+
+  local agents_tmp="$workspace/AGENTS.md.tmp"
+  if ! "$ADAPTER" \
+    --task "$task" \
+    --cwd "$CWD" \
+    --model "$model" \
+    --max-turns "$MAX_TURNS" \
+    > "$agents_tmp" 2> "$workspace/adapter.err"; then
+    rm -f "$agents_tmp"
+    echo "[dispatch] Refusing Command Code launch without governed AGENTS.md" >&2
+    return 1
+  fi
+  chmod 600 "$agents_tmp" "$workspace/adapter.err"
+  mv "$agents_tmp" "$workspace/AGENTS.md"
   
   echo "$workspace"
 }
@@ -202,7 +194,7 @@ dispatch_compare() {
   for model in "${COMPARE_MODELS[@]}"; do
     dispatch_one "$task" "$model" "$id" &
     pids+=($!)
-    ((id++))
+    id=$((id + 1))
   done
   
   echo "[dispatch] Waiting for ${#pids[@]} processes..."
@@ -210,7 +202,7 @@ dispatch_compare() {
   local failed=0
   for pid in "${pids[@]}"; do
     if ! wait "$pid"; then
-      ((failed++))
+      failed=$((failed + 1))
     fi
   done
   
@@ -261,7 +253,7 @@ dispatch_tasks_file() {
     
     dispatch_one "$task" "$model" "$id" &
     pids+=($!)
-    ((id++))
+    id=$((id + 1))
   done < <(jq -c '.[]' "$file")
   
   echo "[dispatch] Waiting for ${#pids[@]} processes..."
@@ -269,7 +261,7 @@ dispatch_tasks_file() {
   local failed=0
   for pid in "${pids[@]}"; do
     if ! wait "$pid"; then
-      ((failed++))
+      failed=$((failed + 1))
     fi
   done
   

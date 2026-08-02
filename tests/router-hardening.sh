@@ -3,6 +3,15 @@ set -uo pipefail
 R="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/package/router/multi-backend-router.sh"
 PORTFOLIO_CATALOG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/tests/fixtures/omniroute-models.json"
 EMPTY_PORTFOLIO_CATALOG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/tests/fixtures/omniroute-models-empty.json"
+ROUTING_TEST_TMP="$(mktemp -d)"
+trap 'rm -rf "$ROUTING_TEST_TMP"' EXIT
+
+# This suite verifies the router's deterministic compatibility contract, not
+# the current host's promoted policy or accumulated production observations.
+# Keep its mode and state hermetic now that per-host enforcement can be live.
+export TEMPERANCE_STATE_DIR="$ROUTING_TEST_TMP/state"
+export TEMPERANCE_ROUTING_STATE="$ROUTING_TEST_TMP/routing-observations.json"
+export TEMPERANCE_ROUTING_POLICY=shadow
 fail=0
 check() { # desc, expected, actual
   if [[ "$2" == "$3" ]]; then echo "ok - $1"; else echo "FAIL - $1: expected [$2] got [$3]"; fail=1; fi

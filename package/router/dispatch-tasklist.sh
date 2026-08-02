@@ -69,7 +69,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -z "$OUT" ]] && OUT="$(mktemp -d)"
-mkdir -p "$OUT"
+if ! mkdir -p "$OUT" \
+    || [[ ! -d "$OUT" || -L "$OUT" ]] \
+    || ! chmod 700 "$OUT"; then
+  echo "cannot establish private dispatcher output directory: $OUT" >&2
+  exit 5
+fi
 # Sanitize RUNTAG: it flows verbatim into the worktree branch name
 # te-dispatch/$RUNTAG/$id, so any git-illegal char here (space, colon, etc.)
 # would make `git worktree add -b` fail for every task with a generic
@@ -178,7 +183,7 @@ write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [at
       plan_path:(if $plan_path=="" then null else $plan_path end),
       attempts:$attempts,
       merged:null}' \
-    > "$f.tmp" && mv -f "$f.tmp" "$f"
+    > "$f.tmp" && mv -f "$f.tmp" "$f" && chmod 600 "$f"
 }
 
 # set_merged: id merged_value("true"|"false") -> patch the .meta.json's
@@ -189,7 +194,7 @@ write_meta(){ # id task backend model exit dur status [worktree] [diff_path] [at
 set_merged(){ # id merged("true"|"false")
   local f="$OUT/$1.meta.json"
   [[ -f "$f" ]] || return 0
-  jq --argjson mv "$2" '.merged = $mv' "$f" > "$f.tmp" && mv -f "$f.tmp" "$f"
+  jq --argjson mv "$2" '.merged = $mv' "$f" > "$f.tmp" && mv -f "$f.tmp" "$f" && chmod 600 "$f"
 }
 
 # build_index_json: (re)assemble $OUT/index.json from the current
@@ -211,7 +216,28 @@ build_index_json(){
      timeout:(map(select(.status=="timeout"))|length),
      skipped:(map(select(.status|startswith("skipped")))|length),
      unavailable:(map(select(.status=="unavailable"))|length)}}' \
-     "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json"
+     "$OUT"/*.meta.json > "$OUT/index.json.tmp" && mv -f "$OUT/index.json.tmp" "$OUT/index.json" && chmod 600 "$OUT/index.json"
+}
+
+ensure_dispatcher_artifact_permissions(){
+  chmod 700 "$OUT" || return 1
+  (
+    shopt -s nullglob
+    local path
+    for path in \
+      "$OUT"/*.plan.json \
+      "$OUT"/*.out \
+      "$OUT"/*.meta.json \
+      "$OUT"/*.diff \
+      "$OUT"/SUMMARY.md \
+      "$OUT"/index.json \
+      "$OUT"/.leaks \
+      "$OUT"/MERGE-REPORT.md
+    do
+      [[ -f "$path" ]] || continue
+      chmod 600 "$path" || exit 1
+    done
+  )
 }
 
 # attempt_record: backend model exit dur status -> one jq-built attempt object
@@ -244,6 +270,53 @@ epoch_ms(){
   fi
 }
 
+new_dispatch_execution_id(){
+  printf '%s_%s_%s%s' "$(epoch_ms)" "$$" "$RANDOM" "$RANDOM"
+}
+
+task_correlation_id(){ # execution_id task_index task_id
+  printf 'tc_exec_%s_task_%s_%s' "$1" "$2" "$3"
+}
+
+omniroute_output_is_valid(){ # output file
+  local output_file="$1"
+  [[ -s "$output_file" ]] || return 1
+  LC_ALL=C awk '
+    function invalid_terminal_line(value, lower, letters, copy) {
+      lower=tolower(value)
+      if (lower == "no") return 1
+      if (lower ~ /^[[:space:][:punct:]]*(error|warn|warning)?[[:space:][:punct:]]*(output|response|content|reasoning|text|item)[[:alnum:]_.:-]*[[:space:][:punct:]]+(without|no)[[:space:]]+(an[[:space:]]+)?active[[:space:]]+item[[:space:][:punct:]]*$/) return 1
+      # A broken Responses stream can terminate with a fragment such as "AL"
+      # while the client exits zero. Require a minimally substantive terminal
+      # item so transport debris cannot become an accepted worker result.
+      copy=value
+      letters=gsub(/[[:alpha:]]/, "", copy)
+      return length(value) < 24 || letters < 12
+    }
+    {
+      line=$0
+      sub(/\r$/, "", line)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+      if (line == "") next
+      if (tolower(line) == "tokens used") {
+        after_tokens=1
+        tail=""
+        next
+      }
+      last=line
+      if (after_tokens) {
+        if (tail == "" && line ~ /^[0-9][0-9,._[:space:]]*$/) next
+        tail=line
+      }
+    }
+    END {
+      candidate=after_tokens ? tail : last
+      if (candidate == "" || invalid_terminal_line(candidate)) exit 1
+      exit 0
+    }
+  ' "$output_file"
+}
+
 # kill_tree PID — kill a process and all its descendants (portable, no setsid;
 # macOS has no GNU timeout/gtimeout). Recursively walks pgrep -P before killing
 # the parent so children don't get orphaned and outlive the watchdog.
@@ -251,6 +324,17 @@ kill_tree(){
   local p="$1" c
   for c in $(pgrep -P "$p" 2>/dev/null); do kill_tree "$c"; done
   kill -TERM "$p" 2>/dev/null
+}
+
+# freeze_tree PID — stop a worker and every descendant before cancellation.
+# Stopping each parent before enumerating its children closes the fork race:
+# once STOP lands, that process cannot create a new descendant between the
+# pgrep walk and the final KILL. PIDs are emitted leaf-first for termination.
+freeze_tree(){
+  local p="$1" c
+  kill -STOP "$p" 2>/dev/null || return 0
+  for c in $(pgrep -P "$p" 2>/dev/null); do freeze_tree "$c"; done
+  printf '%s\n' "$p"
 }
 
 # diff_files: diff_path -> one file path per line touched by that diff.
@@ -698,6 +782,10 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json correlation_id
   for ((i=0; i<${#fb_backends[@]}; i++)); do
     fbk="${fb_backends[i]}"; fmk="${fb_models[i]}"; fdomain="${fb_domains[i]}"
     IFS=$'\t' read -r ex dur start_ms finish_ms < <(run_attempt "$fbk" "$task" "$fmk" "$OUT/$id.out" "$TIMEOUT" "$correlation_id")
+    if (( ex == 0 )) && [[ "$fbk" == "omniroute" ]] \
+        && ! omniroute_output_is_valid "$OUT/$id.out"; then
+      ex=65
+    fi
     if (( ex == 124 )); then st="timeout"
     elif (( ex != 0 )); then st="failed"
     else st="ok"
@@ -731,6 +819,7 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json correlation_id
       else
         # Real leak — record it so the batch's SUMMARY tells the truth
         printf '%s\t%s\t%s\n' "$id" "$TASK_WT" "$branch" >> "$OUT/.leaks"
+        chmod 600 "$OUT/.leaks"
       fi
     fi
   fi
@@ -744,20 +833,26 @@ run_one(){ # id task rb rm plan_path plan_id selected_order_json correlation_id
 n=$(echo "$raw" | jq 'length')
 declare -a ROUTE_BACKEND ROUTE_MODEL ROUTE_STATUS ROUTE_PLAN_PATH ROUTE_PLAN_ID ROUTE_SELECTED_JSON ROUTE_CORRELATION_ID
 any_dispatch=false
+dispatch_execution_id="$(new_dispatch_execution_id)"
 for ((i=0; i<n; i++)); do
   id=$(echo "$raw"   | jq -r ".[$i].id")
   task=$(echo "$raw" | jq -r ".[$i].task")
   backend=$(echo "$raw" | jq -r ".[$i].backend // \"auto\"")
   model=$(echo "$raw"   | jq -r ".[$i].model // \"auto\"")
   plan_path="$OUT/$id.plan.json"
+  frozen_correlation_id="$(task_correlation_id "$dispatch_execution_id" "$i" "$id")"
   if route_plan "$id" "$task" "$backend" "$model" > "$plan_path.tmp" \
+      && jq --arg correlation_id "$frozen_correlation_id" \
+        '.correlation_id=$correlation_id' "$plan_path.tmp" > "$plan_path.correlated.tmp" \
+      && mv -f "$plan_path.correlated.tmp" "$plan_path.tmp" \
       && valid_dispatch_plan "$plan_path.tmp"; then
     : # Cache every execution field from the private temp file before publish.
   else
-    rm -f "$plan_path.tmp"
-    jq -n --arg id "$id" --argjson now "$(( $(date +%s) * 1000 ))" \
+    rm -f "$plan_path.tmp" "$plan_path.correlated.tmp"
+    jq -n --arg id "$id" --arg correlation_id "$frozen_correlation_id" \
+      --argjson now "$(( $(date +%s) * 1000 ))" \
       '{policy_version:"unavailable",mode:"off",plan_id:("rp_unavailable_"+$id),
-      correlation_id:("tc_unavailable_"+$id),input_hash:"unavailable",task_type:"unknown",decision_time_ms:$now,diverged:false,
+      correlation_id:$correlation_id,input_hash:"unavailable",task_type:"unknown",decision_time_ms:$now,diverged:false,
       status:"unavailable",static_order:[],
       proposed_order:[],selected_order:[],candidates:[]}' > "$plan_path.tmp"
   fi
@@ -782,6 +877,7 @@ for ((i=0; i<n; i++)); do
   ROUTE_CORRELATION_ID[i]="$correlation_id"
   ROUTE_SELECTED_JSON[i]="$selected_json"
   mv -f "$plan_path.tmp" "$plan_path"
+  chmod 600 "$plan_path"
 done
 
 # Phantom-route guard (spec sec 9.G16): if nothing classified as dispatch AND
@@ -797,9 +893,40 @@ fi
 
 # --- dispatch loop + wait + assembly (W5: runs foreground or backgrounded) ---
 run_batch(){
-  # Force-cleanup outstanding worktrees on any exit (SIGINT/SIGTERM/normal).
-  # Only relevant when --worktree is active; harmless otherwise (glob no-match).
-  trap '
+  # Cancel and reap every worker before touching worktrees or hardening retained
+  # artifacts. Otherwise a worker that survives the wrapper's signal can create
+  # a late diff/meta after the EXIT trap, bypassing the final chmod pass.
+  declare -a WORKER_PIDS=()
+  terminate_worker_jobs(){
+    local -a roots=() frozen=()
+    local root pid
+    mapfile -t roots < <(jobs -pr)
+    for root in "${roots[@]}"; do
+      while IFS= read -r pid; do
+        [[ -n "$pid" ]] && frozen+=("$pid")
+      done < <(freeze_tree "$root")
+    done
+    for pid in "${frozen[@]}"; do
+      kill -KILL "$pid" 2>/dev/null || true
+    done
+    for root in "${roots[@]}"; do
+      wait "$root" 2>/dev/null || true
+    done
+    # Reap completed workers too. Some may already have been consumed by
+    # wait -n; a second wait then returns immediately and is harmless.
+    for root in "${WORKER_PIDS[@]}"; do
+      wait "$root" 2>/dev/null || true
+    done
+  }
+
+  # Force-clean outstanding workers/worktrees and harden retained dispatcher
+  # artifacts on every exit, including SIGINT/SIGTERM. The signal traps convert
+  # the signal into an exit status; the EXIT trap then runs this function exactly
+  # once. Permission failure upgrades an otherwise-successful run to exit 5.
+  cleanup_run_batch(){
+    local prior_status="$1"
+    trap - EXIT INT TERM
+    terminate_worker_jobs
     if $WORKTREE; then
       for _d in "$OUT"/wt-*; do
         [[ -d "$_d" ]] || continue
@@ -812,7 +939,15 @@ run_batch(){
         git branch -D "$_b" 2>/dev/null || true
       done
     fi
-  ' EXIT INT TERM
+    if ! ensure_dispatcher_artifact_permissions; then
+      echo "failed to secure dispatcher artifacts: $OUT" >&2
+      (( prior_status == 0 )) && prior_status=5
+    fi
+    exit "$prior_status"
+  }
+  trap 'cleanup_run_batch "$?"' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
   # iterate tasks, reusing the pre-classification pass's cached routes so the
   # router is never invoked twice for the same task.
   for ((i=0; i<n; i++)); do
@@ -828,6 +963,7 @@ run_batch(){
       dispatch)
         while (( $(jobs -rp | wc -l) >= CONCURRENCY )); do wait -n; done
         run_one "$id" "$task" "$rb" "$rm" "$plan_path" "$plan_id" "$selected_json" "$correlation_id" &
+        WORKER_PIDS+=("$!")
         ;;
       *) write_meta "$id" "$task" "$rb" "$rm" 0 0 "$status" "" "" "[]" "$plan_id" "$plan_path" "$correlation_id" ;;
     esac
@@ -839,6 +975,7 @@ run_batch(){
     { echo "# Dispatch run: $OUT"; echo
       jq -r '.tasks[] | "- [\(.status)] \(.id) (\(.backend):\(.model)) exit=\(.exit) \(.duration_s)s"' "$OUT/index.json"
     } > "$OUT/SUMMARY.md"
+    chmod 600 "$OUT/SUMMARY.md"
     if [[ -s "$OUT/.leaks" ]]; then
       {
         echo ""
@@ -850,9 +987,14 @@ run_batch(){
         echo ""
         echo 'Clean up manually: `git worktree remove --force --force <path>` then `git branch -D <branch>`.'
       } >> "$OUT/SUMMARY.md"
+      chmod 600 "$OUT/SUMMARY.md" "$OUT/.leaks"
     fi
     if $WORKTREE && $APPLY_WORKTREE; then
       apply_worktree_merges
+    fi
+    if ! ensure_dispatcher_artifact_permissions; then
+      echo "failed to secure dispatcher artifacts: $OUT" >&2
+      return 5
     fi
     # Parent-owned observation reduction: all worker attempts are complete,
     # so one locked atomic write updates cross-run backend facts. Failure is
