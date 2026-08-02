@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Spawned only by omniroute-claude.sh through OmniRoute's native launch path.
+# Native launch copies its own environment, so remove the duplicate gateway-key
+# name before the real Claude Code process begins. ANTHROPIC_AUTH_TOKEN remains
+# because that is the client's required Bearer credential.
+
+[ "${TEMPERANCE_OMNIROUTE_CLAUDE_LAUNCH:-}" = 1 ] || {
+  printf 'refusing Claude scrubber outside governed launcher\n' >&2
+  exit 78
+}
+
+real_claude="${TEMPERANCE_REAL_CLAUDE_BIN:-}"
+[ -n "$real_claude" ] && [ -x "$real_claude" ] || {
+  printf 'real claude CLI unavailable to scrubber\n' >&2
+  exit 127
+}
+case "$real_claude" in
+  /*) ;;
+  *) printf 'real claude CLI must be absolute\n' >&2; exit 127 ;;
+esac
+[ "$real_claude" != "$0" ] || { printf 'refusing recursive Claude scrubber\n' >&2; exit 127; }
+
+unset OMNIROUTE_API_KEY OMNIROUTE_CONTEXT TEMPERANCE_REAL_CLAUDE_BIN
+unset TEMPERANCE_OMNIROUTE_CLAUDE_KEYCHAIN_SERVICE TEMPERANCE_SECURITY_BIN TEMPERANCE_OMNIROUTE_BIN
+
+exec "$real_claude" "$@"
