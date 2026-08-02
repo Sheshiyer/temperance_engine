@@ -4,13 +4,13 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { automaticReadiness, handleProxyRequest, injectContext, latestUserPrompt, readSessionContext, resolveRoute } from "./temperance-openai-proxy"
 
-function plan(model = "te-build") {
+function plan(model = "te-build", portfolio = "te-build") {
   return {
     plan_id: "rp_test",
     correlation_id: "tc_test",
     task_type: "long-horizon",
     selected_order: [{ backend: "omniroute", model }],
-    portfolio: { requested_portfolio: "te-build", selected_model: model, source: "portfolio", enforcement: "shadow" },
+    portfolio: { requested_portfolio: portfolio, selected_model: model, source: "portfolio", enforcement: "shadow" },
   }
 }
 
@@ -359,13 +359,13 @@ describe("Temperance OpenAI proxy", () => {
     expect(response.headers.get("x-omniroute-compression")).toBeNull()
   })
 
-  test("canonicalizes a mixed-case compression header after route metadata", async () => {
+  test("canonicalizes a mixed-case compression header after route metadata for a non-allowlisted portfolio", async () => {
     let outbound = new Headers()
     await handleProxyRequest(request({
       model: "temperance-auto",
       messages: [{ role: "user", content: "route without compression" }],
     }, false, { "X-OmNiRoUtE-CoMpReSsIoN": "engine:caveman" }), {
-      planRunner: async () => plan("te-build"),
+      planRunner: async () => plan("te-plan", "te-plan"),
       upstreamFetch: async (_url, init) => {
         outbound = new Headers(init?.headers)
         return new Response(JSON.stringify({ choices: [] }), {
@@ -380,6 +380,45 @@ describe("Temperance OpenAI proxy", () => {
     )
     expect(compressionEntries).toEqual([["x-omniroute-compression", "off"]])
     expect(outbound.get("x-temperance-route-source")).toBe("frozen-plan")
+  })
+
+  test("allowlisted portfolio gets its named compression engine, overriding client input", async () => {
+    let outbound = new Headers()
+    await handleProxyRequest(request({
+      model: "temperance-auto",
+      messages: [{ role: "user", content: "route through a compression-eligible lane" }],
+    }, false, { "x-omniroute-compression": "on" }), {
+      planRunner: async () => plan("te-build", "te-build"),
+      upstreamFetch: async (_url, init) => {
+        outbound = new Headers(init?.headers)
+        return new Response(JSON.stringify({ choices: [] }), {
+          headers: { "content-type": "application/json" },
+        })
+      },
+      requestId: () => "compression-allowlisted",
+    })
+    expect(outbound.get("x-omniroute-compression")).toBe("lite")
+  })
+
+  test("compression allowlist covers exactly the throughput lanes, fails closed for everything else", async () => {
+    const allowlisted = ["te-fast", "te-build", "te-dispatch", "te-free-burst"]
+    const excluded = ["te-algorithm", "te-plan", "te-validate", "te-review", "te-swarm-s", "te-write", "unknown-portfolio"]
+    for (const portfolio of [...allowlisted, ...excluded]) {
+      let outbound = new Headers()
+      await handleProxyRequest(request({
+        model: "temperance-auto",
+        messages: [{ role: "user", content: `route via ${portfolio}` }],
+      }), {
+        planRunner: async () => plan("te-build", portfolio),
+        upstreamFetch: async (_url, init) => {
+          outbound = new Headers(init?.headers)
+          return new Response(JSON.stringify({ choices: [] }), { headers: { "content-type": "application/json" } })
+        },
+        requestId: () => `compression-allowlist-${portfolio}`,
+      })
+      const expected = allowlisted.includes(portfolio) ? "lite" : "off"
+      expect(outbound.get("x-omniroute-compression")).toBe(expected)
+    }
   })
 
   test("preserves streaming bytes and forwards frozen-plan headers", async () => {

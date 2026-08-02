@@ -68,8 +68,20 @@ Apply preserves unrelated provider headers, removes every case-insensitive
 variant of `x-omniroute-compression`, and installs exactly one canonical
 `x-omniroute-compression: off` value on both enabled providers. Validation reads
 OpenCode's resolved configuration and fails if either effective provider differs.
-The relay also overwrites the header at its final outbound boundary. This does
-not enable compression and does not change the Algorithm/S readiness gate.
+
+**The relay's own outbound boundary is the actual authority, not this
+manifest field.** `temperance-openai-proxy.ts`'s `enforceCompressionBoundary()`
+always overwrites whatever header OpenCode (or any other caller) sent, so this
+manifest's `mode: "off"` only ever controlled OpenCode's own default -- a
+value the relay ignored anyway. As of 2026-08-02 the relay applies a
+fail-closed, portfolio-scoped allowlist (`COMPRESSION_ENGINE_ALLOWLIST` in
+`temperance-openai-proxy.ts`): `te-fast`, `te-build`, `te-dispatch`, and
+`te-free-burst` get `lite` (whitespace/format cleanup only, live-probed
+against `/api/compression/preview` with a real `<temperance-context>`
+wrapper -- see design doc §2's 2026-08-02 implementation note); every other
+portfolio, including an unresolved one, still gets `off`. This does not
+change the Algorithm/S readiness gate -- `te-algorithm` and `te-plan` are
+deliberately excluded from the allowlist, same as before.
 
 ## Algorithm/S readiness gate
 

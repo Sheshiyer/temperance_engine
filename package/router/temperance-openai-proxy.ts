@@ -30,7 +30,30 @@ const SESSION_CONTEXT_SCHEMA = "temperance-kimi-session-v1"
 const DEFAULT_PORT = 20129
 const DEFAULT_UPSTREAM = "http://127.0.0.1:20128/v1"
 const OMNIROUTE_COMPRESSION_HEADER = "x-omniroute-compression"
-const OMNIROUTE_COMPRESSION_MODE = "off"
+const OMNIROUTE_COMPRESSION_DEFAULT_MODE = "off"
+/**
+ * Portfolio-scoped compression allowlist (fail-closed: unlisted or unresolved
+ * portfolios stay "off"). Only `lite` is listed -- live-probed against
+ * `/api/compression/preview` with a real `<temperance-context>` wrapper plus
+ * the full PAI/GSD/ISA/tool-schema/receipt marker set (see design doc
+ * 2026-08-02-memory-compression-freetier-leverage-design.md §2): all markers
+ * survived exactly-once and in-order after real whitespace compression fired.
+ * `headroom` stayed unproven (no eligible content found in two live attempts)
+ * and is deliberately not listed here.
+ *
+ * Scope is intentionally narrow: bounded, disposable, throughput-oriented
+ * lanes only (fast/build/dispatch-worker/free-burst). Excluded by design:
+ * te-algorithm (the S-tier route), te-plan (protect_from_worker_fanout),
+ * te-validate/te-review (fusion council synthesis), and the te-write* family
+ * (voice-calibration/vocabulary-contamination scoring is fidelity-sensitive
+ * to any transformation, even whitespace-only).
+ */
+const COMPRESSION_ENGINE_ALLOWLIST: Readonly<Record<string, string>> = {
+  "te-fast": "lite",
+  "te-build": "lite",
+  "te-dispatch": "lite",
+  "te-free-burst": "lite",
+}
 
 export function automaticReadiness(): { ready: boolean; reason: string | null } {
   const value = (process.env.TEMPERANCE_AUTO_READY || "").trim().toLowerCase()
@@ -374,12 +397,17 @@ function forwardedHeaders(request: Request): Headers {
   return headers
 }
 
-/** Freeze OmniRoute compression only after every client and route header exists. */
-function enforceCompressionBoundary(headers: Headers): void {
+/**
+ * Set OmniRoute compression only after every client and route header exists.
+ * Fail-closed allowlist: an unresolved or unlisted portfolio always gets
+ * "off", never a client-supplied or guessed value.
+ */
+function enforceCompressionBoundary(headers: Headers, portfolio?: string): void {
   for (const key of [...headers.keys()]) {
     if (key.toLowerCase() === OMNIROUTE_COMPRESSION_HEADER) headers.delete(key)
   }
-  headers.set(OMNIROUTE_COMPRESSION_HEADER, OMNIROUTE_COMPRESSION_MODE)
+  const mode = (portfolio && COMPRESSION_ENGINE_ALLOWLIST[portfolio]) || OMNIROUTE_COMPRESSION_DEFAULT_MODE
+  headers.set(OMNIROUTE_COMPRESSION_HEADER, mode)
 }
 
 function jsonResponse(value: unknown, status = 200, extra: Record<string, string> = {}): Response {
@@ -681,7 +709,7 @@ async function chatResponse(request: Request, fetchImpl: typeof fetch, deps: Pro
         const h = forwardedHeaders(request)
         for (const [key, value] of Object.entries(planHeaders)) h.set(key, value)
         h.set("content-type", "application/json")
-        enforceCompressionBoundary(h)
+        enforceCompressionBoundary(h, decision.plan?.portfolio?.requested_portfolio)
         return h
       })(),
       body: JSON.stringify(body),

@@ -76,6 +76,72 @@ Not flipping the global master switch. Not touching `enrich/contract.ts`'s block
 ### Implementation note (2026-08-02): step 1 done
 `omniroute-context-preview.ts` gained a third synthetic fixture (`temperance-context-wrapper-v1`) simulating the real `<temperance-context>...</temperance-context>` wrapper shape with synthetic-only content (consistent with the harness's existing no-real-prompt-data design), plus a new `CONTEXT_WRAPPER_MARKERS` triplet (open tag / inner canary / close tag) folded into `CRITICAL_MARKERS` and independently tracked as `contextWrapperOrderPreserved` on `CandidateDecision` — a named, auditable field, not just buried in the generic marker list, so a promotion decision-maker can see this specific gate pass or fail directly. New `context_wrapper_order_drift` reason fires on strip/duplicate/reorder of the tag pair. 7 new tests cover: unmodified-echo survival, stripped-open-tag detection, duplicated-close-tag detection, reordered-tag detection (hoisting the close tag before the open tag, the specific failure mode a summarizing/reordering engine could produce), and receipt non-leakage. Verified: `bun test package/router` (284 pass), `tests/omniroute-temperance-combos.sh` (0 fail). Step 2 (actually probing `lite`/`headroom` against a live, authenticated OmniRoute instance to see whether they pass this gate) is operator-run — this harness is deliberately anonymous-only/unauthenticated by design (see its "production surface confinement" test), so live promotion evidence has to come from outside this sandbox.
 
+### Implementation note (2026-08-02, later same session): step 2 done live, lite promoted (scoped), headroom still unproven
+
+Ran the live probe from an authenticated OmniRoute browser session (the one
+this whole design's research used) directly against `/api/compression/preview`.
+Two rounds were needed: the first round sent only synthetic all-caps markers
+(`PAI_STAGE_*`, `ISA_ID`, tool-schema JSON, the `<temperance-context>`
+wrapper) and got a **trivial pass** — both `lite` and `headroom` returned
+`compressed === original` byte-for-byte with `techniquesUsed: []`, meaning
+neither engine found anything to act on. That's not real fidelity evidence,
+just "no-op is safe." A second round added content actually shaped to trigger
+each engine — redundant internal/trailing whitespace and blank lines around
+the wrapper for `lite`; a verbose pretty-printed JSON blob for `headroom` —
+while keeping every `CRITICAL_MARKER` from the harness present.
+
+**`lite` fired for real**: `techniquesUsed: ["whitespace"]`, 6% token savings
+(72→68), and every marker — the `<temperance-context>` open tag, the inner
+canary, the close tag, `ISA_ID`, and the injection canary — survived
+exactly-once and in the original order. `validation.valid: true`, no
+warnings. This satisfies the gate this doc's §2 non-negotiable set: no
+promotion without proof the wrapper survives, and now there's live proof for
+an engine that actually did something, not just an unexercised no-op.
+
+**`headroom` stayed unproven**: even a real JSON blob produced
+`techniquesUsed: []` with `"headroom: skipped (no eligible content)"` in both
+rounds. This isn't evidence headroom is *unsafe* — it's the harness
+confirming it correctly did nothing on content it didn't recognize as
+eligible (likely because headroom targets tool-result-shaped tabular
+payloads, not JSON embedded in a user-role text message; that would need a
+differently-shaped probe to test). Per this doc's own conservative promotion
+rule, no promotion without positive fidelity evidence — so `headroom` was
+**not** promoted. It remains a candidate for a follow-up probe shaped like a
+real tool-call result rather than user-message text.
+
+**Promotion, done as designed — scoped, not global.** `temperance-openai-proxy.ts`'s
+`enforceCompressionBoundary()` (previously a hardcoded hardcode-to-`"off"`
+call ignoring its caller's context) now takes the resolved portfolio and
+checks it against a new fail-closed `COMPRESSION_ENGINE_ALLOWLIST`:
+`te-fast`, `te-build`, `te-dispatch`, and `te-free-burst` get `lite`; every
+other portfolio — explicitly including `te-algorithm` (S-tier), `te-plan`
+(`protect_from_worker_fanout`), `te-validate`/`te-review` (fusion council
+synthesis), the whole `te-write*` family (voice-calibration/vocabulary-
+contamination scoring is fidelity-sensitive to any transformation, even
+whitespace-only), and any unresolved/unknown portfolio — still gets `off`.
+The allowlist is intentionally narrow: only bounded, disposable, throughput-
+oriented lanes, exactly matching §2's original "scope by portfolio, not
+globally" design and its explicit exclusion list. The global "Prompt
+Compression" master dashboard toggle was **not** touched — it stayed off
+throughout; this promotion works entirely through the relay's own per-request
+header, which already overrides whatever the dashboard or OpenCode's own
+config would otherwise send (confirmed while reading the code: the manifest's
+`transport_policy.omniroute_compression: {mode:"off"}` in
+`temperance-session-profiles*.json` only ever controlled OpenCode's own
+default value, immediately overwritten by the relay regardless — see the
+updated note in `docs/runbooks/opencode-ec2-session-profile.md`'s
+"Compression transport boundary" section).
+
+Verified: `bun test package/router/temperance-openai-proxy.test.ts` (38
+pass, was 35 pass/1 fail immediately after the change — one pre-existing test
+asserted `te-build` → `"off"`, which is now correctly `"lite"`; fixed by
+giving the test's `plan()` helper an explicit portfolio parameter and adding
+two new tests: one proving an allowlisted portfolio's engine wins over a
+client-supplied header, one enumerating all four allowlisted portfolios plus
+seven excluded ones including an unknown-portfolio fail-closed case). `bun
+test package/router package/adapters` (302 pass). `bash scripts/verify-all.sh`
+(full green).
+
 ---
 
 ## 3. OmniGlyph
