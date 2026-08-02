@@ -1,19 +1,233 @@
 # Planning State
 
-last_updated: 2026-07-09
-active_milestone: product-engineering-workflow-hardening
-active_phase: verify
-status: verified
+last_updated: 2026-08-02
+active_milestone: full-native-integration-completion-audit
+active_phase: learn
+status: offline-native-cli-readiness-verified
 
-## Current Focus
+## Active Completion Audit
 
-- Resolver behavior is explicit when `.planning` is absent.
-- Resolver behavior is explicit when `.planning` is present.
-- `.planning` documents GSD phases against ratified surfaces only.
-- `scripts/verify-all.sh` is the single full verification entrypoint.
-- CI delegates package verification to the full verification entrypoint.
+The full objective remains active across Context Settings, direct CLI Code,
+CLI Agents and native Hermes support, Cloudflare access, PAI/GSD/ISA ownership,
+skill-cluster discovery, and governed parallel routing. The completion audit
+must distinguish locally finished adapters from externally gated promotion and
+must preserve the later authorization to use governed non-Codex OmniRoute
+workers while keeping every Sol-family model outside worker dispatch.
 
-## Completion Checklist
+## Current Ratified Focus
+
+Ratification source: the operator's 2026-08-02 authorization to use governed
+non-Codex OmniRoute models while continuing the OmniRoute, Cloudflare, PAI,
+GSD, Hermes, and skill-cluster integration plan with Sol excluded.
+
+- Keep PAI, GSD, ISA, and skill clusters as the sole semantic-policy owners;
+  Context Settings may optimize transport only after synthetic evidence passes.
+- Pin installed OmniRoute 3.8.48's exact CLI command, loopback
+  compression-preview route, OpenAPI body, and management-policy sources through
+  an offline, non-authorizing readiness inspector. Version or source drift is
+  `contract_unverified`, never a readiness conclusion.
+- Accept no arbitrary prompt input. Embedded fixtures contain synthetic PAI
+  order, GSD state, ISA, tool-schema, code, receipt, and injection canaries only.
+- Without authority, send one anonymous synthetic denial canary and classify all
+  engines held. Never reuse a browser session, dashboard password, cookie,
+  machine token, or inference API key to force management access.
+- A later live semantic matrix still requires process-bound authenticated
+  transport with scope, expiry, and revocation evidence. No dormant socket/PID
+  transport enters the current tree, and a scoped bearer token alone remains
+  held because plaintext loopback does not authenticate the accepting process.
+- Retain metadata-only, non-authorizing receipts. Keep global compression,
+  active combo, custom system prompt, provider routing, Cloudflare, Hermes,
+  MCP/A2A, EC2, and every Sol-family model unchanged.
+
+Current implementation boundary:
+
+- Offline static inspection is the default and performs no network request.
+- Readiness uses a separate schema and cannot modify denial evidence.
+- The inspector never executes the installed token loader or reads any
+  credential source; it records only versioned source paths, hashes, and
+  coarse contract markers.
+- The live official CLI and direct loopback probes already returned exact
+  management denial; they are historical evidence, not a recurring hook.
+
+## Current Completion Checklist
+
+- [x] all named surfaces audited against live and repository evidence
+- [x] exact Spark and governed non-Codex Council evidence reconciled
+- [x] SystemsThinking selected launcher isolation as the feasible leverage point
+- [x] pre-build Advisor refined global umask into artifact-local permissions
+- [x] default-isolated launcher and explicit-zero warning implemented
+- [x] private dispatcher artifacts implemented without worker umask drift
+- [x] focused, documentation, native, and canonical gates pass
+- [x] default-isolated exact Spark proof and protected invariant comparison pass
+- [x] post-build Advisor, independent Cato, and reread reconciliation pass
+
+Previously completed Context Settings qualification evidence remains intact:
+
+- [x] installed route/OpenAPI/auth-policy inspection
+- [x] anonymous denial and active machine-token rejection probes
+- [x] three governed non-Codex council reviews with gateway attribution
+- [x] ISA atomic criteria and GSD phase map
+- [x] synthetic qualifier core, CLI, and adversarial tests
+- [x] native documentation and structural integration gates
+- [x] live denial-only metadata receipt with invariant equality
+- [x] focused, native, documentation, and canonical verification
+- [x] Advisor attempts recorded unavailable; independent Cato passes
+- [x] ISA verification append and reread reconciliation
+
+## Current Evidence
+
+- The offline readiness command reports `contract_verified` only because the
+  installed 3.8.48 bytes match six reviewed SHA-256 pins and every ordered
+  marker. Its receipt is instant, non-cacheable, non-replayable, tokenless, and
+  explicitly disclaims package/module-graph integrity, transport, authorization,
+  semantic qualification, mutation, and promotion.
+- Focused readiness tests pass 15/15 with 264 assertions; the semantic-preview
+  suite passes 13/13 with 91 assertions; native integration and the canonical
+  `bash scripts/verify-all.sh` pass. Independent Cato reports no P0/P1.
+- The protected before/after native projection is equal: OmniRoute PID `17555`,
+  compression and custom prompt off, Quick Tunnel stopped, Hermes proposal-only,
+  MCP dormant, A2A held, and dispatch Sol-free. The independently refreshed
+  inventory is currently 27 connection rows across 25 provider families; its
+  earlier 28-row snapshot changed outside this bounded non-mutating slice.
+
+- External Codex workers now default to supported `--ignore-user-config` while
+  retaining repository rules and explicit OmniRoute routing parameters. Exact
+  value `0` alone opts out with a credential-free warning; `--ignore-rules` is
+  absent and no Sol-family model is admitted.
+- Dispatcher-owned output is established mode `700`; every retained artifact
+  is mode `600` without changing the worker's inherited umask. Signal cleanup
+  freezes, kills, and reaps complete worker trees before worktree cleanup and
+  final hardening. Cato's former late mode-644 diff reproduction now passes.
+- Accepted exact Spark receipt `tmp.RDcxO4QeKF` completed one substantive
+  12-second attempt with no fallback and a unique correlation. Original
+  ambient-config timeout and the final non-completing rerun remain rejected;
+  timeout enlargement and Sol fallback were not used.
+- Protected native projections remain equal. Provider inventory is 28
+  connections/25 families, not two; compression and custom prompt stay off,
+  Hermes stays proposal-only, MCP/A2A stay dormant/held, Quick Tunnel stays
+  stopped, and the five-worker dispatch manifest remains Sol-free.
+- Focused dispatcher, documentation continuity, native integration, syntax,
+  diff hygiene, and the serial canonical verifier pass. Independent Cato's
+  final private reproduction reports PASS with no remaining P0/P1.
+
+- Installed source shows `/api/compression/preview` performs compression and
+  returns diff, validation, and statistics without a settings-write call. Its
+  management middleware executes before the route and requires authority.
+- Anonymous synthetic preview returns `401 AUTH_001`. The documented local CLI
+  machine token also returns `401 AUTH_001` on the active runtime, so it is not
+  silently treated as valid evidence or bypassed with a browser credential.
+- The current redacted snapshot reports master compression off, default mode
+  off, no active combo, `preserveSystemPrompt:true`, custom prompt off, local
+  Hermes absent, Quick Tunnel stopped, and Sol-free governed dispatch.
+- Architecture, security, and semantic reviews completed through exact
+  Antigravity, GitHub, and no-think Antigravity Sonnet 5 profiles. Gateway rows
+  show distinct Antigravity/GitHub HTTP-200 attribution, zero retained request
+  and response bodies, finite spend, no tools/persistence, and no Sol use.
+- The selected design is a staged qualifier: the current unauthenticated run
+  proves denial only; actual engine qualification waits for process-bound
+  authenticated transport and exact synthetic semantic/invariant evidence.
+- Live v2 receipt `20260802T053147600Z-78868-GCtUWE/receipt.json` is mode 600,
+  tokenless, non-authorizing, held on HTTP 401, and records byte-identical
+  governed projection hashes before and after the canary.
+- Focused tests pass 13/13 with 91 assertions; native, documentation, diff, and
+  full repository gates pass. Independent Cato passes after three P1 repairs;
+  both Advisor attempts timed out and are not counted as approval.
+
+## Next Governed Gate
+
+- Retain the verified denial-only Context receipt and isolated-worker contract.
+  Actual Lite/Headroom/minimal-RTK qualification, native Hermes Apply, named
+  Cloudflare promotion, authenticated MCP/A2A, and genuine S/Algorithm remain
+  closed until their separate process-bound or external authority gates pass.
+- A successful authenticated semantic preview and the future one-shot
+  process-bound transport adversarial matrix remain open under ISC-597,
+  ISC-603, and ISC-607. The failed no-edit Forge attempt keeps ISC-612 open.
+
+## Previous Command Code Evidence
+
+- The focused gate passes 68 Bun tests and 208 assertions across the enrichment
+  and direct Command Code adapter surfaces. The actual Bash e2e proves canonical
+  one-line output, no body canaries, missing-source isolation, reserved-line
+  spoof denial, missing-Bun denial, distinct same-model workspaces, and zero
+  `command-code` launch after adapter failure.
+- `bash tests/omniroute-native-integration.sh` passes the adopted Command Code
+  ownership and every pre-existing native boundary. All three TypeScript entry
+  points bundle, shell syntax passes, and `git diff --check` is clean.
+- A live actual-renderer probe emitted exactly one pointer line and zero body or
+  secret canaries. PAI/GSD/skill pointer targets, OmniRoute SQLite, the dispatch
+  manifest, Hermes metadata, exact `cloudflared` PID state, and ports 20128/20129
+  listener state were unchanged; the private proof artifact was removed.
+- The canonical `bash scripts/verify-all.sh` exited zero and ended
+  `Temperance Engine full verification passed` after running the new adapter
+  unit and shell integration gates.
+- The strict helper-ingestion fixture rejects a debug or secret preamble before
+  document validation, AGENTS promotion, or Command Code launch. Same-model
+  captures now directly prove task-to-AGENTS correlation, and mode assertions
+  use native BSD `stat` plus a hermetically forced GNU `stat -c` branch. This is
+  branch evidence, not a claim that the complete suite ran on a live Linux host.
+- The native structural gate proves the Command Code helper imports the actual
+  production pointer resolver and serializer; red controls distinguish reserved
+  line, missing-Bun, and malformed-helper failures by their exact diagnostics.
+- Independent Cato reproduced every focused, live, native, and canonical gate
+  and returned PASS with no P0/P1. Its remaining same-UID validate/reopen race
+  is constrained by random mode-600 files and remains non-authorizing.
+- Two pre-build native audits ran through exact GitHub Sonnet 5 and no-think
+  Antigravity Sonnet 5 profiles with private mode-600 outputs, finite spend, no
+  tools or persistence, and gateway HTTP-200 attribution. Zero Sol-family model
+  was dispatched.
+- External promotion remains closed: native source credentials/denial probes,
+  Hermes Apply authorization, named Cloudflare hostname/DNS/Access machine
+  authority, scoped MCP/A2A ownership, and genuine S-provider authentication
+  are not supplied by this local alignment.
+
+### Open ISC Boundary Map (28)
+
+| ISC | excluded category | why outside this local alignment |
+|---|---|---|
+| ISC-333 | genuine-S / EC2 provider promotion | requires authenticated genuine S provider evidence |
+| ISC-334 | genuine-S / EC2 provider promotion | requires OmniRoute dashboard administration |
+| ISC-335 | genuine-S / EC2 provider promotion | depends on completed S promotion evidence |
+| ISC-336 | genuine-S / EC2 provider promotion | requires a live promoted EC2 Algorithm session |
+| ISC-352 | named Cloudflare / remote authorization | requires a live remote anonymous-denial probe |
+| ISC-353 | named Cloudflare / remote authorization | requires a dedicated constrained remote inference key |
+| ISC-354 | named Cloudflare / remote authorization | requires an externally enforced endpoint allowlist |
+| ISC-355 | named Cloudflare / remote authorization | requires an externally enforced rate limit |
+| ISC-356 | named Cloudflare / remote authorization | requires an externally enforced spend limit |
+| ISC-357 | named Cloudflare / remote authorization | requires live remote management denial evidence |
+| ISC-358 | named Cloudflare / remote authorization | requires live provider-management disclosure denial |
+| ISC-360 | named Cloudflare / remote authorization | requires an active approved transport rollback proof |
+| ISC-382 | authenticated MCP/A2A upstream safety | requires bounded authenticated native A2A capability proof |
+| ISC-430 | named Cloudflare / remote authorization | requires a promoted named tunnel and live catch-all probe |
+| ISC-431 | named Cloudflare / remote authorization | requires a live Cloudflare Access denial probe |
+| ISC-432 | named Cloudflare / remote authorization | requires an Access-authenticated allowlisted routing probe |
+| ISC-446 | named Cloudflare / remote authorization | requires approved service-token or mTLS machine identity |
+| ISC-447 | named Cloudflare / remote authorization | requires production tunnel credential placement evidence |
+| ISC-448 | named Cloudflare / remote authorization | requires live pre-routing remote model denial |
+| ISC-449 | named Cloudflare / remote authorization | requires dependency-ordered live remote rollback evidence |
+| ISC-512 | named Cloudflare / remote authorization | requires exact signed external authority and safe preconditions |
+| ISC-514 | named Cloudflare / remote authorization | requires a scoped production control-plane token file |
+| ISC-515 | named Cloudflare / remote authorization | requires approved production secret sinks |
+| ISC-519 | named Cloudflare / remote authorization | requires a production token-file connector launch |
+| ISC-520 | named Cloudflare / remote authorization | requires durable production journaling and receipt sinks |
+| ISC-523 | named Cloudflare / remote authorization | requires the complete live Access/origin/model canary matrix |
+| ISC-525 | named Cloudflare / remote authorization | requires final production-fixture coverage before promotion |
+| ISC-527 | named Cloudflare / remote authorization | requires durable one-use signed operator approval consumption |
+
+Native Context Source activation and Hermes Apply remain separately held
+promotion boundaries in this focus; neither is silently counted as completed by
+the 28 open historical ISCs above.
+
+## Previous Verified Cloudflare Focus
+
+- The production adapter is isolated; the generic CLI stays preview-only.
+- Credential sources, durable journals, redirect/content-type handling, and
+  approval anti-replay passed hermetic tests and independent review.
+- OmniRoute 3.8.48 cannot exactly represent the requested production policy,
+  so prepare stops before its first packet with `omniroute_policy_not_exact`.
+- Hostname, Access, DNS, scoped authority, live canaries, connector wiring, and
+  network-partition evidence remain external gates.
+
+## Previous Completion Checklist
 
 - [x] `./scripts/verify-all.sh`
 - [x] `bun test package/enrich`

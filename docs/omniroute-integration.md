@@ -70,7 +70,14 @@ compatibility combo until a named portfolio has an accepted promotion receipt.
 
 ## Policy Modes
 
-Set `TEMPERANCE_ROUTING_POLICY` to one of `off`, `shadow`, or `enforce`:
+The effective mode is resolved in this order:
+
+1. Explicit `TEMPERANCE_ROUTING_POLICY` (`off`, `shadow`, or `enforce`).
+2. The per-host mode file at
+   `${TEMPERANCE_ROUTING_POLICY_FILE:-${TEMPERANCE_STATE_DIR:-$HOME/.temperance_engine/state}/routing-policy-mode}`.
+3. `shadow` when neither source is present or the mode file is invalid.
+
+The modes are:
 
 - `off`: compute and execute the existing static order. This is the immediate
   kill switch and rollback path.
@@ -88,6 +95,7 @@ Additional controls:
 |---|---|
 | `TEMPERANCE_ROUTING_STATE` | Exact observation-state file override. |
 | `TEMPERANCE_STATE_DIR` | State directory; defaults to `$HOME/.temperance_engine/state`. |
+| `TEMPERANCE_ROUTING_POLICY_FILE` | Per-host mode file override; ignored when the explicit environment mode is present. |
 | `TEMPERANCE_ROUTING_POLICY_BIN` | Policy module override for testing or packaging. |
 | `TEMPERANCE_ROUTING_NOW_MS` | Injected clock for deterministic tests and replay. |
 | `TEMPERANCE_ROUTING_OBSERVATION_MAX_AGE_MS` | Maximum observation age; defaults to 24 hours. |
@@ -97,10 +105,14 @@ Additional controls:
 The v1 score weights are capability `0.35`, health `0.25`, available quota
 `0.15`, cost efficiency `0.10`, and static stability `0.15`. Factors are
 clamped to `[0,1]`; score ties resolve by static rank, backend, then model.
-Open circuits are excluded from automatic enforcement. An enforce-mode
-half-open candidate must acquire an atomic probe lease before dispatch, so
-concurrent batches cannot probe the same backend simultaneously. Timeouts
-remain task-duration evidence and do not poison backend health.
+Open circuits are excluded from automatic enforcement. An unresolved `open` or
+`half_open` circuit does not age into a neutral candidate when ordinary health,
+quota, cost, and latency observations expire. After its cooldown, the circuit
+becomes `half_open` and remains bounded by one atomic probe lease. Enforce mode
+claims that lease by default; `TEMPERANCE_ROUTING_CLAIM_PROBES=0` is reserved
+for deterministic previews and tests. Concurrent batches therefore cannot
+probe the same backend simultaneously. Timeouts remain task-duration evidence
+and do not poison backend health.
 
 Observation freshness is tracked per signal (`health_updated_at_ms`,
 `quota_updated_at_ms`, `cost_efficiency_updated_at_ms`,
@@ -132,19 +144,37 @@ without affecting execution. After workers join, one locked reducer updates
 
 ## Promotion Gate and Rollback
 
-Keep production on `shadow` until fixed-state replay is byte-identical, current
-fallback fixtures remain green, plan/result schemas remain additive, and a
-representative observation corpus shows useful disagreements. Promotion can be
-performed per environment by setting `TEMPERANCE_ROUTING_POLICY=enforce`.
+Use the receipt-bound controller rather than editing the host mode file:
 
-Rollback is immediate and state-preserving:
+```bash
+scripts/temperance-routing-policy.sh status
+scripts/temperance-routing-policy.sh promote
+scripts/temperance-routing-policy.sh rollback \
+  /absolute/path/to/routing-policy-promote.RECEIPT.json
+```
+
+Promotion requires valid observation state, fresh OmniRoute health of at least
+`0.8`, a closed OmniRoute circuit, byte-identical fixed-state replay, an
+effective `ok` plan, OmniRoute as the selected first route, and zero eligible
+open circuits. It writes the mode file and a mode-600 receipt containing hashes,
+the frozen plan identity, selected backend/model, and exact rollback command.
+Rollback rejects receipt or current-mode drift and restores the exact previous
+mode bytes, including an originally absent file.
+
+The Mac host is currently in `enforce`. Its first promotion attempt failed
+closed at OmniRoute health `0.757`. A single bounded read-only
+`codex/gpt-5.3-codex-spark` canary, with no Sol-family model, raised the current
+evidence to `0.806`; promotion then selected `omniroute/temperance-coding` and
+the canonical proxy transaction completed with loopback health intact.
+
+The immediate state-preserving kill switch remains:
 
 ```bash
 export TEMPERANCE_ROUTING_POLICY=off
 ```
 
-Deleting or moving the observation file is optional; the `off` mode ignores it
-for selection.
+The explicit environment value wins over the host mode file. Deleting or moving
+the observation file is optional; `off` ignores it for selection.
 
 ## License
 

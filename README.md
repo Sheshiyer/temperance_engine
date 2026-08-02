@@ -45,7 +45,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 
 | Capability | What it does |
 |---|---|
-| **OmniRoute agent gateway** | GitHub-first planning, Codex escalation, and a Command Code/Kimi/Grok/Nebius dispatch fleet with direct CLI fallbacks. |
+| **OmniRoute agent gateway** | Mandatory local client auth, exact model-by-model wire gates, native non-Codex Claude rails, an optional Spark compatibility rail, and Sol-free worker dispatch. |
 | **Automatic task classification** | Classifies prompts as fast/long-horizon/reasoning/validation/creative and recommends optimal model. |
 | Guarded PAI templates | Installs `NOESIS`-style instruction surfaces without copying private memory. |
 | Pulse compatibility | Provides a tiny local `/notify` and `/healthz` endpoint for phase events. |
@@ -77,7 +77,10 @@ cd temperance_engine
 
 See [QUICKSTART.md](QUICKSTART.md) for multi-backend routing CLI usage and
 [`docs/omniroute-runtime.md`](docs/omniroute-runtime.md) for direct versus
-automatic OpenCode routing.
+automatic OpenCode routing. The
+[`native integration guide`](docs/omniroute-native-integration.md) maps
+Context Settings, CLI Code/Agents, Hermes, Cloudflare, PAI/GSD/ISA ownership,
+and provider-topology semantics.
 
 Default install is OpenCode/Cursor-first. It does not install Claude Code or Codex templates unless you pass `--with-claude` or `--with-codex`.
 
@@ -346,7 +349,7 @@ Cursor's current rules documentation covers Project, Team, and User Rules plus `
 - `docs/omniroute-integration.md` documents deterministic shadow routing, frozen dispatch plans, circuit observations, promotion, and rollback.
 - `docs/omniroute-runtime.md` documents the live gateway, model inventory, credentials, provider onboarding, and smoke tests.
 - `docs/omniroute-connections.md` documents the read-only connection inventory and Temperance portfolio synthesis.
-- `docs/omniroute-fleet.md` documents the GitHub/Codex planner, Command Code/Kimi/Grok/Nebius dispatch fleet, and native creative workflow.
+- `docs/omniroute-fleet.md` documents the GitHub/Codex planner, Codex Spark/Command Code/Kimi/Grok/Nebius dispatch fleet, and native creative workflow.
 - `docs/rollback.md` explains backups and recovery.
 - `UPSTREAM.md` links the relevant upstream GitHub repos and docs.
 - `assets/` contains generated public-facing banner and icon assets.

@@ -78,7 +78,7 @@ is met. gsd-core commands are shown in the canonical `/gsd-*` hyphen form.
 | 2 | Think | Discuss: `/gsd-discuss-phase`, `/gsd-spec-phase`, `/gsd-spike` | `brainstorming` (design); `systematic-debugging` (bugs) | no | Hidden requirements + risks surfaced; approach candidates listed |
 | 3 | Plan | Plan: `/gsd-plan-phase`, `/gsd-plan-review-convergence`, `/gsd-mvp-phase` | `writing-plans` (standalone lightweight plans) | no | PLAN.md files with declared deps + verification criteria; user aligned |
 | 4 | Build | *(folds into Execute — gsd-core has no separate Build)* | `subagent-driven-development`, `test-driven-development` | no | Per-task tests green; task checkbox done |
-| 5 | Execute | Execute: `/gsd-execute-phase`, `/gsd-fast`, `/gsd-quick` | `dispatching-parallel-agents`, `subagent-driven-development` | **YES** — 2+ independent tasks that benefit from external backends (command-code/grok/kimi) | All plans complete; branch ready for verify |
+| 5 | Execute | Execute: `/gsd-execute-phase`, `/gsd-fast`, `/gsd-quick` | `dispatching-parallel-agents`, `subagent-driven-development` | **YES** — 2+ independent tasks use `omniroute:te-dispatch` (Spark/provider round-robin); direct Command Code/Grok/Kimi remain outage fallbacks | All plans complete; branch ready for verify |
 | 6 | Verify | Verify: `/gsd-verify-work`, `/gsd-code-review`, `/gsd-ui-review` | `verification-before-completion`, `requesting-code-review` | Optional — parallel verifier fan-out | Fresh evidence per criterion; review clean |
 | 7 | Learn | Ship: `/gsd-ship`, `/gsd-milestone-summary`, `/gsd-complete-milestone`, `/gsd-progress` | `finishing-a-development-branch`, `receiving-code-review` | no | Decisions recorded; PR/ship done; milestone archived |
 

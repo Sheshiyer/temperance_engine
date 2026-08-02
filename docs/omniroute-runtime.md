@@ -4,13 +4,15 @@ Temperance's former 14-entry `MODEL_CATALOG` was a local dispatch scaffold. It
 was not OmniRoute's provider catalog. The current boundary is:
 
 1. Temperance's shared classifier decides whether work is inline or external.
-2. External work prefers the `omniroute:temperance-coding` backend.
+2. General external work prefers `omniroute:temperance-coding`; independent
+   fleet tasks explicitly select `omniroute:te-dispatch`.
 3. Codex supplies the agent/tool loop while OmniRoute supplies the model API.
 4. OmniRoute's named combos own provider/model failover; Temperance owns which
    combo is appropriate for the task.
-5. `temperance-coding` is the compatibility rail, while `te-fast`, `te-build`,
+5. `temperance-coding` is the relay's compatibility rail, while
+   `te-algorithm` is the S-only Algorithm coordinator. `te-fast`, `te-build`,
    `te-reason`, `te-validate`, and `te-creative` are the five governed task
-   portfolios. `te-plan` and `te-dispatch` are role combos for orchestration.
+   portfolios. `te-plan` and `te-dispatch` are bounded helper roles.
 6. Command Code, Grok, and Kimi remain direct outage fallbacks.
 
 This avoids two classifiers and preserves filesystem-capable agents. Calling
@@ -86,9 +88,11 @@ Disable the automatic provider without touching the direct `omniroute` provider:
 scripts/configure-opencode-relay.sh --disable
 ```
 
-The relay is intentionally local and optional. If it is stopped, use the
-direct `omniroute/temperance-coding` or `auto/*` picker entries, or the
-`temperance-route` / `temperance-batch` CLI rails.
+The relay is intentionally local and optional. If it is stopped, choose an
+explicit curated `omniroute/te-*` picker entry, or use the `temperance-route` /
+`temperance-batch` CLI rails. The broader provider-owned catalog remains
+available to those CLI rails but is intentionally absent from the session
+picker.
 
 If the relay returns OmniRoute's `[502]: All accounts exhausted` response, the
 Temperance routing seam is working but the selected combo has no usable target.
@@ -98,9 +102,14 @@ relay intentionally preserves the upstream failure instead of silently
 changing a governed portfolio.
 
 The distinction is observable in OmniRoute call logs: `temperance-coding` is a
-compatibility rail, `te-fast`/`te-build`/`te-reason`/`te-creative` are priority
-portfolios, and `te-validate` is a fusion council. `te-plan` protects the
-GitHub-first planner; `te-dispatch` is the worker fleet. The writing fleet is
+compatibility rail; `te-algorithm` is the S-only primary coordinator;
+`te-fast`/`te-build`/`te-reason`/`te-creative` are priority portfolios; and
+`te-validate` is a fusion council. `te-plan` protects the planner;
+`te-dispatch` is the bounded round-robin B-tier worker fleet. An unavailable
+S-tier coordinator fails visibly. It never silently degrades; the operator
+must explicitly select the A-tier `temperance-continuity` profile backed by
+`te-build`.
+The writing fleet is
 role-scoped in the same way: `te-write` is a priority drafting rail,
 `te-write-critique` and `te-write-research` are fusion councils (gate and
 ground, respectively), and `te-write-media` is a priority image-brief
@@ -116,7 +125,8 @@ owned virtual pool and is never silently promoted into a Temperance portfolio.
 - Data: `~/.omniroute` (`.env` and SQLite are local, never repository inputs)
 - Compatibility combo: `temperance-coding`
 - Governed combos: `te-fast`, `te-build`, `te-reason`, `te-validate`, `te-creative`
-- Role combos: `te-plan` (GitHub planner) and `te-dispatch` (fleet workers)
+- Role combos: `te-algorithm` (S-only coordinator), `te-plan` (planner), and
+  `te-dispatch` (B-tier fleet workers)
 - Writing combos: `te-write` (drafting rail), `te-write-critique`
   (drift-scoring fusion council), `te-write-research` (claim-grounding
   fusion council), and `te-write-media` (image-brief priority planner); see
@@ -156,38 +166,135 @@ The two `.env` files used by this installation are mode `600`. The scoped API
 key is referenced through `OMNIROUTE_API_KEY`; it is not embedded in config or
 source files.
 
-## OpenCode model-picker modes
+## Codex Spark fleet mode
 
-OpenCode's picker is a **direct model override surface** for every model other
-than `temperance-auto`. Manual selections do not run the Temperance classifier.
-Automatic task modes belong to `temperance-auto` through the local relay and
-the governed `temperance-coding` combo; picker selections remain explicit
-experiments or operator overrides.
+`te-dispatch` starts with the exact catalog route
+`codex/gpt-5.3-codex-spark`, then includes the existing Command Code, Kimi,
+Grok, and Nebius workers. [OpenAI describes GPT-5.3-Codex-Spark](https://openai.com/index/introducing-gpt-5-3-codex-spark/)
+as a text-only, 128k-context research preview with a separate rate limit.
+Temperance therefore treats Spark as a low-latency targeted-coding capacity
+slot, not the universal base model. The Codex adapter advertises a 128k window
+and compacts at 108k whenever `te-dispatch` can select Spark.
 
-The local Mac configuration exposes this curated set from OmniRoute's live
-combo catalog:
+There are two different scheduling decisions:
+
+1. `temperance-batch` runs independent tasks concurrently and owns worktree
+   isolation.
+2. OmniRoute round-robins each new `te-dispatch` request across models, with
+   per-model concurrency `2`, a 15-second queue wait, and failover before any
+   same-target retry. The dispatch caller, rather than the OmniRoute combo,
+   bounds queue depth because OmniRoute 3.8.x does not persist `queueDepth`.
+
+Round-robin is initial model selection. Ordered fallback happens only after
+that selected target is unavailable or fails. The dispatcher's direct Command
+Code, Kimi, and Grok attempts are a second outage boundary used when the
+OmniRoute gateway attempt itself fails.
+
+Fleet tasks make the role explicit:
+
+```json
+[
+  {
+    "id": "router-tests",
+    "task": "Add the bounded routing tests and report evidence.",
+    "backend": "omniroute",
+    "model": "te-dispatch"
+  },
+  {
+    "id": "runtime-docs",
+    "task": "Update the accepted runtime contract and verify links.",
+    "backend": "omniroute",
+    "model": "te-dispatch"
+  }
+]
+```
+
+```bash
+temperance-batch --tasks tasks.json --concurrency 4 --worktree
+```
+
+For remote or Paseo-hosted sessions, the execution host must reach the same
+OmniRoute instance that owns `te-dispatch`. Importing a project/session into
+Paseo carries the session and project context; it does not copy the Mac
+Keychain credential or local combo database. Configure
+`TEMPERANCE_OMNIROUTE_BASE_URL=https://router.example/v1` and
+`OMNIROUTE_API_KEY` in that remote project's environment, then verify its
+`/v1/models` catalog exposes `te-dispatch` before dispatch. This host affinity
+keeps local and remote runs on the same governed portfolio without copying
+provider credentials into repository settings.
+
+The lifecycle script is remote-capable too. Store
+`TEMPERANCE_OMNIROUTE_ADMIN_PASSWORD` and `OMNIROUTE_API_KEY` as Paseo project
+secrets, and set the non-secret project variables
+`TEMPERANCE_OMNIROUTE_ADMIN_URL` and
+`TEMPERANCE_OMNIROUTE_ADMIN_ORIGIN` to the remote router origin. Then run:
+
+```bash
+scripts/omniroute-temperance-fleet.sh --dry-run
+scripts/omniroute-temperance-fleet.sh --apply
+```
+
+When those environment credentials are absent on macOS, the lifecycle falls
+back to the existing Keychain services. Secret values must never be placed in
+task JSON, repository settings, logs, or command arguments.
+
+Each run creates a mode-`600`, schema-version-3 snapshot before any mutation.
+Apply records the exact combo ids it successfully created or updated. Rollback
+uses those identities—not names—skips actions that were unchanged, preserves a
+same-name operator replacement, and fails before any mutation if a recorded
+body has drifted since apply:
+
+```bash
+scripts/omniroute-temperance-fleet.sh --rollback \
+  .omniroute-backups/omniroute-fleet-<timestamp>-<pid>.json
+```
+
+The lifecycle unsets project-secret variables before invoking `curl`; login
+and inference credentials are passed through temporary mode-`600` payload and
+header files that are removed when the process exits.
+
+## OpenCode session profiles and model picker
+
+OpenCode starts with one primary profile, not a copy of OmniRoute's entire
+catalog. The persisted configuration sets `enabled_providers` to exactly
+`omniroute` and `temperance`, and explicitly describes only 14 governed model
+IDs. `temperance-auto` remains the default; every other picker entry is an
+operator override that bypasses automatic classification. In other words, the
+picker remains a direct model override surface inside the curated boundary.
+
+The four primary session profiles are:
+
+| Agent profile | Bound model | Contract |
+| --- | --- | --- |
+| `temperance-auto` | `temperance/temperance-auto` | Classify NATIVE versus ALGORITHM at the relay |
+| `temperance-native` | `omniroute/te-fast` | One bounded step; no orchestration |
+| `temperance-algorithm` | `omniroute/te-algorithm` | S-tier planning, complex building, and orchestration |
+| `temperance-continuity` | `omniroute/te-build` | Explicit A-tier continuation after an S-tier miss |
+
+Algorithm sessions may delegate one level to `temperance-planner`
+(`te-plan`), `temperance-worker` (`te-dispatch`), and
+`temperance-validator` (`te-validate`). Workers start on B-tier capacity and
+may escalate B→A→S when evidence demands it. A downgrade starts a new task ID;
+no in-flight task silently changes tier.
+
+The local Mac configuration exposes this exact 14-entry set:
 
 | Picker entry | Intended use | Governance |
 | --- | --- | --- |
-| `temperance-coding` | Governed default coding route | Temperance-compatible default |
+| `temperance/temperance-auto` | Automatic NATIVE/ALGORITHM selection | Default session rail |
+| `omniroute/te-algorithm` | Complex planning, building, and orchestration | S-only; explicit failure |
 | `te-fast` | Proportionate, low-latency bounded work (content rail) | Temperance task portfolio |
 | `te-build` | Tool-capable reversible execution | Temperance task portfolio |
 | `te-reason` | Deliberation, assumptions, and alternatives (content rail) | Temperance task portfolio |
+| `te-plan` | Planner helper | A/S planning rail |
 | `te-validate` | Multi-model challenge and synthesis with tools | Temperance fusion council |
+| `te-dispatch` | Parallel independent grunt work | B-tier bounded worker fleet |
 | `te-creative` | Creative brief and artifact planning (text rail) | Native media workflow; not a chat fallback |
-| `auto/best-coding` | Best available coding | Explicit override |
-| `auto/best-coding-fast` | Lower-latency coding | Explicit override |
-| `auto/best-reasoning` | Deep reasoning and validation | Explicit override |
-| `auto/best-fast` | Fast fixes and short tasks | Explicit override |
-| `auto/best-chat` | Creative and conversational work | Explicit override |
-| `auto/best-vision` | Image and multimodal work | Explicit override |
-| `auto/pro-coding` | Pro coding route | Explicit override; may use paid providers |
-| `auto/pro-reasoning` | Pro reasoning route | Explicit override; may use paid providers |
-| `auto/pro-fast` | Pro low-latency route | Explicit override; may use paid providers |
-| `auto/pro-vision` | Pro multimodal route | Explicit override; may use paid providers |
-| `auto/smart` | Balanced general-purpose route | Explicit override |
-| `auto/cheap` | Cost-sensitive route | Explicit override |
-| `auto/best-free` | Free-route experiment | Experimental; no enforcement authority |
+| `te-write` | Draft generation | Governed writing rail |
+| `te-write-critique` | Editorial challenge | Governed writing council |
+| `te-write-research` | Claim grounding | Governed research council |
+| `te-write-media` | Image-brief planning | Governed media planner |
+| `codex/gpt-5.3-codex-spark` | Low-latency targeted coding | Direct B-tier capacity slot |
 
 The five task portfolios encode the operating philosophy in their
 operator-facing descriptions and strategy settings: proportion before power,
@@ -208,9 +315,10 @@ the request supplies a forced tool choice, so the picker advertises
 `tool_call=false` for those two modes and the orchestrator uses `te-build` or
 `te-validate` whenever workspace tools are required.
 
-The full inventory remains available from the live API; it is intentionally not
-copied into OpenCode's picker because the catalog is provider-owned and changes
-over time:
+The full inventory remains available from the live API; it is intentionally
+not copied into OpenCode's picker because the catalog is provider-owned and
+changes over time. New connections such as AGY, Ollama Cloud, and OpenCode Zen
+enter as candidates; connection presence alone grants no S/A/B promotion:
 
 ```bash
 export OMNIROUTE_API_KEY=$(security find-generic-password \
@@ -226,9 +334,35 @@ configuration. A successful alias probe therefore proves reachability only; it
 does not authorize a production portfolio promotion. The governed router keeps
 `temperance-coding` as its default and retains direct fallback rails.
 
-After editing the local config, restart or refresh OpenCode's model picker.
-The configured IDs are checked against `/v1/models`; missing IDs must be
-removed or treated as unavailable rather than silently substituted.
+Apply and validate the persisted picker/session policy with one rollout ID:
+
+```bash
+TEMPERANCE_ROLLOUT_ID=<rollout-id> \
+  scripts/configure-opencode-session-profiles.sh --apply
+scripts/configure-opencode-session-profiles.sh --validate
+```
+
+Validation compares the exact effective alias set, agent bindings, model
+limits, and provider allowlist—not only a model count. After applying, restart
+or refresh OpenCode so a fresh process resolves the new profile and picker.
+Missing IDs are unavailable; they are never silently substituted.
+
+For relay-independent break-glass work, bypass OpenCode, its relay, OmniRoute,
+and the project rule surface with an ephemeral read-only Codex CLI session:
+
+```bash
+codex exec --ephemeral --ignore-rules --ignore-user-config \
+  --skip-git-repo-check --sandbox read-only \
+  "Describe the required repair without changing files."
+```
+
+This command is an operator action, not an automatic S-tier downgrade. Record a
+new task ID before continuing work on that rail. The July 29 live canary
+returned `BREAKGLASS_OK` even with the OmniRoute base forced to an unreachable
+port. At the same checkpoint, Command Code was credit-exhausted, Kimi did not
+complete its bounded canary, and Grok no longer advertised the configured
+`grok-build` ID; those three rails remain detected fallbacks, not
+operator-ready break-glass guarantees.
 
 The local OpenCode plugin `omniroute-catalog-guard.ts` repeats that check in
 `chat.params` immediately before each OmniRoute request. A missing model,
@@ -337,5 +471,14 @@ security find-generic-password -a "$USER" \
 
 `TEMPERANCE_OMNIROUTE_BASE_URL` and `TEMPERANCE_OMNIROUTE_MODEL` override the
 local endpoint and combo. Set `OMNIROUTE_API_KEY` explicitly for remote servers.
-`TEMPERANCE_OMNIROUTE_CODEX_ISOLATED=1` asks the Codex adapter to ignore the
-base user config while retaining repository rules.
+Paseo/remote sessions must set these variables on their execution host; imported
+session metadata does not transport local Keychain secrets or combo state.
+External Codex workers ignore the base user configuration by default while
+retaining repository rules. The adapter supplies model, provider, endpoint,
+wire API, approval policy, sandbox, and context limits explicitly, and resolves
+OmniRoute authentication independently through the environment or Keychain.
+Exact `TEMPERANCE_OMNIROUTE_CODEX_ISOLATED=0` opts out with an audit warning;
+other values remain isolated. Worker tasks must be self-contained rather than
+depending on ambient user PAI hooks or plugins. Dispatcher-owned run
+directories and retained artifacts are owner-only without changing the umask
+seen by worker-created repository or shared-cache files.

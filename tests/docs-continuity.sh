@@ -57,11 +57,11 @@ grep -q -- '--verdict' "$DIR/ISA.md" && echo "ok - ISA has --verdict invariant" 
   || { echo "FAIL - ISA missing --verdict"; fail=1; }
 
 # --- ISA normalization: criteria and ledger shape are current ---
-isa_checked="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} inside && /^- \[x\] ISC-[0-9]+:/{count++} END{print count+0}' "$DIR/ISA.md")"
-isa_total="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} inside && /^- \[[ x]\] ISC-[0-9]+:/{count++} END{print count+0}' "$DIR/ISA.md")"
+isa_checked="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} inside && /^- \[x\] ISC-[0-9]+(\.[0-9]+)?:/{count++} END{print count+0}' "$DIR/ISA.md")"
+isa_total="$(awk '/^## Criteria$/{inside=1; next} /^## /{if(inside) exit} inside && /^- \[[ x]\] ISC-[0-9]+(\.[0-9]+)?:/{count++} END{print count+0}' "$DIR/ISA.md")"
 grep -Eq '^task: .+$' "$DIR/ISA.md" \
   && grep -q "^progress: $isa_checked/$isa_total$" "$DIR/ISA.md" \
-  && grep -q '^updated: 2026-07-28$' "$DIR/ISA.md" \
+  && grep -Eq '^updated: [0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?$' "$DIR/ISA.md" \
   && echo "ok - ISA frontmatter normalized" \
   || { echo "FAIL - ISA frontmatter normalization missing"; fail=1; }
 grep -q '^## Principles$' "$DIR/ISA.md" && grep -q '^## Changelog$' "$DIR/ISA.md" \
@@ -144,10 +144,22 @@ grep -q 'diegosouzapw/OmniRoute' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
 grep -q 'diegosouzapw/OmniRoute' "$DIR/UPSTREAM.md" \
   && echo "ok - UPSTREAM credits OmniRoute" \
   || { echo "FAIL - UPSTREAM.md missing OmniRoute"; fail=1; }
-grep -Eq 'failed.*timeout.*unavailable.*Claude subagent' \
+grep -q 'failed, timeout, or unavailable task' \
   "$DIR/skills/temperance-parallel-dispatch/SKILL.md" \
-  && echo "ok - exhausted external routes retain Claude-subagent fallback" \
+  && grep -q 'before using an in-session subagent' \
+    "$DIR/skills/temperance-parallel-dispatch/SKILL.md" \
+  && echo "ok - exhausted non-Sol routes retain in-session subagent fallback" \
   || { echo "FAIL - parallel dispatch skill lost subagent fail-open contract"; fail=1; }
+grep -q 'ignore the operator.*user configuration by default' \
+  "$DIR/skills/temperance-parallel-dispatch/SKILL.md" \
+  && grep -q 'repository rule surface' \
+    "$DIR/skills/temperance-parallel-dispatch/SKILL.md" \
+  && grep -q 'self-contained' \
+    "$DIR/skills/temperance-parallel-dispatch/SKILL.md" \
+  && grep -q 'TEMPERANCE_OMNIROUTE_CODEX_ISOLATED=0' \
+    "$DIR/docs/omniroute-runtime.md" \
+  && echo "ok - external Codex isolation and self-contained task contract documented" \
+  || { echo "FAIL - external Codex isolation documentation missing"; fail=1; }
 if grep -Eiq '(sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|(api[_-]?key|secret|token|password)[[:space:]]*[:=][[:space:]]*["'\''][A-Za-z0-9][^"'\'']{11,})' \
     "$DIR/package/router/routing-policy.ts" \
     "$DIR/package/router/multi-backend-router.sh" \
@@ -198,4 +210,28 @@ grep -q 'bun test package/router/routing-policy.test.ts' "$DIR/scripts/verify-al
   && grep -q 'bash tests/dispatch-tasklist.sh' "$DIR/scripts/verify-all.sh" \
   && echo "ok - full gate includes routing policy and dispatcher" \
   || { echo "FAIL - verify-all missing routing policy or dispatcher suite"; fail=1; }
+
+# --- isolated Cloudflare production-adapter boundary ---
+CF_PROD="$DIR/package/router/omniroute-cloudflare-production-adapter.ts"
+CF_PROD_TEST="$DIR/package/router/omniroute-cloudflare-production-adapter.test.ts"
+CF_PROD_RUNBOOK="$DIR/docs/runbooks/omniroute-cloudflare-production-adapter.md"
+[ -f "$CF_PROD" ] && [ -f "$CF_PROD_TEST" ] && [ -f "$CF_PROD_RUNBOOK" ] \
+  && echo "ok - Cloudflare production-adapter boundary, tests, and runbook exist" \
+  || { echo "FAIL - Cloudflare production-adapter boundary incomplete"; fail=1; }
+grep -q 'bun test package/router/omniroute-cloudflare-production-adapter.test.ts' "$DIR/scripts/verify-all.sh" \
+  && grep -q 'omniroute_policy_not_exact' "$CF_PROD_RUNBOOK" \
+  && grep -q 'manual_orphan' "$CF_PROD_RUNBOOK" \
+  && echo "ok - full gate and runbook preserve policy and orphan fail-closed claims" \
+  || { echo "FAIL - production-adapter verification or fail-closed documentation missing"; fail=1; }
+if grep -q 'omniroute-cloudflare-production-adapter' "$DIR/scripts/omniroute-cloudflare-promotion.ts"; then
+  echo "FAIL - generic Cloudflare CLI imports the production adapter"; fail=1
+else
+  echo "ok - generic Cloudflare CLI cannot reach the production adapter"
+fi
+grep -q 'hermes-secretless-discovery-hardening' "$DIR/.planning/config.json" \
+  && grep -q 'ISC-564..ISC-571' "$DIR/.planning/ROADMAP.md" \
+  && grep -q 'Completed Milestone: OmniRoute Cloudflare Production Boundary' "$DIR/.planning/ROADMAP.md" \
+  && grep -q 'ISC-529..ISC-536' "$DIR/.planning/ROADMAP.md" \
+  && echo "ok - GSD tracks the ratified production-adapter boundary" \
+  || { echo "FAIL - GSD production-adapter milestone missing"; fail=1; }
 exit $fail

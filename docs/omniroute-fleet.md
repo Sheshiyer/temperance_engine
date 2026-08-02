@@ -125,16 +125,21 @@ sharded across distinct failure domains and capabilities:
 
 | Worker role | OmniRoute target | Direct CLI fallback |
 | --- | --- | --- |
+| Spark fast worker | `codex/gpt-5.3-codex-spark` | Other `te-dispatch` targets, then direct CLIs |
 | Fast worker | `command-code/deepseek/deepseek-v4-flash` | Command Code DeepSeek Flash |
 | Coding worker | `command-code/moonshotai/Kimi-K2.7-Code` | Kimi Code |
 | Build worker | `grok-cli/grok-build` | Grok Build |
 | Backbone worker | `nebius/Qwen/Qwen3-235B-A22B-Instruct-2507` | Claude fallback if all external rails fail |
 
-Health, quota, capability, latency, and circuit observations rank eligible
-candidates deterministically. A provider being listed is not enough: it must
-pass the relevant native probe. The current live probes passed for the four
-targets above, while the Kimi Coding OAuth connection itself is currently
-quota-banned; the Kimi API-key route remains active.
+OmniRoute rotates new fleet requests across these targets with `round-robin`.
+That selection step is distinct from ordered fallback inside a request: an
+unavailable or saturated target fails over before any same-target retry.
+Per-model concurrency and queue wait are persisted on the combo; the dispatch
+caller bounds queue depth because OmniRoute 3.8.x does not round-trip
+`queueDepth`. Spark's separate preview rate limit therefore contributes
+capacity without becoming the universal coding default. A provider being
+listed is not enough: the lifecycle preflight requires every exact catalog
+identifier before creating or updating the governed combo.
 
 This protects GitHub/Codex/Claude limits: planner requests are not consumed by
 worker fan-out, and dispatch can use lower-cost or separately entitled rails.

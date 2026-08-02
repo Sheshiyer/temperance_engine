@@ -12,6 +12,9 @@ cd temperance_engine
 This installs:
 - `temperance-route` CLI to `~/.local/bin/`
 - `temperance-dispatch` CLI for parallel comparison
+- `temperance-batch` CLI for governed parallel task fleets
+- `temperance-opencode` Keychain-backed OpenCode launcher
+- `temperance-claude` allowlisted native OmniRoute Claude launcher
 - OpenCode hooks with routing context
 - Enrichment core with automatic task classification
 
@@ -52,16 +55,55 @@ temperance-dispatch --backends "kimi,grok" "implement feature"
 temperance-dispatch --all "complex task"
 ```
 
+### Run the Governed Fleet
+
+For independent coding tasks, pin a model that has passed the exact client-wire
+probe. Do not send a fleet portfolio merely because it appears in the catalog:
+
+```json
+[
+  {"id":"tests","task":"Implement the routing tests.","backend":"omniroute","model":"<exact-probe-passing-non-sol-model>"},
+  {"id":"docs","task":"Update the accepted runtime documentation.","backend":"omniroute","model":"<exact-probe-passing-non-sol-model>"}
+]
+```
+
+```bash
+temperance-batch --tasks tasks.json --concurrency 4 --worktree
+```
+
+`temperance-batch` owns parallel tasks, validation, receipts, and worktree
+isolation for models that pass the Codex Responses/tool wire. Spark is an
+optional compatibility rail, not the exclusive default. A failed or truncated
+non-Codex wire probe is never promoted or silently downgraded.
+
+For governed native non-Codex audits, use an exact allowlisted OmniRoute
+profile. Antigravity and GitHub Claude are separate provider families:
+
+```bash
+temperance-claude antigravity-claude-sonnet-5 -p "Audit architecture only; do not edit."
+temperance-claude gh-claude-sonnet-5 -p "Audit rollback only; do not edit."
+```
+
+Both launchers read a dedicated inference key from macOS Keychain. Sol-family
+models remain forbidden for worker dispatch.
+
 ## Task Types & Routing
 
 | Task Type | Triggers | Model |
 |-----------|----------|-------|
-| `fast` | "quick", "simple", "minor" | `deepseek/deepseek-v4-flash` |
-| `long-horizon` | "refactor", "migrate", "entire" | `moonshotai/Kimi-K2.7-Code` |
-| `reasoning` | "analyze", "debug", "explain" | `claude-fable-5` |
-| `validation` | "review", "verify", "audit" | `google/gemini-3.5-flash` |
-| `creative` | "brainstorm", "explore" | `claude-sonnet-5` |
+| `fast` | "quick", "simple", "minor" | see below |
+| `long-horizon` | "refactor", "migrate", "entire" | see below |
+| `reasoning` | "analyze", "debug", "explain" | see below |
+| `validation` | "review", "verify", "audit" | see below |
+| `creative` | "brainstorm", "explore" | see below |
 | `inline` | "extract", "list" (no tools) | current session |
+
+Type→model pins have exactly one source: `model_for_type` in
+`package/router/classify-task.sh`, verified against the live command-code
+catalog (`command-code --list-models`). Resolve any task with
+`sh package/router/classify-task.sh "<task>"`. (2026-07-28: this table
+previously carried a stale inline copy of the pins; removed per the
+one-classifier doctrine.)
 
 ## Automatic Routing Context
 
@@ -83,6 +125,7 @@ The agent sees the `routing:` line and knows which backend/model to use when del
 
 | Backend | CLI | Models | Best For |
 |---------|-----|--------|----------|
+| **omniroute** | `temperance-batch`, `temperance-claude`, `temperance-opencode` | Exact probe-passing models and governed aliases | Authenticated heterogeneous execution |
 | **command-code** | `command-code` | 35 models | Primary, versatile |
 | **kimi** | `kimi` | K2.7 Code (262K) | Long-horizon coding |
 | **grok** | `~/.grok/bin/grok` | grok-composer-2.5-fast | Fast iteration |
@@ -101,7 +144,22 @@ The agent sees the `routing:` line and knows which backend/model to use when del
 
 ```bash
 ./scripts/wire-multi-backend.sh --status
+./scripts/omniroute-client-auth.sh verify
+./scripts/omniroute-codex-preview.sh
+./scripts/omniroute-hermes-preview.sh
+bun scripts/omniroute-native-cli-readiness.ts
 ```
+
+See [`docs/omniroute-native-integration.md`](docs/omniroute-native-integration.md)
+for Context Settings, CLI Code/Agents, Hermes, Cloudflare Access, provider
+topology semantics, local auth receipts, and remote promotion gates.
+The preview commands are proposal/validation gates only: they do not replace
+the governed Codex profiles or write a live Hermes configuration. The native
+CLI readiness command compares six reviewed 3.8.48 source digests and markers
+offline; it does not certify the full package and is not an authenticated
+compression preview. MCP remains disabled
+with dormant scope enforcement; A2A
+remains disabled until its execution endpoint enforces governed credentials.
 
 ## Revert
 

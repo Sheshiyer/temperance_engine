@@ -99,7 +99,28 @@ the richer continuity surface is the work and learning archive. The system
 should therefore use retrieval over pointers, not pretend OmniRoute owns a
 complete knowledge base. The resolver’s canonicalization and symlink checks are
 defense-in-depth for pointer discovery, not a sandbox or authorization layer;
-the client must canonicalize and authorize again when dereferencing a pointer.
+the client must reopen, validate ownership and link count, canonicalize,
+contain, authorize, and bound every pointer before dereferencing it.
+
+The shared enrichment assembler and the direct Command Code pointer helper now carry the minimal cross-client catalog as
+one compact `context-sources:` JSON line: PAI `Algorithm/LATEST`, repo-local GSD
+`.planning/STATE.md`, and canonical `skill-index.json`. Claude, Codex, OpenCode,
+Kimi, and direct Command Code receive the same pointer-only line. Command Code
+preserves its existing ISA/memory renderer and delegates only pointer projection
+to the canonical metadata-only resolver; exact-one validation stops a dispatch
+before launch if the line is missing, malformed, or spoofed. OmniRoute's native
+Obsidian/Notion sources remain disabled because they persist source credentials
+and expose a broader content/tool contract.
+
+Deploy an enrichment-only change with the isolated backup-first path:
+
+```bash
+bash scripts/wire-multi-backend.sh --refresh-enrich-only --dry-run
+bash scripts/wire-multi-backend.sh --refresh-enrich-only
+```
+
+This operation refreshes only `~/.claude/PAI/enrich`; it does not rewrite
+router links, prompt hooks, OpenCode adapters, or Kimi skill copies.
 
 ## Handoff contract
 

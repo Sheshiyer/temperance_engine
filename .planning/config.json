@@ -1,7 +1,12 @@
 {
   "project": "temperance_engine",
-  "active_milestone": "product-engineering-workflow-hardening",
-  "active_phase": "verify",
+  "active_milestone": "full-native-integration-completion-audit",
+  "active_phase": "learn",
+  "completed_milestones": [
+    "hermes-secretless-discovery-hardening",
+    "omniroute-cloudflare-production-boundary",
+    "context-settings-preview-qualification"
+  ],
   "workflow": {
     "system": "gsd",
     "require_isa_criteria": true,

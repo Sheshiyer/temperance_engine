@@ -16,20 +16,49 @@ fi
 
 run ./verify.sh
 run bun test package/enrich
+run bun test package/adapters/command-code/context-sources-line.test.ts
+run bash tests/command-code-context-sources.sh
 run bun test package/router/routing-policy.test.ts
 run bun test package/router/omniroute-portfolios.test.ts
+run bun test package/router/omniroute-native-control-plane.test.ts
+run bun test package/router/omniroute-context-preview.test.ts
+run bun test package/router/omniroute-native-cli-readiness.test.ts
 run bun test package/router/temperance-workflows.test.ts
 run bun test package/router/temperance-stage-contract.test.ts
 run bun test package/router/temperance-openai-proxy.test.ts
 run bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts
 run bun test package/adapters/opencode/TemperanceFlowPlugin.test.ts
+run bun test tests/paseo-vault-projects.test.ts
+run bun test package/router/signed-probe-receipt.test.ts
+run bun test package/router/signed-probe-challenge-ledger.test.ts
+run bun test package/router/omniroute-s-tier-readiness.test.ts
+run bun test package/router/omniroute-cloudflare-promotion.test.ts
+run bun test package/router/omniroute-cloudflare-production-adapter.test.ts
+run bun test tests/omniroute-cloudflare-readiness.test.ts
+run bun test tests/omniroute-a2a-readiness.test.ts
 run bash tests/omniroute-connections.sh
 run bash tests/omniroute-temperance-combos.sh
 run bash tests/omniroute-planner-quota.sh
+run bash tests/omniroute-memory-sync.sh
+run bash tests/omniroute-autostart-launchd.sh
+run bash tests/omniroute-native-integration.sh
+run bash tests/omniroute-claude.sh
+run bash tests/omniroute-opencode.sh
+run bash tests/omniroute-codex-preview.sh
+run bash tests/omniroute-hermes-preview.sh
+run bash tests/omniroute-local-rollback-rehearsal.sh
+run bash tests/omniroute-client-auth.sh
+run bash tests/omniroute-redact-claude-artifacts.sh
+run bash -n scripts/omniroute-client-auth.sh
+run bash -n scripts/omniroute-redact-claude-artifacts.sh
 run bash tests/temperance-proxy-live.sh
+run bash tests/temperance-proxy-launchd.sh
+run bash tests/configure-opencode-session-profiles.sh
+run bash tests/install-temperance-proxy-systemd.sh
 run bash tests/docs-continuity.sh
 run bash tests/router-hardening.sh
 run bash tests/routing-policy.sh
+run bash tests/temperance-routing-policy.sh
 run bash tests/dispatch-tasklist.sh
 run sh tests/sandbox-install.sh
 run sh tests/identity-tool.sh
