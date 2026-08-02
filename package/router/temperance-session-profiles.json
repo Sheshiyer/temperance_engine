@@ -1,0 +1,581 @@
+{
+  "version": 1,
+  "max_subagent_depth": 1,
+  "capability_tiers": {
+    "S": {
+      "rank": 3,
+      "role": "coordinator"
+    },
+    "A": {
+      "rank": 2,
+      "role": "continuity"
+    },
+    "B": {
+      "rank": 1,
+      "role": "worker"
+    }
+  },
+  "fallback_readiness": {
+    "ready": {
+      "eligible_for_default": true,
+      "eligible_for_fallback": true
+    },
+    "degraded": {
+      "eligible_for_default": false,
+      "eligible_for_fallback": true
+    },
+    "candidate": {
+      "eligible_for_default": false,
+      "eligible_for_fallback": false
+    }
+  },
+  "transport_policy": {
+    "omniroute_compression": {
+      "mode": "off",
+      "providers": [
+        "omniroute",
+        "temperance"
+      ]
+    }
+  },
+  "providers": {
+    "temperance": {
+      "promotion_state": "proven"
+    },
+    "omniroute": {
+      "promotion_state": "proven"
+    },
+    "agy": {
+      "promotion_state": "candidate"
+    },
+    "ollama-cloud": {
+      "promotion_state": "candidate"
+    },
+    "opencode-zen": {
+      "promotion_state": "candidate"
+    }
+  },
+  "models": {
+    "temperance/temperance-auto": {
+      "provider": "temperance",
+      "capability_tier": "S",
+      "fallback_readiness": "ready",
+      "failure_domain": "temperance-relay",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:opencode-fresh-session",
+          "tool": "probe:temperance-proxy-tool-envelope",
+          "health": "probe:temperance-relay-health",
+          "receipt": "receipt:temperance-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-fast": {
+      "provider": "omniroute",
+      "capability_tier": "B",
+      "fallback_readiness": "ready",
+      "failure_domain": "antigravity-oauth",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-fast-content",
+          "tool": "probe:te-fast-tool-boundary",
+          "health": "probe:omniroute-catalog-health",
+          "receipt": "receipt:te-fast-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-algorithm": {
+      "provider": "omniroute",
+      "capability_tier": "S",
+      "fallback_readiness": "ready",
+      "failure_domain": "codex-sol-oauth",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-algorithm-content",
+          "tool": "probe:te-algorithm-tool-call",
+          "health": "probe:omniroute-catalog-health",
+          "receipt": "receipt:te-algorithm-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-build": {
+      "provider": "omniroute",
+      "capability_tier": "A",
+      "fallback_readiness": "ready",
+      "failure_domain": "github-oauth",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-build-content",
+          "tool": "probe:te-build-tool-call",
+          "health": "probe:omniroute-catalog-health",
+          "receipt": "receipt:te-build-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-plan": {
+      "provider": "omniroute",
+      "capability_tier": "S",
+      "fallback_readiness": "ready",
+      "failure_domain": "github-planner-oauth",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-plan-content",
+          "tool": "probe:te-plan-tool-call",
+          "health": "probe:omniroute-catalog-health",
+          "receipt": "receipt:te-plan-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-dispatch": {
+      "provider": "omniroute",
+      "capability_tier": "B",
+      "fallback_readiness": "ready",
+      "failure_domain": "omniroute-dispatch-pool",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-dispatch-content",
+          "tool": "probe:te-dispatch-tool-call",
+          "health": "probe:omniroute-dispatch-health",
+          "receipt": "receipt:te-dispatch-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-validate": {
+      "provider": "omniroute",
+      "capability_tier": "A",
+      "fallback_readiness": "ready",
+      "failure_domain": "omniroute-validation-pool",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-validate-content",
+          "tool": "probe:te-validate-tool-call",
+          "health": "probe:omniroute-validation-health",
+          "receipt": "receipt:te-validate-routing-v1"
+        }
+      }
+    },
+    "omniroute/codex/gpt-5.3-codex-spark": {
+      "provider": "omniroute",
+      "capability_tier": "B",
+      "fallback_readiness": "ready",
+      "failure_domain": "codex-spark-quota",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:codex-spark-content",
+          "tool": "probe:codex-spark-tool-call",
+          "health": "probe:codex-spark-health",
+          "receipt": "receipt:codex-spark-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-reason": {
+      "provider": "omniroute",
+      "capability_tier": "S",
+      "fallback_readiness": "ready",
+      "failure_domain": "antigravity-reasoning-oauth",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-reason-content",
+          "tool": "probe:te-reason-tool-boundary",
+          "health": "probe:omniroute-catalog-health",
+          "receipt": "receipt:te-reason-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-creative": {
+      "provider": "omniroute",
+      "capability_tier": "A",
+      "fallback_readiness": "ready",
+      "failure_domain": "creative-planner-pool",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-creative-content",
+          "tool": "probe:te-creative-tool-call",
+          "health": "probe:omniroute-catalog-health",
+          "receipt": "receipt:te-creative-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-write": {
+      "provider": "omniroute",
+      "capability_tier": "B",
+      "fallback_readiness": "ready",
+      "failure_domain": "command-code-writing",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-write-content",
+          "tool": "probe:te-write-tool-boundary",
+          "health": "probe:omniroute-writing-health",
+          "receipt": "receipt:te-write-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-write-critique": {
+      "provider": "omniroute",
+      "capability_tier": "A",
+      "fallback_readiness": "ready",
+      "failure_domain": "writing-critique-pool",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-write-critique-content",
+          "tool": "probe:te-write-critique-tool-boundary",
+          "health": "probe:omniroute-writing-health",
+          "receipt": "receipt:te-write-critique-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-write-research": {
+      "provider": "omniroute",
+      "capability_tier": "A",
+      "fallback_readiness": "ready",
+      "failure_domain": "writing-research-pool",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-write-research-content",
+          "tool": "probe:te-write-research-tool-boundary",
+          "health": "probe:omniroute-writing-health",
+          "receipt": "receipt:te-write-research-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-write-media": {
+      "provider": "omniroute",
+      "capability_tier": "A",
+      "fallback_readiness": "ready",
+      "failure_domain": "writing-media-planner-pool",
+      "promotion": {
+        "state": "proven",
+        "evidence": {
+          "content": "probe:te-write-media-content",
+          "tool": "probe:te-write-media-tool-boundary",
+          "health": "probe:omniroute-writing-health",
+          "receipt": "receipt:te-write-media-routing-v1"
+        }
+      }
+    },
+    "omniroute/te-orchestrate": {
+      "provider": "omniroute",
+      "capability_tier": "S",
+      "fallback_readiness": "candidate",
+      "failure_domain": "unproven-orchestrator",
+      "promotion": {
+        "state": "candidate",
+        "evidence": {
+          "content": null,
+          "tool": null,
+          "health": null,
+          "receipt": null
+        }
+      }
+    },
+    "agy/gemini-3.5-flash-low": {
+      "provider": "agy",
+      "capability_tier": "B",
+      "fallback_readiness": "candidate",
+      "failure_domain": "agy-oauth",
+      "promotion": {
+        "state": "candidate",
+        "evidence": {
+          "content": null,
+          "tool": null,
+          "health": null,
+          "receipt": null
+        }
+      }
+    },
+    "ollama-cloud/qwen3.5:397b": {
+      "provider": "ollama-cloud",
+      "capability_tier": "B",
+      "fallback_readiness": "candidate",
+      "failure_domain": "ollama-cloud-account",
+      "promotion": {
+        "state": "candidate",
+        "evidence": {
+          "content": null,
+          "tool": null,
+          "health": null,
+          "receipt": null
+        }
+      }
+    },
+    "opencode-zen/claude-sonnet-4-6": {
+      "provider": "opencode-zen",
+      "capability_tier": "A",
+      "fallback_readiness": "candidate",
+      "failure_domain": "opencode-zen-account",
+      "promotion": {
+        "state": "candidate",
+        "evidence": {
+          "content": null,
+          "tool": null,
+          "health": null,
+          "receipt": null
+        }
+      }
+    }
+  },
+  "aliases": [
+    {
+      "id": "temperance/temperance-auto",
+      "provider": "temperance",
+      "model": "temperance/temperance-auto",
+      "limits": {
+        "context": 200000,
+        "output": 384000
+      }
+    },
+    {
+      "id": "omniroute/te-fast",
+      "provider": "omniroute",
+      "model": "omniroute/te-fast",
+      "limits": {
+        "context": 200000,
+        "output": 384000
+      }
+    },
+    {
+      "id": "omniroute/te-algorithm",
+      "provider": "omniroute",
+      "model": "omniroute/te-algorithm",
+      "limits": {
+        "context": 500000,
+        "output": 128000
+      }
+    },
+    {
+      "id": "omniroute/te-build",
+      "provider": "omniroute",
+      "model": "omniroute/te-build",
+      "limits": {
+        "context": 200000,
+        "output": 384000
+      }
+    },
+    {
+      "id": "omniroute/te-plan",
+      "provider": "omniroute",
+      "model": "omniroute/te-plan",
+      "limits": {
+        "context": 500000,
+        "output": 128000
+      }
+    },
+    {
+      "id": "omniroute/te-dispatch",
+      "provider": "omniroute",
+      "model": "omniroute/te-dispatch",
+      "limits": {
+        "context": 256000,
+        "output": 131072
+      }
+    },
+    {
+      "id": "omniroute/te-validate",
+      "provider": "omniroute",
+      "model": "omniroute/te-validate",
+      "limits": {
+        "context": 200000,
+        "output": 384000
+      }
+    },
+    {
+      "id": "omniroute/codex/gpt-5.3-codex-spark",
+      "provider": "omniroute",
+      "model": "omniroute/codex/gpt-5.3-codex-spark",
+      "limits": {
+        "context": 128000,
+        "output": 32000
+      }
+    },
+    {
+      "id": "omniroute/te-reason",
+      "provider": "omniroute",
+      "model": "omniroute/te-reason",
+      "limits": {
+        "context": 200000,
+        "output": 384000
+      }
+    },
+    {
+      "id": "omniroute/te-creative",
+      "provider": "omniroute",
+      "model": "omniroute/te-creative",
+      "limits": {
+        "context": 500000,
+        "output": 128000
+      }
+    },
+    {
+      "id": "omniroute/te-write",
+      "provider": "omniroute",
+      "model": "omniroute/te-write",
+      "limits": {
+        "context": 500000,
+        "output": 128000
+      }
+    },
+    {
+      "id": "omniroute/te-write-critique",
+      "provider": "omniroute",
+      "model": "omniroute/te-write-critique",
+      "limits": {
+        "context": 500000,
+        "output": 128000
+      }
+    },
+    {
+      "id": "omniroute/te-write-research",
+      "provider": "omniroute",
+      "model": "omniroute/te-write-research",
+      "limits": {
+        "context": 500000,
+        "output": 128000
+      }
+    },
+    {
+      "id": "omniroute/te-write-media",
+      "provider": "omniroute",
+      "model": "omniroute/te-write-media",
+      "limits": {
+        "context": 500000,
+        "output": 128000
+      }
+    }
+  ],
+  "candidate_aliases": [
+    {
+      "id": "omniroute/te-orchestrate",
+      "provider": "omniroute",
+      "model": "omniroute/te-orchestrate",
+      "status": "candidate-only",
+      "limits": {
+        "context": 240000,
+        "output": 120000
+      }
+    }
+  ],
+  "profiles": {
+    "temperance-auto": {
+      "default_model": "temperance/temperance-auto",
+      "fallback_models": [],
+      "capability_tier": "S",
+      "fallback_readiness": "ready",
+      "freeze_coordinator_identity": true,
+      "allow_silent_downgrade": false
+    },
+    "temperance-native": {
+      "default_model": "omniroute/te-fast",
+      "fallback_models": [],
+      "capability_tier": "B",
+      "fallback_readiness": "ready",
+      "freeze_coordinator_identity": true,
+      "allow_silent_downgrade": false
+    },
+    "temperance-algorithm": {
+      "default_model": "omniroute/te-algorithm",
+      "fallback_models": [],
+      "capability_tier": "S",
+      "fallback_readiness": "ready",
+      "freeze_coordinator_identity": true,
+      "allow_silent_downgrade": false
+    },
+    "temperance-continuity": {
+      "default_model": "omniroute/te-build",
+      "fallback_models": [
+        "omniroute/te-fast"
+      ],
+      "capability_tier": "A",
+      "fallback_readiness": "ready",
+      "freeze_coordinator_identity": true,
+      "allow_silent_downgrade": false
+    }
+  },
+  "helper_agents": {
+    "planner": {
+      "default_model": "omniroute/te-plan",
+      "fallback_models": [],
+      "capability_tier": "S",
+      "max_subagent_depth": 0
+    },
+    "worker": {
+      "default_model": "omniroute/te-dispatch",
+      "fallback_models": [],
+      "escalation_models": [
+        "omniroute/te-build",
+        "omniroute/te-algorithm"
+      ],
+      "capability_tier": "B",
+      "max_subagent_depth": 0
+    },
+    "validator": {
+      "default_model": "omniroute/te-validate",
+      "fallback_models": [],
+      "capability_tier": "A",
+      "max_subagent_depth": 0
+    },
+    "code-fast": {
+      "default_model": "omniroute/codex/gpt-5.3-codex-spark",
+      "fallback_models": [],
+      "capability_tier": "B",
+      "max_subagent_depth": 0
+    }
+  },
+  "tier_policy": {
+    "algorithm": {
+      "primary_profile": "temperance-algorithm",
+      "coordinator_tier": "S",
+      "allow_silent_downgrade": false,
+      "retry_at": {
+        "tier": "A",
+        "profile": "temperance-continuity",
+        "requires_explicit_selection": true
+      }
+    },
+    "fallback_transitions": [
+      {
+        "from": "A",
+        "to": "B",
+        "requires_log": true
+      }
+    ],
+    "worker": {
+      "initial_tier": "B",
+      "escalation_edges": [
+        {
+          "from": "B",
+          "to": "A"
+        },
+        {
+          "from": "A",
+          "to": "S"
+        }
+      ],
+      "downgrade_within_same_task": "reject",
+      "downgrade_requires_new_task": true
+    }
+  },
+  "failure_domain_policy": {
+    "independence_sets": [
+      {
+        "id": "algorithm-continuity",
+        "profiles": [
+          "temperance-algorithm",
+          "temperance-continuity"
+        ]
+      }
+    ]
+  }
+}

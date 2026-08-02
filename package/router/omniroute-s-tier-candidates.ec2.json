@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "kind": "temperance.omniroute-s-tier-falsification-plan",
+  "mode": "falsification-only",
+  "endpoint": "http://127.0.0.1:20128/v1/chat/completions",
+  "limits": {
+    "per_request_timeout_ms": 8000,
+    "total_timeout_ms": 70000,
+    "max_tokens": 64,
+    "max_requests": 9,
+    "receipt_lifetime_ms": 300000,
+    "max_response_bytes": 65536
+  },
+  "probe_contract": {
+    "compression": "off",
+    "stream": false,
+    "temperature": 0,
+    "tool_name": "te_probe_noop",
+    "content_value": "CONTENT_OK",
+    "tool_value": "TOOL_OK"
+  },
+  "controls": {
+    "pin_denial": {
+      "provider": "nebius",
+      "model": "temperance-probe-nonexistent",
+      "expected_http_status": 404,
+      "positions": ["before", "after"]
+    },
+    "attribution_mismatch": {
+      "provider": "auto",
+      "model": "claude-opus",
+      "expected_serving_provider": "nebius",
+      "expected_serving_model": "meta-llama/Llama-3.3-70B-Instruct"
+    }
+  },
+  "candidates": [
+    {
+      "id": "aug-claude-opus-4-6",
+      "provider": "aug",
+      "model": "claude-opus-4.6",
+      "owner": "auggie",
+      "expected_serving_provider": "auggie",
+      "expected_serving_model": "claude-opus-4.6",
+      "explicit_pin": true,
+      "reasoning_capable": true,
+      "prerequisite": {
+        "kind": "executable",
+        "name": "auggie"
+      }
+    },
+    {
+      "id": "tllm-claude-4-6-opus",
+      "provider": "tllm",
+      "model": "CLAUDE_4_6_OPUS",
+      "owner": "theoldllm",
+      "expected_serving_provider": "theoldllm",
+      "expected_serving_model": "CLAUDE_4_6_OPUS",
+      "explicit_pin": true,
+      "reasoning_capable": true
+    },
+    {
+      "id": "tllm-claude-opus-4",
+      "provider": "tllm",
+      "model": "claude_opus_4",
+      "owner": "theoldllm",
+      "expected_serving_provider": "theoldllm",
+      "expected_serving_model": "claude_opus_4",
+      "explicit_pin": true,
+      "reasoning_capable": true
+    }
+  ]
+}

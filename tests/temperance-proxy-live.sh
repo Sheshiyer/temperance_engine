@@ -22,6 +22,7 @@ MOCK_PID=$!
 TEMPERANCE_OMNIROUTE_BASE_URL="http://127.0.0.1:${MOCK_PORT}/v1" \
 TEMPERANCE_PROXY_PORT="$PROXY_PORT" \
 TEMPERANCE_ROUTER_PATH="$ROOT_DIR/package/router/multi-backend-router.sh" \
+TEMPERANCE_AUTO_READY=1 \
 bun run "$ROOT_DIR/package/router/temperance-openai-proxy.ts" >"$PROXY_LOG" 2>&1 &
 PROXY_PID=$!
 

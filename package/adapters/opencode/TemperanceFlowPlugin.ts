@@ -8,52 +8,9 @@
  * `input.model` in a chat hook.
  */
 import type { Plugin } from "@opencode-ai/plugin"
-import { enrich } from "../../enrich/index"
+import { capabilityTierForAgent, enrichOpenCodeMessage } from "./TemperanceFlowPluginCore"
 
-type TextPartLike = {
-  id: string
-  sessionID: string
-  messageID: string
-  type: "text"
-  text: string
-  synthetic?: boolean
-  [key: string]: unknown
-}
-
-function partText(part: any): string {
-  return part && part.type === "text" && typeof part.text === "string" ? part.text : ""
-}
-
-export function promptFromParts(parts: any[]): string {
-  if (!Array.isArray(parts)) return ""
-  return parts.map(partText).filter(Boolean).join("\n").trim()
-}
-
-export function stripTemperanceContext(prompt: string): string {
-  return prompt.replace(/<temperance-context>[\s\S]*?<\/temperance-context>/gi, "").trim()
-}
-
-export async function enrichOpenCodeMessage(
-  parts: any[],
-  input: { sessionID: string; messageID?: string },
-  cwd: string,
-): Promise<any[]> {
-  if (!Array.isArray(parts)) return parts || []
-  const prompt = stripTemperanceContext(promptFromParts(parts))
-  if (!prompt) return parts
-  const context = await enrich({ prompt, cwd, surface: "opencode" })
-  if (!context || parts.some((part) => partText(part).includes("<temperance-context>"))) return parts
-  return [...parts, {
-    id: `te-context-${input.sessionID}-${Date.now()}`,
-    sessionID: input.sessionID,
-    messageID: input.messageID || `te-message-${Date.now()}`,
-    type: "text",
-    text: context,
-    synthetic: true,
-  } as TextPartLike]
-}
-
-export const TemperanceFlowPlugin: Plugin = async ({ directory }) => {
+const TemperanceFlowPlugin: Plugin = async ({ directory }) => {
   const cwd = directory || process.cwd()
   return {
     "chat.message": async (input, output) => {
@@ -65,6 +22,8 @@ export const TemperanceFlowPlugin: Plugin = async ({ directory }) => {
       if (output && output.headers) {
         output.headers["X-Temperance-Surface"] = "opencode"
         output.headers["X-Temperance-Session-ID"] = input.sessionID
+        output.headers["X-Temperance-Profile"] = input.agent
+        output.headers["X-Temperance-Capability-Tier"] = capabilityTierForAgent(input.agent)
       }
     },
   }

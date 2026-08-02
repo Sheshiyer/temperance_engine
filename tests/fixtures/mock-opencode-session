@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+config="${TEMPERANCE_OPENCODE_CONFIG:?TEMPERANCE_OPENCODE_CONFIG is required}"
+case "${1:-}" in
+  --version)
+    printf '1.18.4\n'
+    ;;
+  debug)
+    case "${2:-}" in
+      config)
+        jq '(.agent // {}) |= with_entries(
+          if (.value.maxSteps | type) == "number" then
+            .value.steps = .value.maxSteps
+          else . end
+        )
+        | (.agent // {}) |= with_entries(.value.options = (.value.options // {}))
+        ' "$config"
+        ;;
+      skill) printf '[]\n' ;;
+      *) exit 2 ;;
+    esac
+    ;;
+  models)
+    jq -r '
+      .enabled_providers[] as $provider
+      | .provider[$provider].models | keys[]
+      | ($provider + "/" + .)
+    ' "$config" | LC_ALL=C sort
+    ;;
+  *)
+    exit 2
+    ;;
+esac

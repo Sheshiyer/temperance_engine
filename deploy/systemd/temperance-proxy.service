@@ -1,0 +1,47 @@
+[Unit]
+Description=Temperance OpenAI-compatible loopback relay
+Documentation=file:/opt/temperance/current/docs/runbooks/opencode-ec2-session-profile.md
+Wants=network-online.target omniroute.service
+After=network-online.target omniroute.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=temperance-router
+Group=temperance-router
+WorkingDirectory=/opt/temperance/current/router
+
+Environment=TEMPERANCE_PROXY_PORT=20129
+Environment=TEMPERANCE_PROXY_HOST=127.0.0.1
+Environment=TEMPERANCE_PROXY_LOG=/var/log/temperance/openai-proxy.jsonl
+Environment=TEMPERANCE_STATE_DIR=/var/lib/temperance-engine/router-state
+Environment=TEMPERANCE_OMNIROUTE_BASE_URL=http://127.0.0.1:20128/v1
+Environment=TEMPERANCE_ROUTER_PATH=/opt/temperance/current/router/multi-backend-router.sh
+Environment=TEMPERANCE_AUTO_READY=0
+Environment="TEMPERANCE_AUTO_UNAVAILABLE_REASON=Authenticate a verified S-tier coordinator and promote an admin-authorized te-algorithm combo."
+LoadCredential=omniroute.key:/etc/hermes/omniroute-proxy.key
+Environment=OMNIROUTE_API_KEY_FILE=%d/omniroute.key
+
+ExecStart=/usr/bin/env bun run /opt/temperance/current/router/temperance-openai-proxy.ts
+Restart=on-failure
+RestartSec=15s
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+ReadWritePaths=/var/log/temperance /var/lib/temperance-engine/router-state
+
+[Install]
+WantedBy=multi-user.target

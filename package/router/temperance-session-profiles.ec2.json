@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "transport_policy": {
+    "omniroute_compression": {
+      "mode": "off",
+      "providers": [
+        "omniroute",
+        "temperance"
+      ]
+    }
+  },
+  "session": {
+    "host_profile": "ec2",
+    "enabled_providers": [
+      "omniroute",
+      "temperance"
+    ],
+    "defaults": {
+      "model": "temperance/temperance-auto",
+      "small_model": "omniroute/te-free-burst",
+      "default_agent": "temperance-auto"
+    },
+    "max_subagent_depth": 1,
+    "managed_skills": [
+      "temperance-native",
+      "temperance-algorithm"
+    ],
+    "managed_agent_names": [
+      "temperance-auto",
+      "temperance-native",
+      "temperance-algorithm",
+      "temperance-continuity",
+      "temperance-planner",
+      "temperance-worker",
+      "temperance-validator",
+      "code-fast"
+    ],
+    "fail_closed": {
+      "algorithm_s": {
+        "activation_environment": "TEMPERANCE_AUTO_READY",
+        "ready_value": "1",
+        "unavailable_status": 503,
+        "unavailable_code": "s_tier_unavailable",
+        "model": "temperance/temperance-auto",
+        "agents": [
+          "temperance-auto",
+          "temperance-algorithm"
+        ],
+        "allow_silent_fallback": false
+      }
+    },
+    "agents": {
+      "temperance-auto": {
+        "mode": "primary",
+        "model": "temperance/temperance-auto",
+        "description": "Automatic EC2 Temperance session; Algorithm/S remains gated by relay readiness.",
+        "prompt": "Use the Temperance automatic classifier. TEMPERANCE_AUTO_READY controls S readiness at the relay. If S is unavailable, preserve the structured 503 s_tier_unavailable response; never continue on an A or B lane as Algorithm/S.",
+        "permission": {
+          "task": "allow",
+          "skill": {
+            "*": "deny",
+            "temperance-native": "allow",
+            "temperance-algorithm": "allow",
+            "ISA": "allow",
+            "*-orchestrator": "allow"
+          }
+        }
+      },
+      "temperance-native": {
+        "mode": "primary",
+        "model": "omniroute/te-free-burst",
+        "description": "Live-proven EC2 B lane for bounded NATIVE work.",
+        "prompt": "Execute one bounded NATIVE step. Do not represent this B lane as Algorithm/S and do not delegate.",
+        "permission": {
+          "task": "deny",
+          "skill": {
+            "*": "deny",
+            "temperance-native": "allow"
+          }
+        }
+      },
+      "temperance-algorithm": {
+        "mode": "primary",
+        "model": "temperance/temperance-auto",
+        "description": "Algorithm/S entrypoint gated by EC2 relay readiness.",
+        "prompt": "Load the Temperance Algorithm contract. TEMPERANCE_AUTO_READY must equal 1 at the relay. On an unavailable S lane, return the structured 503 s_tier_unavailable result and stop; never silently substitute te-plan, te-build, or te-free-burst.",
+        "permission": {
+          "task": "allow",
+          "skill": {
+            "*": "deny",
+            "temperance-algorithm": "allow",
+            "ISA": "allow",
+            "*-orchestrator": "allow"
+          }
+        }
+      },
+      "temperance-continuity": {
+        "mode": "primary",
+        "model": "omniroute/te-build",
+        "description": "Explicit EC2 A build lane selected after a visible S miss.",
+        "prompt": "This is an explicitly selected A-tier continuity session with a new task identity. Never represent this lane as Algorithm/S.",
+        "permission": {
+          "task": "allow",
+          "skill": {
+            "*": "deny",
+            "temperance-native": "allow"
+          }
+        }
+      },
+      "temperance-planner": {
+        "mode": "subagent",
+        "model": "omniroute/te-plan",
+        "description": "Live-proven EC2 A planning helper.",
+        "prompt": "Plan only the assigned bounded slice. Do not mutate the workspace, delegate, or claim Algorithm/S identity.",
+        "maxSteps": 16,
+        "permission": {
+          "task": "deny",
+          "edit": "deny",
+          "skill": {
+            "*": "deny",
+            "ISA": "allow"
+          }
+        }
+      },
+      "temperance-worker": {
+        "mode": "subagent",
+        "model": "omniroute/temperance-coding",
+        "description": "Live-proven EC2 B tool worker for bounded production slices.",
+        "prompt": "Execute only the assigned bounded slice, preserve unrelated work, do not delegate, and return evidence.",
+        "maxSteps": 32,
+        "permission": {
+          "task": "deny",
+          "skill": {
+            "*": "deny",
+            "temperance-native": "allow"
+          }
+        }
+      },
+      "temperance-validator": {
+        "mode": "subagent",
+        "model": "omniroute/te-build",
+        "description": "Independent EC2 A validation helper.",
+        "prompt": "Validate the assigned criteria independently. Do not mutate, delegate, or claim Algorithm/S identity.",
+        "maxSteps": 16,
+        "permission": {
+          "task": "deny",
+          "edit": "deny",
+          "skill": {
+            "*": "deny",
+            "ISA": "allow"
+          }
+        }
+      }
+    }
+  },
+  "aliases": [
+    {
+      "id": "temperance/temperance-auto",
+      "provider": "temperance",
+      "model": "temperance/temperance-auto",
+      "lane": "control",
+      "promotion_state": "live-proven",
+      "limits": {
+        "context": 200000,
+        "output": 384000
+      },
+      "config": {
+        "name": "Temperance Auto · EC2 S Gate",
+        "reasoning": true,
+        "temperature": true,
+        "tool_call": true
+      }
+    },
+    {
+      "id": "omniroute/te-free-burst",
+      "provider": "omniroute",
+      "model": "omniroute/te-free-burst",
+      "lane": "B",
+      "promotion_state": "live-proven",
+      "limits": {
+        "context": 200000,
+        "output": 128000
+      },
+      "config": {
+        "name": "Temperance · EC2 Free Burst (B)",
+        "reasoning": true,
+        "temperature": true,
+        "tool_call": false
+      }
+    },
+    {
+      "id": "omniroute/te-plan",
+      "provider": "omniroute",
+      "model": "omniroute/te-plan",
+      "lane": "A",
+      "promotion_state": "live-proven",
+      "limits": {
+        "context": 500000,
+        "output": 128000
+      },
+      "config": {
+        "name": "Temperance · EC2 Plan (A)",
+        "reasoning": true,
+        "temperature": true,
+        "tool_call": true
+      }
+    },
+    {
+      "id": "omniroute/temperance-coding",
+      "provider": "omniroute",
+      "model": "omniroute/temperance-coding",
+      "lane": "B",
+      "promotion_state": "live-proven",
+      "evidence": "forced-tool canary returned 200 and evidence_check({value:TOOL_OK})",
+      "resolved_model": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+      "limits": {
+        "context": 262144,
+        "output": 65536
+      },
+      "config": {
+        "name": "Temperance · EC2 Coding Tool Worker (B)",
+        "reasoning": true,
+        "temperature": true,
+        "tool_call": true
+      }
+    },
+    {
+      "id": "omniroute/te-build",
+      "provider": "omniroute",
+      "model": "omniroute/te-build",
+      "lane": "A",
+      "promotion_state": "live-proven",
+      "limits": {
+        "context": 200000,
+        "output": 384000
+      },
+      "config": {
+        "name": "Temperance · EC2 Build (A)",
+        "reasoning": true,
+        "temperature": true,
+        "tool_call": true
+      }
+    }
+  ]
+}

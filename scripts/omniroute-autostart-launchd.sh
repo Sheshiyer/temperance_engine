@@ -16,6 +16,8 @@ set -euo pipefail
 # started daemon untouched until the agent is confirmed healthy.
 
 USER_NAME="${USER:-$(id -un)}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/lib/omniroute-curl.sh"
 LABEL="com.temperance.engine.omniroute"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 LOG_DIR="$HOME/.temperance_engine/logs"
@@ -34,12 +36,35 @@ usage() {
 }
 
 api_health() {
-  curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "$BASE_URL/v1/models" \
-    -H "Authorization: Bearer $1" 2>/dev/null || echo "000"
+  omniroute_curl_bearer "$1" -sS -o /dev/null -w '%{http_code}' --max-time 5 \
+    "$BASE_URL/v1/models" 2>/dev/null || echo "000"
 }
 
 agent_pid() {
   launchctl list 2>/dev/null | awk -v label="$LABEL" '$3 == label { print $1 }'
+}
+
+wait_for_api() {
+  local key="$1" attempt health
+  for attempt in $(seq 1 40); do
+    health="$(api_health "$key")"
+    [ "$health" = 200 ] && return 0
+    sleep 0.5
+  done
+  return 1
+}
+
+recover_manual_daemon() {
+  local backup="${1:-}" key
+  launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+  if [ -n "$backup" ] && [ -f "$backup" ]; then
+    cp "$backup" "$PLIST"
+    chmod 644 "$PLIST"
+  fi
+  OMNIROUTE_SERVER_HOST=127.0.0.1 OMNIROUTE_MCP_ENFORCE_SCOPES=true \
+    "$OMNIROUTE_BIN" serve --daemon --no-open --no-tray >/dev/null
+  key="$(security find-generic-password -a "$USER_NAME" -s 'OmniRoute Temperance API Key' -w 2>/dev/null || true)"
+  [ -n "$key" ] && wait_for_api "$key"
 }
 
 write_plist() {
@@ -61,6 +86,10 @@ write_plist() {
   </array>
   <key>EnvironmentVariables</key>
   <dict>
+    <key>OMNIROUTE_SERVER_HOST</key>
+    <string>127.0.0.1</string>
+    <key>OMNIROUTE_MCP_ENFORCE_SCOPES</key>
+    <string>true</string>
     <key>PATH</key>
     <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
   </dict>
@@ -81,7 +110,7 @@ PLIST
 }
 
 install_agent() {
-  local ts backup
+  local ts backup="" attempt bootstrap_ok=false
   ts="$(date -u +%Y%m%d-%H%M%S)"
 
   if [ -f "$PLIST" ]; then
@@ -106,22 +135,45 @@ install_agent() {
     sleep 2
   fi
 
-  launchctl bootstrap "$DOMAIN" "$PLIST"
+  for attempt in 1 2 3; do
+    if launchctl bootstrap "$DOMAIN" "$PLIST"; then
+      bootstrap_ok=true
+      break
+    fi
+    launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+    sleep 1
+  done
+  if [ "$bootstrap_ok" != true ]; then
+    echo "LaunchAgent bootstrap failed after three attempts; restoring loopback manual daemon" >&2
+    recover_manual_daemon "$backup" || echo "manual recovery health check failed" >&2
+    return 1
+  fi
   sleep 5
 
   local pid
   pid="$(agent_pid)"
   [ -n "$pid" ] && [ "$pid" != "-" ] || {
-    echo "agent loaded but no running PID; check $ERR_LOG" >&2
-    exit 1
+    echo "agent loaded but no running PID; restoring loopback manual daemon" >&2
+    recover_manual_daemon "$backup" || echo "manual recovery health check failed" >&2
+    return 1
   }
   echo "agent running (PID $pid)"
+  launchctl print "$DOMAIN/$LABEL" 2>/dev/null | grep -q 'OMNIROUTE_MCP_ENFORCE_SCOPES => true' || {
+    echo "agent is missing mandatory dormant MCP scope enforcement; restoring loopback manual daemon" >&2
+    recover_manual_daemon "$backup" || echo "manual recovery health check failed" >&2
+    return 1
+  }
+  echo "dormant MCP scope enforcement present"
 
   local key health
   key="$(security find-generic-password -a "$USER_NAME" -s 'OmniRoute Temperance API Key' -w 2>/dev/null || true)"
   if [ -n "$key" ]; then
     health="$(api_health "$key")"
-    [ "$health" = "200" ] || { echo "API health check failed (HTTP $health); check $ERR_LOG" >&2; exit 1; }
+    if [ "$health" != 200 ]; then
+      echo "API health check failed (HTTP $health); restoring loopback manual daemon" >&2
+      recover_manual_daemon "$backup" || echo "manual recovery health check failed" >&2
+      return 1
+    fi
     echo "API healthy at $BASE_URL (HTTP 200)"
   else
     echo "warning: inference key not in keychain; skipped authenticated health check" >&2
@@ -154,6 +206,11 @@ status_agent() {
     echo "agent: not loaded"
   fi
   [ -f "$PLIST" ] && echo "plist: $PLIST" || echo "plist: absent"
+  if launchctl print "$DOMAIN/$LABEL" 2>/dev/null | grep -q 'OMNIROUTE_MCP_ENFORCE_SCOPES => true'; then
+    echo "mcp scopes: enforced before registration"
+  else
+    echo "mcp scopes: not enforced"
+  fi
   local key
   key="$(security find-generic-password -a "$USER_NAME" -s 'OmniRoute Temperance API Key' -w 2>/dev/null || true)"
   if [ -n "$key" ]; then
