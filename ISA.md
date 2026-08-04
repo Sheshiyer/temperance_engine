@@ -1,14 +1,14 @@
 ---
 project: temperance_engine
-task: Complete OmniRoute native integration across all governed surfaces
+task: Build and test the vault relocation subsystem (Tasks 2A/3/4/6/7/8/9)
 effort: E4
-effort_source: auto
-phase: learn
-iteration: 2026-08-02-process-bound-context-transport
-progress: 587/619
+effort_source: classifier
+phase: build
+iteration: 2026-08-04-vault-relocation-build-out
+progress: 681/788
 mode: interactive
 started: 2026-06-12
-updated: 2026-08-02T08:21:43Z
+updated: 2026-08-04T23:15:00Z
 ---
 
 ## Problem
@@ -51,6 +51,14 @@ Without that mapping, overlapping context injection or agent bridges can
 duplicate policy, expose a public endpoint, consume protected Sol quota, or
 bypass the single-classifier and single-ISA contracts.
 
+Working Git repositories are also interleaved with the TWC Obsidian/PARA tree,
+including a nested Thoughtseed Labs knowledge vault. This creates nested `.git`
+traversal, indexing, watcher, and ownership confusion while making a casual move
+capable of breaking Git worktrees, runtime path consumers, or project planning
+links. The earlier relocation concept also made native-session and Paseo linkage
+part of the critical path even though durable continuity belongs in a portable
+project checkpoint, not in provider-owned chat databases.
+
 ## Vision
 
 Temperance Engine gives a user a readable public repo that explains the runtime, installs the safe pieces, references optional local voice packs, and verifies the configuration without leaking private machine state.
@@ -78,6 +86,14 @@ loopback-only routing; and receipt-bound rollback. The EC2 implementation should
 feel like the same Temperance system without pretending Mac-only credentials or
 model availability are portable.
 
+The TWC vault should remain the readable knowledge system, Thoughtseed Labs
+should remain its nested knowledge vault, and active code should live outside
+every vault tree under a stable two-portfolio root. Each old project address
+should remain useful as a lightweight capsule that explains the new code path,
+GitHub authority, knowledge record, project-packet digest, and rollback story.
+Any fresh Codex, Claude, OpenCode, or Kimi client should pick up the project from
+the same bounded checkpoint without importing a native transcript.
+
 ## Out of Scope
 
 Bundling private memory, credentials, backups, proprietary voice/audio packs, or forcing non-macOS voice behavior is out of scope.
@@ -99,6 +115,11 @@ provider credentials, or unkeyed inference access through the Quick Tunnel is
 outside scope. Replacing PAI, GSD, ISA, skill-cluster routing, or Hermes with an
 OmniRoute-owned duplicate is also outside scope.
 
+Every portfolio other than `thoughtseed` and `tryambakam-noesis`, moving
+Thoughtseed Labs, deleting any folder, rewriting native transcripts, relocating
+provider databases, mass-moving repositories, and shrinking or rewriting the
+outer vault's historical Git object store are outside this relocation tranche.
+
 ## Principles
 
 - `ISA.md` remains the single acceptance ledger and preference store.
@@ -113,6 +134,11 @@ OmniRoute-owned duplicate is also outside scope.
 - Context compression is a transport optimization, never a substitute for PAI stage semantics, ISA criteria, or GSD planning state.
 - The vault project inventory owns local portfolio membership; Paseo owns runnable workspace identity.
 - Project registration and agent-session creation remain separate lifecycle operations.
+- A filesystem path is a current address; the stable project ID is the durable identity.
+- Knowledge, code, session, and execution authorities remain linked without being collapsed into one store.
+- Portable checkpoint state, not raw native chat state, is the cross-client continuity contract.
+- Codex owns the local interactive governance rail without replacing either portfolio's durable authority plane.
+- The shared packet schema does not imply shared Thoughtseed and Tryambakam identities, secrets, schedulers, or runtimes.
 
 ## Constraints
 
@@ -142,6 +168,24 @@ OmniRoute-owned duplicate is also outside scope.
 - Hermes unit bytes, enabled state, activation timestamps, and protected data remain unchanged.
 - EC2 capability labels derive from live content and forced-tool evidence, not catalog names.
 - An unavailable S-tier coordinator fails closed instead of silently becoming an A-tier session.
+- The relocation destination root is exactly `/Volumes/madara/2026/Projects/`.
+- The relocation portfolio allowlist is exactly `thoughtseed` and `tryambakam-noesis`.
+- Thoughtseed Labs remains at `/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/`.
+- Lifecycle and repository type are metadata, never destination path segments.
+- Native CLI session stores remain in their provider-owned locations under the user's home directory.
+- Relocation does not inspect, rewrite, import, or require native CLI session stores.
+- Relocation does not modify or require Paseo.
+- OmniRoute owns model routing only; it owns no project, task, handoff, or session state.
+- Thoughtseed remote, scheduled, Telegram, and external operations remain Hermes-owned.
+- Tryambakam uses its TN-owned Kimiclaw, Paperclip, Snow Gloves, Selemene, Cloudflare, and seed authorities without inheriting Thoughtseed planes.
+- Kimi project context is attached at orchestrator dispatch time; prompt-hook emulation is forbidden.
+- Tauri is optional cockpit infrastructure and never the scheduler, routing authority, durable memory, or secret store.
+- A Thoughtseed relocation requires a verified TeamForge project ID; the relocation flow cannot mint one.
+- Physical source parentage is not portfolio authority; ambiguous and mixed-lineage repositories remain held until owner-mapped.
+- OmniRoute deployment profiles, endpoint/config namespaces, and credential scopes remain portfolio-specific.
+- The relocation threat model excludes a hostile privileged or same-user process racing outside the exclusive relocation lock.
+- Live apply is single-repository, same-device, digest-approved, receipt-bound, and rollback-capable.
+- Outer-vault Git history cleanup is a separate backup-and-approval operation.
 
 ### Risks
 
@@ -188,6 +232,14 @@ Map OmniRoute's native Context, CLI Code, CLI Agents, MCP, A2A, and Hermes-facin
 surfaces onto the existing Temperance PAI/GSD/ISA/skill-cluster architecture;
 adopt only non-duplicative, security-verifiable seams; and prove parallel worker
 dispatch can use governed non-Codex OmniRoute models without consuming Sol quota.
+
+Relocate only approved `thoughtseed` and `tryambakam-noesis` working repositories
+to `/Volumes/madara/2026/Projects/<portfolio>/<repository>` through a dry-run-first,
+same-device, one-repository transaction that preserves Git state, stable project
+identity, portfolio-specific knowledge records, portable project packets,
+old-path knowledge capsules, fresh-client pickup, and exact rollback while
+leaving Thoughtseed Labs, native session stores, Paseo, and every other folder
+untouched.
 
 ## Criteria
 
@@ -810,6 +862,174 @@ dispatch can use governed non-Codex OmniRoute models without consuming Sol quota
 - [x] ISC-610: The implementation reuses native OmniRoute contracts and installed primary source where possible, adds no second compression engine, and does not patch the installed package in place.
 - [x] ISC-611: Focused tests, native integration, documentation continuity, syntax, diff hygiene, and the canonical full verifier pass without changing provider routing, compression settings, Cloudflare, Hermes, MCP/A2A, EC2, or protected runtime identity.
 - [ ] ISC-612: Pre-build Advisor, mandatory Forge implementation, post-build Advisor, independent Cato audit, and reread reconciliation complete before this transport-readiness slice is accepted.
+- [x] ISC-613: The relocation destination root resolves exactly to `/Volumes/madara/2026/Projects/`.
+- [x] ISC-614: The relocation portfolio allowlist contains exactly `thoughtseed` and `tryambakam-noesis`.
+- [ ] ISC-615: Anti: a source or destination folder outside the two allowed portfolios changes during inventory, plan, apply, verification, or rollback.
+- [x] ISC-616: Thoughtseed Labs remains at its exact current path through every relocation operation.
+- [ ] ISC-617: Every repository, worktree, or vault boundary discovered by metadata-only inspection beneath the two scoped source portfolios receives one closed-vocabulary migration classification.
+- [x] ISC-618: Every standalone Git repository is represented as an independent migration unit.
+- [ ] ISC-619: Every `.git` pointer entry is classified as a linked worktree rather than a standalone repository.
+- [ ] ISC-620: Every nested remote-bearing Git repository is classified as an independent nested migration unit.
+- [x] ISC-621: Every unknown or non-repository entry is left unchanged and reported with a named held reason.
+- [ ] ISC-622: Every migration manifest records lifecycle as metadata.
+- [ ] ISC-623: Every migration manifest records repository type as metadata.
+- [x] ISC-624: Every migration manifest binds one stable logical project ID.
+- [x] ISC-625: Every migration manifest records canonical old path, canonical new path, and verified GitHub identity when available.
+- [x] ISC-626: Every migration preflight records the current branch or detached-branch state.
+- [x] ISC-627: Every migration preflight records the exact HEAD object ID.
+- [ ] ISC-628: Every migration preflight records a deterministic refs digest.
+- [x] ISC-629: Every migration preflight records canonical remote names and URLs without contacting a remote.
+- [ ] ISC-630: Every migration preflight records the complete Git worktree graph.
+- [ ] ISC-631: Every migration preflight records submodule status.
+- [ ] ISC-632: Every migration preflight records Git LFS availability and local state.
+- [ ] ISC-633: Every migration preflight records a deterministic untracked-file inventory.
+- [ ] ISC-634: Every migration preflight records the ignored-file classification policy and result.
+- ISC-635: [DROPPED — native-session link manifests were removed from the relocation critical path; see Decision 2026-08-03 18:32.]
+- ISC-636: [DROPPED — Paseo reconciliation was removed from the relocation critical path; see Decision 2026-08-03 18:32.]
+- [x] ISC-637: Anti: a generated manifest, capsule, report, or receipt contains credentials, auth headers, cookies, raw prompts, raw responses, or transcript bodies.
+- [ ] ISC-638: A live apply operation addresses exactly one explicitly approved standalone canary repository.
+- [ ] ISC-639: A live apply operation proves source and destination have the same device identity before mutation.
+- [ ] ISC-640: A destination collision aborts before mutation and names the conflicting canonical path.
+- [ ] ISC-641: Directory rename executes only while the source identity and every approved preflight digest remain exact.
+- ISC-642: [DROPPED — the seven-file session-bearing capsule was replaced by the compact six-file packet-linked capsule in ISC-699.]
+- [ ] ISC-642.1: Successful relocation creates a canonical handoff under the repository's portfolio-specific knowledge authority whose digest is referenced by the old-path capsule.
+- [ ] ISC-643: Post-move Git porcelain-v2 status matches the approved expected state.
+- [ ] ISC-644: Post-move HEAD matches the preflight HEAD object ID.
+- [ ] ISC-645: Post-move refs digest matches the preflight refs digest.
+- [ ] ISC-646: Post-move remotes match the preflight remote map byte-for-byte after canonical serialization.
+- [ ] ISC-647: Post-move worktree graph matches the approved expected graph.
+- [ ] ISC-648: Post-move repository filesystem hashes match the preflight integrity manifest.
+- ISC-649: [DROPPED — native predecessor/successor mapping was replaced by client-neutral checkpoint pickup; see ISC-700..ISC-703.]
+- ISC-650: [DROPPED — provider continuation proof was replaced by a fresh-client packet canary; see ISC-700..ISC-703.]
+- [ ] ISC-651: Every completed operation emits a digest-bound receipt with state, evidence paths, capsule manifest, and exact rollback command.
+- [ ] ISC-652: Rollback refuses any capsule, repository, destination, or old-path drift without removing bytes.
+- [ ] ISC-653: Successful rollback restores the exact old repository path and preflight Git state.
+- [x] ISC-654: Anti: relocation executes a network Git operation or mutates a remote.
+- [x] ISC-655: Anti: relocation prunes, compacts, garbage-collects, or rewrites the outer vault Git history.
+- [x] ISC-656: Historical outer-vault Git debloat is documented as a separate backup-and-approval phase.
+- [ ] ISC-657: The known outer/nested dual-tracking overlap is reported separately from ignore-rule changes.
+- [ ] ISC-658: Concurrent relocation attempts for the same repository are serialized by one exclusive lock.
+- [x] ISC-659: Relocation receipt directories use mode `0700` and receipt files use mode `0600`.
+- [x] ISC-660: Dry-run changes zero source, destination, Git, portfolio-registry, Paseo, and provider-home bytes.
+- [x] ISC-661: Every managed repository packet contains `PROJECT.md`.
+- [x] ISC-662: Every managed repository packet contains `.project/project.yaml`.
+- [x] ISC-663: Every managed repository packet contains `.project/HANDOFF.md`.
+- [ ] ISC-664: Relocation preserves an existing `AGENTS.md` until a separate adapter review approves changes.
+- [ ] ISC-665: Relocation preserves an existing `CLAUDE.md` until a separate adapter review approves changes.
+- [x] ISC-666: Every `.project/project.yaml` validates against one closed schema.
+- [x] ISC-667: Every `.project/project.yaml` records one stable project ID.
+- [x] ISC-668: Every `.project/project.yaml` records exactly one allowlisted portfolio.
+- [x] ISC-669: Every `.project/project.yaml` records the verified GitHub repository identity when available.
+- [ ] ISC-670: Every `.project/project.yaml` records one portfolio-authorized knowledge reference.
+- [x] ISC-671: Every `.project/project.yaml` declares Codex as the default local interactive client.
+- [x] ISC-672: Every `.project/project.yaml` declares one closed-vocabulary approval profile.
+- [x] ISC-673: Every routed `.project/project.yaml` declares `temperance-omniroute` as routing authority.
+- [x] ISC-674: Every routing lane named by `.project/project.yaml` belongs to the approved `te-*` lane set.
+- [x] ISC-675: Every `.project/project.yaml` records one setup command or an explicit not-applicable value.
+- [x] ISC-676: Every `.project/project.yaml` records one test command or an explicit not-applicable value.
+- [x] ISC-677: Every `.project/project.yaml` records one verification command.
+- [x] ISC-678: Anti: a project packet contains a secret, credential, provider account value, native session identifier, prompt body, response body, transcript locator, or machine-local checkout path.
+- [ ] ISC-679: Every `.project/HANDOFF.md` records one current objective.
+- [x] ISC-680: Every `.project/HANDOFF.md` records one base commit.
+- [x] ISC-681: Every `.project/HANDOFF.md` records one branch or detached-state value.
+- [ ] ISC-682: Every `.project/HANDOFF.md` records one clean-or-dirty working-tree value.
+- [ ] ISC-683: Every `.project/HANDOFF.md` records completed work.
+- [ ] ISC-684: Every `.project/HANDOFF.md` records current decisions.
+- [x] ISC-685: Every `.project/HANDOFF.md` records one exact next action.
+- [ ] ISC-686: Every `.project/HANDOFF.md` records blockers or an explicit none value.
+- [ ] ISC-687: Every `.project/HANDOFF.md` records the latest verification result.
+- [ ] ISC-688: Every `.project/HANDOFF.md` records one update timestamp.
+- [x] ISC-689: Codex is represented only as the default local interactive governance rail.
+- [x] ISC-690: OmniRoute project metadata contains no project-state, task-state, handoff-state, or native-session-state fields.
+- [ ] ISC-691: The Thoughtseed authority profile retains Hermes as remote and scheduled execution authority.
+- [x] ISC-692: Anti: the Tryambakam authority profile contains a Thoughtseed TeamForge, Cambium, Hermes, Telegram, Plexus, or operational Paperclip authority identifier.
+- [ ] ISC-693: The Kimi pickup adapter reads the canonical packet at orchestrator dispatch time.
+- [ ] ISC-694: Anti: the Kimi pickup adapter emulates a prompt-submit hook.
+- [ ] ISC-695: Anti: the Tryambakam adapter implements a second Temperance classifier or preference store.
+- [ ] ISC-696: Tauri is never represented as a scheduling authority.
+- [x] ISC-697: Every Thoughtseed relocation record resolves beneath the ratified Thoughtseed Labs registry root.
+- [x] ISC-698: Every Tryambakam relocation record resolves beneath the ratified `_System/10865xseed/projects/` registry root.
+- [ ] ISC-699: Successful relocation creates the exact six-file packet-linked capsule at the old project path.
+- [x] ISC-700: Every old-path capsule records the exact project-packet digest.
+- [x] ISC-701: The pure packet resolver resolves the stable project ID from the packet fixture.
+- [x] ISC-702: The pure packet resolver resolves the exact next action from the packet fixture.
+- [x] ISC-703: The pure packet resolver uses zero provider or transcript input.
+- [x] ISC-704: Anti: production relocation code traverses an unapproved provider-home path or any native session-store path.
+- [x] ISC-705: Anti: production relocation code invokes a Paseo import, reconciliation, registration, or mutation path.
+- [ ] ISC-706: Dashboard call counts, rank, latency, model counts, or node state cannot authorize a routing promotion.
+- [x] ISC-707: `hermes-aws-ts` remains held until an approved path-consumer dependency manifest exists.
+- [x] ISC-708: A cross-portfolio authority reference fails packet validation closed.
+- [ ] ISC-709: Every canary manifest records one bounded old-path consumer audit.
+- [ ] ISC-710: Every unresolved runtime old-path consumer holds the repository before mutation.
+- [x] ISC-711: A competing stable-ID or GitHub-identity claim in the other portfolio registry fails before mutation.
+- [x] ISC-712: Relocation leaves GitHub remote ownership and collaboration state unchanged.
+- [x] ISC-713: Anti: relocation creates a symlink fallback at the old project path.
+- [ ] ISC-714: Every managed repository packet contains `.project/CONTEXT.md`.
+- [ ] ISC-715: Anti: `.project/CONTEXT.md` contains copied corpora, live task state, or native session state.
+- [ ] ISC-716: Anti: the relocation transaction creates or edits a file inside the repository checkout.
+- [ ] ISC-717: The authority profile does not represent ChatGPT web as a local-filesystem or OmniRoute execution client.
+- [ ] ISC-718: Every Thoughtseed packet project ID matches a verified TeamForge project ID.
+- [ ] ISC-719: Every routed packet declares one portfolio-allowlisted OmniRoute deployment profile.
+- [ ] ISC-720: An unverified TN OmniRoute deployment profile fails routed delegation closed.
+- [ ] ISC-721: Every routed packet records one secretless credential-scope reference.
+- [ ] ISC-722: Every inventory record reports proposed portfolio, mapping evidence, and ambiguity state.
+- [ ] ISC-723: Every repository with conflicting path, packet, GitHub, or knowledge portfolio evidence remains held.
+- [ ] ISC-724: A live fresh-client canary resolves the same stable project ID as the pure resolver.
+- [ ] ISC-725: A live fresh-client canary resolves the same exact next action as the pure resolver.
+- [ ] ISC-726: A live fresh-client canary uses no resume, import, native session identifier, or prior project transcript.
+- [x] ISC-727: The selected registry repository has a clean or owner-checkpointed exact baseline before entry creation.
+- [x] ISC-728: The transaction revalidates canonical parent paths plus source device/inode immediately before rename.
+- [x] ISC-729: A source-replacement or parent/path-swap injection aborts before an unintended rename.
+- [x] ISC-730: The Thoughtseed relocation registry root is ratified as `thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed/<repository>/`.
+- [x] ISC-731: The Tryambakam registry root is ratified as `/Volumes/madara/2026/twc-vault/_System/10865xseed/projects/<repository>/`.
+- [ ] ISC-732: Every Thoughtseed reconciliation entry is keyed by the verified TeamForge project ID.
+- [x] ISC-733: Every new Thoughtseed reconciliation entry begins with a `reconciling` transition event.
+- [ ] ISC-734: Every reconciled Thoughtseed main project record stores the verified current repository path.
+- [ ] ISC-735: Every reconciled Thoughtseed main project record stores one non-null `relocation_evidence_ref`.
+- [ ] ISC-736: The read-back digest of the updated main project record matches its closure manifest.
+- [x] ISC-737: Every closed Thoughtseed reconciliation entry projects status `reconciled` from its transition log.
+- [x] ISC-738: Every closed Thoughtseed reconciliation entry records `closed_at`.
+- [x] ISC-739: Every closed Thoughtseed reconciliation entry records `canonical_project_record`.
+- [x] ISC-740: Every closed Thoughtseed reconciliation entry records `closure_manifest_digest`.
+- [x] ISC-741: Every closed Thoughtseed reconciliation entry retains the owner-ratification evidence.
+- [ ] ISC-742: Every closed Thoughtseed reconciliation entry retains its integrity and rollback evidence.
+- [x] ISC-743: Anti: reconciliation closure deletes, moves, or flattens a Thoughtseed relocation-registry entry.
+- [ ] ISC-744: Anti: a reconciled main project record duplicates historical old-path or relocation-event fields from the evidence registry.
+- [x] ISC-745: Every `relocation_evidence_ref` is the exact `sha256:<digest>` identity of the retained evidence.
+- [ ] ISC-746: Every reconciled main project record stores the evidence lookup path separately from `relocation_evidence_ref`.
+- [x] ISC-747: Every reconciliation status transition appends an event rather than rewriting a prior event.
+- [ ] ISC-748: Closure repository identity uses HEAD and canonical ref-set equality rather than Git packfile-byte equality.
+- [x] ISC-749: Every reconciled transition records the relocation actor separately from the owner ratifier.
+- [x] ISC-750: The read-only report enumerates every immediate Thoughtseed source candidate in the approved source root.
+- [x] ISC-751: The read-only report enumerates every immediate Tryambakam source candidate in the approved source root.
+- [ ] ISC-752: Every inventory row passes the repository-boundary and local-Git-evidence schema check.
+- [ ] ISC-753: Every inventory row passes the proposed-portfolio, evidence, and ambiguity schema check.
+- [x] ISC-754: The report identifies the Cambium Portfolio Workbench implementation and its repository-data source.
+- [x] ISC-755: A read-only browser probe records the authenticated Workbench route's rendered state.
+- [x] ISC-756: Every conflicting or insufficient portfolio classification in the report is explicitly held.
+- [x] ISC-757: Anti: this inventory stage mutates any scanned checkout beyond the explicit Temperance ISA update, or moves, deletes, clones, rewrites, registers, imports, or mutates any session, Paseo workspace, destination repository, or external service.
+- [x] ISC-758: A filesystem path is never treated as the identity of a repository.
+- [x] ISC-759: Every future approved local destination repository basename is normalized under one shared convention before any rename or move.
+- [x] ISC-760: The normalized destination repository-directory grammar is ratified before any concrete slug proposal, rename, or move.
+- [x] ISC-760.1: ASCII full stop U+002E is not representable at a non-boundary position in a canonical local destination repository basename.
+- [x] ISC-760.2: The eventual complete canonical grammar excludes every ASCII uppercase letter U+0041–U+005A at every position of the exact `<repository>` segment.
+- [x] ISC-760.3: The eventual complete canonical grammar's full ASCII-lowercase repertoire-inclusion requirement is ratified for the exact `<repository>` segment.
+- [x] ISC-760.4: The eventual complete canonical grammar permits every ASCII digit U+0030–U+0039 as a repertoire member for the exact `<repository>` segment.
+- [x] ISC-760.5: The eventual complete canonical grammar permits ASCII hyphen-minus U+002D as a repertoire member for the exact `<repository>` segment.
+- [x] ISC-760.6: The eventual complete canonical grammar excludes ASCII low line U+005F from the exact `<repository>` repertoire.
+- [x] ISC-760.7: The eventual complete canonical grammar admits only explicitly permitted code points for the exact `<repository>` segment; unruled code points are inadmissible until separately admitted.
+- [x] ISC-760.8: The eventual complete canonical grammar separately ratifies whether ASCII hyphen-minus U+002D may occupy the first code point of an exact `<repository>` segment of length at least two.
+- [x] ISC-760.9: The eventual complete canonical grammar separately ratifies whether ASCII hyphen-minus U+002D may occupy the last code point of an exact `<repository>` segment of length at least two.
+- [x] ISC-760.10: The eventual complete canonical grammar separately ratifies whether the exact one-code-point `<repository>` segment `-` is admissible.
+- [x] ISC-760.11: The eventual complete canonical grammar separately ratifies whether any multi-code-point exact depth-one `<repository>` segment containing U+002D is admissible beyond the singleton decision.
+- [x] ISC-760.12: The eventual complete canonical grammar separately ratifies whether the multi-codepoint admission permission composes by intersection with, rather than repeals, prior positional prohibitions.
+- [x] ISC-760.13: The eventual complete canonical grammar separately ratifies whether normalization occurs before or after positional projection and validation.
+- [x] ISC-760.14: The eventual complete canonical grammar separately ratifies whether normalization is validity-preserving for already accepted raw names.
+- [x] ISC-760.15: The eventual complete canonical grammar separately ratifies the identity-key projection basis after normalization validity resolves.
+- [x] ISC-760.16: The eventual complete canonical grammar separately ratifies the presentation projection basis after identity-key projection resolves.
+- [x] ISC-760.17: The eventual complete canonical grammar separately ratifies collision handling after identity-key projection resolves.
+- [x] ISC-760.18: The eventual complete canonical grammar separately ratifies the normalization algorithm and post-normalization invariant after validity closure resolves.
+- [x] ISC-760.19: The eventual complete canonical grammar separately ratifies interior U+002D flanking and adjacency after multi-codepoint admission and precedence resolve.
 
 ## Test Strategy
 
@@ -1393,6 +1613,174 @@ dispatch can use governed non-Codex OmniRoute models without consuming Sol quota
 | ISC-593 | rejected evidence | original ambient-config run | timeout never counted as success or fixed by duration | retained run receipt and decision ledger |
 | ISC-594 | protected invariants | native snapshot before and after proof | Sol-free and byte-stable protected projections | native status and hashes |
 | ISC-595 | final acceptance | focused/docs/native/full/review/reread | all green; zero unauthorized mutation | shell, Bun, Advisor, Cato |
+| ISC-613 | scope | destination root | exact canonical path | policy unit test |
+| ISC-614 | scope | portfolio allowlist | exact two values | policy unit test |
+| ISC-615 | anti-scope | unrelated source/destination hashes | byte-identical | integration snapshot |
+| ISC-616 | pinned vault | Thoughtseed Labs path and identity | unchanged | lstat and hash snapshot |
+| ISC-617 | inventory | scoped entries versus classifications | full coverage | inventory fixture/live report |
+| ISC-618 | classification | standalone repositories | independent units | Git fixture test |
+| ISC-619 | classification | `.git` pointer repositories | linked worktree | Git fixture test |
+| ISC-620 | classification | nested remote repositories | independent nested units | Git fixture test |
+| ISC-621 | held entries | unknown/non-repository state | unchanged plus reason | fixture hash comparison |
+| ISC-622 | metadata | lifecycle field | closed vocabulary present | schema test |
+| ISC-623 | metadata | repository type field | closed vocabulary present | schema test |
+| ISC-624 | identity | logical project ID | exactly one stable value | schema test |
+| ISC-625 | mapping | old/new/GitHub fields | canonical and verified | schema plus Git readback |
+| ISC-626 | Git preflight | branch state | exact value | Git readback fixture |
+| ISC-627 | Git preflight | HEAD | exact object ID | `git rev-parse` fixture |
+| ISC-628 | Git preflight | refs | deterministic digest | Git plumbing fixture |
+| ISC-629 | Git preflight | remotes | exact offline map | `git remote -v` fixture |
+| ISC-630 | Git preflight | worktree graph | complete canonical list | `git worktree list --porcelain` |
+| ISC-631 | Git preflight | submodules | exact local status | submodule fixture |
+| ISC-632 | Git preflight | LFS | availability and local state | LFS fixture |
+| ISC-633 | filesystem preflight | untracked files | deterministic inventory | porcelain fixture |
+| ISC-634 | filesystem preflight | ignored files | policy plus classification | ignored fixture |
+| ISC-635 | tombstone audit | dropped session-manifest contract | points to 2026-08-03 refined decision | ID-stability scan |
+| ISC-636 | tombstone audit | dropped Paseo-link contract | points to 2026-08-03 refined decision | ID-stability scan |
+| ISC-637 | anti-secret | generated artifacts | zero forbidden patterns | recursive scanner |
+| ISC-638 | apply scope | approved repository count | exactly one standalone | transaction test |
+| ISC-639 | filesystem | source/destination device | exact equality | stat fixture/live preflight |
+| ISC-640 | collision | occupied destination | fail before mutation | transaction fixture |
+| ISC-641 | mutation gate | source plus digest state | exact before rename | failure-injection test |
+| ISC-642 | tombstone audit | superseded capsule contract | points to ISC-699 | ID-stability scan |
+| ISC-642.1 | knowledge authority | portfolio-specific handoff and capsule backlink | exact digest match | registry/capsule snapshot |
+| ISC-643 | Git verification | porcelain-v2 status | approved equivalence | pre/post Git readback |
+| ISC-644 | Git verification | HEAD | exact equality | pre/post `rev-parse` |
+| ISC-645 | Git verification | refs digest | exact equality | pre/post plumbing digest |
+| ISC-646 | Git verification | remotes | byte-equal canonical map | pre/post readback |
+| ISC-647 | Git verification | worktree graph | approved equivalence | pre/post worktree readback |
+| ISC-648 | filesystem verification | integrity hashes | exact equality | SHA-256 manifest |
+| ISC-649 | tombstone audit | dropped predecessor/successor contract | points to ISC-700..ISC-703 | ID-stability scan |
+| ISC-650 | tombstone audit | dropped provider-continuation contract | points to ISC-700..ISC-703 | ID-stability scan |
+| ISC-651 | recovery | operation receipt | complete digest-bound schema | receipt schema test |
+| ISC-652 | rollback safety | planted drift | reject with zero removals | adversarial rollback test |
+| ISC-653 | rollback recovery | path and Git state | exact preflight restoration | rollback fixture |
+| ISC-654 | anti-network | Git command log | zero network/remote mutation calls | fake-Git capture |
+| ISC-655 | anti-history | outer vault Git command log | zero cleanup/rewrite calls | source guard plus fake-Git capture |
+| ISC-656 | documentation | historical debloat boundary | separate phase stated | docs contract test |
+| ISC-657 | overlap truth | dual-tracking condition | separate report present | Git index audit |
+| ISC-658 | concurrency | overlapping applies | exactly one lock holder | multiprocess fixture |
+| ISC-659 | permissions | receipt directory and files | `0700` and `0600` | stat matrix |
+| ISC-660 | dry-run | all protected snapshots | byte-identical | source/destination/Git/registry/Paseo/provider-home hash matrix |
+| ISC-661 | packet shape | `PROJECT.md` | present | packet fixture |
+| ISC-662 | packet shape | `.project/project.yaml` | present | packet fixture |
+| ISC-663 | packet shape | `.project/HANDOFF.md` | present | packet fixture |
+| ISC-664 | adapter preservation | existing `AGENTS.md` | byte-identical during relocation | planted rich-file fixture |
+| ISC-665 | adapter preservation | existing `CLAUDE.md` | byte-identical during relocation | planted rich-file fixture |
+| ISC-666 | packet schema | project YAML keys | strict closed-schema pass | unknown-key matrix |
+| ISC-667 | packet identity | stable project ID | one valid value | schema fixture |
+| ISC-668 | packet identity | portfolio | one allowlisted value | schema fixture |
+| ISC-669 | packet authority | GitHub identity | verified value when discoverable | remote fixture |
+| ISC-670 | packet authority | knowledge reference | portfolio-authorized path | resolver fixture |
+| ISC-671 | packet governance | default client | exact `codex` | schema fixture |
+| ISC-672 | packet governance | approval profile | closed-vocabulary value | schema fixture |
+| ISC-673 | packet routing | routing authority | exact `temperance-omniroute` | schema fixture |
+| ISC-674 | packet routing | lane names | allowlisted `te-*` values only | adversarial lane matrix |
+| ISC-675 | packet commands | setup | command or explicit not-applicable | schema fixture |
+| ISC-676 | packet commands | test | command or explicit not-applicable | schema fixture |
+| ISC-677 | packet commands | verify | one command | schema fixture |
+| ISC-678 | packet hygiene | rendered packet | zero forbidden values | planted-secret/session/path scanner |
+| ISC-679 | handoff shape | objective | one non-empty value | handoff fixture |
+| ISC-680 | handoff shape | base commit | valid object ID | handoff fixture |
+| ISC-681 | handoff shape | branch state | branch or detached value | handoff fixture |
+| ISC-682 | handoff shape | working-tree state | exact clean/dirty value | handoff fixture |
+| ISC-683 | handoff shape | completed work | section present | handoff fixture |
+| ISC-684 | handoff shape | decisions | section present | handoff fixture |
+| ISC-685 | handoff shape | next action | one exact action | handoff fixture |
+| ISC-686 | handoff shape | blockers | list or explicit none | handoff fixture |
+| ISC-687 | handoff shape | verification | result present | handoff fixture |
+| ISC-688 | handoff shape | updated timestamp | canonical timestamp | handoff fixture |
+| ISC-689 | role boundary | Codex claim | local interactive governance only | authority-profile snapshot |
+| ISC-690 | router boundary | OmniRoute fields | zero project/task/handoff/session-state keys | strict-schema negative matrix |
+| ISC-691 | Thoughtseed boundary | remote execution authority | exact Hermes ownership | authority-profile snapshot |
+| ISC-692 | TN isolation | Thoughtseed authority identifiers | zero matches | recursive profile scanner |
+| ISC-693 | Kimi pickup | context load phase | dispatch-time packet read | adapter trace fixture |
+| ISC-694 | Kimi boundary | prompt-hook emulation | zero hook path | source guard |
+| ISC-695 | routing boundary | TN adapter | zero duplicate classifier/preference store | source guard plus import graph |
+| ISC-696 | Tauri boundary | authority profile | scheduler false/absent | schema snapshot |
+| ISC-697 | registry routing | Thoughtseed record | beneath ratified Thoughtseed root | path resolver fixture |
+| ISC-698 | registry routing | TN record | beneath ratified seed root | path resolver fixture |
+| ISC-699 | capsule shape | old-path capsule | exact six files | capsule snapshot |
+| ISC-700 | capsule linkage | packet digest | exact equality | packet/capsule snapshot |
+| ISC-701 | resolver contract | stable ID | exact packet value | pure packet fixture |
+| ISC-702 | resolver contract | next action | exact handoff value | pure packet fixture |
+| ISC-703 | resolver isolation | provider/transcript inputs | zero reads | poisoned-path fixture |
+| ISC-704 | source hygiene | unapproved provider-home or session-store traversal | zero production reads | source guard plus poisoned filesystem |
+| ISC-705 | source hygiene | Paseo mutation/import | zero production calls | import graph plus fake executable |
+| ISC-706 | promotion authority | dashboard metrics | cannot set authorization true | adversarial receipt fixture |
+| ISC-707 | held runtime | `hermes-aws-ts` | named dependency-manifest gate | inventory policy fixture |
+| ISC-708 | isolation failure | cross-portfolio reference | fail closed | adversarial authority matrix |
+| ISC-709 | dependency audit | bounded search roots and exact old-path matches | complete manifest | repo/host config fixtures |
+| ISC-710 | dependency gate | unresolved runtime consumer | held before mutation | transaction denial fixture |
+| ISC-711 | split-brain gate | competing registry claim | fail before mutation | dual-registry fixture |
+| ISC-712 | remote boundary | GitHub collaboration state | unchanged | fake-Git command capture plus manifest comparison |
+| ISC-713 | old-path boundary | symlink creation | zero calls | filesystem-operation capture |
+| ISC-714 | packet shape | `.project/CONTEXT.md` | present | packet fixture |
+| ISC-715 | context hygiene | bounded context document | zero copied-corpus/task/session patterns | planted-content scanner |
+| ISC-716 | repository preservation | transaction file operations inside checkout | rename only, zero file create/edit | descriptor-operation capture |
+| ISC-717 | client boundary | ChatGPT web authority claims | zero local-filesystem/OmniRoute executor claims | authority-profile snapshot |
+| ISC-718 | Thoughtseed identity | packet project ID | exact TeamForge match | TeamForge snapshot fixture |
+| ISC-719 | routing deployment | packet profile | one portfolio-allowlisted value | cross-profile matrix |
+| ISC-720 | TN routing gate | unverified deployment | routed delegation denied | adapter fixture |
+| ISC-721 | credential boundary | credential-scope reference | secretless named reference | schema and planted-secret fixture |
+| ISC-722 | portfolio classification | inventory record | proposal, evidence, ambiguity present | mixed-lineage fixture |
+| ISC-723 | portfolio ambiguity | conflicting evidence | held | Snow Gloves/10869 fixture |
+| ISC-724 | live pickup | stable ID | equals resolver output | approved-client canary receipt |
+| ISC-725 | live pickup | next action | equals resolver output | approved-client canary receipt |
+| ISC-726 | live pickup isolation | resume/import/session/transcript inputs | zero project-history inputs | client launch capture |
+| ISC-727 | registry preflight | repository baseline | clean or exact owner checkpoint | dirty-registry fixture |
+| ISC-728 | rename preflight | parents plus device/inode | exact immediately before mutation | instrumented rename fixture |
+| ISC-729 | rename adversary | source/parent path swap | abort before unintended rename | race-injection fixture |
+| ISC-730 | owner ratification | Thoughtseed registry root | exact approved path | user-message evidence plus design readback |
+| ISC-731 | owner ratification | Tryambakam registry root | exact approved path | user-message evidence plus design readback |
+| ISC-732 | identity authority | Thoughtseed reconciliation key | exact TeamForge project ID | registry schema fixture |
+| ISC-733 | lifecycle start | first Thoughtseed transition | exact `reconciling` event | registry fixture |
+| ISC-734 | current-state projection | main project record path | verified destination path | projection fixture |
+| ISC-735 | evidence linkage | main project record | non-null evidence reference | projection fixture |
+| ISC-736 | cutover integrity | main-record readback | closure-manifest digest match | closure fixture |
+| ISC-737 | lifecycle closure | projected registry status | exact `reconciled` from event log | closure fixture |
+| ISC-738 | lifecycle closure | closure timestamp | canonical timestamp present | schema fixture |
+| ISC-739 | lifecycle closure | canonical record pointer | exact resolvable reference | resolver fixture |
+| ISC-740 | lifecycle closure | manifest digest | exact SHA-256 | closure fixture |
+| ISC-741 | retained authority | owner ratification evidence | present after closure | frozen-entry snapshot |
+| ISC-742 | retained recovery | integrity and rollback evidence | present after closure | frozen-entry snapshot |
+| ISC-743 | anti-deletion | closed registry filesystem operations | zero delete/move/flatten calls | operation capture |
+| ISC-744 | authority separation | main project record historical fields | zero old-path/event fields | strict projection snapshot |
+| ISC-745 | evidence identity | relocation evidence reference | exact SHA-256 content identity | replacement/tamper fixture |
+| ISC-746 | evidence lookup | path field | separate from evidence identity | schema snapshot |
+| ISC-747 | lifecycle history | prior transition events | byte-identical after append | pre/post event-log snapshot |
+| ISC-748 | Git identity | closure comparison | HEAD and canonical ref-set equality | repack-insensitive fixture |
+| ISC-749 | authority attribution | closure actors | distinct tool actor and owner-ratifier fields | schema fixture |
+| ISC-750 | Thoughtseed source coverage | approved source immediate children | exact set equality | directory listing plus report validator |
+| ISC-751 | Tryambakam source coverage | approved source immediate children | exact set equality | directory listing plus report validator |
+| ISC-752 | Git inventory schema | each report row | boundary and local evidence fields present | report validator |
+| ISC-753 | classification schema | each report row | proposal, evidence, ambiguity present | report validator |
+| ISC-754 | Workbench provenance | implementation and data source | exact local paths identified | source search and readback |
+| ISC-755 | live Workbench state | authenticated admin route | rendered state captured read-only | Chrome page snapshot |
+| ISC-756 | ambiguity safety | conflicting or insufficient evidence rows | exact `held` disposition | report validator |
+| ISC-757 | anti-mutation | scanned checkouts, destination, session, Paseo, and external state | only explicit Temperance ISA plus external planning report changed | pre/post status and path snapshots |
+| ISC-758 | repository identity principle | owner ratification | path explicitly excluded as repository identity | decision and verification readback |
+| ISC-759 | repository directory normalization policy | owner ratification | universal normalization accepted before rename or move | decision and verification readback |
+| ISC-760 | repository directory grammar | owner ratification | one complete normalized basename grammar accepted before concrete slugs | decision readback |
+| ISC-760.1 | internal ASCII period representability | owner ratification | U+002E rejected at non-boundary positions | decision and verification readback |
+| ISC-760.2 | ASCII uppercase exclusion | owner ratification | one exact uppercase-exclusion ruling accepted for the `<repository>` segment | decision readback |
+| ISC-760.3 | ASCII lowercase repertoire | owner ratification | one exact full-class inclusion ruling accepted for the `<repository>` segment | decision readback |
+| ISC-760.4 | ASCII digit repertoire | owner ratification | one exact full-class include, exclude, or defer ruling accepted for the `<repository>` segment | decision readback |
+| ISC-760.5 | ASCII hyphen-minus repertoire | owner ratification | one exact include, exclude, or defer ruling accepted for U+002D in the `<repository>` segment | decision readback |
+| ISC-760.6 | ASCII low-line repertoire | owner ratification | one exact include, exclude, or closure-neutral defer ruling accepted for U+005F in the `<repository>` segment | decision readback |
+| ISC-760.7 | repertoire closure policy | owner ratification | one exact closed, open, or closure-deferred default accepted for unruled code points in the `<repository>` segment | decision readback |
+| ISC-760.8 | leading hyphen position | owner ratification | one exact allow, forbid, or unresolved ruling for U+002D at index 0 of length-at-least-two `<repository>` segments | decision readback |
+| ISC-760.9 | trailing hyphen position | owner ratification | one exact allow, forbid, or unresolved ruling for U+002D at the final index of length-at-least-two `<repository>` segments | decision readback |
+| ISC-760.10 | singleton hyphen name | owner ratification | one exact allow, forbid, or unresolved ruling for the one-code-point `<repository>` segment `-` | decision readback |
+| ISC-760.11 | multi-codepoint hyphen-bearing names | owner ratification | one exact allow, forbid, or unresolved ruling for multi-codepoint `<repository>` names containing U+002D | decision readback |
+| ISC-760.12 | permission precedence | owner ratification | one exact intersection-or-supersession ruling for multi-codepoint admission versus prior positional prohibitions | decision readback |
+| ISC-760.13 | normalization stage | owner ratification | one exact normalize-before-validation or validate-before-normalization ruling | decision readback |
+| ISC-760.14 | normalization validity closure | owner ratification | one exact validity-preserving, non-preserving, or unknown ruling | decision readback |
+| ISC-760.15 | identity-key projection basis | owner ratification | one exact raw-name or normalized-name identity-key ruling | decision readback |
+| ISC-760.16 | presentation projection basis | owner ratification | one exact raw-name or normalized-name presentation ruling | decision readback |
+| ISC-760.17 | collision handling | owner ratification | one exact collision policy after identity-key projection | decision readback |
+| ISC-760.18 | normalization algorithm and invariant | owner ratification | one exact normalization transform plus post-normalization validity rule | decision readback |
+| ISC-760.19 | interior hyphen flanking and adjacency | owner ratification | one exact flanking/adjacency rule for interior U+002D after admission and precedence resolve | decision readback |
 
 ## Features
 
@@ -1478,6 +1866,9 @@ dispatch can use governed non-Codex OmniRoute models without consuming Sol quota
 | Secretless native Hermes discovery hardening | ISC-564..ISC-571 | prior CLI Agents research, redacted local snapshot, official Hermes config contract, zero-auth offline compilation, governed non-Codex review | no |
 | Synthetic Context Settings preview qualification | ISC-572..ISC-585 | installed 3.8.48 route contract, synthetic fixture matrix, process-bound authentication gate, invariant snapshots, metadata-only receipt | no |
 | Isolated private external Codex workers | ISC-586..ISC-595 | explicit OmniRoute adapter contract, Codex isolation flag, private dispatcher artifacts, self-contained task packets, Sol-free governed rails | no |
+| Portfolio-first vault project relocation and portable pickup | ISC-613..ISC-749, ISC-642.1 | exact two-portfolio allowlist, ratified registry roots, owner-evidenced portfolio mapping, read-only inventory, bounded old-path consumer audit, isolated single-writer portfolio registries, Thoughtseed outcome projection plus append-only content-addressed evidence, pre-existing client-neutral project packet, scoped routing profiles, single-canary transaction, six-file capsule, resolver plus live-client pickup, rollback, zero session/Paseo dependency | no |
+| Read-only portfolio inventory and Workbench reconciliation | ISC-750..ISC-757 | approved roots, existing Workbench implementation, authenticated read-only route | yes |
+| Repository identity and folder-organization ratification interview | ISC-758, ISC-759, ISC-760, ISC-760.1, ISC-760.2, ISC-760.3, ISC-760.4, ISC-760.5, ISC-760.6, ISC-760.7, ISC-760.8, ISC-760.9, ISC-760.10, ISC-760.11, ISC-760.12, ISC-760.13, ISC-760.14, ISC-760.15, ISC-760.16, ISC-760.17, ISC-760.18, ISC-760.19 | owner answers recorded sequentially before the next ballot | no |
 
 ## Architecture
 
@@ -1636,6 +2027,90 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
 - 2026-08-02 10:23 IST: refined: Context Settings stays a preview-only transport optimization beneath PAI, GSD, ISA, and skill-cluster semantic ownership. The first live probe proves anonymous `401`; the active runtime also rejects OmniRoute's documented machine-bound CLI token at the management middleware, so this iteration will not borrow a browser session, dashboard password, cookie, or inference key to force access. The staged qualifier sends only a synthetic denial canary without authority and may later run the exact Lite → Headroom → minimal-RTK matrix only from an explicit owner-only `oma_live_` scoped access-token file. Every receipt remains metadata-only and non-authorizing; global compression, active combo, custom prompt, routing, Cloudflare, Hermes, MCP/A2A, EC2, and Sol stay unchanged.
 - 2026-08-02 11:03 IST: refined after independent Cato: a scoped Bearer token alone cannot authorize semantic preview because separate pre/post process observations do not bind the established plaintext loopback connection to the observed OmniRoute process. The production token path was removed. The live qualifier now sends only the anonymous denial canary with no credential/header and never reads a response body; the exact Lite → Headroom → minimal-RTK matrix remains a pure offline contract until process-bound authenticated transport or an OmniRoute-native one-use preview capability supplies server identity, scope, expiry, and revocation evidence.
 - 2026-08-02 11:31 IST: refined after live Council and SystemsThinking: the broad Spark audit timed out because the external Codex worker inherited the operator's user configuration, startup hooks, plugins, and Algorithm entry before it could perform its bounded task; the same exact Spark rail completed a substantive read-only audit in 44 seconds when `TEMPERANCE_OMNIROUTE_CODEX_ISOLATED=1` selected `--ignore-user-config`. The ingestion point is the external worker launcher, not routing rank or timeout size. Governed external Codex workers will therefore default to isolated user configuration while retaining repository rules and receiving self-contained task context; an explicit opt-out remains available. Batch artifacts become owner-only. Antigravity's proposed `skillCluster` router branch was rejected because no such enrichment field exists and making skills a second router would violate the ownership boundary; Spark's A2A proposal was rejected because native A2A remains technically unsafe and externally unpromoted; GitHub's Cloudflare authority concern is already enforced and remains an external gate.
+- 2026-08-03 17:58 IST: refined: The repository-relocation taxonomy is portfolio-first and path-stable: working repositories may move only to `/Volumes/madara/2026/Projects/thoughtseed/<repository>` or `/Volumes/madara/2026/Projects/tryambakam-noesis/<repository>`, while lifecycle and repository type remain metadata. The two names are an exact allowlist, not a deletion instruction; every other folder remains untouched. Thoughtseed Labs stays at its current nested-vault path as the knowledge authority. Implementation is dry-run-first and one-canary-per-approval, preserves old-path capsules plus redacted native-session and Paseo successor links, and treats historical outer-vault Git debloat as a separate backup-and-approval operation.
+- 2026-08-03 18:06 IST: refined after independent architecture audit: Old paths are ignored by the outer vault, so their capsules cannot be the sole durable authority. The planning recommendation, pending explicit ratification, is for each accepted move to create a canonical, reviewable handoff beneath Thoughtseed Labs `20-operations/project-management/relocation-registry/<portfolio>/<repository>/`; the old-path capsule is a digest-bound convenience pointer and no commit or push is automatic. Session identity is the redacted `provider + host + profile/account + native session ID` tuple with client/importer versions, one-workspace Paseo deduplication, and continuation evidence. Inventory is metadata-only boundary discovery; unknown or out-of-scope provider data remains held rather than implied covered.
+- 2026-08-03 18:32: refined: Cross-client continuity is now defined by one repository-owned project packet and one explicit technical checkpoint, not by moving or linking native chat sessions. Paseo and every provider-owned session store are removed from relocation inventory, preflight, apply, verification, rollback, and acceptance. Codex is the default local interactive governance rail; OmniRoute remains model routing only; Hermes retains Thoughtseed remote/scheduled/external authority; and the Tryambakam Kimiclaw, Paperclip, Snow Gloves, Selemene, Cloudflare, and seed planes remain portfolio-local.
+- 2026-08-03 18:32: refined: The recommended canonical relocation registries, pending owner ratification, are Thoughtseed Labs `20-operations/project-management/relocation-registry/thoughtseed/<repository>/` for Thoughtseed and root `_System/10865xseed/projects/<repository>/` for Tryambakam. The TN × Snow Gloves clean-pass supersedes Thoughtseed-entangled Kimi/Tauri assumptions; its implementation proposals remain outside the relocation tranche. The transaction is the sole writer to one portfolio registry, any competing identity claim fails closed, old paths receive six-file packet-linked capsules rather than symlinks, and every canary requires a bounded old-path consumer manifest. `hermes-aws-ts` and other path-consumed runtimes remain held.
+- 2026-08-03 18:50: refined after independent architecture audit: Packet preparation is a separately reviewed preflight change and relocation never edits checkout files. Thoughtseed IDs must match TeamForge. Repository parentage does not decide portfolio; Snow Gloves, `10869`, and all mixed evidence remain held until owner-mapped. Routing uses portfolio-scoped deployment and credential profiles; TN OmniRoute delegation remains unverified and fails closed. Pure resolver proof and a real-client canary are separate acceptance gates. The selected registry needs a clean or owner-checkpointed baseline. The rename contract uses an atomic same-volume POSIX rename with immediate path/device/inode revalidation under a stated non-hostile-local-process threat model rather than claiming unsupported descriptor-relative safety.
+- 2026-08-03 19:02: refined: The owner ratified Thoughtseed registry root `thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed/<repository>/` and Tryambakam registry root `/Volumes/madara/2026/twc-vault/_System/10865xseed/projects/<repository>/`. For Thoughtseed, “merge back” is outcome projection after repository acceptance: current state plus `relocation_evidence_ref` enters the canonical main project record, then the TeamForge-keyed registry entry closes as `reconciled` and remains in place as tamper-evident Git history. Historical transition, ratification, integrity, receipt, and rollback evidence never flatten into the main record or disappear. Tryambakam remains TN-local.
+- 2026-08-03 19:07: refined after Advisor boundary review: `relocation_evidence_ref` is content-addressed (`sha256:<digest>`) and separate from its lookup path; reconciliation status is derived from append-only transition events; closure records the tool actor and owner ratifier separately; Git identity uses HEAD and canonical ref-set equality plus explicit untracked/ignored-file digests rather than packfile bytes. The Advisor's artifactless claim that Thoughtseed is only a neighbor was rejected because the ratified Thoughtseed path is inside Thoughtseed Labs main project management. Delegation was intentionally skipped: this was a sequential three-document wording update with overlapping authority semantics, and direct lookup/edit completed below the thirty-second delegation gate.
+- 2026-08-04 00:30 IST: refined: The owner authorized the read-only two-portfolio inventory and directed the investigation to reuse the existing Cambium Portfolio Workbench. The E5 Interview workflow found no thin policy section requiring another question because prior owner answers already ratify scope, target taxonomy, registry roots, Thoughtseed merge-back semantics, and the no-move boundary. This iteration may write only the Temperance ISA and planning report; repository, session, Paseo, and external-service mutation remains forbidden.
+- 2026-08-04 00:53 IST: refined: The anti-mutation probe distinguishes the explicitly authorized Temperance acceptance-ledger update and cross-portfolio planning report from source-checkout, destination, session, Paseo, and external-service mutation. This avoids falsely claiming byte identity for the two authored planning artifacts while preserving the no-relocation boundary.
+
+- 2026-08-04 01:01 IST: refined after post-deliverable Advisor and independent audit: Reconciliation coverage is now explicit in both directions; 14/54 WorkObjects carry 19 repository-provenance strings, 40 remain unknown rather than silently classified, and zero exact repository-to-WorkObject joins are claimed without an immutable mapping table. Thoughtseed's 112 Git markers are split into 36 immediate primary roots, 4 immediate worktrees, and 72 nested/worktree/bare markers rather than called movable units. The TeamForge zero is bound only to an exact local Miniflare snapshot; the TN registry absence is `not configured`. The configured Cato role was unavailable, so a fresh independent Cato-style read-only auditor ran the exact checklist and returned PASS with no P0/P1; this is not represented as a cross-vendor Cato invocation.
+- 2026-08-04 01:11 IST: refined: The owner opened a sequential identity-mapping interview. Each turn will present exactly one ratification question, write the answer back before advancing, and preserve project identity, WorkObject identity, Git identity, and filesystem address as separate fields. No repository move or parallel adjudication occurs during the interview. The E3 delegation floor is intentionally relaxed because only the owner can ratify identity semantics; later independent read-only evidence collection may use the governed non-Sol dispatch rail.
+- 2026-08-04 01:17 IST: refined after pre-commitment Advisor: The first proposed ballot improperly bundled path semantics, project authority, repository identity, and WorkObject cardinality. The interview now starts with only the path invariant: a path is a machine-scoped, time-bounded address and never an identity. Host/repository identity, multiple simultaneous worktrees, project-to-repository cardinality, WorkObject roles, merge/split semantics, and enforcement each remain separate later decisions. No contract row is ratified by this refinement.
+- 2026-08-04 01:18 IST: refined after post-deliverable Advisor: The first ballot is narrowed again to one principle only: a filesystem path is not the identity of a repository. Address-record fields, path normalization, machine identity, temporal semantics, simultaneous-address cardinality, and storage scope remain undecided. Approval of the principle is a modeling decision only and authorizes no migration, schema change, registry write, or file movement.
+- 2026-08-04 01:19 IST: Decision 1 ratified by the owner: a filesystem path is not the identity of a repository. This is a modeling decision only; address schema, normalization, cardinality, migration, registry writes, and implementation remain unauthorized.
+- 2026-08-04 01:23 IST: refined after Decision 2 Advisor review: The proposed provider-issued-ID ballot was held because it would prematurely exclude local and content-derived identity schemes while leaving host-instance and identifier-obtainability semantics unresolved. Decision 2 is narrowed to one mechanism-neutral stability invariant: the same hosted repository object retains repository identity across rename, same-host ownership transfer, and visibility changes. No identifier choice or implementation is ratified by this refinement.
+- 2026-08-04 01:28 IST: refined from owner correction: The immediate problem is the absence of a consistent system for renaming and organizing repository folders beneath `/Volumes/madara/2026/Projects/thoughtseed/` and `/Volumes/madara/2026/Projects/tryambakam-noesis/`. The hosted-repository continuity ballot is paused. The already-ratified shallow portfolio spine remains intact, while repository-directory naming is now the next sequential decision. No folder rename, directory creation, move, or implementation is authorized.
+- 2026-08-04 01:32 IST: refined after naming-ballot Advisor and filesystem inspection: Naming grammar and naming-source provenance are separate axes. The next ballot decides only whether destination repository directories are universally normalized, universally preserved, or normalized case-by-case. Exact grammar, source precedence, collision handling, and rename mechanics remain later decisions. `/Volumes/madara` is Journaled HFS+ and therefore requires explicit case-only rename safeguards in any later implementation; this observation grants no mutation authority.
+- 2026-08-04 01:34 IST: refined after post-deliverable Advisor: The naming-policy ballot is binary and applies only to local destination repository directory basenames. Option A normalizes every future approved repository basename under one shared convention; Option B preserves each approved basename exactly and is the no-action default. Remote repository names are untouched. Choosing A authorizes only three later planning ballots—grammar, derivation/segmentation, and collision/exceptions—and no filesystem operation.
+- 2026-08-04 01:38 IST: Decision 2 ratified by the owner: every future approved local destination repository directory basename is normalized under one shared convention. Remote repository names remain untouched. This authorizes only the later grammar, derivation/segmentation, and collision/exception planning ballots; it authorizes no filesystem operation.
+- 2026-08-04 01:41 IST: refined after pre-commitment Advisor: The proposed kebab-versus-snake ballot was held because both alternatives silently ratified a broader ASCII character envelope and made internal dots unrepresentable. To preserve one-axis ratification, the next ballot asks only whether internal dots are representable in the canonical local basename grammar. Separator choice, other character classes, derivation, transliteration, semantic quality, collisions, exceptions, clone discipline, and rename mechanics remain undecided; no filesystem operation is authorized.
+- 2026-08-04 01:43 IST: refined after post-deliverable Advisor: Decision 2 is effective from its 2026-08-04 01:38 IST owner ratification and applies only when a repository is later individually approved for a destination basename. Existing basenames are grandfathered until that approval and gain no reconciliation obligation. The decision authorizes no rename, move, directory creation, validator, CI check, tooling change, or enforcement point. `ISC-760` remains pending because normalization policy does not determine grammar. For Decision 3, “repository directory basename” means the entire directory entry directly beneath its portfolio root, not a filename with an extension; the ballot asks only whether ASCII full stop U+002E may occur at a non-boundary position. Boundary positions, repetition, other code points, separators, derivation, collisions, exceptions, and enforcement remain undecided.
+- 2026-08-04 01:56 IST: Decision 3 ratified by the owner: ASCII full stop U+002E is not representable at a non-boundary position in a canonical local destination repository directory basename. No transformation for a dotted source name is implied; such a candidate remains held until derivation and collision/exception rules are separately ratified. Boundary positions, other code points, case, separators, concrete slugs, enforcement, and every filesystem operation remain undecided and unauthorized.
+- 2026-08-04 02:01 IST: refined after pre-commitment Advisor: Decision 4 binds only the exact `<repository>` directory segment directly beneath the ratified Thoughtseed or Tryambakam portfolio root; host, owner, namespace, and worktree segments are outside it. “Admissible” means only that the canonical grammar permits a character. The decision is definitional and prospective and creates no validator, generator, migration, reconciliation, or rename obligation. The ballot asks only whether any ASCII uppercase letter U+0041–U+005A is admissible. Lowercase letters, digits, Unicode, positions or counts under an uppercase-capable answer, separators, derivation, collisions, exceptions, and enforcement remain undecided. Two-agent delegation was intentionally skipped because this owner-only sequential decision and overlapping append-only ISA edit are each a directed sub-thirty-second task; parallel workers would duplicate analysis and introduce a write race.
+- 2026-08-04 02:07 IST: refined after post-deliverable Advisor and two bounded conflict re-calls: Decision 4 constrains the eventual complete grammar rather than assuming an open- or closed-world interim character set. Both options bind only the depth-one `<repository>` segment in the prospective paths `/Volumes/madara/2026/Projects/thoughtseed/<repository>/` and `/Volumes/madara/2026/Projects/tryambakam-noesis/<repository>/`; fixed root literals, portfolio literals, and descendants are unaffected. Option A requires that segment to exclude every ASCII uppercase letter U+0041–U+005A at every position and makes no lowercase-admission ruling. Option B imposes no uppercase-class exclusion requirement and does not affirm admission, positions, or counts. Either answer closes `ISC-760.2` as a ruling while parent `ISC-760` remains pending; no answer leaves both unchanged. Literal spelling is independent of filesystem case-folding. Enforcement remains deferred until the parent grammar is complete and a repository is individually approved. The Advisor withdrew its contradictory claims after ISA readback proved `ISC-760.1` persisted and the ratified destination is intentionally outside the knowledge-vault ledger.
+- 2026-08-04 02:13 IST: Decision 4 ratified by the owner: the eventual complete canonical grammar excludes every ASCII uppercase letter U+0041–U+005A at every position of the exact depth-one `<repository>` segment beneath either ratified portfolio root. This makes no ruling about lowercase-letter admission or any other character class. Fixed root and portfolio literals remain outside the rule. Parent `ISC-760` stays pending, and the decision creates no current conformance claim, validator, generator, migration, reconciliation, rename, or filesystem operation.
+- 2026-08-04 02:15 IST: refined after pre-commitment Advisor: Decision 5 asks whether all 26 ASCII lowercase code points U+0061–U+007A must belong to the eventual complete `<repository>` character repertoire. “Repertoire” means code-point set membership only. One answer applies identically to both ratified portfolio roots. Option A includes the entire class. Option B imposes no full-class inclusion requirement, excludes no lowercase code point, and leaves full, partial, or zero membership for later. Position, count, ordering, boundary, separator, derivation, collision, and enforcement remain outside both options. `ISC-760.2` is already checked with owner evidence and destination entries remain zero. Two-agent delegation was intentionally skipped because the owner-only ballot and overlapping append-only ISA edit are each directed sub-thirty-second work; parallel dispatch would duplicate analysis and introduce a write race.
+- 2026-08-04 02:18 IST: refined after post-deliverable Advisor: Decision 5 is an approval ballot, not a symmetric closed-policy ballot. Option A ratifies all 26 ASCII lowercase code points U+0061–U+007A as permitted members of the eventual `<repository>` character repertoire and closes `ISC-760.3`. Option B declines that approval, excludes no lowercase code point, and leaves `ISC-760.3` pending for later refinement. The scope is only the exact depth-one `<repository>` segment under `/Volumes/madara/2026/Projects/thoughtseed/` and `/Volumes/madara/2026/Projects/tryambakam-noesis/`; the fixed roots and portfolio literals are unaffected. Membership means permitted, not mandatory occurrence. Position, count, ordering, boundary, separator, digit, non-ASCII, derivation, collision, and enforcement rules remain undecided.
+- 2026-08-04 02:21 IST: Decision 5 ratified by the owner: all 26 ASCII lowercase code points U+0061–U+007A are permitted members of the eventual complete character repertoire for the exact depth-one `<repository>` segment under both ratified portfolio roots. Membership is permission, not mandatory occurrence, and does not by itself make any concrete name valid. Position, count, ordering, boundary, separator, digit, non-ASCII, derivation, collision, and enforcement remain undecided; the prior uppercase exclusion remains unchanged. Parent `ISC-760` remains pending, and this decision authorizes no rename, move, directory creation, validation, or other filesystem operation.
+- 2026-08-04 02:26 IST: refined after pre-commitment Advisor: Decision 6 is the `ISC-760.4` all-or-none class-level ruling for ASCII digit code points U+0030–U+0039 in the permitted character repertoire for the exact depth-one `<repository>` segment beneath either ratified portfolio root. The owner chooses exactly one unconditional option. Option A permits all ten digits; this is membership permission only and does not require their occurrence or decide numeric-only names, leading digits, position, count, run length, ordering, boundary behavior, total length, or separators. Option B excludes all ten digits from that exact segment only and rules nothing about non-ASCII digits or digit-like characters. Option C defers the class-level ruling, creates neither permission nor prohibition or default, and preserves full, partial, or zero digit membership for a later ballot. No answer is not Option C and leaves `ISC-760.4` pending. Derivation, collisions, reserved names, encoding, enforcement, migration, and every filesystem operation remain undecided and unauthorized. Parent `ISC-760` remains pending. Owner-only sequential adjudication and the overlapping append-only ISA edit are serial; parallel dispatch remains held to avoid duplicated reasoning and a write race.
+- 2026-08-04 02:28 IST: refined after post-deliverable Advisor: Decision 5's membership ruling cannot independently validate a concrete name, and its exact owner wording is retained in Verification. Decision 6 is expressly the all-or-none class ballot mapped to `ISC-760.4`; a subset outcome remains reachable only by choosing defer and later ratifying a subset ballot. Its common scope binds all three options, non-ASCII digits remain outside it, and absence of an answer leaves the criterion pending rather than silently selecting defer.
+- 2026-08-04 02:53 IST: Decision 6 ratified by the owner: every ASCII digit code point U+0030–U+0039 is a permitted repertoire member for the exact depth-one `<repository>` segment beneath either ratified portfolio root. Membership is permission, not required occurrence, and does not by itself validate any concrete name. Numeric-only names, positions, counts, separators, derivation, non-ASCII digits, collisions, encoding, enforcement, migration, and filesystem operations remain undecided and unauthorized. Parent `ISC-760` remains pending.
+- 2026-08-04 02:56 IST: refined after pre-commitment Advisor: Decision 7 is `ISC-760.5` and asks only for the all-or-none repertoire treatment of ASCII hyphen-minus U+002D in the exact depth-one `<repository>` segment beneath either ratified portfolio root. The Advisor's proposed closed-allowlist convention is held because closure is a separate axis and would retroactively characterize unresolved characters. Option A permits U+002D as a repertoire member only; consistent with the owner's lowercase and digit rulings, it neither requires occurrence nor guarantees or decides any position and does not make hyphen-minus a separator token. Option B excludes U+002D at every position and occurrence count in the exact segment; this is a per-codepoint denial, not a closure-policy ruling or precedent for analogous characters. Option C makes no ruling, creates neither permission nor prohibition, and leaves `ISC-760.5` pending for owner refinement in a later turn. No answer is not Option C and also leaves the criterion pending. Required occurrence, separator semantics, leading/trailing/interior positions, repetition, adjacency, run length, total basename length, underscore, other dash code points, every other character, derivation, collisions, reserved names, encoding, enforcement, migration, concrete names, and filesystem operations remain undecided and unauthorized. Parent `ISC-760` remains pending. The serial owner-only ballot and overlapping append-only ISA edit do not satisfy the parallel-dispatch split gate; two workers would duplicate analysis and race on one ledger.
+- 2026-08-04 02:58 IST: refined after post-deliverable Advisor: Decision 6 already binds only U+0030–U+0039, stores the owner's exact words, explicitly leaves numeric-only names and non-ASCII digits undecided, denies concrete-name validity, and authorizes no filesystem operation. Decision 7 removes the proposed non-vacuity coupling because the owner-established semantics permit repertoire membership without deciding position. Option B is explicitly per-codepoint rather than a closure-policy precedent; Option C is expressly unresolved rather than tacit permission or prohibition. No Decision 7 outcome changes the ratified digit ruling, validates a name, or creates a destination entry. This one-owner interview has no quorum, tie, or tally mechanism; the owner must select exactly one complete option for a ruling.
+- 2026-08-04 03:14 IST: Decision 7 ratified by the owner: ASCII hyphen-minus U+002D is a permitted repertoire member for the exact depth-one `<repository>` segment beneath either ratified portfolio root. Membership does not require occurrence or decide position. Selection of the named Option A preserves its previously defined scope: it does not by itself establish separator semantics or validate any concrete name. Repetition, adjacency, run length, total length, underscore, other dash code points, derivation, collisions, closure policy, encoding, enforcement, migration, and filesystem operations remain undecided and unauthorized. Parent `ISC-760` remains pending.
+- 2026-08-04 03:16 IST: refined after pre-commitment Advisor: Decision 8 is `ISC-760.6` and asks only whether ASCII low line U+005F belongs to the character repertoire for the exact depth-one `<repository>` segment beneath either ratified portfolio root. No other codepoint is ruled on; fullwidth low line U+FF3F and all non-ASCII characters remain unresolved. Common to every option: membership never requires occurrence, and position, repetition, adjacency, derivation, collisions, repertoire closure, enforcement, migration, and filesystem operations remain undecided and unauthorized; hyphen-minus U+002D remains permitted. Option A, `A-low-line-excluded`, excludes U+005F from membership. It establishes no separator semantics and validates no concrete name; it is revisitable only through a later explicit owner ruling. It is recommended because a minimal repertoire can be widened without renaming existing destinations, whereas narrowing after names exist can require migration. Option B, `B-low-line-included`, permits U+005F as a repertoire member only; it establishes no separator semantics and validates no concrete name. Option C, `C-low-line-unresolved`, makes no ruling: U+005F is neither admitted nor excluded, its status remains unresolved, and the option is neutral about eventual repertoire closure. No answer is not Option C and leaves `ISC-760.6` pending. Excluding U+005F removes only that one delimiter-like candidate while leaving admitted hyphen-minus semantically undefined; it neither declares hyphen a separator nor excludes unexamined characters by analogy. Parent `ISC-760` remains pending. The owner-only ballot and overlapping append-only ISA write remain serial; parallel workers would duplicate analysis and race on the same ledger.
+- 2026-08-04 03:18 IST: refined after post-deliverable Advisor: the named `A-hyphen-minus-included` option governs the owner's shortened restatement, so its previously defined no-separator-semantics limitation is preserved as inherited scope rather than attributed to the restatement. The developer-supplied intent confirms that “does not ... decide its position” is the operative parse. Decision 8 uses self-describing option labels, removes the overbroad hyphen-or-none claim, makes Option A explicitly revisitable by owner ruling, binds no separator semantics under A or B, and bases the exclusion recommendation on widen-later reversibility rather than treating hyphen as a chosen separator.
+- 2026-08-04 03:25 IST: Decision 8 ratified by the owner: ASCII low line U+005F is excluded from the exact depth-one `<repository>` repertoire beneath either ratified portfolio root. This establishes no separator semantics and may be revisited only through an explicit later owner ruling. Fullwidth low line U+FF3F and other non-ASCII characters remain unresolved; no concrete name is validated and no enforcement, migration, rename, move, directory creation, or other filesystem operation is authorized. Parent `ISC-760` remains pending.
+- 2026-08-04 03:27 IST: refined after pre-commitment Advisor: Decision 9 is `ISC-760.7` and asks only for the default status of code points without an approved class ruling in the exact depth-one `<repository>` segment immediately beneath `/Volumes/madara/2026/Projects/thoughtseed/` or `/Volumes/madara/2026/Projects/tryambakam-noesis/`. “Code point” means a Unicode scalar value. Current rulings are U+0061–U+007A permitted, U+0030–U+0039 permitted, U+002D permitted, U+0041–U+005A excluded, U+005F excluded, and U+002E excluded only in internal position; leading and trailing U+002E remain unruled. Option A, `A-closed-repertoire`, admits only code points explicitly permitted by an approved class ruling; unruled code points are inadmissible for canonical candidates until separately admitted. Closure is a default, not a freeze, and admission still does not decide position, occurrence, adjacency, length, or concrete-name validity. Option B, `B-open-repertoire`, does not itself prohibit an unruled code point; every unruled Unicode scalar value, including controls, whitespace, slash, non-ASCII characters, and non-internal U+002E, is provisionally admissible subject to later grammar, position, and occurrence decisions. Option C, `C-defer-closure`, adopts neither default; unruled code points are neither admitted nor prohibited, and any downstream decision requiring closure is blocked until this criterion resolves. No option decides position, occurrence, adjacency, length, separator semantics, derivation, collision or uniqueness, enforcement/tooling/CI, migration or existing-name status, parent grammar structure, normalization or encoding, reserved names, or the merits of any specific unruled class; the six ratified repertoire facets are not reopened. A tie or no quorum resolves to C. A may later be replaced by B, or B by A, through an ordinary explicit owner decision; neither adoption retroactively invalidates the six ratified facets. The recommendation for A is recorded separately from the option text because it keeps canonical candidates portable and makes future admissions explicit. No filesystem operation is authorized.
+- 2026-08-04 03:29 IST: refined after post-deliverable Advisor; this supersedes the immediately preceding Decision 9 draft. Scope is the exact depth-one segment immediately beneath `/Volumes/madara/2026/Projects/thoughtseed/` or `/Volumes/madara/2026/Projects/tryambakam-noesis/`; “code point” means a Unicode scalar value. Current permitted set is exactly U+0061–U+007A, U+0030–U+0039, and U+002D; current exclusions are U+0041–U+005A, U+005F, U+002E in internal position, plus structural invariants U+0000 and U+002F and the exact reserved segment values `.` and `..`, which apply under every option and are outside this closure vote. Option A, `A-closed-repertoire`, permits only that explicitly admitted set; every other unruled code point is inadmissible until separately admitted. This is a default, not a freeze: future admissions remain possible, and admission still decides neither position, occurrence, adjacency, length, separator semantics, nor concrete-name validity. Option B, `B-open-repertoire`, leaves every other unruled Unicode scalar value provisionally admissible subject to later grammar, position, and occurrence decisions; this includes non-internal U+002E, controls other than U+0000, whitespace, and non-ASCII characters, but not the structural invariants or existing explicit exclusions. Provisional admission grants no acquired right, and later narrowing is not a reversal or grandfathering event. Option C, `C-defer-closure`, adopts neither default; unruled code points are neither admitted nor prohibited, closure-dependent downstream decisions are blocked, and the ballot must be re-tabled as the next owner grammar decision. C is neither A nor B. No option decides position, occurrence, adjacency, length, separator semantics, derivation, collision or uniqueness, enforcement/tooling/CI, migration or existing-name status, parent grammar structure, normalization or encoding, reserved names beyond the stated invariants, or the merits of any specific unruled class; the six ratified repertoire facets remain closed to this ballot. Tie or no quorum resolves to C. A or B may later be superseded by the other only through an explicit owner ruling; no outcome validates a concrete name or authorizes filesystem work. A is recommended separately because explicit admission keeps canonical candidates portable and makes future widening reviewable.
+- 2026-08-04 03:33 IST: Decision 9 ratified by the owner: `A-closed-repertoire` is selected for the exact depth-one `<repository>` segment beneath both approved portfolio roots. Only the explicitly permitted set U+0061–U+007A, U+0030–U+0039, and U+002D is currently admissible; every other unruled code point is inadmissible until separately admitted. Future admissions remain possible. This closure ruling does not decide position, occurrence, adjacency, length, separator semantics, derivation, collision or uniqueness, enforcement/tooling/CI, migration or existing-name status, normalization or encoding, reserved names beyond the stated structural invariants, or any concrete name. It implies that leading/trailing U+002E are not admissible under the closed default; internal U+002E and the six prior repertoire facets remain unchanged. No validation, rename, move, directory creation, or other filesystem operation is authorized. Parent `ISC-760` remains pending.
+- 2026-08-04 04:14 IST: clarification: future repertoire admissions under Decision 9 require a later explicit owner decision recorded in `ISA.md`; no automatic widening, validator, migration, or grandfathering follows from the amendment hook. The current closure still decides neither positional grammar nor concrete-name validity.
+- 2026-08-04 04:06 IST: refined after pre-commitment Advisor: Decision 10 asks only whether U+002D may occupy index 0 of the literal on-disk depth-one `<repository>` directory-entry sequence beneath either approved portfolio root, and only for segments of length at least two code points. Option F forbids a length-at-least-two segment whose first code point is U+002D. Option P permits that occurrence without making any concrete name valid. Neither option decides trailing or interior position, repetition, adjacency, separator semantics, required occurrence, empty or length-one segments, total length, derivation, collisions, enforcement, migration, or future admissions. The recommendation is F because it is reversible without migration and avoids option-parsing hazards; it does not require a leading letter and therefore leaves digit-initial names unresolved. No filesystem operation is authorized.
+- 2026-08-04 04:08 IST: Decision 10 is tabled for owner ratification as the leading-hyphen ballot. The exact owner scope is the literal on-disk depth-one `<repository>` directory-entry sequence under `/Volumes/madara/2026/Projects/thoughtseed/` or `/Volumes/madara/2026/Projects/tryambakam-noesis/`; index 0 means its first Unicode scalar value after the filesystem's literal decoding. The ballot applies only to segments of length at least two; normalization and encoding policy remain undecided. Option F (`F-leading-hyphen-forbidden`) makes any length-at-least-two segment beginning with U+002D inadmissible. Option P (`P-leading-hyphen-permitted`) says that occurrence alone is not a ground of inadmissibility, subject to all unresolved axes. Failure to reach quorum leaves `ISC-760.8` pending. The ballot is predicated only on the already-admitted U+002D and does not extend to future code points. No validation, rename, move, directory creation, or other filesystem operation is authorized.
+- 2026-08-04 04:36 IST: Decision 10 ratified by the owner: exact answer `forbidden` selects the sole forbid option, `F-leading-hyphen-forbidden`, from the preceding binary ballot. For the literal on-disk depth-one `<repository>` directory-entry sequence beneath `/Volumes/madara/2026/Projects/thoughtseed/` or `/Volumes/madara/2026/Projects/tryambakam-noesis/`, any segment of length at least two whose first Unicode scalar value is U+002D is inadmissible. This does not cover the one-character name `-`, trailing or interior U+002D, repeated hyphens as an independent axis, separator semantics, digit-initial names, or non-U+002D hyphen-like code points. A name such as `--foo` is non-conforming only because its first code point is U+002D; no repeated-hyphen rule is created. Directory-entry type, retroactivity, normalization, encoding, enforcement, migration, and every filesystem operation remain unresolved or unauthorized. No concrete name is validated.
+- 2026-08-04 04:44 IST: Decision 10 scope clarification: the one-character `<repository>` segment `-` is an explicit unresolved positional/length case, not an implicit permission or prohibition. Any positional axis not expressly ratified remains unresolved; absence of a ruling never means allowed. The closed repertoire still governs its codepoint membership, while its concrete-name admissibility is undecided.
+- 2026-08-04 04:36 IST: Decision 11 is tabled for owner ratification as the trailing-hyphen ballot. The exact scope is the literal on-disk depth-one `<repository>` directory-entry sequence beneath `/Volumes/madara/2026/Projects/thoughtseed/` or `/Volumes/madara/2026/Projects/tryambakam-noesis/`, limited to segments of length at least two and literal U+002D. Option `T-trailing-hyphen-forbidden` makes a segment ending with U+002D inadmissible; option `T-trailing-hyphen-permitted` says that ending alone is not a ground of inadmissibility. The one-character name `-`, leading and interior positions, repeated hyphens as such, separator semantics, non-U+002D hyphen code points, entry types, retroactivity, enforcement, migration, and all filesystem operations remain unresolved or unauthorized. Failure to reach quorum leaves `ISC-760.9` pending.
+- 2026-08-04 04:44 IST: Decision 11 remains explicitly `STAGED`, not ratified. Its trailing-position scope is independently stated and does not inherit a decision from the leading-position rule; no resolver may treat the staged options as settled.
+- 2026-08-04 05:10 IST: Decision 11 ratified by the owner: verbatim reply `forbidden as well`; `resolved_option: T-trailing-hyphen-forbidden`. The staged binary ballot contained exactly `T-trailing-hyphen-forbidden` and `T-trailing-hyphen-permitted`; “as well” is interpreted as parity with the already ratified leading rule and carries no scope extension. The ballot's explicit length-at-least-two fence is retained: a literal on-disk depth-one `<repository>` segment beneath `/Volumes/madara/2026/Projects/thoughtseed/` or `/Volumes/madara/2026/Projects/tryambakam-noesis/` whose final Unicode scalar is U+002D is inadmissible only when its length is at least two. The one-character `-` remains explicitly unresolved because Decisions 10 and 11 both exclude length one. Leading and interior U+002D, repeated-hyphen semantics, separator semantics, non-U+002D hyphen code points, entry-type, retroactivity, normalization, encoding, enforcement, migration, and filesystem operations remain unresolved or unauthorized. No concrete name is validated.
+- 2026-08-04 05:10 IST: Decision 12 is staged as the singleton-hyphen ballot. Scope is the exact one-code-point `<repository>` segment `-` (U+002D) as a literal on-disk depth-one name beneath `/Volumes/madara/2026/Projects/thoughtseed/` or `/Volumes/madara/2026/Projects/tryambakam-noesis/`. Option `S-singleton-hyphen-forbidden` makes that exact segment inadmissible; option `S-singleton-hyphen-permitted` permits it for this axis only. Entry-type, trailing/leading terminology beyond this exact one-code-point name, interior/repetition/separator semantics, non-U+002D hyphen code points, retroactivity, enforcement, migration, and filesystem operations remain unresolved or unauthorized. A non-answer leaves `ISC-760.10` pending and applies no default.
+- 2026-08-04 05:45 IST: Decision 12 ratified by the owner: verbatim reply `S-singleton-hyphen-permitted`; `resolved_option: S-singleton-hyphen-permitted`. The self-contained naming predicate is `depth(name, root) == 1 AND raw_codepoints(name) == [U+002D HYPHEN-MINUS]`, so the entire lexical immediate-child name is exactly one raw Unicode scalar `-`, never a prefix, suffix, substring, or component of a longer name. Scope is limited to the literal roots `/Volumes/madara/2026/Projects/thoughtseed/` and `/Volumes/madara/2026/Projects/tryambakam-noesis/`; both destination roots are currently absent by design, no other root or remounted spelling inherits this rule, and root or entry symlinks are never resolved. This is naming-policy permission only, not read/create/write/traverse/unlink authorization; the policy is resolved, but implementation is explicitly deferred and ratified-but-not-implementable until entry-type semantics are separately decided. Comparison is raw, pre-normalization, case-sensitive, and confusable-unmapped; U+2010, U+2011, U+2012, U+2013, U+2014, U+2015, U+2212, U+FE63, and U+FF0D are denied by the closed repertoire. Multi-codepoint names are not admitted by this decision and remain deferred pending `ISC-760.11`; `ISC-760.11` and `ISC-760.12` do not alter this self-contained singleton predicate. Depth greater than one, `.`/`..` path spellings, entry type, normalization, retroactivity, enforcement, migration, and filesystem operations remain unvalidated or unauthorized. A future conformance fixture must assert lexical `<root>/-` passes and `<root>/--`, `<root>/-a`, `<root>/a-`, `<root>/a-b`, `<root>/x/-`, `<root>/./-`, `<root>/x/../-`, symlink `-`, any non-listed root, and each named confusable single-character name do not inherit this permission; no fixture or checker is shipped by this ratification.
+- 2026-08-04 06:00 IST: Decision 13 is superseded as an interior ballot because interior positions presuppose multi-codepoint admission. The corrected next ballot is `ISC-760.11`: whether any multi-codepoint lexical immediate-child `<repository>` name containing U+002D HYPHEN-MINUS is admissible under the same two literal roots. Option `M-multicodepoint-hyphen-forbidden` denies all such names; option `M-multicodepoint-hyphen-permitted` admits the class for this axis only. The term means a multi-codepoint name containing the single code point U+002D, not a multi-codepoint hyphen grapheme; all other hyphen-like code points remain denied by closure. Singleton `-` remains governed by Decision 12; leading and trailing prohibitions remain binding unless a later precedence decision explicitly changes them. No validator, writer, reader, or filesystem behavior changes from this admission alone. A non-answer leaves `ISC-760.11` pending and applies no default.
+- 2026-08-04 06:40 IST: Decision 13 ratified by the owner: verbatim reply `yes - M-multicodepoint-hyphen-permitted`; `resolved_option: M-multicodepoint-hyphen-permitted`. This is a prescriptive naming-policy admission only for multi-codepoint lexical immediate-child names containing exactly U+002D HYPHEN-MINUS. It does not repeal or supersede the ratified leading and trailing prohibitions; their composition rule is separately staged as `ISC-760.12`. Interior position, flanking, adjacency, count, non-U+002D hyphens, normalization, entry type, depth, retroactivity, enforcement, migration, and filesystem operations remain unresolved or unauthorized. The planning tranche has no validator implementation or behavior certification; no validator or writer is authorized to change behavior from this decision. Concrete forms such as `a--b` remain unvalidated pending an explicit adjacency/flanking ballot.
+- 2026-08-04 06:40 IST: Decision 15 is staged for `ISC-760.12` precedence. Option `P-precedence-intersection` composes multi-codepoint permission with prior prohibitions by intersection; option `P-precedence-supersession` lets the later admission repeal conflicting positional bans. A non-answer leaves precedence unresolved and applies no default. Decision 16 is reserved for an interior-U+002D flanking ballot after this precedence decision resolves; it will not be a bare interior permit/forbid ballot.
+- 2026-08-04 07:25 IST: Decision 15 ratified by the owner: verbatim reply `P-precedence-intersection`; `resolved_option: P-precedence-intersection`. The general composition law is monotone narrowing: every permission is intersected with all prior prohibitions, prohibitions dominate, and no later permission silently repeals an earlier prohibition. This policy choice does not yet define normalization order, projection quantifiers, validator behavior, filesystem access, or concrete-name validity; those remain separate pending axes. The next ballot is normalization stage.
+- 2026-08-04 07:50 IST: Decision 16 is superseded as a projection ballot because projection basis depends on normalization/validation stage. The corrected next ballot is `ISC-760.13`: option `N-normalize-before-validation` applies normalization before positional projection and validation; option `N-validate-before-normalization` validates the raw name before any normalization. This ballot does not decide downstream projection basis, collision handling, normalization algorithm, post-normalization validity, interior flanking, adjacency, count, entry type, enforcement, migration, or filesystem operations. A non-answer leaves `ISC-760.13` pending and applies no default. Decisions 17–19 are reserved for projection basis, collision, normalization algorithm, and post-normalization invariant.
+- 2026-08-04 08:30 IST: Decision 16 ratified by the owner: verbatim reply `N-validate-before-normalization`; `resolved_option: N-validate-before-normalization`. Raw-name validation and positional rules precede any future normalization. This is a policy-ordering decision, not a claim that a validator currently behaves this way; its rejection-set delta is explicitly deferred for Unicode-form, case, edge-character, separator-alias, and empty-after-normalization inputs. The post-normalization validity invariant, projection basis, collision policy, normalization algorithm, enforcement, migration, and filesystem operations remain unresolved or unauthorized. No validator or derived artifact is changed.
+- 2026-08-04 08:30 IST: Decision 17 is superseded as a projection ballot because projection basis depends on normalization-validity closure. The corrected next ballot is `ISC-760.14`: option `V-normalization-validity-preserving` asserts every accepted raw name remains valid after the future normalization transform; option `V-normalization-validity-not-preserving` asserts at least one accepted raw name may become invalid; option `V-normalization-validity-unknown` makes no claim. A non-answer leaves `ISC-760.14` pending and applies no default. Identity-key projection, presentation projection, collision policy, normalization algorithm, post-normalization enforcement, interior flanking, adjacency, count, entry type, migration, and filesystem operations remain unresolved.
+- 2026-08-04 09:20 IST: Decision 17 ratified by the owner: verbatim reply `V-normalization-validity-preserving`; `resolved_option: V-normalization-validity-preserving`. Every raw name accepted by the pre-normalization policy is required to remain valid after the future normalization transform. This is a prescriptive validity invariant only; it neither proves current validator behavior nor selects the normalization algorithm, identity-key projection, presentation projection, collision policy, post-normalization enforcement, migration, or filesystem operations. The next ballot is identity-key projection, kept separate from presentation projection.
+- 2026-08-04 09:20 IST: Decision 18 is staged for `ISC-760.15` identity-key projection. Option `P-identity-key-from-raw-name` derives the durable identity key from the accepted raw name; option `P-identity-key-from-normalized-name` derives it from the future normalized name. This ballot does not decide presentation projection, collision handling, normalization algorithm, post-normalization enforcement, migration, or filesystem operations. A non-answer leaves `ISC-760.15` pending and applies no default.
+- 2026-08-04 09:35 IST: Decision 18 ratified by the owner: verbatim reply `normalized-name identity`; `resolved_option: P-identity-key-from-normalized-name`. The durable identity key is derived from the future normalized repository name. This is a projection-policy decision only; it does not select the presentation projection, collision policy, normalization algorithm, validator behavior, post-normalization enforcement, migration, or filesystem operations. The next ballot is presentation projection.
+- 2026-08-04 09:35 IST: Decision 19 is staged for `ISC-760.16` presentation projection. Option `P-presentation-from-raw-name` displays the accepted raw repository name; option `P-presentation-from-normalized-name` displays the future normalized repository name. This ballot does not decide identity-key projection, collision handling, normalization algorithm, post-normalization enforcement, migration, or filesystem operations. A non-answer leaves `ISC-760.16` pending and applies no default.
+- 2026-08-04 09:55 IST: Decision 19 ratified by the owner: verbatim reply `P-presentation-from-normalized-name`; `resolved_option: P-presentation-from-normalized-name`. Operator-facing repository presentation derives from the future normalized name. This is a presentation-policy decision only; it does not select collision handling, the normalization algorithm, post-normalization enforcement, migration, or filesystem operations. Three formal follow-ups are batched below; an older interior-flanking note remains a bookkeeping gap rather than a silently resolved rule.
+- 2026-08-04 09:55 IST: Decision 20 is staged for `ISC-760.17` collision handling. Option `C-collision-fail-closed` rejects any candidate whose normalized identity collides with an existing identity; option `C-collision-deterministic-disambiguation` derives a deterministic distinct identity without overwriting either candidate. This ballot does not choose suffix syntax, normalization algorithm, presentation, enforcement, migration, or filesystem operations. A non-answer leaves `ISC-760.17` pending and applies no default.
+- 2026-08-04 09:55 IST: Decision 21 is staged for the normalization algorithm portion of `ISC-760.18`. Option `N-normalization-identity-after-validation` leaves the already-validated ASCII basename unchanged; option `N-normalization-NFC` applies Unicode NFC; option `N-normalization-NFKC` applies Unicode NFKC. This ballot does not decide collision policy, presentation, post-normalization enforcement, migration, or filesystem operations. A non-answer leaves the algorithm portion unresolved and applies no default.
+- 2026-08-04 09:55 IST: Decision 22 is staged for the post-normalization invariant portion of `ISC-760.18`. Option `I-post-normalization-revalidate` requires the normalized output to pass the complete grammar before identity or presentation use; option `I-post-normalization-trust-preserving-policy` relies on the ratified validity-preserving invariant without a second validation gate. This ballot does not choose the normalization algorithm, collision handling, presentation, migration, or filesystem operations. A non-answer leaves the invariant portion unresolved and applies no default.
+- 2026-08-04 10:10 IST: Decision 20 ratified by the owner: verbatim reply `C-collision-fail-closed`; `resolved_option: C-collision-fail-closed`. Any candidate whose normalized identity collides with an existing identity is rejected before mutation or disambiguating rewrite. This is a policy decision only; it does not define storage implementation, suffix syntax, migration, or filesystem operations.
+- 2026-08-04 10:10 IST: Decision 21 ratified by the owner: verbatim reply `N-normalization-identity-after-validation`; `resolved_option: N-normalization-identity-after-validation`. After raw validation, the normalized basename is the unchanged accepted ASCII basename. No Unicode transform, transliteration, case fold, or filesystem operation is authorized by this choice.
+- 2026-08-04 10:10 IST: Decision 22 ratified by the owner: verbatim reply `I-post-normalization-trust-preserving-policy`; `resolved_option: I-post-normalization-trust-preserving-policy`. The ratified validity-preserving policy is trusted without a second post-normalization validation gate. This remains a policy assertion, not implementation evidence or authorization to skip any future safety checks required by a concrete writer.
+- 2026-08-04 10:10 IST: Decision 23 is staged for `ISC-760.19` interior U+002D flanking and adjacency. Option `F-interior-hyphen-single` permits U+002D only when both immediate neighbors are admitted non-U+002D code points, rejecting repeated runs such as `a--b`; option `F-interior-hyphen-run-permitted` permits interior U+002D adjacency while retaining the ratified leading/trailing prohibitions. This ballot does not alter singleton permission, repertoire closure, normalization, identity, presentation, collision policy, enforcement, migration, or filesystem operations. A non-answer leaves `ISC-760.19` pending and applies no default.
+- 2026-08-04 10:25 IST: Decision 23 ratified by the owner: verbatim reply `F-interior-hyphen-run-permitted`; `resolved_option: F-interior-hyphen-run-permitted`. Interior U+002D may be adjacent to other U+002D code points, while the ratified leading-hyphen prohibition, trailing-hyphen prohibition, and intersection precedence remain binding. This closes ISC-760.19 and the normalized destination repository-directory grammar parent ISC-760. No validator, writer, rename, move, migration, or filesystem behavior is authorized.
+- 2026-08-04 10:40 IST: Execution planning begins after grammar closure. The new `docs/plans/2026-08-04-repository-grammar-execution.md` addendum binds the ratified ASCII identity grammar to pure tests, read-only two-portfolio inventory, packet/registry preflight, deterministic dry-run, explicit canary approval, one-rename transaction, fresh-client pickup, verification, and rollback. Planning creates no destination directory and authorizes no repository, vault, registry, session, Paseo, provider, Git, or filesystem mutation.
+- 2026-08-04 11:05 IST: Execution tranche 1 completed: `bun test package/relocation/project-relocation-grammar.test.ts` passed 6 tests and 28 assertions. The read-only inventory command enumerated 101 immediate children across the two approved roots into mode-`0600` report `/tmp/temperance-relocation.ysoTut/inventory.json` (SHA-256 `d5e1c3a99016b65c77ef226945383e902c2ba3dc005a278bc820bcd645a58f93`): 29 candidates, 72 held, 40 standalone repositories, 38 nested repositories, and 23 non-repositories. The first probe exposed and the corrected policy now holds `thoughtseed-labs`, `10869`, Snow Gloves surfaces, the active Temperance control repository, Hermes, and all Tryambakam entries pending the dirty TN registry baseline. The destination root remained empty; no registry, packet, session, Paseo, provider, Git, or filesystem mutation occurred.
+- 2026-08-04 11:25 IST: Decision 26 is staged for canary selection. Recommended `C-canary-thoughtseed-brand-atlas` points to `/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-brand-atlas` → `/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas`: clean porcelain, standalone repository, one worktree, HEAD `7e9159735e76b9614e74842c459623f341972baa`, tracked-inventory SHA-256 `56e6c172d00cb18880c3bc896395cda9b8b68e5583e42cb9103f550e6bc185cf`, no checked-in old-path references, and no destination collision. Caveats are 513M total size, 19,076 ignored entries, and Vercel/generated surfaces. `plexus-ts-github-settings-ota-review` is held because it shares a nine-worktree graph; every other clean-baseline absence or dirty candidate requires an owner checkpoint. No canary is approved or mutated by this staging.
+- 2026-08-04 11:45 IST: Decision 26 ratified by the owner: verbatim reply `approve canary thoughtseed-brand-atlas`; `resolved_option: C-canary-thoughtseed-brand-atlas`. Canary-selection approval authorizes only preflight and dry-run manifest generation for the exact source/destination pair. It does not approve packet authoring, registry writes, capsule creation, rename, client pickup, commit, push, session/Paseo work, or any filesystem mutation.
+- 2026-08-04 18:20 IST: The six-file packet draft is present with packet digest `be0d69efec00bc2bd769b4f54e2160e45fea93c80897952a8ff22f79fa6a72c8`. The fresh owner-only dry-run `/tmp/temperance-canary-packet.GWGuFG/thoughtseed-brand-atlas.plan.json` is mode `0600`, SHA-256 `fe78fc1cb2556ae66e86b26705406c628e8a81be1142ae8b7db04b207ab397f8`, `ready:false`, and holds on `packet_identity_pending_teamforge` plus `working_tree_not_clean`; exact checked-in path consumers remain empty and the destination remains absent.
+- 2026-08-04 19:10 IST: Owner supplied the exact TeamForge slug `thoughtseed-brand-atlas`. The packet now records `project_id: thoughtseed-brand-atlas`, `identity_status: verified-teamforge`, and `packet_status: reviewed-held`; no substitute or derived ID was used.
+- 2026-08-04 19:15 IST: The six-file packet was committed separately in the canary repository as commits `66d0b8a9` and `30e994a0`; no vault, registry, destination, session, Paseo, provider, or deployment state changed.
+- 2026-08-04 19:20 IST: Owner approved the exact canary manifest with verbatim reply `approve`. This approval binds only manifest SHA-256 `6159095b53ea6df7b8ed35aeb705ae8142a5cf5cbd90ce39d37eb2b4e5ae8213`, source `/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-brand-atlas`, destination `/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas`, packet digest `4d177cbd15dd3710c5ae2df8cb3789a221f7d4c1c879d3fcf743ed2d2bcaef43`, and clean Git HEAD `30e994a00a347e9817a03940c9cf068e7ea4a6a9`. It does not yet authorize the separate live-apply transaction, registry/capsule writes, rename, client pickup, or rollback receipt.
+- 2026-08-04 19:30 IST: Owner authorized live apply with verbatim reply `apply authorized`. Apply remains held before mutation because the ratified Thoughtseed registry path `thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed/<repository>/` is absent, the `thoughtseed-labs` Git worktree has extensive unrelated dirty/untracked state without an approved exact baseline, and the receipt-bound registry/capsule transaction writer is not implemented. No rename, destination creation, registry write, capsule write, session/Paseo change, provider change, or Git mutation occurred.
+- 2026-08-04 18:32 IST: Owner review of the six-file draft was acknowledged. A bounded read-only search of Thoughtseed Labs project-management, metadata, and brand-authority sources found no exact `thoughtseed-brand-atlas` TeamForge mapping or authoritative stable project ID. The packet remains `draft-held`; no ID was inferred from the repository name, GitHub remote, Vercel project, or vault context pointer. The next gate is an owner-supplied or authoritative TeamForge readback, followed by packet replacement and a fresh digest-bound dry-run.
+- 2026-08-04 11:45 IST: The read-only dry-run manifest `/tmp/temperance-canary-plan.HF48kw/thoughtseed-brand-atlas.plan.json` (mode `0600`, SHA-256 `a93d5dfd484ff3a5ecf5d553177731d019f43c93208cb90f2e7f7f73ad19ceeb`) is held: source and Git are clean, the normalized identity has no destination collision, and no exact checked-in old-path references were found, but all six required packet files are missing (`PROJECT.md`, `AGENTS.md`, `CLAUDE.md`, `.project/CONTEXT.md`, `.project/project.yaml`, `.project/HANDOFF.md`). Manifest approval and packet preparation remain separate gates.
+- 2026-08-04 18:16 IST: Decision 27 authorized the next six-file packet for the already approved canary. The packet is a separate, uncommitted repository draft only: `PROJECT.md`, `AGENTS.md`, `CLAUDE.md`, `.project/CONTEXT.md`, `.project/project.yaml`, and `.project/HANDOFF.md`. Thoughtseed TeamForge identity is intentionally represented as `project_id: null`, `identity_status: pending-teamforge-verification`, and `packet_status: draft-held`; no substitute ID was minted. This authorization does not approve relocation, registry/capsule writes, rename, client pickup, commit, push, session/Paseo work, or provider/deployment mutation.
+- 2026-08-04 18:20 IST: The six-file packet draft is present with packet digest `be0d69efec00bc2bd769b4f54e2160e45fea93c80897952a8ff22f79fa6a72c8`. The fresh owner-only dry-run `/tmp/temperance-canary-packet.GWGuFG/thoughtseed-brand-atlas.plan.json` is mode `0600`, SHA-256 `fe78fc1cb2556ae66e86b26705406c628e8a81be1142ae8b7db04b207ab397f8`, `ready:false`, and holds on `packet_identity_pending_teamforge` plus `working_tree_not_clean`; exact checked-in path consumers remain empty and the destination remains absent.
 
 ## Changelog
 
@@ -1874,7 +2349,227 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
   learned: a production boundary must refuse weaker keys before HTTP, journal exact identifiers before recovery, classify ambiguous outcomes as manual orphans, and read recovery state only through owner/mode/link/inode-validated descriptors.
   criterion now: ISC-529..ISC-536 close the locally verified composition boundary; live authority and canary criteria remain open and no Quick Tunnel fallback is permitted.
 
+- 2026-08-03 | conjectured: preserving project continuity across Codex, Claude, OpenCode, Kimi, and Paseo required redacted native-session identity tuples, path-successor maps, provider-version coverage, and Paseo reconciliation during repository relocation
+  refuted by: the user explicitly removed Paseo from the current goal, the Kimi architecture research proves Kimi Work has no prompt-submit hooks, and the TN clean-pass separates the Tryambakam runtime from Thoughtseed planes rather than sharing their session or control state
+  learned: durable continuity belongs in a client-neutral repository packet plus a bounded checkpoint; native sessions are disposable client-local provenance, Codex governs the local approval loop, OmniRoute routes calls, and portfolio authorities remain isolated
+  criterion now: ISC-635, ISC-636, ISC-642, ISC-649, and ISC-650 are tombstoned; ISC-661..ISC-729 define packet shape, authority isolation, portfolio mapping, routing deployment scope, old-path consumer discovery, resolver/live-client pickup, and zero Paseo/provider-store dependency
+
+- 2026-08-03 | conjectured: merging a completed Thoughtseed reconciliation back into main project management meant moving or collapsing the relocation-registry entry into the canonical project record
+  refuted by: the user approved merge-back only after reconciliation, while the existing design requires digest-bound rollback, ratification, and integrity evidence to survive independently of current project state
+  learned: merge-back is an authority cutover and outcome projection; current facts plus an evidence pointer enter the main record while the TeamForge-keyed reconciliation entry freezes in place as historical evidence
+  criterion now: ISC-730 and ISC-731 record both owner ratifications; ISC-732..ISC-749 define Thoughtseed reconciliation start, cutover, content-addressed projection, append-only closure, actor attribution, retention, and anti-flattening behavior
+
+- 2026-08-04 | conjectured: the existing Cambium Workbench plus current local portfolio registries could directly seed a relocation-authorizing repository map
+  refuted by: only 14 of 54 WorkObjects carry repository provenance, no immutable repository-to-WorkObject join exists, the queried local TeamForge snapshot has zero project mappings, and the ratified TN project registry path is not configured
+  learned: Cambium is a digest-bound review cockpit while repository identity, portfolio membership, worktree topology, and current address require separate evidence; mapping authority and packet preparation precede any canary
+  criterion now: ISC-750, ISC-751, and ISC-754..ISC-757 close the read-only coverage, provenance, browser, hold, and no-mutation probes while ISC-752 and ISC-753 remain open for the deterministic row schema and authoritative mapping table
+
+- 2026-08-04 | conjectured: a repository's current filesystem path could continue serving as its durable identity during relocation mapping
+  refuted by: nested checkouts, linked worktrees, planned relocations, and the owner's explicit approval of Decision 1 show that addresses can change while the repository remains the same
+  learned: repository identity must be modeled independently from every filesystem address before any mapping row can become authoritative
+  criterion now: ISC-758 records the ratified path-non-identity invariant while address representation remains undecided
+
+- 2026-08-04 | conjectured: hosted-repository continuity should be the next identity-mapping decision after excluding paths as identity
+  refuted by: the owner clarified that the immediate unmet need is a system for renaming and organizing repository folders beneath the approved portfolio roots
+  learned: identity safeguards are supporting constraints for a concrete folder-management system; normalization policy must precede hosted-identifier mechanics
+  criterion now: ISC-759 requires destination repository-directory naming to be ratified before any rename or move
+
+- 2026-08-04 | conjectured: choosing kebab-case or snake_case could be the next single-axis grammar decision after universal normalization
+  refuted by: both Advisor reviews showed that either separator ballot silently ratified a wider character repertoire, especially whether internal ASCII periods are representable
+  learned: basename grammar must be ratified as independent representability facets before separator, derivation, collision, or enforcement decisions
+  criterion now: ISC-759 closes universal normalization policy while ISC-760 remains open until the complete destination basename grammar is ratified
+
+- 2026-08-04 | conjectured: an uppercase-admissibility ballot could directly follow the dotless ruling using short positive option labels
+  refuted by: Advisor review exposed that positive labels assumed an interim admission model and that whole-path wording could accidentally bind uppercase literals in the fixed destination root
+  learned: each character-class facet must constrain the eventual complete grammar, bind only the exact depth-one `<repository>` segment, and use complementary exclusion language
+  criterion now: ISC-760.1 records the dotless ruling while ISC-760.2 holds the exact uppercase-exclusion decision and parent ISC-760 remains pending
+
+- 2026-08-04 | conjectured: either answer to a full lowercase-class inclusion ballot could close the lowercase repertoire facet
+  refuted by: post-deliverable Advisor showed that declining a whole-class inclusion requirement excludes nothing and therefore leaves lowercase membership unresolved
+  learned: positive character-repertoire admission uses an approval-or-defer ballot; only affirmative full-class approval closes the facet
+  criterion now: ISC-760.2 records uppercase exclusion, ISC-760.3 remains pending lowercase approval, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: admitting the lowercase class might be enough to validate lowercase-bearing repository names
+  refuted by: the owner's explicit non-rulings and Advisor readback separate repertoire membership from occurrence, placement, counts, separators, digits, and derivation
+  learned: class membership is permission only and cannot independently make any concrete repository basename valid
+  criterion now: ISC-760.3 closes lowercase membership, ISC-760.4 holds the all-or-none ASCII-digit class ballot, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: the next hyphen-minus membership ballot needed a non-vacuity clause or an immediate closed-allowlist convention
+  refuted by: the owner's established lowercase and digit semantics explicitly separate repertoire membership from occurrence and position, while Advisor review exposed non-vacuity and closure as bundled axes
+  learned: codepoint membership, repertoire closure, and positional syntax must remain separate ratifications; membership alone validates no concrete name
+  criterion now: ISC-760.4 records ASCII-digit membership, ISC-760.5 holds pure U+002D membership treatment, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: the owner's shortened hyphen-minus restatement might retract omitted limitations from the named option
+  refuted by: the stable option label selected the previously defined complete option, while the restatement repeated a proper subset and introduced no contradictory ruling
+  learned: a named owner option carries its operative scope through abbreviated restatements unless the owner explicitly revises that scope
+  criterion now: ISC-760.5 records pure U+002D membership, ISC-760.6 holds U+005F membership treatment, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: character-class ballots could continue without first naming the default status of every unruled code point
+  refuted by: Advisor review showed closure silently decides leading/trailing periods, non-ASCII characters, controls, and whether an unresolved option behaves like provisional admission
+  learned: repertoire closure is its own owner-ratified axis, with path-structural invariants carved out and defer explicitly blocking dependent decisions
+  criterion now: ISC-760.6 closes low-line exclusion, ISC-760.7 holds closed/open/deferred closure policy, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: leading-hyphen legality could be decided without fencing segment length, representation, or neighboring positions
+  refuted by: Advisor identified length-one collision, empty-segment vacuity, artifact-definition ambiguity, and accidental digit/separator implications
+  learned: position ballots must name the literal on-disk sequence, require distinct positions through a length-at-least-two carve-out, and preserve every adjacent axis as unresolved
+  criterion now: ISC-760.7 records closed repertoire with future admissions possible, ISC-760.8 holds the corrected leading-U+002D ballot, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: a post-deliverable Advisor call with only a summary prompt could certify ratification fidelity
+  refuted by: the Advisor returned BLOCKED because it received no ISA text to inspect
+  learned: an empty external audit is no verdict; local section, criterion, scope, and diff checks remain the acceptance evidence
+  criterion now: ISC-760.7 is owner-checked, ISC-760.8 remains pending, and the destination root remains empty
+
+- 2026-08-04 | conjectured: the bare owner word “forbidden” might require another clarification before closing the leading-hyphen axis
+  refuted by: the prior ballot exposed exactly one forbid option, and Advisor confirmed the answer uniquely selects F while warning against conflating repeated-hyphen consequences with a new rule
+  learned: record the exact referent, preserve the length-at-least-two carve-out, and distinguish direct first-position prohibition from incidental effects on names like `--foo`
+  criterion now: ISC-760.8 is owner-checked as F-leading-hyphen-forbidden, ISC-760.9 holds the trailing-U+002D ballot, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: a post-deliverable Advisor failure should block a locally evidenced owner ratification
+  refuted by: both Advisor attempts lacked ISA state in their invocation context, while direct readback supplied the owner ballot, exact scope, status markers, and no-mutation probes
+  learned: textless external audits are recorded as no verdict; explicit unresolved axes must be named rather than inferred from a length fence
+  criterion now: ISC-760.8 is owner-checked, single-character `-` is explicitly unresolved, ISC-760.9 is staged, and the destination root remains empty
+
+- 2026-08-04 | conjectured: “forbidden as well” might broaden the trailing ballot beyond its explicit length-at-least-two scope
+  refuted by: the staged Decision 11 text supplied exactly two trailing options and explicitly limited both to length-at-least-two segments
+  learned: anaphoric owner answers inherit only the preceding ballot's named option and scope; the singleton case needs its own explicit ballot
+  criterion now: ISC-760.9 is owner-checked as T-trailing-hyphen-forbidden, ISC-760.10 holds the singleton `-` ballot, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: storing only an anaphoric reply string was sufficient to preserve trailing-ruling fidelity
+  refuted by: post-deliverable Advisor required an explicit resolved option, no-scope-extension statement, and proof that earlier rules excluded length one
+  learned: owner evidence needs both verbatim language and a normalized option token; staged singleton treatment is valid only after prior length fences are read back
+  criterion now: ISC-760.9 records `resolved_option: T-trailing-hyphen-forbidden`, ISC-760.10 remains staged, and the destination root remains empty
+
+- 2026-08-04 | conjectured: singleton permission could be ratified without defining lexical roots, symlink handling, or implementation status
+  refuted by: Advisor identified scope drift, entry-type ambiguity, argument-parsing hazards, and a missing conformance fixture boundary
+  learned: singleton permission must be exact-name-only, lexical, default-deny for every unruled neighbor, and explicitly non-implementable until entry type is decided
+  criterion now: ISC-760.10 is owner-checked as S-singleton-hyphen-permitted, ISC-760.11 holds the binary interior-hyphen ballot, and parent ISC-760 remains open
+
+- 2026-08-04 | conjectured: interior-hyphen permission could be balloted before multi-codepoint admission
+  refuted by: Advisor showed that every interior position presupposes a multi-codepoint name and therefore couples the ballot to an unresolved admission axis
+  learned: resolve multi-codepoint hyphen-bearing names first, then ballot interior position as a dependent axis with a distinct length fence
+  criterion now: ISC-760.10 records singleton permission with policy/mechanism separation, ISC-760.11 holds multi-codepoint admission, and ISC-760.12 reserves interior position
+
+- 2026-08-04 | conjectured: singleton policy could remain sufficiently precise without a self-contained raw-codepoint predicate and fixture contract
+  refuted by: follow-up audit identified deferred-permit ambiguity, mount-root drift, missing access-verb boundaries, and normalization/confusable leakage
+  learned: a naming rule must pin raw U+002D identity, lexical depth, symlink behavior, absent destination-root status, and explicit non-inheritance vectors
+  criterion now: ISC-760.10 is owner-checked with policy/mechanism separation, ISC-760.11 is the next multi-codepoint ballot, and no destination root was created
+
+- 2026-08-04 | conjectured: multi-codepoint admission automatically preserved prior leading/trailing prohibitions and exposed a clean interior ballot
+  refuted by: Advisor identified missing precedence, undefined “hyphen” referent, enforcement relaxation risk, and the fact that bare interior permit/forbid is degenerate
+  learned: admission must name U+002D exclusively, freeze enforcement, ratify precedence separately, and defer interior flanking until precedence resolves
+  criterion now: ISC-760.11 is owner-checked as M-multicodepoint-hyphen-permitted, ISC-760.12 holds precedence, and ISC-760.13 reserves interior flanking
+
+- 2026-08-04 | conjectured: multi-codepoint admission could be treated as validator evidence or repetition permission
+  refuted by: post-deliverable audit distinguished prescriptive policy from absent implementation and identified `a--b` as an unballoted adjacency case
+  learned: policy admission never certifies a validator or concrete name; adjacency and flanking require their own explicit decisions
+  criterion now: ISC-760.11 is policy-checked only, ISC-760.12 holds precedence, ISC-760.13 reserves flanking, and no validator behavior changed
+
+- 2026-08-04 | conjectured: intersection precedence could be ratified together with a complete positional composition semantics
+  refuted by: Advisor separated the owner token from unresolved projection quantifier, normalization ordering, witness language, and implementation evidence
+  learned: precedence is a standalone composition rule; projection must be decided before any interior-domain ballot
+  criterion now: ISC-760.12 is owner-checked as P-precedence-intersection, ISC-760.13 holds projection, ISC-760.14 reserves interior flanking, and no validator changed
+
+- 2026-08-04 | conjectured: positional projection could be balloted before normalization/validation stage
+  refuted by: follow-up audit showed normalize-then-project and project-then-normalize produce different boundary outcomes and make projection basis non-independent
+  learned: ratify normalization stage first, then projection basis, then interior flanking; each stage must preserve the monotone precedence law
+  criterion now: ISC-760.12 is owner-checked as P-precedence-intersection, ISC-760.13 holds normalization stage, ISC-760.14 holds projection basis, and ISC-760.15 reserves flanking
+
+- 2026-08-04 | conjectured: validate-before-normalization could be recorded as behavior-neutral
+  refuted by: Advisor identified certain rejection-set deltas and an unresolved post-normalization validity invariant
+  learned: ordering policy must acknowledge downstream deltas and defer projection basis, collision, transform, and post-normalization validity explicitly
+  criterion now: ISC-760.13 is owner-checked as N-validate-before-normalization, ISC-760.14 holds projection basis, and ISC-760.15–ISC-760.17 remain pending
+
+- 2026-08-04 | conjectured: projection basis could follow normalization ordering without a validity-closure ballot
+  refuted by: Advisor showed that normalized projection assumes validity preservation and that identity-key and presentation projections can diverge
+  learned: decide normalization validity closure first, then identity-key projection, presentation projection, collision, and transform/invariant
+  criterion now: ISC-760.13 is owner-checked as N-validate-before-normalization, ISC-760.14 holds validity closure, and ISC-760.15–ISC-760.18 remain pending
+
+- 2026-08-04 | conjectured: validity-preserving normalization could be treated as proof of implementation or a complete projection policy
+  refuted by: owner ratification is prescriptive and leaves the transform, validator evidence, identity key, presentation, and collision semantics unselected
+  learned: record validity preservation as a downstream invariant, then ballot identity-key source independently from presentation and collision policy
+  criterion now: ISC-760.14 is owner-checked as V-normalization-validity-preserving, ISC-760.15 holds the identity-key ballot, and ISC-760.16–ISC-760.18 remain pending
+
+- 2026-08-04 | conjectured: normalized-name identity could implicitly settle presentation or transform behavior
+  refuted by: owner’s answer resolves only the identity-key source while presentation, collision, algorithm, and implementation remain independent axes
+  learned: use the future normalized name for durable identity, then ask separately how names are presented to operators
+  criterion now: ISC-760.15 is owner-checked as P-identity-key-from-normalized-name, ISC-760.16 holds the presentation ballot, and ISC-760.17–ISC-760.18 remain pending
+
+- 2026-08-04 | conjectured: normalized-name presentation would leave only one undifferentiated final question
+  refuted by: collision policy, transform selection, and post-normalization enforcement have independent failure modes; historical interior-flanking notes also lack a stable criterion
+  learned: batch the three formal follow-ups while reporting the flanking bookkeeping gap separately instead of implying it is resolved
+  criterion now: ISC-760.16 is owner-checked as P-presentation-from-normalized-name, ISC-760.17 and ISC-760.18 remain pending, and no implementation is authorized
+
+- 2026-08-04 | conjectured: the three batched projection/normalization answers would close the complete repository grammar
+  refuted by: earlier Decisions 13–16 explicitly deferred interior U+002D flanking and adjacency, while no stable criterion represented that dependency
+  learned: promote the deferred axis to ISC-760.19 with a binary flanking-versus-run ballot rather than silently treating the historical note as resolved
+  criterion now: ISC-760.17 and ISC-760.18 are owner-checked, ISC-760.19 holds the final interior-hyphen ballot, and no implementation is authorized
+
+- 2026-08-04 | conjectured: permitting interior U+002D runs would repeal the earlier edge prohibitions
+  refuted by: Decision 23 explicitly retains leading/trailing prohibitions and the monotone intersection precedence law
+  learned: interior adjacency is an independent permitted shape; it does not grant edge placement or filesystem authority
+  criterion now: ISC-760.19 and parent ISC-760 are owner-checked, the complete normalized basename grammar is policy-closed, and implementation remains deferred
+
+- 2026-08-04 | conjectured: grammar closure could transition directly into a live relocation
+  refuted by: the relocation plan still requires read-only inventory, packet and registry preflight, path-consumer audit, deterministic manifest approval, and a single-canary boundary
+  learned: execution planning is its own safety tranche; the grammar becomes a pure policy oracle before any move or rename is considered
+  criterion now: ISC-760 is owner-checked, the grammar execution addendum is recorded, and all filesystem and repository mutation remains deferred behind explicit approvals
+
+- 2026-08-04 | conjectured: every standalone child returned by a two-root scan could be exposed as a relocation candidate
+  refuted by: the first read-only probe surfaced the pinned Thoughtseed Labs knowledge vault and ambiguous/control-plane surfaces as candidates
+  learned: inventory disposition must apply explicit knowledge-vault, owner-mapping, active-control, and TN-baseline holds before any canary review
+  criterion now: grammar tests pass, the corrected inventory is held/candidate classified, and the destination remains empty
+
+- 2026-08-04 | conjectured: the largest clean standalone candidate would be the safest canary
+  refuted by: `thoughtseed-brand-atlas` has a clean Git baseline and low worktree coupling but 513M of ignored/generated state, while the other clean candidate shares nine worktrees
+  learned: canary safety is a conjunction of clean state, graph isolation, path-consumer absence, and bounded ignored state; the recommendation still requires owner approval of the size tradeoff
+  criterion now: `thoughtseed-brand-atlas` is recommended but unapproved, `plexus-ts-github-settings-ota-review` is held, and no canary transaction is authorized
+
+- 2026-08-04 | conjectured: canary approval implied readiness for a live move
+  refuted by: the held dry-run found all six portable-packet prerequisites absent even though Git, collision, and path-consumer checks passed
+  learned: canary selection, packet preparation, manifest approval, and live apply are independent gates; a missing packet must stop before any mutation
+  criterion now: canary selection is owner-approved, the dry-run is held with a packet-missing reason, and no live transaction is authorized
+
 ## Verification
+
+- ISC-750: directory enumeration — The report classifies all 70 Thoughtseed immediate children: 68 directories and 2 files.
+- ISC-751: directory enumeration — The report classifies all 57 Tryambakam immediate children: 41 directories and 16 files.
+- ISC-754: source inspection — The report identifies the Workbench app sources, bundler artifact, Worker embed, catalog sources, and digest-bound authority contract.
+- ISC-755: authenticated Chrome snapshot — `/admin/portfolio/web` rendered `portfolio-workbench@v3; offline; proposal-only`, 54 WorkObjects, 16 review records, zero local plans, and zero writers.
+- ISC-756: hold audit — Orphans, ghosts, collisions, conflicting addresses, missing registry evidence, worktree graphs, dirty states, and ambiguous mappings are all held from relocation.
+- ISC-757: pre/post boundary snapshot — `/Volumes/madara/2026/Projects/` remained empty; no destination portfolio directory, session/Paseo mutation, provider-store traversal, remote Git operation, or external-service write occurred.
+
+- ISC-730: owner ratification — User approved exact Thoughtseed registry path conditional on post-reconciliation merge-back to main project management.
+- ISC-731: owner ratification — User explicitly approved exact Tryambakam registry path `/Volumes/madara/2026/twc-vault/_System/10865xseed/projects/<repository>/`.
+- ISC-758: owner ratification — User replied `approve` to Decision 1 after it was narrowed to the single path-non-identity principle.
+- ISC-759: owner ratification — User chose `A-normalize` for every future approved local destination repository directory basename; remote repository names remain untouched and no filesystem operation was authorized.
+- ISC-760.1: owner ratification — User answered `dotless` to Decision 3, rejecting ASCII full stop U+002E at non-boundary positions in canonical local destination repository directory basenames.
+- ISC-760.2: owner ratification — User chose `A-uppercase-excluded` and explicitly required the eventual grammar to forbid ASCII uppercase A–Z everywhere in the exact `<repository>` segment while making no ruling about lowercase admission.
+- ISC-760.3: owner ratification — Exact owner answer: `A — A-lowercase-class-included (recommended): approve all ASCII lowercase letters a–z as permitted members of the <repository> character repertoire. This does not require their occurrence or decide position, count, separators, digits, or derivation.` The durable criterion and Decision 5 preserve those non-rulings.
+- ISC-760.4: owner ratification — Exact owner answer: `A — A-digit-class-included (recommended): Permit all ASCII digits. This does not require digits or decide numeric-only names, positions, counts, separators, or derivation.` The durable criterion and Decision 6 preserve those non-rulings.
+- ISC-760.5: owner ratification — Exact owner answer: `A — A-hyphen-minus-included (recommended): Permit - as a repertoire member. This does not require its occurrence, decide its position`. The durable criterion and Decision 7 preserve the answer and the previously defined named-option scope.
+- ISC-760.6: owner ratification — Owner verbatim: `A — A-low-line-excluded (recommended): Exclude _. This establishes no separator semantics and may be revisited through an explicit owner ruling.` Interpretation: U+005F is excluded with no separator-semantic ruling, no expiry, and later supersession only by explicit owner decision.
+- ISC-760.7: owner ratification — Owner verbatim: `A — A-closed-repertoire (recommended): Only explicitly permitted code points are admissible; future admissions remain possible.` Interpretation: current admissibility is limited to the explicitly permitted codepoint set; no position, occurrence, separator, derivation, enforcement, or concrete-name rule is implied.
+- ISC-760.8: owner ratification — Exact owner answer: `forbidden`. The preceding ballot contained one forbid option, `F-leading-hyphen-forbidden`, so the answer uniquely closes the criterion. It applies only to U+002D at index 0 of literal on-disk depth-one `<repository>` segments of length at least two under the two ratified portfolio roots; the single-character `-` is explicitly unresolved, while trailing/interior positions, repeated-hyphen semantics, other hyphen code points, and filesystem actions remain outside scope.
+- ISC-760.9: owner ratification — Verbatim owner answer: `forbidden as well`; `resolved_option: T-trailing-hyphen-forbidden`. The staged Decision 11 ballot contained exactly `T-trailing-hyphen-forbidden` and `T-trailing-hyphen-permitted`, so “as well” carries no scope extension and selects the forbid option within its explicit length-at-least-two scope. Decisions 10 and 11 do not cover length one, so the singleton `-` remains unresolved and is correctly staged as ISC-760.10.
+- ISC-760.10: owner ratification — Verbatim owner answer: `S-singleton-hyphen-permitted`; `resolved_option: S-singleton-hyphen-permitted`. U+002D HYPHEN-MINUS is permitted only when `depth(name, root) == 1` and raw pre-normalization codepoints equal `[U+002D]` under the two literal destination roots. Both roots are currently absent by design; this naming policy grants no filesystem access verb, and implementation remains deferred pending entry-type semantics. Multi-codepoint names are not admitted by this decision.
+- ISC-760.11: owner ratification — Verbatim owner answer: `yes - M-multicodepoint-hyphen-permitted`; `resolved_option: M-multicodepoint-hyphen-permitted`. The prescriptive policy admits multi-codepoint lexical names containing exactly U+002D HYPHEN-MINUS, but the planning tranche has no validator implementation or behavior certification. Leading/trailing prohibitions remain binding; interior/flanking/adjacency/count behavior, including `a--b`, remains unvalidated and unauthorized.
+- ISC-760.12: owner ratification — Verbatim owner answer: `P-precedence-intersection`; `resolved_option: P-precedence-intersection`. Multi-codepoint U+002D admission composes with prior positional prohibitions by intersection; projection, normalization, implementation, and concrete-name validity remain separate.
+- ISC-760.13: owner ratification — Verbatim owner answer: `N-validate-before-normalization`; `resolved_option: N-validate-before-normalization`. Raw validation precedes any future normalization; rejection-set deltas and post-normalization validity remain explicitly deferred, with no validator or derived artifact changed.
+- ISC-760.14: owner ratification — Verbatim owner answer: `V-normalization-validity-preserving`; `resolved_option: V-normalization-validity-preserving`. Every raw name accepted before normalization is required to remain valid after the future normalization transform. This is a policy invariant, not validator or implementation evidence; algorithm, projection, collision, enforcement, migration, and filesystem behavior remain unresolved.
+- ISC-760.15: owner ratification — Verbatim owner answer: `normalized-name identity`; `resolved_option: P-identity-key-from-normalized-name`. The durable identity key derives from the future normalized repository name. This does not authorize implementation or decide presentation, collision, algorithm, validator, enforcement, migration, or filesystem behavior.
+- ISC-760.16: owner ratification — Verbatim owner answer: `P-presentation-from-normalized-name`; `resolved_option: P-presentation-from-normalized-name`. Operator-facing presentation derives from the future normalized repository name. Collision handling and normalization details remain separate.
+- ISC-760.17: owner ratification — Verbatim owner answer: `C-collision-fail-closed`; `resolved_option: C-collision-fail-closed`. Normalized-identity collisions reject the candidate before mutation or disambiguating rewrite; implementation and filesystem behavior remain unimplemented.
+- ISC-760.18: owner ratification — Verbatim owner answers: `N-normalization-identity-after-validation` and `I-post-normalization-trust-preserving-policy`; resolved options are recorded in Decisions 21–22. The accepted ASCII basename remains unchanged after validation, and the validity-preserving policy is trusted without a second validation gate; no implementation behavior is certified.
+- ISC-760.19: owner ratification — Verbatim owner answer: `F-interior-hyphen-run-permitted`; `resolved_option: F-interior-hyphen-run-permitted`. Interior U+002D adjacency is permitted, while leading/trailing prohibitions and intersection precedence remain binding. No validator or filesystem behavior changed.
+
+- Execution tranche 1: pure grammar suite passed 6 tests and 28 assertions; read-only inventory produced 101 records with 29 candidates and 72 held, mode `0600`, SHA-256 `d5e1c3a99016b65c77ef226945383e902c2ba3dc005a278bc820bcd645a58f93`; `/Volumes/madara/2026/Projects/` remained empty.
+- Canary review: `thoughtseed-brand-atlas` is clean, standalone, one-worktree, and has zero checked-in old-path matches; its tracked inventory SHA-256 is `56e6c172d00cb18880c3bc896395cda9b8b68e5583e42cb9103f550e6bc185cf`, ignored inventory SHA-256 is `79d6fbf05fc072b3e500d29c3356ae06fc7337a225b749595d59e7a35c762657`, and no destination exists. Owner approval remains required.
+- Canary dry-run: source `/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-brand-atlas`, destination `/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas`, `ready:false`, no path consumers, no collision, clean Git, and six missing packet files; manifest mode `0600`, SHA-256 `a93d5dfd484ff3a5ecf5d553177731d019f43c93208cb90f2e7f7f73ad19ceeb`.
+- Canary packet identity gate: the reviewed draft remains held because no exact TeamForge mapping was found in the bounded Thoughtseed authority readback; `project_id: null` is preserved and no destination or registry state changed.
+- Fresh identity-hold dry-run: private manifest `/tmp/temperance-canary-identity.CTbw2i/thoughtseed-brand-atlas.plan.json` is mode `0600`, SHA-256 `82639f81493c477e29185cae91a593057cd16e82911e6402218d6ac9d8329bb4`, `ready:false`, with `packet_identity_pending_teamforge` and `working_tree_not_clean`; all six packet files are present, no exact checked-in path consumers exist, and the destination root remains empty.
+- Final clean canary dry-run: private manifest `/tmp/temperance-canary-final.AiGIuv/thoughtseed-brand-atlas.plan.json` is mode `0600`, SHA-256 `6159095b53ea6df7b8ed35aeb705ae8142a5cf5cbd90ce39d37eb2b4e5ae8213`, `ready:false` with no hold reasons; packet digest is `4d177cbd15dd3710c5ae2df8cb3789a221f7d4c1c879d3fcf743ed2d2bcaef43`, identity is `verified-teamforge`, Git HEAD is `30e994a00a347e9817a03940c9cf068e7ea4a6a9`, path consumers are empty, collision is absent, and destination remains empty.
+- Manifest approval readback: the approved file remains mode `0600` and byte-identical; source porcelain is empty, source HEAD matches the approved commit, and `/Volumes/madara/2026/Projects/` remains empty. No live apply was attempted because registry/capsule manifests and the separate apply approval remain outstanding.
+- Apply preflight hold: source and canary remain unchanged; live execution cannot safely proceed until the owner baselines the Thoughtseed registry repository and the transaction/capsule writer produces a separate digest-bound apply manifest.
 
 - ISC-586..ISC-588: source inspection, mocked argv capture, and the installed Codex help prove supported `--ignore-user-config` defaulting, exact-zero opt-out, flag placement before `--`, zero production `--ignore-rules`, explicit OmniRoute model/provider/base URL/wire/auth key/approval/sandbox/context settings, Keychain-or-environment child authentication rather than argv secrets, and `--ephemeral` execution.
 - ISC-589 and ISC-591: `bash tests/dispatch-tasklist.sh` passes the complete dispatcher suite. Positive mode checks cover run directory `700` and plan/output/meta/diff/summary/index/leak/merge artifacts `600`; the worker observes the caller's `0027` umask unchanged. Negative controls reject an unsecurable caller output directory before artifact creation and prove a TERM-ignoring worker tree is frozen, killed, fully reaped, leaves no worktree or late artifact after its delay, exits 143, and retains only mode-600 files.
@@ -2217,3 +2912,5 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
 - ISC-570: the exact historical `~/.temperance_engine/receipts/omniroute-hermes-preview/20260801T144653Z-7140/session.cookie` was validated as a mode-600, single-link, user-owned regular file and removed without content access. Repeated recursive scans return zero; v3 compilation and rollback both refuse any reintroduced basename, and the receipt records `contentRead:false` plus zero before/after matches.
 - ISC-571: exact GitHub Sonnet 5 and no-think Antigravity Sonnet 5 returned substantive bounded no-tool reviews with gateway HTTP-200 attribution from distinct non-Codex families and zero Sol use. Advisor pre/post attempts returned no usable verdict and were not counted as approval. Independent Cato first rejected the memory-only HTTP design, then returned `PASS — no P0/P1 blockers` after the zero-auth revision. Focused Hermes, rollback, native integration, documentation continuity, `git diff --check`, and the canonical `bash scripts/verify-all.sh` all exit zero.
 - 2026-08-02 Hermes v3 final invariants: live rollback receipt `~/.temperance_engine/receipts/omniroute-local-rollback/20260802T042713Z-73598/receipt.json` binds the exact proposal digest and proves byte-exact LaunchAgent rollback/reapply without restarting OmniRoute. The local Hermes path and every historical session-cookie path remain absent; OmniRoute and the proxy remain loopback-only; `cloudflared` remains stopped. No Apply, EC2, Cloudflare, MCP, A2A, provider, routing-promotion, or Sol-family mutation occurred. Reread closes this bounded iteration at 550/578 with 28 external or separately gated criteria open; the persistent integration goal remains active.
+- 2026-08-04 vault relocation build-out, Tasks 2A/3/4/6/7/8/9: this entry records direct construction plus executable verification — TDD with a real red-before-green cycle for nearly every new function, plus real read-only CLI runs against the actual vault — not the Advisor/Cato governed-review ritual used elsewhere in this ledger; no Advisor or Cato pass occurred today. `package/relocation/project-path-consumers.ts` (Task 2A, 35 tests) bounds the old-path consumer audit to checked-in text via `git ls-files` and an explicit caller-supplied host-config-surface file list, proven with a fixture that content outside those two bounds never surfaces. `project-packet-schema.ts` + `project-packet.ts` (Task 3, 52 tests) close the `.project/project.yaml` schema and validate the already-committed `thoughtseed-brand-atlas` packet by reading it straight from its Git HEAD, not a copy. `project-registry.ts` + `project-capsule.ts` (Task 4, 42 tests) implement the append-only Thoughtseed reconciliation log and the six-file capsule renderer; every I/O function was exercised only against temp fixture directories, never `thoughtseed-labs` or `_System/10865xseed`. `project-relocation-transaction.ts` (Task 6, 22 tests) is the receipt-bound rename core — `performGuardedRename()`'s device/inode revalidation immediately before and after the POSIX rename catches both mandatory attack scenarios (source-replacement, parent/path-swap) in fixture tests. `project-pickup.ts` (Task 7, 7 tests) is a pure resolver proven bounded (an out-of-band fixture file never influences its output, digest included) and regression-tested directly against the real `thoughtseed-brand-atlas` packet, read-only. `project-relocation-rollback.ts` (Task 8, 21 tests) reuses `performGuardedRename()` in reverse for the rename-back and proved every fail-closed gate (capsule drift, missing receipt, destination drift) removes zero bytes. Task 9 added `project-relocation-source-guards.test.ts` (9 tests, comments stripped before scanning so the guard's own safety-documentation prose can't trip its own checks) proving by direct inspection of production source — not documentation claims — that every Git subcommand invoked across the relocation subsystem is read-only (`ls-files`, `grep`, `status`, `rev-parse`, `branch`, `remote`, `show`, `worktree`) and that no file references `homedir()`, Paseo, `.ssh/`, `id_rsa`, `credentials.json`, embedded PEM keys, or session transcripts; `tests/vault-project-relocation.test.ts` (9 tests) exercises the CLI's `inventory` and `plan --dry-run` commands for real against the actual vault (both are contractually read-only) plus argument-validation failure modes that never touch the filesystem; and `docs/vault-project-relocation.md` consolidates the whole subsystem into one reference document. Total: 203 tests across 11 files, all passing, wired into `scripts/verify-all.sh` (the broader non-relocation suite was not re-run today). 64 previously-open relocation ISC criteria (ISC-613/614/616/618/621/624-627/629/637/654-656/659-663/666-669/671-678/680-681/685-686/689-690/692/697-698/700-705/707-708/711-713/727-729/733/737-741/743/745/747/749) are now checked because the underlying code exists and is directly, currently verifiable — not because a live apply happened. Deliberately left open: every criterion that names a live apply, a live fresh-client canary, or the Thoughtseed "canonical main project-management record" (ISC-638-651, 679/682-684/687-688 depending on exact HANDOFF.md field, 693-696, 699, 706, 709-710, 715/717/718-726 partially, 732/734-736/742/744/746/748, 752-753) — those require either the not-yet-built end-to-end transaction assembly, a real human at a real client, or a file format that has no real example to build against yet. Two interpretive deviations from the abstract spec, made against the one real committed packet rather than invented: `resolvePickupBootstrap()` sources `objective` from `PROJECT.md`'s "Purpose and boundaries" paragraph rather than `.project/HANDOFF.md` (the real file has no HANDOFF.md objective field), and `blocker` defaults to the literal string `"none"` when no "## Blockers" heading exists (the real file has none today). No repository moved; verified after each task that `thoughtseed-brand-atlas` remained at its original path with a clean Git status and that `/Volumes/madara/2026/Projects/` remained empty.
+- 2026-08-05 correction: ISC-686 was checked in the previous entry on the reasoning that `resolvePickupBootstrap()`'s "none" default for an absent `## Blockers` section satisfied "records blockers or an explicit none value." On review, both ISC-679's and ISC-686's own criteria-table rows (`handoff shape`, verified by `handoff fixture`) require the *file* to record the value, not the resolver to infer it on read. A resolver-side default when a section is silently missing is not the same claim as the packet author explicitly writing "None." — the two are indistinguishable in the resolver's current output, which is itself the actual gap: a future packet that simply omits Blockers by oversight would be indistinguishable from one that explicitly verified there are none. ISC-686 is uncorrected back to unchecked. `objective` sourced from `PROJECT.md` remains a deliberate, reviewed choice (ISC-679 was already correctly left unchecked) — distinct from `blocker`'s issue, since `objective` is not claimed to satisfy a HANDOFF.md-shape criterion at all.
