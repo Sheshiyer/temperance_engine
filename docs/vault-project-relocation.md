@@ -397,17 +397,19 @@ the owner to separately approve, itemized:
 - the pickup procedure (live fresh-client canary, not yet attempted for any repository);
 - the exact rollback command and receipt path.
 
-**The Thoughtseed registry-host baseline was re-confirmed 2026-08-05, with a caveat
-worth reading, not just a pass/fail.** The dirty-file status digest (122 files) is
-still byte-identical to the originally approved baseline — `assertRegistryHostClean()`
-would still accept it right now. But `thoughtseed-labs`'s HEAD commit moved between
-the original approval and this re-check, while the uncommitted set stayed frozen —
-meaning the repository is actively receiving commits in the background, not sitting
-static for review. The digest check doesn't cover HEAD at all, so a matching digest
-is real evidence but not a guarantee nothing else has changed. Re-confirm again,
-immediately, before any real `apply` — see
+**The Thoughtseed registry-host baseline was re-confirmed twice on 2026-08-05.**
+Both times the dirty-file status digest (122 files) came back byte-identical to the
+originally approved baseline — `assertRegistryHostClean()` would still accept it
+right now. Between the original approval and the first re-check, `thoughtseed-labs`'s
+HEAD commit moved while the uncommitted set stayed frozen, meaning the repository was
+actively receiving commits in the background, not sitting static for review. The
+second re-check found HEAD unchanged from the first — the background commit activity
+had gone quiet for that window. The digest check doesn't cover HEAD at all, so a
+matching digest is real evidence but never a guarantee nothing else has changed, and a
+quiet window between two checks is not proof the repository has stopped moving for
+good. Re-confirm again, immediately, before any real `apply` — see
 [the status doc](plans/2026-08-04-vault-relocation-status-and-sequencing.md) §2 for
-the exact HEAD/count/digest values from both checks.
+the exact HEAD/count/digest values from all three checks.
 
 **The `hostConfigSurfaces` curation and real Task 2A audit run are done (2026-08-05).**
 Twelve host-level configuration files were reviewed and checked directly against the
