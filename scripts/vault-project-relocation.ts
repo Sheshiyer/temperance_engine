@@ -32,6 +32,11 @@ import {
   applyClaudeCodeRelink,
   writeSessionMap,
 } from "../package/relocation/project-session-map";
+import {
+  planCopilotSessionFix,
+  applyCopilotSessionFix,
+  receiptPathFor,
+} from "../package/relocation/copilot-session-fix";
 
 const DESTINATION_ROOT = "/Volumes/madara/2026/Projects";
 const PORTFOLIO_ROOTS = {
@@ -141,7 +146,11 @@ function usage(): never {
     --receipt <absolute-receipt-path>
   bun scripts/vault-project-relocation.ts session-map \
     --repository <absolute-new-path> \
-    [--no-relink]`);
+    [--no-relink]
+  bun scripts/vault-project-relocation.ts session-fix \
+    --repository <new-absolute-path> \
+    --tool copilot \
+    [--dry-run]`);
   process.exit(2);
 }
 
@@ -716,6 +725,45 @@ try {
     );
     writeSessionMap(outputPath, record);
     console.log(JSON.stringify({ output: outputPath, tools: record.tools }, null, 2));
+  } else if (argv[0] === "session-fix") {
+    let repository = "";
+    let tool = "";
+    let dryRun = false;
+    for (let i = 1; i < argv.length; i += 1) {
+      const arg = argv[i];
+      if (arg === "--repository") repository = argv[++i] ?? "";
+      else if (arg === "--tool") tool = argv[++i] ?? "";
+      else if (arg === "--dry-run") dryRun = true;
+    }
+    if (!repository || !isAbsolute(repository)) usage();
+    if (tool !== "copilot") throw new Error(`session_fix_tool_not_supported:${JSON.stringify(tool)}`);
+
+    const portfolio = inferPortfolio(repository);
+    if (!portfolio) throw new Error(`session_fix_portfolio_not_inferred:${repository}`);
+    const repositoryName = basename(repository);
+
+    const entryPath = registryEntryPath(portfolio, repositoryName);
+    const entryFilePath = join(entryPath, "entry.json");
+    if (!existsSync(entryFilePath)) {
+      throw new Error(`session_fix_registry_entry_not_found:${entryFilePath}`);
+    }
+    const registryEntry = JSON.parse(readFileSync(entryFilePath, "utf8"));
+
+    const plan = planCopilotSessionFix({
+      portfolio,
+      repository: repositoryName,
+      oldPath: registryEntry.oldPath,
+      newPath: repository,
+      generatedAt: new Date().toISOString(),
+    });
+
+    if (dryRun || plan.status !== "fixable") {
+      console.log(JSON.stringify({ plan, applied: false }, null, 2));
+      if (!dryRun && plan.status !== "fixable") process.exit(1);
+    } else {
+      const receipt = applyCopilotSessionFix(plan);
+      console.log(JSON.stringify({ plan, applied: true, receiptPath: receiptPathFor(plan), receipt }, null, 2));
+    }
   } else {
     usage();
   }

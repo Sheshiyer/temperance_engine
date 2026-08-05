@@ -153,6 +153,21 @@ describe("CLI argument validation — never touches the filesystem", () => {
     const result = runCli(["inventory", "--portfolio", "thoughtseed", "--output", outputPath("x.json"), "--max-depth", "-1"]);
     expect(result.status).not.toBe(0);
   });
+
+  test("session-fix without --repository fails closed", () => {
+    const result = runCli(["session-fix", "--tool", "copilot"]);
+    expect(result.status).not.toBe(0);
+  });
+
+  test("session-fix with an unsupported --tool fails closed", () => {
+    const result = runCli(["session-fix", "--repository", "/Volumes/madara/2026/Projects/thoughtseed/some-repo", "--tool", "opencode"]);
+    expect(result.status).not.toBe(0);
+  });
+
+  test("session-fix with a relative --repository fails closed", () => {
+    const result = runCli(["session-fix", "--repository", "relative/path", "--tool", "copilot"]);
+    expect(result.status).not.toBe(0);
+  });
 });
 
 describe("CLI inventory — real, read-only run against the actual vault", () => {
