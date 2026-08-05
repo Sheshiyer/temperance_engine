@@ -23,9 +23,9 @@
 
 import { spawnSync } from "node:child_process";
 import { basename, dirname, resolve } from "node:path";
-import { realpathSync } from "node:fs";
 
 import { CAPSULE_FILES, renderCapsuleFiles, type CapsuleInput } from "./project-capsule";
+import { classifyRepositoryByGitToplevel } from "./project-repository-classification";
 import {
   appendReconcilingTransition,
   assertNoCompetingRegistryClaim,
@@ -48,17 +48,6 @@ import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 
 const TRANSACTION_ACTOR = "vault-project-relocation-apply";
-
-function classifyRepositoryKind(path: string): string {
-  const result = spawnSync("git", ["-C", path, "rev-parse", "--show-toplevel"], { encoding: "utf8" });
-  if (result.status !== 0) return "not-a-repository";
-  // git resolves symlinks in its output (e.g. macOS /tmp -> /private/tmp);
-  // realpath both sides before comparing, or every fixture under a
-  // symlinked temp dir would misclassify as nested.
-  const gitToplevel = realpathSync(result.stdout.trim());
-  const canonicalPath = realpathSync(path);
-  return gitToplevel === canonicalPath ? "standalone-repository" : "nested-repository";
-}
 
 function readGitHead(path: string): string | null {
   const result = spawnSync("git", ["-C", path, "rev-parse", "HEAD"], { encoding: "utf8" });
@@ -122,7 +111,7 @@ export interface ApplyTransactionResult {
 }
 
 function gatherHoldReasons(input: ApplyTransactionInput): string[] {
-  const repositoryKind = classifyRepositoryKind(input.source);
+  const repositoryKind = classifyRepositoryByGitToplevel(input.source).repositoryKind;
   const sourceDevice = existsSync(input.source) ? captureDeviceInode(input.source).device : -1;
   const destinationParentDevice = deviceOfNearestExistingAncestor(input.destination);
   const destinationExists = existsSync(input.destination);
