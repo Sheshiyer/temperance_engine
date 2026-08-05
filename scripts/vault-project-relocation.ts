@@ -23,6 +23,7 @@ import {
   registryRootFor,
 } from "../package/relocation/project-registry";
 import { applyRelocationTransaction } from "../package/relocation/project-relocation-apply";
+import { classifyRepositoryByGitToplevel } from "../package/relocation/project-repository-classification";
 import { performRollback } from "../package/relocation/project-relocation-rollback";
 import {
   buildSessionMap,
@@ -204,10 +205,10 @@ function gitRemotes(path: string): string[] {
 }
 
 function classifyRepository(path: string): Pick<InventoryRecord, "repositoryKind" | "gitTopLevel" | "gitCommonDir" | "head" | "branch" | "remotes" | "statusPorcelainV2Sha256"> {
-  const gitTopLevel = git(path, ["rev-parse", "--show-toplevel"]);
-  if (!gitTopLevel) {
+  const { repositoryKind, gitTopLevel } = classifyRepositoryByGitToplevel(path);
+  if (repositoryKind === "not-a-repository") {
     return {
-      repositoryKind: "not-a-repository",
+      repositoryKind,
       gitTopLevel: null,
       gitCommonDir: null,
       head: null,
@@ -216,14 +217,13 @@ function classifyRepository(path: string): Pick<InventoryRecord, "repositoryKind
       statusPorcelainV2Sha256: null,
     };
   }
-  const canonicalTop = resolve(gitTopLevel);
   const gitCommonDirRaw = git(path, ["rev-parse", "--git-common-dir"]);
   const gitCommonDir = gitCommonDirRaw ? resolve(path, gitCommonDirRaw) : null;
   const status = spawnSync("git", ["-C", path, "status", "--porcelain=v2", "--untracked-files=all"], { encoding: "utf8" });
   const statusText = status.status === 0 ? status.stdout : null;
   return {
-    repositoryKind: canonicalTop === resolve(path) ? "standalone-repository" : "nested-repository",
-    gitTopLevel: canonicalTop,
+    repositoryKind,
+    gitTopLevel,
     gitCommonDir,
     head: git(path, ["rev-parse", "HEAD"]),
     branch: git(path, ["branch", "--show-current"]),
