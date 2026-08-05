@@ -39,4 +39,16 @@ describe("matchKimi", () => {
     expect(result.matched).toBe(false);
     expect(result.error).toBe("kimi_json_not_found");
   });
+
+  test("matched: false with error when the state file is not valid JSON", () => {
+    const dir = mkdtempSync(join(tmpdir(), "kimi-json-"));
+    const kimiJsonPath = join(dir, "kimi.json");
+    writeFileSync(kimiJsonPath, "{not valid json");
+
+    const result = matchKimi("/Volumes/fixture/thoughtseed/some-repo", kimiJsonPath);
+
+    expect(result.matched).toBe(false);
+    expect(result.error).toContain("kimi_json_parse_failed");
+    rmSync(dir, { recursive: true, force: true });
+  });
 });
