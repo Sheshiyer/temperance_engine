@@ -94,4 +94,20 @@ describe("discoverNestedGitRoots", () => {
     expect(found).toEqual([{ path: repoPath, depth: 3 }]);
     rmSync(root, { recursive: true, force: true });
   });
+
+  test("never walks into the starting directory's own .git internals when the start path is itself a repo", () => {
+    const root = mkdtempSync(join(tmpdir(), "discover-selfgit-"));
+    const repoPath = join(root, "the-repo");
+    initGitRepo(repoPath);
+    // Plant a repo-shaped marker inside the container's own .git directory.
+    // A naive walk that only skips node_modules would descend into .git
+    // (it looks like just another subdirectory) and incorrectly report
+    // this as a discovered nested repo.
+    initGitRepo(join(repoPath, ".git", "should-never-be-found"));
+
+    const found = discoverNestedGitRoots(repoPath, 5);
+
+    expect(found).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
 });

@@ -30,7 +30,7 @@ function walk(dir: string, depth: number, maxDepth: number, found: DiscoveredGit
     return;
   }
   for (const entryName of entries) {
-    if (entryName === "node_modules") continue;
+    if (entryName === "node_modules" || entryName === ".git") continue;
     const entryPath = join(dir, entryName);
     let entryStats;
     try {
