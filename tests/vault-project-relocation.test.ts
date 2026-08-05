@@ -205,6 +205,33 @@ describe("CLI inventory — real, read-only run against the actual vault", () =>
       expect(record.immediateParentPath).toBeNull();
     }
   });
+
+  test("--max-depth 5 discovers the real hermes-aws-ts candidate nested inside thoughtseed-labs", () => {
+    const output = outputPath("inventory.json");
+    runCli(["inventory", "--portfolio", "thoughtseed", "--output", output, "--max-depth", "5"]);
+    const report = JSON.parse(readFileSync(output, "utf8"));
+
+    const hermes = report.records.find(
+      (record: { name: string; path: string }) =>
+        record.name === "hermes-aws-ts" && record.path.endsWith("thoughtseed-labs/hermes-aws-ts"),
+    );
+    expect(hermes).toBeDefined();
+    expect(hermes.depth).toBeGreaterThan(0);
+    expect(hermes.repositoryKind).toBe("standalone-repository");
+  });
+
+  test("--max-depth 5 flags the real Archive/team-forge-ts collision against the real team-forge-ts", () => {
+    const output = outputPath("inventory.json");
+    runCli(["inventory", "--portfolio", "thoughtseed", "--output", output, "--max-depth", "5"]);
+    const report = JSON.parse(readFileSync(output, "utf8"));
+
+    const teamForgeCandidates = report.records.filter((record: { name: string }) => record.name === "team-forge-ts");
+    expect(teamForgeCandidates.length).toBeGreaterThanOrEqual(2);
+    for (const candidate of teamForgeCandidates) {
+      expect(candidate.holdReasons.some((reason: string) => reason.startsWith("competing_candidate_claim:"))).toBe(true);
+      expect(candidate.disposition).toBe("held");
+    }
+  });
 });
 
 describe("CLI plan --dry-run — real, read-only run against the actual canary", () => {

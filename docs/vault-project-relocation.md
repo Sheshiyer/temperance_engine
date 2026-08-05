@@ -66,6 +66,27 @@ directory. No destination directory is created. Portfolio source roots:
 Tryambakam *registry* root below — the two are easy to conflate and an earlier version
 of this script did, until it was corrected.)
 
+`--max-depth <n>` (default `0`, i.e. today's depth-0-only behavior) opts
+into a bounded recursive scan for independently-versioned Git repositories
+nested below each direct child that isn't already a standalone candidate —
+e.g. `hermes-aws-ts` inside `thoughtseed-labs`, or the many repositories
+found clustered inside non-git "container" folders like `klear-karma` and
+`Tirak`. The scan never leaves the two approved portfolio roots, never
+reads file content, and treats a Git worktree (`.git` file, not directory)
+as excluded, never as something to descend into further. Deep candidates
+carry `depth` and `immediateParentPath` for provenance and get exactly the
+checks that generalize to an arbitrary nested path (grammar, repository
+kind, destination collision) — not the depth-0-specific named-entry holds.
+
+A new cross-candidate collision pass runs whenever `inventory` builds its
+report (depth-0 candidates included): any two candidates sharing a
+repository basename or a normalized GitHub remote identity are both held
+with `competing_candidate_claim:...`, no automatic preference. This is
+additive to, not a replacement for, the existing cross-portfolio registry
+check — this one catches duplicates within a single inventory run, before
+anything is ever registered. Full design:
+[`docs/superpowers/specs/2026-08-05-vault-nested-repo-discovery-design.md`](superpowers/specs/2026-08-05-vault-nested-repo-discovery-design.md).
+
 ## Portable packet
 
 Each managed repository carries one canonical packet, prepared and reviewed as its own
