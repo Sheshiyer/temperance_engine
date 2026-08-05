@@ -119,8 +119,8 @@ command's cross-candidate collision detection. Full design:
 [`docs/superpowers/specs/2026-08-05-vault-copilot-session-fix-design.md`](superpowers/specs/2026-08-05-vault-copilot-session-fix-design.md).
 
 Only Copilot CLI is covered. OpenCode, Codex, Kimi, and Craft Agent
-remain record-only (see the session-map's own `## Session map` section
-above) — each needs its own dedicated design given real, materially
+remain record-only (see the session-map's own `## The session-map (piece C)` section
+below) — each needs its own dedicated design given real, materially
 different risk profiles found during reconnaissance (no unique path key
 for OpenCode, index-only granularity for Codex/Kimi, no per-project
 storage convention at all for Craft Agent).

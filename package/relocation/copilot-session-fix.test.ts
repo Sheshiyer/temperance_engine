@@ -14,6 +14,7 @@ import {
   CopilotSessionFixStalePlanError,
   receiptPathFor,
 } from "./copilot-session-fix";
+import type { CopilotSessionFixPlan } from "./copilot-session-fix";
 
 function createFixtureCopilotDb(dir: string): string {
   const dbPath = join(dir, "data.db");
@@ -366,6 +367,66 @@ describe("applyCopilotSessionFix", () => {
       expect(() =>
         applyCopilotSessionFix(plan, dbPath, join(dir, "receipt.json"), { isRunning: () => false, hasWal: () => false }),
       ).toThrow(CopilotSessionFixStalePlanError);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("rolls back the whole write transaction when post-apply verification fails", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-apply-rollback-"));
+    try {
+      const { dbPath, plan } = fixtureWithFixablePlan(dir);
+
+      // Engineer a plan whose changes list can never all land correctly: the
+      // apply loop executes each `projects`/`worktrees` change's UPDATE in
+      // array order, writing whatever `to` that change carries. Appending a
+      // *second* `projects` change for the same row id, with a different
+      // `to`, after the legitimate one means the second UPDATE overwrites
+      // the first — so the row's final value can only ever match the
+      // *last* change's `to`, and verifyAppliedChanges (which walks the
+      // array in the same order and checks each change's own `to` against
+      // the final row) is guaranteed to hit the first, now-stale change and
+      // throw. This exercises the real applyCopilotSessionFix code path
+      // deterministically, without needing to simulate a concurrent
+      // external mutation.
+      const conflictingPlan: CopilotSessionFixPlan = {
+        ...plan,
+        changes: [
+          ...plan.changes,
+          {
+            table: "projects",
+            column: "main_repo_path",
+            id: "proj-1",
+            from: "/new/repo",
+            to: "/conflicting/path",
+          },
+        ],
+      };
+
+      expect(() =>
+        applyCopilotSessionFix(conflictingPlan, dbPath, join(dir, "receipt.json"), {
+          isRunning: () => false,
+          hasWal: () => false,
+        }),
+      ).toThrow("post_apply_verification_failed:projects:proj-1");
+
+      // Prove the *entire* transaction rolled back, not just the failing
+      // write: the worktree and binding UPDATEs that ran earlier in the
+      // same transaction (and would have verified cleanly on their own)
+      // must be undone too, and no receipt should exist.
+      const db = new Database(dbPath, { readonly: true });
+      const project = db.query("SELECT main_repo_path FROM projects WHERE id = 'proj-1'").get() as {
+        main_repo_path: string;
+      };
+      expect(project.main_repo_path).toBe("/old/repo");
+      const worktree = db.query("SELECT path FROM worktrees WHERE id = 'wt-1'").get() as { path: string };
+      expect(worktree.path).toBe("/old/repo/.worktrees/a");
+      const binding = db
+        .query("SELECT repo_path, checkout_path FROM workspace_checkout_bindings WHERE workspace_id = 'ws-1'")
+        .get() as { repo_path: string; checkout_path: string };
+      expect(binding.repo_path).toBe("/old/repo");
+      expect(binding.checkout_path).toBe("/old/repo/.worktrees/a");
+      db.close();
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -362,10 +362,11 @@ export function applyCopilotSessionFix(
           `UPDATE workspace_checkout_bindings SET ${setClauses.join(", ")} WHERE workspace_id = ? AND repo_path = ?`,
         ).run(...(params as [string, ...unknown[]]));
       }
-    });
-    applyTxn();
 
-    const verifiedChanges = verifyAppliedChanges(db, plan.changes);
+      return verifyAppliedChanges(db, plan.changes);
+    });
+    const verifiedChanges = applyTxn();
+
     const receipt: CopilotSessionFixReceipt = {
       plan,
       appliedAt: new Date().toISOString(),
