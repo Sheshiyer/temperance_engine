@@ -164,10 +164,26 @@ the "extra" ones — there is no default winner (§2, E4).
 ## 6. Discovery algorithm
 
 Bounded to the same two already-approved portfolio roots
-(`PORTFOLIO_ROOTS`) — never leaves them. For each direct child not already
-classified `"standalone-repository"` at depth 0, walk downward up to
-`--max-depth` levels (default `0`, i.e. no walk unless explicitly
-requested — §2, E5):
+(`PORTFOLIO_ROOTS`) — never leaves them. For **every** direct child that is
+a directory at depth 0, walk downward up to `--max-depth` levels (default
+`0`, i.e. no walk unless explicitly requested — §2, E5), regardless of that
+direct child's own `repositoryKind`:
+
+> **Correction (found during Task 7 implementation, 2026-08-05):** the
+> original text here gated the walk on the direct child *not already being*
+> `"standalone-repository"`, on the assumption there's nothing left to find
+> inside an already-clean repository. That assumption is false for this
+> vault: `thoughtseed-labs` — the container for `hermes-aws-ts`, this
+> design's own §1.1 motivating example — is itself a standalone repository.
+> Under the original gate, discovery could never recurse into it, so the
+> headline case this whole piece exists to solve was structurally
+> undiscoverable by the algorithm meant to solve it. The gate is removed;
+> the walk now runs for every depth-0 directory unconditionally. This does
+> not create a double-reporting risk — `discoverNestedGitRoots` only
+> inspects a directory's *children* for a `.git` marker, never the starting
+> directory itself, so a direct child that is itself a standalone repo is
+> still recorded exactly once, by the existing depth-0 `inventoryEntry()`
+> path, same as before.
 
 - Directory has its own `.git` **directory** → candidate found. Classify it
   (trivially resolves to `"standalone-repository"`, per §1.2's direct
