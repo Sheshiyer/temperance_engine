@@ -143,6 +143,16 @@ describe("CLI argument validation — never touches the filesystem", () => {
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("rollback_receipt_missing");
   });
+
+  test("inventory with a non-numeric --max-depth fails closed", () => {
+    const result = runCli(["inventory", "--portfolio", "thoughtseed", "--output", outputPath("x.json"), "--max-depth", "abc"]);
+    expect(result.status).not.toBe(0);
+  });
+
+  test("inventory with a negative --max-depth fails closed", () => {
+    const result = runCli(["inventory", "--portfolio", "thoughtseed", "--output", outputPath("x.json"), "--max-depth", "-1"]);
+    expect(result.status).not.toBe(0);
+  });
 });
 
 describe("CLI inventory — real, read-only run against the actual vault", () => {
@@ -172,6 +182,28 @@ describe("CLI inventory — real, read-only run against the actual vault", () =>
     expect(canary).toBeDefined();
     expect(canary.disposition).toBe("candidate");
     expect(canary.holdReasons).toEqual([]);
+  });
+
+  test("omitting --max-depth reproduces today's exact depth-0-only shape", () => {
+    const output = outputPath("inventory.json");
+    runCli(["inventory", "--portfolio", "thoughtseed", "--output", output]);
+    const report = JSON.parse(readFileSync(output, "utf8"));
+
+    for (const record of report.records) {
+      expect(record.depth).toBe(0);
+      expect(record.immediateParentPath).toBeNull();
+    }
+  });
+
+  test("--max-depth 0 explicitly is identical in shape to omitting it", () => {
+    const output = outputPath("inventory.json");
+    runCli(["inventory", "--portfolio", "thoughtseed", "--output", output, "--max-depth", "0"]);
+    const report = JSON.parse(readFileSync(output, "utf8"));
+
+    for (const record of report.records) {
+      expect(record.depth).toBe(0);
+      expect(record.immediateParentPath).toBeNull();
+    }
   });
 });
 

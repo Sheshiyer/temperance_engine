@@ -15,6 +15,8 @@ import { spawnSync } from "node:child_process";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { isCanonicalRepositoryBasename } from "../package/relocation/project-relocation-grammar";
+import { discoverNestedGitRoots } from "../package/relocation/project-nested-repo-discovery";
+import { findCandidateCollisions } from "../package/relocation/project-candidate-collision";
 import { parseFlatProjectYaml } from "../package/relocation/project-packet";
 import { validateProjectYaml } from "../package/relocation/project-packet-schema";
 import {
@@ -78,6 +80,8 @@ interface InventoryRecord {
   destinationExists: boolean;
   disposition: "candidate" | "held" | "out-of-scope";
   holdReasons: string[];
+  depth: number;
+  immediateParentPath: string | null;
 }
 
 interface InventoryReport {
@@ -121,7 +125,8 @@ function usage(): never {
   bun scripts/vault-project-relocation.ts inventory \
     --portfolio thoughtseed \
     --portfolio tryambakam-noesis \
-    --output <owner-only-report.json>
+    --output <owner-only-report.json> \
+    [--max-depth <n>]
   bun scripts/vault-project-relocation.ts plan \
     --repository <absolute-source-path> \
     --dry-run \
@@ -163,10 +168,11 @@ function approvedLanes(): string[] {
   return [...new Set([...raw.matchAll(/"(te-[a-z-]+)"/g)].map((match) => match[1]))];
 }
 
-function parseArgs(argv: string[]): { portfolios: Portfolio[]; output: string } {
+function parseArgs(argv: string[]): { portfolios: Portfolio[]; output: string; maxDepth: number } {
   if (argv[0] !== "inventory") usage();
   const portfolios: Portfolio[] = [];
   let output = "";
+  let maxDepth = 0;
   for (let i = 1; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--portfolio") {
@@ -177,6 +183,10 @@ function parseArgs(argv: string[]): { portfolios: Portfolio[]; output: string } 
       if (!portfolios.includes(value)) portfolios.push(value);
     } else if (arg === "--output") {
       output = argv[++i] ?? "";
+    } else if (arg === "--max-depth") {
+      const value = argv[++i] ?? "";
+      if (!/^\d+$/.test(value)) throw new Error(`max_depth_must_be_a_non_negative_integer:${value}`);
+      maxDepth = Number(value);
     } else if (arg === "--help" || arg === "-h") {
       usage();
     } else {
@@ -186,7 +196,7 @@ function parseArgs(argv: string[]): { portfolios: Portfolio[]; output: string } 
   if (portfolios.length === 0 || !output || !isAbsolute(output)) {
     throw new Error("two_portfolios_and_absolute_output_required");
   }
-  return { portfolios, output: resolve(output) };
+  return { portfolios, output: resolve(output), maxDepth };
 }
 
 function sha256(value: string): string {
@@ -283,10 +293,68 @@ function inventoryEntry(portfolio: Portfolio, sourceRoot: string, name: string):
     destinationExists: existsSync(proposedDestination),
     disposition,
     holdReasons,
+    depth: 0,
+    immediateParentPath: null,
   };
 }
 
-function buildReport(portfolios: Portfolio[]): InventoryReport {
+/**
+ * Builds a full InventoryRecord for a path discovered by the recursive
+ * nested-repo walk. Deliberately does not apply ALWAYS_HELD_THOUGHTSEED_NAMES
+ * or the tn_registry_baseline_unresolved hold — those are owner-mapping/
+ * registry-readiness concerns tied to the direct-child candidate list's
+ * specific named entries, not something that generalizes correctly to an
+ * arbitrary deep path. Deep candidates get exactly the checks that are
+ * actually meaningful for them (grammar, repository kind, destination
+ * collision), not a blind copy of every depth-0 rule.
+ */
+function nestedInventoryEntry(
+  portfolio: Portfolio,
+  sourceRoot: string,
+  found: { path: string; depth: number },
+  immediateParentPath: string,
+): InventoryRecord {
+  const name = basename(found.path);
+  const proposedDestination = join(DESTINATION_ROOT, portfolio, name);
+  const holdReasons: string[] = [];
+  let entryType: InventoryRecord["entryType"] = "other";
+  let device: number | null = null;
+  let inode: number | null = null;
+  try {
+    const stats = lstatSync(found.path);
+    entryType = stats.isDirectory() ? "directory" : stats.isSymbolicLink() ? "symlink" : stats.isFile() ? "file" : "other";
+    device = Number(stats.dev);
+    inode = Number(stats.ino);
+  } catch (error) {
+    holdReasons.push(`lstat_failed:${error instanceof Error ? error.message : String(error)}`);
+  }
+  const repository = classifyRepository(found.path);
+  const grammarAccepted = isCanonicalRepositoryBasename(name);
+  if (!grammarAccepted) holdReasons.push("basename_not_canonical");
+  if (entryType !== "directory") holdReasons.push(`entry_type:${entryType}`);
+  if (repository.repositoryKind !== "standalone-repository") holdReasons.push(repository.repositoryKind);
+  if (existsSync(proposedDestination)) holdReasons.push("destination_exists");
+  const disposition = holdReasons.length === 0 ? "candidate" : "held";
+  return {
+    portfolio,
+    sourceRoot,
+    name,
+    path: found.path,
+    entryType,
+    ...repository,
+    device,
+    inode,
+    proposedDestination,
+    grammarAccepted,
+    destinationExists: existsSync(proposedDestination),
+    disposition,
+    holdReasons,
+    depth: found.depth,
+    immediateParentPath,
+  };
+}
+
+function buildReport(portfolios: Portfolio[], maxDepth: number): InventoryReport {
   const records: InventoryRecord[] = [];
   const roots = {} as InventoryReport["roots"];
   for (const portfolio of portfolios) {
@@ -294,8 +362,37 @@ function buildReport(portfolios: Portfolio[]): InventoryReport {
     const present = existsSync(sourceRoot) && lstatSync(sourceRoot).isDirectory();
     const names = present ? readdirSync(sourceRoot).sort() : [];
     roots[portfolio] = { path: sourceRoot, present, immediateChildCount: names.length };
-    for (const name of names) records.push(inventoryEntry(portfolio, sourceRoot, name));
+    for (const name of names) {
+      const entry = inventoryEntry(portfolio, sourceRoot, name);
+      records.push(entry);
+      if (maxDepth > 0 && entry.entryType === "directory" && entry.repositoryKind !== "standalone-repository") {
+        const found = discoverNestedGitRoots(entry.path, maxDepth);
+        for (const nested of found) {
+          records.push(nestedInventoryEntry(portfolio, sourceRoot, nested, entry.path));
+        }
+      }
+    }
   }
+
+  // Collision detection is scoped to standalone-repository records only —
+  // a genuine collision is between two things that could actually be
+  // relocated as competing candidates for the same destination. A plain
+  // non-git folder or a still-nested (non-standalone) entry already fails
+  // on its own hold reason regardless of naming; it isn't a relocation
+  // candidate at all, so it doesn't need collision protection on top.
+  const collisions = findCandidateCollisions(
+    records
+      .filter((record) => record.repositoryKind === "standalone-repository")
+      .map((record) => ({ path: record.path, repositoryName: record.name, remotes: record.remotes })),
+  );
+  for (const record of records) {
+    const newHolds = collisions.get(record.path);
+    if (newHolds) {
+      record.holdReasons.push(...newHolds);
+      record.disposition = "held";
+    }
+  }
+
   const counts: Record<string, number> = { total: records.length };
   for (const record of records) {
     counts[record.disposition] = (counts[record.disposition] ?? 0) + 1;
@@ -571,8 +668,8 @@ try {
     const result = performRollback(resolve(receipt));
     console.log(JSON.stringify(result));
   } else if (argv[0] === "inventory") {
-    const { portfolios, output } = parseArgs(argv);
-    const report = buildReport(portfolios);
+    const { portfolios, output, maxDepth } = parseArgs(argv);
+    const report = buildReport(portfolios, maxDepth);
     writeOwnerOnly(output, report);
     console.log(JSON.stringify({ output, readOnly: true, counts: report.counts }));
   } else if (argv[0] === "session-map") {
