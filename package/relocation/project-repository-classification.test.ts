@@ -65,4 +65,23 @@ describe("classifyRepositoryByGitToplevel", () => {
     expect(result.gitTopLevel).not.toContain("/tmp/"); // realpath'd form on macOS is /private/tmp/..., never the raw alias
     rmSync(dir, { recursive: true, force: true });
   });
+
+  test("trailing-space directory name: a legitimate trailing space in the repo's own name survives round-trip", () => {
+    // git's `--show-toplevel` output ends with the real path plus a trailing
+    // newline. A naive `.trim()` on that output strips ALL trailing
+    // whitespace, not just the newline -- which corrupts a real directory
+    // name that itself ends in a space, producing a path that doesn't exist
+    // on disk and making realpathSync throw. This proves the fix strips only
+    // the newline.
+    const base = mkdtempSync(join(tmpdir(), "classify-trailing-space-"));
+    const dir = join(base, "repo with trailing space ");
+    mkdirSync(dir);
+    initGitRepo(dir);
+
+    const result = classifyRepositoryByGitToplevel(dir);
+
+    expect(result.repositoryKind).toBe("standalone-repository");
+    expect(result.gitTopLevel).toBe(realpathSync(dir));
+    rmSync(base, { recursive: true, force: true });
+  });
 });

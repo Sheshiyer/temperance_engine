@@ -23,7 +23,7 @@ export function classifyRepositoryByGitToplevel(path: string): RepositoryTopleve
   if (result.status !== 0) {
     return { repositoryKind: "not-a-repository", gitTopLevel: null };
   }
-  const gitTopLevel = realpathSync(result.stdout.trim());
+  const gitTopLevel = realpathSync(result.stdout.replace(/[\r\n]+$/, ""));
   const canonicalPath = realpathSync(path);
   return {
     repositoryKind: gitTopLevel === canonicalPath ? "standalone-repository" : "nested-repository",
