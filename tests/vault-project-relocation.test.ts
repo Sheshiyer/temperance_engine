@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { planCopilotSessionFix } from "../package/relocation/copilot-session-fix";
 
 /**
  * CLI-level tests for scripts/vault-project-relocation.ts. `inventory` and
@@ -293,6 +294,26 @@ describe("CLI inventory — real, read-only run against the actual vault", () =>
     },
     30000,
   );
+
+  test("real Copilot data.db: Selemene-engine classifies as fixable, matching 2026-08-05 reconnaissance", () => {
+    const plan = planCopilotSessionFix({
+      portfolio: "tryambakam-noesis",
+      repository: "Selemene-engine",
+      oldPath: "/Users/sheshnarayaniyer/Selemene-engine",
+      newPath: "/Volumes/madara/2026/twc-vault/01-Projects/tryambakam-noesis/Selemene-engine",
+      generatedAt: new Date().toISOString(),
+    });
+
+    // If this fails, treat it as a real finding to investigate (real
+    // Copilot CLI database state may have changed since 2026-08-05's
+    // reconnaissance -- e.g. the project may have already been opened at
+    // the new path since then) -- do not weaken this assertion to force
+    // a pass.
+    expect(["fixable", "already-fixed"]).toContain(plan.status);
+    if (plan.status === "fixable") {
+      expect(plan.changes.some((c) => c.table === "projects" && c.to.includes("Selemene-engine"))).toBe(true);
+    }
+  });
 });
 
 describe("CLI plan --dry-run — real, read-only run against the actual canary", () => {

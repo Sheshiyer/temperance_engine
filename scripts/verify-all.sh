@@ -46,6 +46,7 @@ run bun test package/relocation/project-management-record.test.ts
 run bun test package/relocation/project-repository-classification.test.ts
 run bun test package/relocation/project-nested-repo-discovery.test.ts
 run bun test package/relocation/project-candidate-collision.test.ts
+run bun test package/relocation/copilot-session-fix.test.ts
 run bun test tests/vault-project-relocation.test.ts
 run bun test package/router/temperance-stage-contract.test.ts
 run bun test package/router/temperance-openai-proxy.test.ts

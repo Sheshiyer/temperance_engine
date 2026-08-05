@@ -88,6 +88,43 @@ check — this one catches duplicates within a single inventory run, before
 anything is ever registered. Full design:
 [`docs/superpowers/specs/2026-08-05-vault-nested-repo-discovery-design.md`](superpowers/specs/2026-08-05-vault-nested-repo-discovery-design.md).
 
+## Copilot session fix
+
+`bun scripts/vault-project-relocation.ts session-fix --repository <new-absolute-path> --tool copilot [--dry-run]`
+
+On-demand, read-only-by-default fix for GitHub Copilot CLI's local
+`~/.copilot/data.db` after a project has been relocated: rewrites
+`projects.main_repo_path`, every matching `worktrees.path`, and every
+matching `workspace_checkout_bindings.repo_path`/`.checkout_path` from
+the project's old path to its new one, across all four real
+path-bearing tables Copilot CLI actually uses (verified by direct
+schema inspection, 2026-08-05 — `workspaces.source_path` is excluded,
+it is unpopulated in every real row).
+
+Deliberately on-demand, not proactive: run this only when you're about
+to reopen a specific already-moved project in Copilot CLI, not as a
+batch pass over every historical relocation. `--dry-run` (or omitting
+it entirely — every real write requires `apply`'s preconditions to pass
+first) shows exactly what would change; a real write only happens when
+Copilot CLI is not currently running and its database has no active WAL
+file, and is revalidated against the live database inside its own write
+transaction immediately before writing, in case the database changed
+between `plan` and `apply`.
+
+If a project row already exists independently at the new path (Copilot
+CLI creates one automatically once you actually reopen a moved project
+there), the fix holds and reports rather than attempting an automatic
+merge — same no-auto-preference collision philosophy as the inventory
+command's cross-candidate collision detection. Full design:
+[`docs/superpowers/specs/2026-08-05-vault-copilot-session-fix-design.md`](superpowers/specs/2026-08-05-vault-copilot-session-fix-design.md).
+
+Only Copilot CLI is covered. OpenCode, Codex, Kimi, and Craft Agent
+remain record-only (see the session-map's own `## Session map` section
+above) — each needs its own dedicated design given real, materially
+different risk profiles found during reconnaissance (no unique path key
+for OpenCode, index-only granularity for Codex/Kimi, no per-project
+storage convention at all for Craft Agent).
+
 ## Portable packet
 
 Each managed repository carries one canonical packet, prepared and reviewed as its own
