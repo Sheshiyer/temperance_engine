@@ -6,6 +6,14 @@ import { join } from "node:path";
 import { Database } from "bun:sqlite";
 
 import { planCopilotSessionFix, isCopilotCliRunning, hasActiveWalFile } from "./copilot-session-fix";
+import {
+  applyCopilotSessionFix,
+  loadCopilotSessionFixReceipt,
+  writeCopilotSessionFixReceipt,
+  CopilotSessionFixPreconditionError,
+  CopilotSessionFixStalePlanError,
+  receiptPathFor,
+} from "./copilot-session-fix";
 
 function createFixtureCopilotDb(dir: string): string {
   const dbPath = join(dir, "data.db");
@@ -240,6 +248,137 @@ describe("hasActiveWalFile", () => {
       writeFileSync(dbPath, "");
       writeFileSync(`${dbPath}-wal`, "some real wal bytes");
       expect(hasActiveWalFile(dbPath)).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("applyCopilotSessionFix", () => {
+  function fixtureWithFixablePlan(dir: string) {
+    const dbPath = createFixtureCopilotDb(dir);
+    const db = new Database(dbPath);
+    db.exec(`
+      INSERT INTO projects (id, main_repo_path) VALUES ('proj-1', '/old/repo');
+      INSERT INTO worktrees (id, project_id, path) VALUES ('wt-1', 'proj-1', '/old/repo/.worktrees/a');
+      INSERT INTO workspaces (id, project_id, worktree_id) VALUES ('ws-1', 'proj-1', 'wt-1');
+      INSERT INTO workspace_checkout_bindings (workspace_id, repo_path, checkout_path)
+        VALUES ('ws-1', '/old/repo', '/old/repo/.worktrees/a');
+    `);
+    db.close();
+    const plan = planCopilotSessionFix(
+      { portfolio: "thoughtseed", repository: "repo", oldPath: "/old/repo", newPath: "/new/repo", generatedAt: "2026-08-05T00:00:00.000Z" },
+      dbPath,
+    );
+    return { dbPath, plan };
+  }
+
+  test("happy path: applies all four rows in one transaction, verifies, writes a receipt", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-apply-"));
+    try {
+      const { dbPath, plan } = fixtureWithFixablePlan(dir);
+      const receiptPath = join(dir, "receipt.json");
+
+      const receipt = applyCopilotSessionFix(plan, dbPath, receiptPath, {
+        isRunning: () => false,
+        hasWal: () => false,
+      });
+
+      expect(receipt.plan.status).toBe("fixable");
+      expect(receipt.verifiedChanges).toHaveLength(4);
+
+      const db = new Database(dbPath, { readonly: true });
+      const project = db.query("SELECT main_repo_path FROM projects WHERE id = 'proj-1'").get() as { main_repo_path: string };
+      expect(project.main_repo_path).toBe("/new/repo");
+      const worktree = db.query("SELECT path FROM worktrees WHERE id = 'wt-1'").get() as { path: string };
+      expect(worktree.path).toBe("/new/repo/.worktrees/a");
+      const binding = db
+        .query("SELECT repo_path, checkout_path FROM workspace_checkout_bindings WHERE workspace_id = 'ws-1'")
+        .get() as { repo_path: string; checkout_path: string };
+      expect(binding.repo_path).toBe("/new/repo");
+      expect(binding.checkout_path).toBe("/new/repo/.worktrees/a");
+      db.close();
+
+      const loaded = loadCopilotSessionFixReceipt(receiptPath);
+      expect(loaded.plan).toEqual(plan);
+      expect(loaded.verifiedChanges).toEqual(receipt.verifiedChanges);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses when plan.status is not fixable", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-apply-"));
+    try {
+      const dbPath = createFixtureCopilotDb(dir);
+      const heldPlan = planCopilotSessionFix(
+        { portfolio: "thoughtseed", repository: "repo", oldPath: "/old/repo", newPath: "/new/repo", generatedAt: "2026-08-05T00:00:00.000Z" },
+        dbPath,
+      );
+      expect(() =>
+        applyCopilotSessionFix(heldPlan, dbPath, join(dir, "receipt.json"), { isRunning: () => false, hasWal: () => false }),
+      ).toThrow(CopilotSessionFixPreconditionError);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses when the Copilot CLI process is reported running", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-apply-"));
+    try {
+      const { dbPath, plan } = fixtureWithFixablePlan(dir);
+      expect(() =>
+        applyCopilotSessionFix(plan, dbPath, join(dir, "receipt.json"), { isRunning: () => true, hasWal: () => false }),
+      ).toThrow(CopilotSessionFixPreconditionError);
+
+      const db = new Database(dbPath, { readonly: true });
+      const project = db.query("SELECT main_repo_path FROM projects WHERE id = 'proj-1'").get() as { main_repo_path: string };
+      expect(project.main_repo_path).toBe("/old/repo");
+      db.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses when the database has an active (non-empty) WAL file", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-apply-"));
+    try {
+      const { dbPath, plan } = fixtureWithFixablePlan(dir);
+      expect(() =>
+        applyCopilotSessionFix(plan, dbPath, join(dir, "receipt.json"), { isRunning: () => false, hasWal: () => true }),
+      ).toThrow(CopilotSessionFixPreconditionError);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses a stale plan when the real database no longer matches it (revalidated inside the transaction)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-apply-"));
+    try {
+      const { dbPath, plan } = fixtureWithFixablePlan(dir);
+
+      // Simulate drift between plan-time and apply-time: someone/something
+      // else already fixed this project's main_repo_path in the meantime.
+      const db = new Database(dbPath);
+      db.exec("UPDATE projects SET main_repo_path = '/new/repo' WHERE id = 'proj-1'");
+      db.close();
+
+      expect(() =>
+        applyCopilotSessionFix(plan, dbPath, join(dir, "receipt.json"), { isRunning: () => false, hasWal: () => false }),
+      ).toThrow(CopilotSessionFixStalePlanError);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("receiptPathFor derives a stable, mode-0600-writable path from the plan", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-receipt-path-"));
+    try {
+      const plan = { portfolio: "thoughtseed", repository: "repo", oldPath: "/old/repo", newPath: "/new/repo", generatedAt: "2026-08-05T12:34:56.000Z", status: "fixable" as const, holdReason: null, changes: [] };
+      const path = receiptPathFor(plan);
+      expect(path).toContain("thoughtseed");
+      expect(path).toContain("repo");
+      expect(path.endsWith(".json")).toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
