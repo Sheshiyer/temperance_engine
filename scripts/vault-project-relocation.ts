@@ -312,9 +312,9 @@ function nestedInventoryEntry(
   portfolio: Portfolio,
   sourceRoot: string,
   found: { path: string; depth: number },
-  immediateParentPath: string,
 ): InventoryRecord {
   const name = basename(found.path);
+  const immediateParentPath = dirname(found.path);
   const proposedDestination = join(DESTINATION_ROOT, portfolio, name);
   const holdReasons: string[] = [];
   let entryType: InventoryRecord["entryType"] = "other";
@@ -368,7 +368,7 @@ function buildReport(portfolios: Portfolio[], maxDepth: number): InventoryReport
       if (maxDepth > 0 && entry.entryType === "directory" && entry.repositoryKind !== "standalone-repository") {
         const found = discoverNestedGitRoots(entry.path, maxDepth);
         for (const nested of found) {
-          records.push(nestedInventoryEntry(portfolio, sourceRoot, nested, entry.path));
+          records.push(nestedInventoryEntry(portfolio, sourceRoot, nested));
         }
       }
     }
