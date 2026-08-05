@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, statSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { buildSessionMap, attemptClaudeCodeRelink, applyClaudeCodeRelink } from "./project-session-map";
+import { buildSessionMap, attemptClaudeCodeRelink, applyClaudeCodeRelink, writeSessionMap } from "./project-session-map";
 import { encodeClaudeCodeProjectPath } from "./session-store-matchers/claude-code-matcher";
 import type { ToolMatchResult, SessionMapRecord, SessionMapEntry } from "./project-session-map";
 
@@ -179,5 +179,28 @@ describe("applyClaudeCodeRelink", () => {
 
     expect(result.tools[0].relinkAction).toBeUndefined();
     rmSync(projectsRoot, { recursive: true, force: true });
+  });
+});
+
+describe("writeSessionMap", () => {
+  test("writes the record as mode-0600 JSON, creating parent directories", () => {
+    const dir = mkdtempSync(join(tmpdir(), "session-map-out-"));
+    const filePath = join(dir, "thoughtseed", "some-repo", "map.json");
+    const record: SessionMapRecord = {
+      stableId: "stable-1",
+      portfolio: "thoughtseed",
+      repository: "some-repo",
+      oldPath: "/old",
+      newPath: "/new",
+      generatedAt: "2026-08-05T00:00:00.000Z",
+      tools: [],
+    };
+
+    writeSessionMap(filePath, record);
+
+    const written = JSON.parse(readFileSync(filePath, "utf8"));
+    expect(written).toEqual(record);
+    expect(statSync(filePath).mode & 0o777).toBe(0o600);
+    rmSync(dir, { recursive: true, force: true });
   });
 });

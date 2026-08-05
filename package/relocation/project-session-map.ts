@@ -39,8 +39,8 @@ export interface BuildSessionMapInput {
   newPath: string;
 }
 
-import { existsSync, symlinkSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, symlinkSync, chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { join, dirname } from "node:path";
 
 import { matchClaudeCode, encodeClaudeCodeProjectPath } from "./session-store-matchers/claude-code-matcher";
 import { matchOpenCode } from "./session-store-matchers/opencode-matcher";
@@ -104,4 +104,10 @@ export function applyClaudeCodeRelink(
     ...record,
     tools: record.tools.map((entry) => (entry.tool === "claude-code" ? { ...entry, relinkAction } : entry)),
   };
+}
+
+export function writeSessionMap(filePath: string, record: SessionMapRecord): void {
+  mkdirSync(dirname(filePath), { recursive: true, mode: 0o700 });
+  writeFileSync(filePath, JSON.stringify(record, null, 2));
+  chmodSync(filePath, 0o600);
 }
