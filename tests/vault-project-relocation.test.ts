@@ -195,3 +195,54 @@ describe("CLI plan --dry-run — real, read-only run against the actual canary",
     expect(plan.holdReasons).toEqual([]);
   });
 });
+
+describe("session-map subcommand — argument validation only", () => {
+  test("missing --repository exits 2 with usage", () => {
+    const result = spawnSync("bun", ["scripts/vault-project-relocation.ts", "session-map"], {
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("Usage:");
+  });
+
+  test("relative --repository path is rejected without touching the filesystem", () => {
+    const result = spawnSync(
+      "bun",
+      ["scripts/vault-project-relocation.ts", "session-map", "--repository", "relative/path"],
+      { encoding: "utf8" },
+    );
+
+    expect(result.status).not.toBe(0);
+  });
+
+  // Unlike the two tests above (which only ever reach the generic
+  // `usage()` fallback that any unrecognized subcommand also hits), this
+  // case supplies an absolute --repository path that prefix-matches a real
+  // PORTFOLIO_ROOTS entry, so inferPortfolio() succeeds and control reaches
+  // the session-map branch's own registry lookup. The basename is a
+  // clearly-synthetic, obviously-fake name (and must satisfy the canonical
+  // lowercase-alphanumeric-and-hyphen basename grammar to get past
+  // registryEntryPath()'s own validation before it can even ask whether an
+  // entry.json exists) that has no entry.json on disk, so the existsSync
+  // check fails and the branch throws its own
+  // session_map_registry_entry_not_found error — a string that only that
+  // logic can produce. The path is never created or touched; the code
+  // never calls existsSync(repository) itself, only on the derived
+  // registry entry path.
+  test("--repository under a real portfolio root with no registry entry reaches the session-map branch's own registry lookup", () => {
+    const result = spawnSync(
+      "bun",
+      [
+        "scripts/vault-project-relocation.ts",
+        "session-map",
+        "--repository",
+        "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/session-map-fix-test-nonexistent-repo",
+      ],
+      { encoding: "utf8" },
+    );
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("session_map_registry_entry_not_found");
+  });
+});

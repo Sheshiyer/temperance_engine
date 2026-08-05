@@ -35,6 +35,13 @@ run bun test package/relocation/project-pickup.test.ts
 run bun test package/relocation/project-relocation-rollback.test.ts
 run bun test package/relocation/project-relocation-source-guards.test.ts
 run bun test package/relocation/project-relocation-apply.test.ts
+run bun test package/relocation/session-store-matchers/claude-code-matcher.test.ts
+run bun test package/relocation/session-store-matchers/opencode-matcher.test.ts
+run bun test package/relocation/session-store-matchers/copilot-matcher.test.ts
+run bun test package/relocation/session-store-matchers/codex-matcher.test.ts
+run bun test package/relocation/session-store-matchers/kimi-matcher.test.ts
+run bun test package/relocation/session-store-matchers/craft-agent-matcher.test.ts
+run bun test package/relocation/project-session-map.test.ts
 run bun test package/relocation/project-management-record.test.ts
 run bun test tests/vault-project-relocation.test.ts
 run bun test package/router/temperance-stage-contract.test.ts

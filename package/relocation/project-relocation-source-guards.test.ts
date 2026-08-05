@@ -31,6 +31,13 @@ const PRODUCTION_RELOCATION_FILES = [
   "package/relocation/project-relocation-apply.ts",
   "package/relocation/project-management-record.ts",
   "scripts/vault-project-relocation.ts",
+  "package/relocation/project-session-map.ts",
+  "package/relocation/session-store-matchers/claude-code-matcher.ts",
+  "package/relocation/session-store-matchers/opencode-matcher.ts",
+  "package/relocation/session-store-matchers/copilot-matcher.ts",
+  "package/relocation/session-store-matchers/codex-matcher.ts",
+  "package/relocation/session-store-matchers/kimi-matcher.ts",
+  "package/relocation/session-store-matchers/craft-agent-matcher.ts",
 ];
 
 function stripComments(source: string): string {
@@ -130,5 +137,22 @@ describe("source guards — every production relocation file", () => {
     // Sanity: the scan actually found something, proving this isn't a
     // vacuously-true check over zero matches.
     expect(invoked.size).toBeGreaterThan(0);
+  });
+
+  test("no session-map file ever reads session/transcript file content — no .jsonl literal anywhere", () => {
+    assertNoneContain(/\.jsonl/, ".jsonl file reference");
+  });
+
+  test("symlinkSync is called from exactly one production call site across the whole file set", () => {
+    let totalMatches = 0;
+    const offenders: string[] = [];
+    for (const [file, code] of readAllProductionCode()) {
+      const matches = [...code.matchAll(/symlinkSync\s*\(/g)];
+      if (matches.length > 0) {
+        totalMatches += matches.length;
+        offenders.push(`${file} (${matches.length})`);
+      }
+    }
+    expect(totalMatches, `symlinkSync call sites: ${offenders.join(", ")}`).toBe(1);
   });
 });

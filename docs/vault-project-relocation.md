@@ -382,6 +382,32 @@ that do touch real paths are argument-validation cases that fail before either c
 reads or writes anything. Pointing this code at a real repository for the first time
 is a distinct, separately-approved action — see Approval Boundary B below.
 
+## The session-map (piece C)
+
+`session-map --repository <absolute-new-path> [--no-relink]` records, per
+project, which of six CLI tools (Claude Code, OpenCode, GitHub Copilot CLI,
+Codex, Kimi, Craft Agent) had session state keyed to the project's old vault
+path, and whether that state is still discoverable after the move. Output:
+`~/.temperance_engine/session-maps/<portfolio>/<repository>/map.json`, mode
+`0600`. Never git-tracked, never synced — inherently machine-specific.
+
+For Claude Code specifically, a reversible symlink (default-on; disable with
+`--no-relink`) is created so the tool continues its old session history at
+the new path, gated never-clobber: only when the old session folder exists
+and the new one does not.
+
+**Caveat:** the relink's write is verified safe and reversible — a single
+never-clobbering `symlinkSync` call, fixture-tested only. Whether Claude
+Code actually *follows* that symlink to transparently resume session
+history at the new path has not been verified against a real Claude Code
+session; it remains an open assumption pending a live dry-run. Treat
+`relinkAction: "created"` in the map record as "the symlink was created,"
+not yet as proof that Claude Code will visibly resume history there.
+
+Independently re-runnable — run once right after `apply`, and again later as
+new sessions accumulate at the new path. Full design:
+[`docs/superpowers/specs/2026-08-05-vault-session-map-design.md`](superpowers/specs/2026-08-05-vault-session-map-design.md).
+
 ## Approval Boundary B — before this code ever touches a real repository
 
 Per the design doc, running `apply` against a real canary for the first time requires

@@ -310,11 +310,21 @@ Same shape as everything else built this session:
    test fixture; the controller independently confirmed it with a byte-level
    check of the real `~/.claude/projects/` folder name for
    `temperance_engine`. Transform: `path.replace(/[^A-Za-z0-9.]/g, "-")`.
-2. Whether Claude Code's own session lookup actually follows a symlinked
-   project folder transparently — believed true (plain filesystem lookup,
-   no reason to expect otherwise) but not directly verified against Claude
-   Code's own source; worth a real dry-run test before trusting it in
-   production.
+2. ~~Whether Claude Code's own session lookup actually follows a symlinked
+   project folder transparently~~ **Not resolved — still an open assumption.**
+   Believed true (plain filesystem lookup, no reason to expect otherwise),
+   but never directly verified against Claude Code's own source or behavior,
+   and no task in the twelve-task plan addressed it. Task 8's relink write
+   itself is independently verified safe (reversible, never-clobbering,
+   fixture-tested only — never exercised against real data), but whether the
+   symlink actually *achieves its purpose* (Claude Code's session picker
+   transparently resuming history at the new path) rests entirely on this
+   unverified assumption. Closing it for real requires a live dry-run:
+   rename one real, small project, point Claude Code at the new path, and
+   confirm its session picker follows the symlink to the old history. That
+   is a real-machine mutation against live data, not a fixture test, so it
+   **must not** be folded silently into any future fix — it needs its own
+   separate, explicit, owner-approved step before being attempted.
 3. Craft Agent stays `unsupported` until a real per-project convention is
    found, if one exists at all — not blocking, since D4 already scoped v1
    to record `unsupported` honestly rather than guess.
