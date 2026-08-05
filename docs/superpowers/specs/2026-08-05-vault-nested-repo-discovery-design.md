@@ -208,16 +208,30 @@ neither replaces the other.
 
 ## 8. Classifier consolidation
 
-`classifyRepository()` (`scripts/vault-project-relocation.ts:206-233`) and
-`classifyRepositoryKind()` (`package/relocation/project-relocation-apply.ts:52-61`)
-merge into one shared function, using the more careful `realpathSync()`
-comparison (the apply-side version's own inline comment already explains
-why — macOS symlink resolution — a real bug class the CLI-side
-`resolve()`-only version is more exposed to). Lands in
-`package/relocation/project-relocation-grammar.ts`, alongside the existing
-basename grammar both call sites already import from. Both call sites
-switch to the shared function; their existing tests must keep passing
-unchanged after the switch.
+**Correction (2026-08-05, caught while writing the implementation plan):**
+reading both functions in full — not just the earlier summary — showed
+they are not fully identical. `classifyRepositoryKind()`
+(`package/relocation/project-relocation-apply.ts:52-61`) does exactly one
+thing: compare `git rev-parse --show-toplevel` against the path. The CLI's
+`classifyRepository()` (`scripts/vault-project-relocation.ts:206-233`) does
+that *plus* gathers `gitCommonDir`, `head`, `branch`, `remotes`, and a
+status digest — richer, not just a duplicate. Only the toplevel-vs-path
+comparison itself is genuinely duplicated logic.
+
+The shared function is that comparison alone, using the more careful
+`realpathSync()` normalization (the apply-side version's own inline
+comment already explains why — macOS symlink resolution — a real bug
+class the CLI-side `resolve()`-only version is more exposed to). It does
+**not** land in `project-relocation-grammar.ts` — that file explicitly
+documents itself as having "no filesystem, Git, registry, client-session,
+or network seam," and a function that shells out to `git` and calls
+`realpathSync` would violate that file's own stated contract. It lands in
+a new file, `package/relocation/project-repository-classification.ts`.
+`classifyRepositoryKind()` is replaced by a direct call to the shared
+function; `classifyRepository()` calls it internally for the
+toplevel/repositoryKind piece, then gathers its additional metadata as it
+already does. Both call sites' existing tests must keep passing unchanged
+after the switch.
 
 ## 9. CLI surface
 
