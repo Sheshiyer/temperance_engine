@@ -158,7 +158,7 @@ Each row binds to the existing Task numbers in the Aug 3 plan and Stage numbers 
 2. ~~Re-confirm `thoughtseed-labs`'s registry-host baseline.~~ **Re-confirmed twice 2026-08-05.** First re-check: status digest still byte-identical (122 files, same content) to the approved baseline, but HEAD had moved (`ad855051…` → `90ffc943…`) since original approval — the repo was actively receiving commits in the background. Second re-check (this one): HEAD **unchanged** at `90ffc943…`, count and digest still identical — no drift since the first re-check. `assertRegistryHostClean()` would still pass right now. Re-confirm again immediately before any real apply; a quiet window is not proof the repo has stopped moving for good. Full detail in §2.
 3. ~~Review Task 7's two interpretive calls.~~ **Reviewed and closed 2026-08-05.** `objective` sourced from PROJECT.md: confirmed as intended, no change — a deliberate, well-grounded choice, and ISC-679 (which specifically requires HANDOFF.md to carry it) was already correctly left unchecked, not silently claimed. `blocker` defaulting to `"none"` on an absent section: **found a real, if small, self-correction** — ISC-686 had been checked in the 2026-08-04 changelog entry on the reasoning that the resolver's default satisfied "records blockers or an explicit none value," but ISC-686's own criteria-table row requires the *file* to record that, not the resolver to infer it silently. ISC-686 corrected back to unchecked in ISA.md, with a dated changelog entry explaining why. **Owner decision: keep the lenient default, document the limitation, no code change** — recorded in `docs/vault-project-relocation.md`'s "Fresh-client pickup" section.
 4. ~~Decide the file format for Thoughtseed's "canonical main project-management record."~~ **Decided and built 2026-08-05.** Format grounded in the vault's own real, referenced template (`thoughtseed-labs/80-templates/project-repo-context-template.md`). Writer: `package/relocation/project-management-record.ts`, 22 tests — non-destructive, order-preserving upsert that never touches human-editorial frontmatter fields or narrative prose after first creation, proven against a fixture carrying real human-authored content across every upsert scenario. 249/249 relocation tests pass. Verified after the fact: the real `thoughtseed-labs` has no `20-operations/project-management/projects/` directory — fixture-only, same as everything else. Not yet wired into `project-registry.ts` or the apply assembly — that requires a live closed reconciliation, which hasn't happened.
-5. ~~Formally close Approval Boundary A.~~ **Closed 2026-08-05** — full consolidated findings in §5 below. Two things surfaced worth your attention: `hermes-aws-ts` no longer exists at its expected path (nothing to hold, but worth confirming that's expected), and two candidates (`plexus-ts`, `plexus-ts-github-settings-ota-review`) share one GitHub remote — a same-portfolio identity collision the current code doesn't guard against, though neither is the canary.
+5. ~~Formally close Approval Boundary A.~~ **Closed twice 2026-08-05** — full consolidated findings in §5, second re-check in §5a. Structural counts (127 total, 70/29/41 thoughtseed, 57/0/57 TN), the `hermes-aws-ts` absence, and the `plexus-ts` naming collision are all unchanged between the two checks. **New since the first close-out: the canary itself drifted** — `thoughtseed-brand-atlas`'s HEAD advanced and its working tree, previously clean, now has one untracked file. Only 1 of 29 thoughtseed candidates is clean right now (was 2). Re-verify the canary's state again immediately before any real apply — same discipline as the registry-host baseline.
 6. Once 2 and 4 are settled: run `plan --dry-run` fresh, review its `stableManifestDigest`, and walk through the itemized Approval Boundary B checklist explicitly — that is the only remaining gate before `apply` could be run for real, and it is a separate, explicit conversation, not a natural continuation of this one.
 
 ---
@@ -212,3 +212,35 @@ This is the complete artifact Approval Boundary A calls for. Formal closure mean
 now seen it — nothing above blocks anything, but the `hermes-aws-ts` absence and the
 `plexus-ts` naming collision are both worth a quick look before this is treated as
 fully settled.
+
+## 5a. Approval Boundary A — second close-out re-check (2026-08-05, same day)
+
+A second fresh, real scan against both portfolios, requested again after the first
+close-out. Receipt at
+`~/.temperance_engine/receipts/vault-project-relocation-inventory/boundary-a-reconfirm/report.json`,
+mode `0600`.
+
+**Structural counts, unchanged from the first close-out:** 127 total entries —
+thoughtseed 70 (29 candidate / 41 held), tryambakam-noesis 57 (0 candidate / 57 held).
+`hermes-aws-ts` is still absent. `plexus-ts` and `plexus-ts-github-settings-ota-review`
+still share the one GitHub remote (`github.com/Sheshiyer/plexus-ts`) — still an open
+owner decision, still not blocking anything today.
+
+**New finding — the canary itself has drifted since the first close-out.**
+`thoughtseed-brand-atlas`, verified directly against the real repository (not just the
+inventory JSON):
+
+- HEAD moved: `7e9159735e76b9614e74842c459623f341972baa` (recorded 2026-08-04 11:25 IST,
+  Decision 26 staging) → `30e994a00a347e9817a03940c9cf068e7ea4a6a9`. Real commits landed.
+- Working tree is **no longer clean**: one untracked entry, `? .codegraph/.gitignore` —
+  plausibly from a CodeGraph indexing run, not anything this relocation subsystem
+  touched (nothing in this package writes to that repository).
+
+Of the 29 thoughtseed candidates, only **1** now has a clean working tree
+(`plexus-ts-github-settings-ota-review`) — down from **2** at the first close-out,
+because the canary itself moved from clean to dirty in between. This does not
+invalidate anything already built — no mutating function has ever been pointed at
+real state — but it means the canary can no longer be treated as "ready to apply
+against right now." Its dirty/HEAD state needs the same treatment already established
+for the registry-host baseline: re-verify again, immediately, before any real
+`apply` — a past-clean reading is not a standing guarantee.
