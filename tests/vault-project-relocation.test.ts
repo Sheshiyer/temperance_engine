@@ -159,14 +159,52 @@ describe("CLI argument validation — never touches the filesystem", () => {
     expect(result.status).not.toBe(0);
   });
 
-  test("session-fix with an unsupported --tool fails closed", () => {
+  // Asserts on the specific error token, not just a non-zero exit status.
+  // Both the missing-`--repository` and relative-`--repository` cases above
+  // hit the exact same pre-existing top-level `usage()` catch-all that every
+  // unrecognized subcommand already hit before session-fix existed, so a
+  // bare `not.toBe(0)` there doesn't discriminate this task's code from its
+  // absence. Here, `--tool opencode` reaches session-fix's own
+  // `tool !== "copilot"` check (which runs before the repository/registry
+  // lookup), and only that check can produce
+  // `session_fix_tool_not_supported` — so this assertion would fail against
+  // the pre-implementation CLI, where `session-fix` was itself an
+  // unrecognized command.
+  test("session-fix with an unsupported --tool fails closed with session_fix_tool_not_supported", () => {
     const result = runCli(["session-fix", "--repository", "/Volumes/madara/2026/Projects/thoughtseed/some-repo", "--tool", "opencode"]);
     expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("session_fix_tool_not_supported");
   });
 
   test("session-fix with a relative --repository fails closed", () => {
     const result = runCli(["session-fix", "--repository", "relative/path", "--tool", "copilot"]);
     expect(result.status).not.toBe(0);
+  });
+
+  // Unlike the three tests above (which only exercise argument parsing
+  // shared by every subcommand, or the tool allowlist), this case supplies
+  // an absolute --repository that prefix-matches a real PORTFOLIO_ROOTS
+  // entry and a valid --tool copilot, so inferPortfolio() succeeds and
+  // control reaches session-fix's own registry lookup — the
+  // inferPortfolio -> registryEntryPath -> existsSync(entryFilePath) chain
+  // that is new in this task. The basename is a clearly-synthetic,
+  // obviously-fake name (satisfying the canonical basename grammar so it
+  // gets past registryEntryPath()'s own validation before the existsSync
+  // check) that has no entry.json on disk, so the branch throws its own
+  // session_fix_registry_entry_not_found error — a string that only this
+  // task's new code can produce, and that did not exist before this task.
+  // The path is never created or touched; the code never calls
+  // existsSync(repository) itself, only on the derived registry entry path.
+  test("session-fix --repository under a real portfolio root with no registry entry reaches session-fix's own registry lookup", () => {
+    const result = runCli([
+      "session-fix",
+      "--repository",
+      "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/session-fix-test-nonexistent-repo",
+      "--tool",
+      "copilot",
+    ]);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("session_fix_registry_entry_not_found");
   });
 });
 
