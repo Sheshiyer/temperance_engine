@@ -396,6 +396,14 @@ For Claude Code specifically, a reversible symlink (default-on; disable with
 the new path, gated never-clobber: only when the old session folder exists
 and the new one does not.
 
+**Caveat:** the relink's write is verified safe and reversible — a single
+never-clobbering `symlinkSync` call, fixture-tested only. Whether Claude
+Code actually *follows* that symlink to transparently resume session
+history at the new path has not been verified against a real Claude Code
+session; it remains an open assumption pending a live dry-run. Treat
+`relinkAction: "created"` in the map record as "the symlink was created,"
+not yet as proof that Claude Code will visibly resume history there.
+
 Independently re-runnable — run once right after `apply`, and again later as
 new sessions accumulate at the new path. Full design:
 [`docs/superpowers/specs/2026-08-05-vault-session-map-design.md`](superpowers/specs/2026-08-05-vault-session-map-design.md).
