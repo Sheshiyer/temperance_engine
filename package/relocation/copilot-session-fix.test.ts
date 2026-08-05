@@ -1,11 +1,11 @@
 // package/relocation/copilot-session-fix.test.ts
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Database } from "bun:sqlite";
 
-import { planCopilotSessionFix } from "./copilot-session-fix";
+import { planCopilotSessionFix, isCopilotCliRunning, hasActiveWalFile } from "./copilot-session-fix";
 
 function createFixtureCopilotDb(dir: string): string {
   const dbPath = join(dir, "data.db");
@@ -183,5 +183,65 @@ describe("planCopilotSessionFix", () => {
     );
     expect(plan.status).toBe("not-found");
     expect(plan.changes).toEqual([]);
+  });
+});
+
+describe("isCopilotCliRunning", () => {
+  test("true when a real copilot process line is present", () => {
+    const psOutput = [
+      "USER   PID  %CPU %MEM ...  COMMAND",
+      "shesh  111  0.0  0.1  ... /opt/homebrew/bin/copilot",
+    ].join("\n");
+    expect(isCopilotCliRunning(psOutput)).toBe(true);
+  });
+
+  test("false when no copilot process line is present", () => {
+    const psOutput = ["USER   PID  %CPU %MEM ...  COMMAND", "shesh  222  0.0  0.1  ... /usr/bin/node"].join("\n");
+    expect(isCopilotCliRunning(psOutput)).toBe(false);
+  });
+
+  test("does not false-positive on this test's own grep/ps invocation lines", () => {
+    const psOutput = [
+      "USER   PID  %CPU %MEM ...  COMMAND",
+      "shesh  333  0.0  0.1  ... grep -i copilot",
+    ].join("\n");
+    expect(isCopilotCliRunning(psOutput)).toBe(false);
+  });
+});
+
+describe("hasActiveWalFile", () => {
+  test("false when no -wal sidecar file exists", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-wal-"));
+    try {
+      const dbPath = join(dir, "data.db");
+      writeFileSync(dbPath, "");
+      expect(hasActiveWalFile(dbPath)).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("false when the -wal sidecar exists but is zero-length", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-wal-"));
+    try {
+      const dbPath = join(dir, "data.db");
+      writeFileSync(dbPath, "");
+      writeFileSync(`${dbPath}-wal`, "");
+      expect(hasActiveWalFile(dbPath)).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("true when the -wal sidecar exists and is non-empty", () => {
+    const dir = mkdtempSync(join(tmpdir(), "copilot-fix-wal-"));
+    try {
+      const dbPath = join(dir, "data.db");
+      writeFileSync(dbPath, "");
+      writeFileSync(`${dbPath}-wal`, "some real wal bytes");
+      expect(hasActiveWalFile(dbPath)).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

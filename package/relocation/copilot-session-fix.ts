@@ -1,5 +1,6 @@
 // package/relocation/copilot-session-fix.ts
 import { existsSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { Database } from "bun:sqlite";
 
 const COPILOT_DB_PATH = "/Users/sheshnarayaniyer/.copilot/data.db";
@@ -152,6 +153,52 @@ export function planCopilotSessionFix(
   } finally {
     db.close();
   }
+}
+
+/**
+ * True when a real Copilot CLI process (the `copilot` binary itself) is
+ * currently running.
+ *
+ * The process-match pattern was empirically verified on the implementing
+ * machine per the Task 2 brief (design doc §10 explicitly deferred this to
+ * implementation time):
+ *
+ *   - `which copilot` resolved to `/opt/homebrew/bin/copilot`, confirming
+ *     the real binary/invocation name is literally `copilot` — so matching
+ *     the whole word `copilot` (case-insensitive) against each `ps aux`
+ *     line is correct.
+ *   - `ps aux | grep -i copilot` found no actual running Copilot CLI
+ *     process at verification time (expected/allowed by the brief — this
+ *     is a live check, not a fixture).
+ *   - The check DID surface a real false-positive risk beyond the brief's
+ *     starter exclusion list (`grep`, `bun test`, `bun run`): a clean
+ *     `ps aux` snapshot (captured to a file before any filtering ran
+ *     against it) showed no self-matches, but filtering `ps aux` output
+ *     live via a pipe reliably reintroduces the filtering command itself
+ *     into a *concurrent* `ps aux` snapshot — and on this machine that
+ *     included a `ugrep` process (a grep-family search tool whose name
+ *     does not satisfy `\bgrep\b`, since "grep" isn't preceded by a word
+ *     boundary inside "ugrep"). A grep-family tool searching for the
+ *     literal string "copilot" is definitionally not the Copilot CLI
+ *     itself. The exclusion list below is broadened accordingly to cover
+ *     common grep-family tool names explicitly, not just literal `grep`.
+ */
+export function isCopilotCliRunning(
+  psOutput: string = execFileSync("ps", ["aux"], { encoding: "utf8" }),
+): boolean {
+  return psOutput
+    .split("\n")
+    .some(
+      (line) =>
+        /\bcopilot\b/i.test(line) &&
+        !/\b(grep|egrep|fgrep|zgrep|pgrep|ugrep|rg|bun test|bun run)\b/i.test(line),
+    );
+}
+
+export function hasActiveWalFile(dbPath: string = COPILOT_DB_PATH): boolean {
+  const walPath = `${dbPath}-wal`;
+  if (!existsSync(walPath)) return false;
+  return statSync(walPath).size > 0;
 }
 
 export { COPILOT_DB_PATH };
