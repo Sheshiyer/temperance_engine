@@ -24,6 +24,11 @@ import {
 } from "../package/relocation/project-registry";
 import { applyRelocationTransaction } from "../package/relocation/project-relocation-apply";
 import { performRollback } from "../package/relocation/project-relocation-rollback";
+import {
+  buildSessionMap,
+  applyClaudeCodeRelink,
+  writeSessionMap,
+} from "../package/relocation/project-session-map";
 
 const DESTINATION_ROOT = "/Volumes/madara/2026/Projects";
 const PORTFOLIO_ROOTS = {
@@ -127,7 +132,10 @@ function usage(): never {
     --receipt-output <absolute-receipt-path> \
     [--registry-baseline-digest <sha256>]
   bun scripts/vault-project-relocation.ts rollback \
-    --receipt <absolute-receipt-path>`);
+    --receipt <absolute-receipt-path>
+  bun scripts/vault-project-relocation.ts session-map \
+    --repository <absolute-new-path> \
+    [--no-relink]`);
   process.exit(2);
 }
 
@@ -567,6 +575,50 @@ try {
     const report = buildReport(portfolios);
     writeOwnerOnly(output, report);
     console.log(JSON.stringify({ output, readOnly: true, counts: report.counts }));
+  } else if (argv[0] === "session-map") {
+    let repository = "";
+    let relink = true;
+    for (let i = 1; i < argv.length; i += 1) {
+      const arg = argv[i];
+      if (arg === "--repository") repository = argv[++i] ?? "";
+      else if (arg === "--no-relink") relink = false;
+    }
+    if (!repository || !isAbsolute(repository)) usage();
+
+    const portfolio = inferPortfolio(repository);
+    if (!portfolio) throw new Error(`session_map_portfolio_not_inferred:${repository}`);
+    const repositoryName = basename(repository);
+
+    const entryPath = registryEntryPath(portfolio, repositoryName);
+    const entryFilePath = join(entryPath, "entry.json");
+    if (!existsSync(entryFilePath)) {
+      throw new Error(`session_map_registry_entry_not_found:${entryFilePath}`);
+    }
+    const registryEntry = JSON.parse(readFileSync(entryFilePath, "utf8"));
+
+    let record = buildSessionMap(
+      {
+        stableId: registryEntry.stableId,
+        portfolio,
+        repository: repositoryName,
+        oldPath: registryEntry.oldPath,
+        newPath: repository,
+      },
+      new Date().toISOString(),
+    );
+    if (relink) {
+      record = applyClaudeCodeRelink(record);
+    }
+
+    const outputPath = join(
+      "/Users/sheshnarayaniyer/.temperance_engine",
+      "session-maps",
+      portfolio,
+      repositoryName,
+      "map.json",
+    );
+    writeSessionMap(outputPath, record);
+    console.log(JSON.stringify({ output: outputPath, tools: record.tools }, null, 2));
   } else {
     usage();
   }

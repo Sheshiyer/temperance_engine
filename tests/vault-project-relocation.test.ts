@@ -195,3 +195,24 @@ describe("CLI plan --dry-run — real, read-only run against the actual canary",
     expect(plan.holdReasons).toEqual([]);
   });
 });
+
+describe("session-map subcommand — argument validation only", () => {
+  test("missing --repository exits 2 with usage", () => {
+    const result = spawnSync("bun", ["scripts/vault-project-relocation.ts", "session-map"], {
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("Usage:");
+  });
+
+  test("relative --repository path is rejected without touching the filesystem", () => {
+    const result = spawnSync(
+      "bun",
+      ["scripts/vault-project-relocation.ts", "session-map", "--repository", "relative/path"],
+      { encoding: "utf8" },
+    );
+
+    expect(result.status).not.toBe(0);
+  });
+});
