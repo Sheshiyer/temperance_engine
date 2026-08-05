@@ -244,3 +244,10 @@ real state — but it means the canary can no longer be treated as "ready to app
 against right now." Its dirty/HEAD state needs the same treatment already established
 for the registry-host baseline: re-verify again, immediately, before any real
 `apply` — a past-clean reading is not a standing guarantee.
+
+**Canary re-confirmed again, same day:** HEAD still `30e994a0…`, still exactly one
+untracked entry (`? .codegraph/.gitignore`), remote still
+`github.com/Sheshiyer/thoughtseed-brand-atlas.git` — **unchanged** from the reading
+immediately above. Nothing moved between these two checks; the canary is quiet for
+this window but still dirty (1 untracked file), not clean. Same standing instruction:
+re-verify again immediately before any real `apply`.
