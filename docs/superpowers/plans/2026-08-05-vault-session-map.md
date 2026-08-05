@@ -148,14 +148,18 @@ import type { ToolMatchResult } from "../project-session-map";
 
 /**
  * Confirmed empirically 2026-08-05 against three real, independently-checked
- * paths: `/` becomes `-`; every other character (including `.` and `_`) is
- * preserved literally. Session folders created inside a Git worktree may
- * carry an additional suffix this function does not attempt to reproduce —
- * that case legitimately reports matched: false via matchClaudeCode, it is
- * not a bug in this transform.
+ * paths, including a byte-level check of the real ~/.claude/projects/ folder
+ * for `temperance_engine`: `.` is preserved literally; every other
+ * non-alphanumeric character (including `/` and `_`) becomes `-`. An earlier
+ * draft of this function wrongly claimed `_` was also preserved — it wasn't;
+ * the corrected regex below matches all three directly-observed real
+ * examples. Session folders created inside a Git worktree may carry an
+ * additional suffix this function does not attempt to reproduce — that case
+ * legitimately reports matched: false via matchClaudeCode, it is not a bug
+ * in this transform.
  */
 export function encodeClaudeCodeProjectPath(path: string): string {
-  return path.replace(/\//g, "-");
+  return path.replace(/[^A-Za-z0-9.]/g, "-");
 }
 
 const CLAUDE_CODE_PROJECTS_ROOT = "/Users/sheshnarayaniyer/.claude/projects";

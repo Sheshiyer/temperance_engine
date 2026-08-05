@@ -302,10 +302,14 @@ Same shape as everything else built this session:
 
 ## 12. Open verifications before implementation
 
-1. Claude Code's exact path→foldername character-escaping rules (confirmed
-   for `/`; unconfirmed for `.` and other special characters) — needs an
-   empirical check (e.g. a controlled session from a temp path with a dot in
-   it) before the matcher or the relink function can be implemented.
+1. ~~Claude Code's exact path→foldername character-escaping rules.~~
+   **Resolved during Task 1 implementation (2026-08-05).** `.` is preserved
+   literally; every other non-alphanumeric character (including `/` and,
+   contrary to an earlier draft's wrong claim, `_`) becomes `-`. The
+   implementer caught the `_` error by cross-checking against the plan's own
+   test fixture; the controller independently confirmed it with a byte-level
+   check of the real `~/.claude/projects/` folder name for
+   `temperance_engine`. Transform: `path.replace(/[^A-Za-z0-9.]/g, "-")`.
 2. Whether Claude Code's own session lookup actually follows a symlinked
    project folder transparently — believed true (plain filesystem lookup,
    no reason to expect otherwise) but not directly verified against Claude
