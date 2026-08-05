@@ -39,7 +39,10 @@ export interface BuildSessionMapInput {
   newPath: string;
 }
 
-import { matchClaudeCode } from "./session-store-matchers/claude-code-matcher";
+import { existsSync, symlinkSync } from "node:fs";
+import { join } from "node:path";
+
+import { matchClaudeCode, encodeClaudeCodeProjectPath } from "./session-store-matchers/claude-code-matcher";
 import { matchOpenCode } from "./session-store-matchers/opencode-matcher";
 import { matchCopilot } from "./session-store-matchers/copilot-matcher";
 import { matchCodex } from "./session-store-matchers/codex-matcher";
@@ -74,5 +77,31 @@ export function buildSessionMap(
     newPath: input.newPath,
     generatedAt,
     tools,
+  };
+}
+
+const CLAUDE_CODE_PROJECTS_ROOT = "/Users/sheshnarayaniyer/.claude/projects";
+
+export function attemptClaudeCodeRelink(oldSessionDir: string, newSessionDir: string): ClaudeCodeRelinkAction {
+  if (!existsSync(oldSessionDir)) return "skipped-source-missing";
+  if (existsSync(newSessionDir)) return "skipped-destination-exists";
+  symlinkSync(oldSessionDir, newSessionDir, "dir");
+  return "created";
+}
+
+export function applyClaudeCodeRelink(
+  record: SessionMapRecord,
+  projectsRoot: string = CLAUDE_CODE_PROJECTS_ROOT,
+): SessionMapRecord {
+  const claudeCodeEntry = record.tools.find((entry) => entry.tool === "claude-code");
+  if (!claudeCodeEntry || claudeCodeEntry.matched !== true) return record;
+
+  const oldSessionDir = join(projectsRoot, encodeClaudeCodeProjectPath(record.oldPath));
+  const newSessionDir = join(projectsRoot, encodeClaudeCodeProjectPath(record.newPath));
+  const relinkAction = attemptClaudeCodeRelink(oldSessionDir, newSessionDir);
+
+  return {
+    ...record,
+    tools: record.tools.map((entry) => (entry.tool === "claude-code" ? { ...entry, relinkAction } : entry)),
   };
 }

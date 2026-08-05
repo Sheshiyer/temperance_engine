@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, mkdirSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { buildSessionMap } from "./project-session-map";
-import type { ToolMatchResult } from "./project-session-map";
+import { buildSessionMap, attemptClaudeCodeRelink, applyClaudeCodeRelink } from "./project-session-map";
+import { encodeClaudeCodeProjectPath } from "./session-store-matchers/claude-code-matcher";
+import type { ToolMatchResult, SessionMapRecord, SessionMapEntry } from "./project-session-map";
 
 describe("buildSessionMap", () => {
   test("prefers an oldPath match over a newPath match", () => {
@@ -98,5 +102,82 @@ describe("buildSessionMap", () => {
       "kimi",
       "craft-agent",
     ]);
+  });
+});
+
+describe("attemptClaudeCodeRelink", () => {
+  test("creates a symlink when the old dir exists and the new dir does not", () => {
+    const dir = mkdtempSync(join(tmpdir(), "relink-"));
+    const oldDir = join(dir, "old-session");
+    const newDir = join(dir, "new-session");
+    mkdirSync(oldDir);
+
+    const action = attemptClaudeCodeRelink(oldDir, newDir);
+
+    expect(action).toBe("created");
+    expect(statSync(newDir).isSymbolicLink() || statSync(newDir).isDirectory()).toBe(true);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("skips when the new dir already exists — never clobbers", () => {
+    const dir = mkdtempSync(join(tmpdir(), "relink-"));
+    const oldDir = join(dir, "old-session");
+    const newDir = join(dir, "new-session");
+    mkdirSync(oldDir);
+    mkdirSync(newDir);
+
+    const action = attemptClaudeCodeRelink(oldDir, newDir);
+
+    expect(action).toBe("skipped-destination-exists");
+    expect(statSync(newDir).isSymbolicLink()).toBe(false);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("skips when the old dir does not exist", () => {
+    const dir = mkdtempSync(join(tmpdir(), "relink-"));
+    const oldDir = join(dir, "old-session");
+    const newDir = join(dir, "new-session");
+
+    const action = attemptClaudeCodeRelink(oldDir, newDir);
+
+    expect(action).toBe("skipped-source-missing");
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("applyClaudeCodeRelink", () => {
+  function baseRecord(overrides: Partial<SessionMapEntry>): SessionMapRecord {
+    return {
+      stableId: "stable-1",
+      portfolio: "thoughtseed",
+      repository: "some-repo",
+      oldPath: "/Volumes/fixture/thoughtseed/some-repo",
+      newPath: "/Volumes/fixture2/thoughtseed/some-repo",
+      generatedAt: "2026-08-05T00:00:00.000Z",
+      tools: [
+        { tool: "claude-code", mechanism: "path-derived", matched: true, locator: "irrelevant", ...overrides },
+      ],
+    };
+  }
+
+  test("relinks and stamps relinkAction: created when claude-code matched at oldPath", () => {
+    const projectsRoot = mkdtempSync(join(tmpdir(), "claude-projects-"));
+    const record = baseRecord({});
+    mkdirSync(join(projectsRoot, encodeClaudeCodeProjectPath(record.oldPath)));
+
+    const result = applyClaudeCodeRelink(record, projectsRoot);
+
+    expect(result.tools[0].relinkAction).toBe("created");
+    rmSync(projectsRoot, { recursive: true, force: true });
+  });
+
+  test("does not attempt a relink when claude-code did not match", () => {
+    const projectsRoot = mkdtempSync(join(tmpdir(), "claude-projects-"));
+    const record = baseRecord({ matched: false, locator: undefined });
+
+    const result = applyClaudeCodeRelink(record, projectsRoot);
+
+    expect(result.tools[0].relinkAction).toBeUndefined();
+    rmSync(projectsRoot, { recursive: true, force: true });
   });
 });
