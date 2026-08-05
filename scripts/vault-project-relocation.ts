@@ -365,7 +365,7 @@ function buildReport(portfolios: Portfolio[], maxDepth: number): InventoryReport
     for (const name of names) {
       const entry = inventoryEntry(portfolio, sourceRoot, name);
       records.push(entry);
-      if (maxDepth > 0 && entry.entryType === "directory" && entry.repositoryKind !== "standalone-repository") {
+      if (maxDepth > 0 && entry.entryType === "directory") {
         const found = discoverNestedGitRoots(entry.path, maxDepth);
         for (const nested of found) {
           records.push(nestedInventoryEntry(portfolio, sourceRoot, nested));

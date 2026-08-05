@@ -68,10 +68,11 @@ of this script did, until it was corrected.)
 
 `--max-depth <n>` (default `0`, i.e. today's depth-0-only behavior) opts
 into a bounded recursive scan for independently-versioned Git repositories
-nested below each direct child that isn't already a standalone candidate —
-e.g. `hermes-aws-ts` inside `thoughtseed-labs`, or the many repositories
-found clustered inside non-git "container" folders like `klear-karma` and
-`Tirak`. The scan never leaves the two approved portfolio roots, never
+nested below every direct child that is a directory, unconditionally —
+e.g. `hermes-aws-ts` inside `thoughtseed-labs` (itself already a standalone
+candidate), or the many repositories found clustered inside non-git
+"container" folders like `klear-karma` and `Tirak`. The scan never leaves
+the two approved portfolio roots, never
 reads file content, and treats a Git worktree (`.git` file, not directory)
 as excluded, never as something to descend into further. Deep candidates
 carry `depth` and `immediateParentPath` for provenance and get exactly the
