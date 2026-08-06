@@ -159,6 +159,13 @@ export function gatherPacketEvidence(input: {
    * Defaults to candidateName for depth-0 repos, where the two coincide.
    */
   projectId?: string;
+  /**
+   * Canonical basename for the packet's `repository` field -- the name the repo
+   * carries after relocation. Distinct from candidateName, which must stay the
+   * RAW on-disk name because that is what the registry's sourceInventory paths
+   * contain; matching a canonicalised name against a raw path finds nothing.
+   */
+  repositoryName?: string;
   portfolio: "thoughtseed" | "tryambakam-noesis";
   registry: CanonicalRegistry;
   gitRemoteUrl: string | null;
@@ -189,7 +196,7 @@ export function gatherPacketEvidence(input: {
   return {
     projectId: input.projectId ?? input.candidateName,
     portfolio: input.portfolio,
-    repository: input.candidateName,
+    repository: input.repositoryName ?? input.candidateName,
     workObjectId: workObject.workId,
     workObjectName: workObject.name,
     workObjectKind: workObject.kind,

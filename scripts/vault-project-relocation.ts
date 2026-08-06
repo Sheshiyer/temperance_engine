@@ -1186,13 +1186,13 @@ try {
           candidateName.split("/").filter(Boolean),
         ).segments;
         const evidence = gatherPacketEvidence({
-          // The CANONICAL basename, not the raw directory name. `repository`
-          // must satisfy the canonical basename rule, and it is also the name
-          // the repo will carry after relocation -- a raw `kkv2-klear-karma-RN`
-          // both fails validation and names a directory that will not exist.
-          candidateName: identitySegments[identitySegments.length - 1],
+          // RAW on-disk basename: the registry's sourceInventory stores raw
+          // paths, so matching must use the name as it exists on disk.
+          candidateName: candidateBasename,
           candidateRelativePath: candidateName,
+          // CANONICAL forms for what the packet declares about itself.
           projectId: qualifiedStableId(identitySegments),
+          repositoryName: identitySegments[identitySegments.length - 1],
           portfolio,
           registry,
           gitRemoteUrl: gitRemoteUrlFor(repositoryPath),
