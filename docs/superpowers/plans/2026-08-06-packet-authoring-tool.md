@@ -963,6 +963,17 @@ function writePacketFiles(repositoryPath: string, files: Record<string, string>)
     writeFileSync(fullPath, content, "utf8");
   }
 }
+
+// writeOwnerOnly (pre-existing) JSON.stringifies its second argument — fine
+// for InventoryReport/PlanReport, but running the review summary markdown
+// through it would collapse the whole document into one JSON-escaped
+// string. Same owner-only permission handling, plain text instead.
+function writeOwnerOnlyText(output: string, text: string): void {
+  mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
+  chmodSync(dirname(output), 0o700);
+  writeFileSync(output, text.endsWith("\n") ? text : `${text}\n`, { mode: 0o600, flag: "w" });
+  chmodSync(output, 0o600);
+}
 ```
 
 Add the subcommand handler to the `usage()` function's text block:
@@ -1037,7 +1048,7 @@ Add the handler in the main `try` block, as a new `else if` branch before the fi
       }
     }
     summaryLines.unshift(`Drafted: ${draftedCount}. Failed: ${failedCount}.`, "");
-    writeOwnerOnly(resolve(output), summaryLines.join("\n"));
+    writeOwnerOnlyText(resolve(output), summaryLines.join("\n"));
     console.log(JSON.stringify({ output: resolve(output), drafted: draftedCount, failed: failedCount }));
 ```
 
