@@ -3,7 +3,7 @@
  * than reading one from an existing repository (which is what
  * gatherPacketEvidence, in packet-evidence.ts, does). Every field the
  * scaffold operation cannot actually know yet is an explicit,
- * needsReview-flagged placeholder -- the caller-supplied identity fields
+ * needsReview-flagged placeholder — the caller-supplied identity fields
  * are the only thing not flagged, since those really are known at
  * scaffold time.
  */

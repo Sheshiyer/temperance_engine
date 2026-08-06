@@ -4,7 +4,7 @@
  * the exact workflow entry consumed, so a later drift in that external,
  * independently-evolving registry is a provable fact rather than a silent
  * one. Returns null (never an error) when no workflow matches typeId, or
- * when the registry file doesn't exist -- new-project falls back to a
+ * when the registry file doesn't exist — new-project falls back to a
  * fixed-folder-only scaffold in either case.
  */
 
@@ -76,7 +76,7 @@ ${provenance.stages.map((stage) => `- \`${stage}/\``).join("\n")}
 
 This is a sha256 digest of the exact workflow entry consumed at scaffold
 time. If the source workflow definition changes later, a fresh
-recomputation will no longer match this value -- a provable signal of
+recomputation will no longer match this value — a provable signal of
 drift, not a silent one.
 
 This file is not part of the six-file relocation packet. It records
