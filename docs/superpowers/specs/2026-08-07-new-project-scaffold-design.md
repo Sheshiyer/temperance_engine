@@ -203,16 +203,24 @@ third `kind` value exists.
 4. If `--dry-run`: write nothing, print the plan (target path, stage
    folder list, workflow digest if any, WorkObject entry that would be
    written) and exit.
-5. Otherwise, in order: create the target directory; write the six packet
-   files under it; write `.project/WORKFLOW.md` if a workflow matched;
-   create one empty subfolder per resolved stage id, verbatim (e.g.
-   `0-discover/`, `1-brand/`, …) — no zero-padding transformation, since
-   the source ids are already zero-free single digits and inventing a
-   padding scheme for a >9-stage case that doesn't exist yet would be
-   speculative; call `writeWorkObjectEntry` against
-   `--registry-path`, erroring (and leaving already-written scaffold files
-   in place, not rolling back — see Error handling) on a `workId`
-   collision; write the owner-only receipt to `--output`.
+5. Otherwise, in order: create the target directory; run `git init` inside
+   it (a scaffolded project must actually be a git repository — Part 1's
+   own relocation tooling only ever treats `repositoryKind:
+   "standalone-repository"` as a candidate at all, so a plain non-git
+   folder could never become relocation-ready regardless of packet
+   completeness); write the six packet files; write
+   `.project/WORKFLOW.md` if a workflow matched; create one empty
+   subfolder per resolved stage id, verbatim (e.g. `0-discover/`,
+   `1-brand/`, …) — no zero-padding transformation, since the source ids
+   are already zero-free single digits and inventing a padding scheme for
+   a >9-stage case that doesn't exist yet would be speculative; call
+   `writeWorkObjectEntry` against `--registry-path`, erroring (and leaving
+   already-written scaffold files in place, not rolling back — see Error
+   handling) on a `workId` or `sourceInventory` path collision; write the
+   owner-only receipt to `--output`. Nothing is committed — matching
+   `draft-packets`' "prepare, never auto-commit" discipline, the new
+   project sits in the vault as an uncommitted, reviewable `git init`'d
+   working tree until a human reviews and commits it.
 
 ## Error handling
 
