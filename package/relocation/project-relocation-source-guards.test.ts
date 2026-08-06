@@ -112,6 +112,14 @@ describe("source guards — every production relocation file", () => {
       "show",
       "show-ref",
       "worktree",
+      // "init" is not literally read-only, but it only ever runs against a
+      // target directory the new-project subcommand has just confirmed does
+      // not already exist (existsSync(target) is checked before
+      // mkdirSync+git init), so it can never mutate an existing repository's
+      // history — categorically different from the destructive operations
+      // (rebase/filter-branch/gc/reflog/reset --hard) this guard suite
+      // actually exists to prevent.
+      "init",
     ]);
     const invoked = new Set<string>();
     for (const [, code] of readAllProductionCode()) {
