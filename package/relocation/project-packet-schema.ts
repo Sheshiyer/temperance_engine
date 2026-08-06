@@ -24,7 +24,10 @@ const IDENTITY_STATUS_VALUES = new Set([
   "unknown",
 ]);
 const PORTFOLIO_VALUES = new Set(["thoughtseed", "tryambakam-noesis"]);
-const PROJECT_ID_PATTERN = /^[a-z][a-z0-9_-]*$/;
+// A project_id is a qualified stable identity: canonical segments joined by
+// '.', which is how a nested repository's id stays unique across tenants
+// (`parkarea.wiki` vs `iverif.wiki`). A depth-0 id has no dot and is unchanged.
+const PROJECT_ID_PATTERN = /^[a-z][a-z0-9_-]*(\.[a-z0-9][a-z0-9_-]*)*$/;
 const GITHUB_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/;
 
 const TOP_LEVEL_KEYS = new Set([

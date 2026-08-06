@@ -819,6 +819,19 @@ function buildPlan(sourcePath: string, identityOverride?: IdentityOverride): Pla
       holdReasons.push(`packet_project_id_mismatch:${declared}:${projected.segments.join(".")}`);
     }
   }
+  // plan must run the SAME packet validation apply does. It did not, so a
+  // schema-invalid packet planned as READY and only failed at apply -- a plan
+  // that cannot predict apply is worse than no plan, because it invites
+  // batching against a promise the transaction will refuse.
+  if (missing.length === 0) {
+    const validation = validateProjectYaml(
+      parseFlatProjectYaml(readFileSync(join(source, ".project/project.yaml"), "utf8")),
+      { approvedLanes: approvedLanes() },
+    );
+    if (!validation.valid) {
+      holdReasons.push(`packet_not_valid:${(validation.errors ?? []).join("; ")}`);
+    }
+  }
   const identityStatus = packetIdentityStatus(source, present);
   // Only the *pending* state is waivable. `unknown` means the packet could not
   // be read or parsed at all, which is a different failure -- overriding it
