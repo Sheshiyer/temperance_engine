@@ -30,6 +30,14 @@ beforeEach(() => {
     "# Repository Guidelines\n\nReal, pre-existing project-specific agent instructions that must never be silently overwritten.\n",
   );
 
+  mkdirSync(join(vaultRoot, "pnpm-app"), { recursive: true });
+  execFileSync("git", ["init", "--quiet", "-b", "main"], { cwd: join(vaultRoot, "pnpm-app") });
+  writeFileSync(
+    join(vaultRoot, "pnpm-app", "package.json"),
+    JSON.stringify({ name: "pnpm-app", scripts: { build: "vite build" } }),
+  );
+  writeFileSync(join(vaultRoot, "pnpm-app", "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+
   const registryDir = join(fixtureRoot, "thoughtseed-labs", "00-meta");
   mkdirSync(registryDir, { recursive: true });
   writeFileSync(
@@ -55,11 +63,18 @@ beforeEach(() => {
           kind: "sapling",
           sourceRefs: ["repo:has-existing-agents-md"],
         },
+        {
+          workId: "sapling:pnpm-app",
+          name: "Pnpm App",
+          kind: "sapling",
+          sourceRefs: ["repo:pnpm-app"],
+        },
       ],
       sourceInventory: [
         { path: `${vaultRoot}/example-app`, workRefs: ["sapling:example"] },
         { path: `${vaultRoot}/no-evidence-repo`, workRefs: ["program:no-evidence"] },
         { path: `${vaultRoot}/has-existing-agents-md`, workRefs: ["sapling:has-existing-agents"] },
+        { path: `${vaultRoot}/pnpm-app`, workRefs: ["sapling:pnpm-app"] },
       ],
     }),
   );
@@ -174,5 +189,31 @@ describe("draft-packets CLI subcommand", () => {
     expect(summary).toContain("has-existing-agents-md");
     expect(summary).toContain("AGENTS.md");
     expect(summary).toContain("manual reconciliation");
+  });
+
+  test("detects a pnpm-lock.yaml and drafts pnpm commands, not npm", () => {
+    const outputPath = join(fixtureRoot, "review-summary-4.md");
+    execFileSync(
+      "bun",
+      [
+        join(import.meta.dir, "..", "scripts", "vault-project-relocation.ts"),
+        "draft-packets",
+        "--vault-root",
+        join(fixtureRoot, "thoughtseed"),
+        "--portfolio",
+        "thoughtseed",
+        "--registry-path",
+        join(fixtureRoot, "thoughtseed-labs", "00-meta", "work-object-registry.v1.json"),
+        "--candidate",
+        "pnpm-app",
+        "--output",
+        outputPath,
+      ],
+      { encoding: "utf8" },
+    );
+
+    const yaml = readFileSync(join(fixtureRoot, "thoughtseed", "pnpm-app", ".project", "project.yaml"), "utf8");
+    expect(yaml).toContain("setup: pnpm install");
+    expect(yaml).toContain("verify: pnpm run build");
   });
 });
