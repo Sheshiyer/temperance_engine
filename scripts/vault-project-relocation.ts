@@ -39,6 +39,9 @@ import {
 } from "../package/relocation/copilot-session-fix";
 import { gatherPacketEvidence, type CanonicalRegistry, type PackageManager } from "../package/relocation/packet-evidence";
 import { renderPacket } from "../package/relocation/packet-draft";
+import { synthesizeScaffoldEvidence, type ScaffoldInput } from "../package/relocation/project-scaffold";
+import { resolveWorkflowProvenance, renderWorkflowProvenanceMd } from "../package/relocation/workflow-provenance";
+import { writeWorkObjectEntry } from "../package/relocation/work-object-registry-write";
 
 const DESTINATION_ROOT = "/Volumes/madara/2026/Projects";
 const PORTFOLIO_ROOTS = {
@@ -158,7 +161,17 @@ function usage(): never {
     --portfolio thoughtseed|tryambakam-noesis \
     --registry-path <absolute-registry-json-path> \
     --candidate <folder-name> [--candidate <folder-name> ...] \
-    --output <owner-only-review-summary.md>`);
+    --output <owner-only-review-summary.md>
+  bun scripts/vault-project-relocation.ts new-project \
+    --vault-root <absolute-portfolio-root> \
+    --portfolio thoughtseed|tryambakam-noesis \
+    --name <new-repository-basename> \
+    --kind sapling|program \
+    --registry-path <absolute-work-object-registry.v1.json-path> \
+    [--type <skill-clusters-workflow-id>] \
+    [--workflow-registry-path <absolute-workflows/registry.json-path>] \
+    --output <owner-only-receipt.json> \
+    [--dry-run]`);
   process.exit(2);
 }
 
@@ -619,7 +632,7 @@ function buildPlan(sourcePath: string): PlanReport {
   };
 }
 
-function writeOwnerOnly(output: string, report: InventoryReport): void {
+function writeOwnerOnly<T>(output: string, report: T): void {
   mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
   chmodSync(dirname(output), 0o700);
   writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600, flag: "w" });
@@ -913,6 +926,143 @@ try {
     summaryLines.unshift(`Drafted: ${draftedCount}. Failed: ${failedCount}.`, "");
     writeOwnerOnlyText(resolve(output), summaryLines.join("\n"));
     console.log(JSON.stringify({ output: resolve(output), drafted: draftedCount, failed: failedCount }));
+  } else if (argv[0] === "new-project") {
+    let vaultRoot = "";
+    let portfolio: Portfolio | "" = "";
+    let name = "";
+    let kind: "sapling" | "program" | "" = "";
+    let registryPath = "";
+    let typeId = "";
+    let workflowRegistryPath = "";
+    let output = "";
+    let dryRun = false;
+    for (let i = 1; i < argv.length; i += 1) {
+      const arg = argv[i];
+      if (arg === "--vault-root") vaultRoot = argv[++i] ?? "";
+      else if (arg === "--portfolio") {
+        const value = argv[++i];
+        if (value !== "thoughtseed" && value !== "tryambakam-noesis") {
+          throw new Error(`portfolio_not_allowed:${value ?? ""}`);
+        }
+        portfolio = value;
+      } else if (arg === "--name") name = argv[++i] ?? "";
+      else if (arg === "--kind") {
+        const value = argv[++i];
+        if (value !== "sapling" && value !== "program") {
+          throw new Error(`kind_not_allowed:${value ?? ""}`);
+        }
+        kind = value;
+      } else if (arg === "--registry-path") registryPath = argv[++i] ?? "";
+      else if (arg === "--type") typeId = argv[++i] ?? "";
+      else if (arg === "--workflow-registry-path") workflowRegistryPath = argv[++i] ?? "";
+      else if (arg === "--output") output = argv[++i] ?? "";
+      else if (arg === "--dry-run") dryRun = true;
+      else throw new Error(`unknown_argument:${arg}`);
+    }
+    if (!vaultRoot || !portfolio || !name || !kind || !registryPath || !output) {
+      throw new Error(
+        "new_project_requires_vault_root_portfolio_name_kind_registry_path_and_output",
+      );
+    }
+    if (!isCanonicalRepositoryBasename(name)) {
+      throw new Error(`repository_basename_invalid:${JSON.stringify(name)}`);
+    }
+
+    const target = join(vaultRoot, name);
+    if (existsSync(target)) {
+      throw new Error(`scaffold_target_exists:${target}`);
+    }
+
+    const provenance =
+      typeId && workflowRegistryPath ? resolveWorkflowProvenance(typeId, workflowRegistryPath) : null;
+
+    const workObjectId = `${kind}:${name}`;
+    const scaffoldInput: ScaffoldInput = {
+      projectId: name,
+      portfolio,
+      repository: name,
+      workObjectId,
+      workObjectName: name,
+      workObjectKind: kind,
+    };
+    const evidence = synthesizeScaffoldEvidence(scaffoldInput);
+    const files = renderPacket(evidence);
+
+    const parsedYaml = parseFlatProjectYaml(files[".project/project.yaml"]);
+    const validation = validateProjectYaml(parsedYaml, { approvedLanes: approvedLanes() });
+    if (!validation.valid) {
+      throw new Error(`synthesized_packet_invalid:${validation.errors.join("; ")}`);
+    }
+
+    // Pre-flight the registry write against the read-only current state so
+    // both --dry-run and a real run report the exact same collision
+    // outcome, without writing anything during the check itself.
+    const existingRegistry = existsSync(registryPath)
+      ? (JSON.parse(readFileSync(registryPath, "utf8")) as CanonicalRegistry)
+      : { workObjects: [], sourceInventory: [] };
+    const workIdCollision = existingRegistry.workObjects.some((entry) => entry.workId === workObjectId);
+    const pathCollision = existingRegistry.sourceInventory.some((entry) => entry.path === target);
+
+    const receipt = {
+      schemaVersion: 1,
+      generatedAt: new Date().toISOString(),
+      dryRun,
+      target,
+      portfolio,
+      name,
+      kind,
+      workId: workObjectId,
+      type: provenance?.workflowId ?? null,
+      stages: provenance?.stages ?? [],
+      workflowDigest: provenance?.workflowDigest ?? null,
+      needsReview: evidence.needsReview,
+      registryCollision: workIdCollision || pathCollision,
+    };
+
+    if (dryRun) {
+      writeOwnerOnly(resolve(output), receipt);
+      console.log(JSON.stringify({ output: resolve(output), dryRun: true, target, workId: workObjectId }));
+    } else {
+      // Deliberately no pre-flight collision throw here (workIdCollision/
+      // pathCollision above feed only the receipt's reporting field). The
+      // folder and packet files are written first regardless, and
+      // writeWorkObjectEntry — called last — is what actually throws on a
+      // real collision. This ordering matters: the folder half of a
+      // scaffold is inert on its own (no registry claim, no relocation
+      // eligibility) and safe to leave in place for the operator to
+      // resolve, so a collision must surface after those writes, not
+      // before them, matching the design's documented Error Handling
+      // behavior.
+      mkdirSync(target, { recursive: true });
+      const gitInit = spawnSync("git", ["init", "--quiet", "-b", "main"], { cwd: target });
+      if (gitInit.status !== 0) throw new Error(`git_init_failed:${target}`);
+
+      for (const [relativePath, content] of Object.entries(files)) {
+        const fullPath = join(target, relativePath);
+        mkdirSync(dirname(fullPath), { recursive: true });
+        writeFileSync(fullPath, content, "utf8");
+      }
+
+      if (provenance) {
+        writeFileSync(join(target, ".project/WORKFLOW.md"), renderWorkflowProvenanceMd(provenance), "utf8");
+        for (const stage of provenance.stages) {
+          mkdirSync(join(target, stage), { recursive: true });
+        }
+      }
+
+      writeWorkObjectEntry(registryPath, {
+        workObject: {
+          workId: workObjectId,
+          name,
+          kind,
+          sourceRefs: [`repo:${name}`],
+        },
+        sourceInventoryPath: target,
+      });
+
+      writeOwnerOnly(resolve(output), receipt);
+      console.log(JSON.stringify({ output: resolve(output), dryRun: false, target, workId: workObjectId }));
+    }
   } else {
     usage();
   }
