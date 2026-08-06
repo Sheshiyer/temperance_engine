@@ -51,6 +51,10 @@ run bun test package/relocation/packet-evidence.test.ts
 run bun test package/relocation/packet-draft.test.ts
 run bun test tests/vault-project-relocation.test.ts
 run bun test tests/vault-project-relocation-draft-packets.test.ts
+run bun test package/relocation/project-scaffold.test.ts
+run bun test package/relocation/workflow-provenance.test.ts
+run bun test package/relocation/work-object-registry-write.test.ts
+run bun test tests/vault-project-relocation-new-project.test.ts
 run bun test package/router/temperance-stage-contract.test.ts
 run bun test package/router/temperance-openai-proxy.test.ts
 run bun test package/adapters/opencode/OmniRouteCatalogGuard.test.ts

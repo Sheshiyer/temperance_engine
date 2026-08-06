@@ -189,6 +189,55 @@ reconciliation. Re-running `draft-packets` against an already-committed
 packet is safe for the same reason: every file it finds with real content
 gets skipped, not re-drafted.
 
+## New project
+
+Scaffolds a brand-new project directly in the vault: a `git init`'d
+working tree, all six packet files (`packet_status: draft-held`, same as
+`draft-packets`), and a fresh, matchable entry in the canonical registry
+(`work-object-registry.v1.json`) -- both a `WorkObject` and the
+`sourceInventory` entry that makes it findable via `matchCandidateToWorkObject`
+later. Every field this tool cannot actually know at scaffold time
+(`knowledge_ref`, all three `commands.*`) is flagged in `needsReview`, the
+same never-fabricate discipline `draft-packets` follows.
+
+```text
+bun scripts/vault-project-relocation.ts new-project \
+  --vault-root <absolute-portfolio-root> \
+  --portfolio thoughtseed|tryambakam-noesis \
+  --name <new-repository-basename> \
+  --kind sapling|program \
+  --registry-path <absolute-work-object-registry.v1.json-path> \
+  [--type <skill-clusters-workflow-id>] \
+  [--workflow-registry-path <absolute-workflows/registry.json-path>] \
+  --output <owner-only-receipt.json> \
+  [--dry-run]
+```
+
+`--type` is optional. When it names a workflow that exists in the
+skill-clusters delivery-workflow registry
+(`~/.agents/skill-clusters/workflows/registry.json` -- pass its path via
+`--workflow-registry-path`), the scaffold gets one subfolder per workflow
+stage (e.g. `0-discover/`, `1-brand/`, ... for `website-delivery`) and a
+`.project/WORKFLOW.md` recording the workflow id, its stage list, and a
+sha256 digest of the exact workflow entry consumed -- a later change to
+that external registry becomes provable, not silent. Omitting `--type`, or
+naming a type with no matching workflow entry, is not an error: the
+scaffold is fixed-folder-only in that case.
+
+Nothing is committed by this command -- the new project sits in the vault
+as an uncommitted, reviewable `git`-initialized working tree, exactly like
+a freshly-drafted packet, until a human reviews it, resolves the flagged
+fields, and makes the first real commit.
+
+`--dry-run` reports the target path, resolved stage folders, workflow
+digest, and any registry collision without writing anything. Without
+`--dry-run`, a collision on the target folder already existing, on the
+minted `workId`, or on the `sourceInventory` path is a hard error -- the
+target folder and `workId` are minted as
+`<vault-root>/<name>` and `<kind>:<name>` respectively, so picking an
+already-used `--name` for the given `--portfolio`/`--kind` fails closed
+rather than silently overwriting anything.
+
 ## Dry-run and the exact approval digest
 
 `bun scripts/vault-project-relocation.ts plan --repository <path> --dry-run --output <path>`
