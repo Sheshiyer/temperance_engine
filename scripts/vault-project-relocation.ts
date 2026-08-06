@@ -37,6 +37,8 @@ import {
   applyCopilotSessionFix,
   receiptPathFor,
 } from "../package/relocation/copilot-session-fix";
+import { gatherPacketEvidence, type CanonicalRegistry } from "../package/relocation/packet-evidence";
+import { renderPacket } from "../package/relocation/packet-draft";
 
 const DESTINATION_ROOT = "/Volumes/madara/2026/Projects";
 const PORTFOLIO_ROOTS = {
@@ -150,7 +152,13 @@ function usage(): never {
   bun scripts/vault-project-relocation.ts session-fix \
     --repository <new-absolute-path> \
     --tool copilot \
-    [--dry-run]`);
+    [--dry-run]
+  bun scripts/vault-project-relocation.ts draft-packets \
+    --vault-root <absolute-portfolio-root> \
+    --portfolio thoughtseed|tryambakam-noesis \
+    --registry-path <absolute-registry-json-path> \
+    --candidate <folder-name> [--candidate <folder-name> ...] \
+    --output <owner-only-review-summary.md>`);
   process.exit(2);
 }
 
@@ -175,6 +183,34 @@ function approvedLanes(): string[] {
   if (!existsSync(workflowsPath)) return [];
   const raw = readFileSync(workflowsPath, "utf8");
   return [...new Set([...raw.matchAll(/"(te-[a-z-]+)"/g)].map((match) => match[1]))];
+}
+
+function gitRemoteUrlFor(repositoryPath: string): string | null {
+  const result = spawnSync("git", ["-C", repositoryPath, "remote", "get-url", "origin"], { encoding: "utf8" });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+function packageJsonScriptsFor(repositoryPath: string): Record<string, string> | null {
+  const packageJsonPath = join(repositoryPath, "package.json");
+  if (!existsSync(packageJsonPath)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+    return typeof parsed.scripts === "object" && parsed.scripts !== null ? parsed.scripts : {};
+  } catch {
+    return {};
+  }
+}
+
+function hasBunLockFor(repositoryPath: string): boolean {
+  return existsSync(join(repositoryPath, "bun.lock")) || existsSync(join(repositoryPath, "bun.lockb"));
+}
+
+function writePacketFiles(repositoryPath: string, files: Record<string, string>): void {
+  for (const [relativePath, content] of Object.entries(files)) {
+    const fullPath = join(repositoryPath, relativePath);
+    mkdirSync(dirname(fullPath), { recursive: true });
+    writeFileSync(fullPath, content, "utf8");
+  }
 }
 
 function parseArgs(argv: string[]): { portfolios: Portfolio[]; output: string; maxDepth: number } {
@@ -560,6 +596,19 @@ function writeOwnerOnly(output: string, report: InventoryReport): void {
   chmodSync(output, 0o600);
 }
 
+/**
+ * Same owner-only directory/file permissions as writeOwnerOnly, but for
+ * plain-text payloads (e.g. the draft-packets review summary markdown)
+ * that must not be run through JSON.stringify — doing so would collapse
+ * the file into a single JSON-escaped string instead of legible markdown.
+ */
+function writeOwnerOnlyText(output: string, text: string): void {
+  mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
+  chmodSync(dirname(output), 0o700);
+  writeFileSync(output, text.endsWith("\n") ? text : `${text}\n`, { mode: 0o600, flag: "w" });
+  chmodSync(output, 0o600);
+}
+
 function parseFlagArgs(argv: string[], flags: string[]): Record<string, string | true> {
   const values: Record<string, string | true> = {};
   for (let i = 1; i < argv.length; i += 1) {
@@ -764,6 +813,66 @@ try {
       const receipt = applyCopilotSessionFix(plan);
       console.log(JSON.stringify({ plan, applied: true, receiptPath: receiptPathFor(plan), receipt }, null, 2));
     }
+  } else if (argv[0] === "draft-packets") {
+    let vaultRoot = "";
+    let portfolio: Portfolio | "" = "";
+    let registryPath = "";
+    let output = "";
+    const candidates: string[] = [];
+    for (let i = 1; i < argv.length; i += 1) {
+      const arg = argv[i];
+      if (arg === "--vault-root") vaultRoot = argv[++i] ?? "";
+      else if (arg === "--portfolio") {
+        const value = argv[++i];
+        if (value !== "thoughtseed" && value !== "tryambakam-noesis") {
+          throw new Error(`portfolio_not_allowed:${value ?? ""}`);
+        }
+        portfolio = value;
+      } else if (arg === "--registry-path") registryPath = argv[++i] ?? "";
+      else if (arg === "--output") output = argv[++i] ?? "";
+      else if (arg === "--candidate") candidates.push(argv[++i] ?? "");
+      else throw new Error(`unknown_argument:${arg}`);
+    }
+    if (!vaultRoot || !portfolio || !registryPath || !output || candidates.length === 0) {
+      throw new Error(
+        "draft_packets_requires_vault_root_portfolio_registry_path_output_and_at_least_one_candidate",
+      );
+    }
+    const registry = JSON.parse(readFileSync(registryPath, "utf8")) as CanonicalRegistry;
+    const summaryLines: string[] = ["# Packet draft summary", ""];
+    let draftedCount = 0;
+    let failedCount = 0;
+    for (const candidateName of candidates) {
+      const repositoryPath = join(vaultRoot, candidateName);
+      try {
+        const evidence = gatherPacketEvidence({
+          candidateName,
+          portfolio,
+          registry,
+          gitRemoteUrl: gitRemoteUrlFor(repositoryPath),
+          packageJsonScripts: packageJsonScriptsFor(repositoryPath),
+          hasBunLock: hasBunLockFor(repositoryPath),
+        });
+        const files = renderPacket(evidence);
+        writePacketFiles(repositoryPath, files);
+        draftedCount += 1;
+        summaryLines.push(`## ${candidateName}`, "");
+        summaryLines.push(`- WorkObject: \`${evidence.workObjectId}\` (${evidence.workObjectName})`);
+        summaryLines.push(
+          evidence.needsReview.length === 0
+            ? "- All fields sourced confidently."
+            : `- Needs review: ${evidence.needsReview.join(", ")}`,
+        );
+        summaryLines.push("");
+      } catch (error) {
+        failedCount += 1;
+        const message = error instanceof Error ? error.message : String(error);
+        summaryLines.push(`## ${candidateName}`, "", `FAILED: ${candidateName}: ${message}`, "");
+      }
+    }
+    summaryLines.unshift(`Drafted: ${draftedCount}. Failed: ${failedCount}.`, "");
+    writeOwnerOnlyText(resolve(output), summaryLines.join("\n"));
+    console.log(JSON.stringify({ output: resolve(output), drafted: draftedCount, failed: failedCount }));
   } else {
     usage();
   }
