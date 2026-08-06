@@ -227,3 +227,45 @@ describe("applyRelocationTransaction — happy path end to end, fixtures only", 
     expect(existsSync(input.lockFilePath)).toBe(false);
   });
 });
+
+describe("applyRelocationTransaction — capsule is validated before the point of no return", () => {
+  test("REGRESSION: an unrenderable capsule holds BEFORE the rename, leaving nothing to repair", () => {
+    // bwssb hit this for real on 2026-08-07: renderCapsuleFiles runs the
+    // secret scan, but it was called inside recordPostRenameArtifacts —
+    // after the rename AND after the registry entry was written. The repo
+    // moved, the registry opened a `reconciling` entry, the capsule write
+    // then refused, and `rollback` could not undo it because the receipt
+    // carries no capsule digests without a capsule. The same failure that
+    // caused the problem blocked the only automated remedy.
+    //
+    // Every field the scan inspects is known before the rename;
+    // integrityManifest is deliberately excluded from it. So the validation
+    // belongs ahead of the move.
+    const root = fixtureRoot();
+    const input = { ...validInput(root), knowledgeRef: "a".repeat(64) };
+
+    const result = applyRelocationTransaction(input);
+
+    expect(result.applied).toBe(false);
+    expect(result.holdReasons.some((r) => r.startsWith("capsule_not_renderable"))).toBe(true);
+
+    // nothing moved, nothing written, nothing to hand-repair
+    expect(existsSync(input.source)).toBe(true);
+    expect(existsSync(input.destination)).toBe(false);
+    expect(existsSync(join(input.registryEntryDirectoryPath, "entry.json"))).toBe(false);
+    expect(existsSync(input.lockFilePath)).toBe(false);
+  });
+
+  test("a renderable capsule still applies end to end", () => {
+    const root = fixtureRoot();
+    const input = validInput(root);
+
+    const result = applyRelocationTransaction(input);
+
+    expect(result.applied).toBe(true);
+    expect(result.capsuleWritten).toBe(true);
+    expect(result.registryWritten).toBe(true);
+    expect(result.heldStateReason).toBeNull();
+    expect(existsSync(input.destination)).toBe(true);
+  });
+});

@@ -167,6 +167,43 @@ export function applyRelocationTransaction(input: ApplyTransactionInput): ApplyT
     const headBefore = readGitHead(input.source) ?? "";
     const refsDigestBefore = readGitRefsDigest(input.source);
 
+    // Everything the capsule needs except the post-rename integrity values,
+    // which are the only fields that cannot be known yet -- and the only ones
+    // renderCapsuleFiles deliberately does not scan.
+    const buildCapsuleInput = (headAfter: string, refsDigestAfter: string): CapsuleInput => ({
+      stableId: input.stableId,
+      portfolio: input.portfolio,
+      repository: basename(input.source),
+      oldPath: input.source,
+      newPath: input.destination,
+      githubIdentity: input.githubIdentity,
+      registryEntryPath: input.registryEntryDirectoryPath,
+      packetDigest: input.packetDigest,
+      knowledgeRef: input.knowledgeRef,
+      rollbackCommand: input.rollbackCommand,
+      integrityManifest: { headBefore, headAfter, refsDigestBefore, refsDigestAfter },
+    });
+
+    // Prove the capsule renders BEFORE anything moves.
+    //
+    // This ran inside recordPostRenameArtifacts, i.e. after the rename and
+    // after the registry entry was written. When `bwssb` tripped the secret
+    // scan on 2026-08-07, the repository had already moved and the registry
+    // already held an open `reconciling` entry, and `rollback` refused
+    // because a receipt without a capsule carries no capsule digests -- the
+    // failure blocked its own remedy and the move had to be repaired by hand.
+    //
+    // Rendering is pure and every scanned field is known here, so a rejection
+    // now costs nothing: no rename, no registry entry, nothing to repair.
+    try {
+      renderCapsuleFiles(buildCapsuleInput(headBefore, refsDigestBefore));
+    } catch (error) {
+      return {
+        applied: false,
+        holdReasons: [`capsule_not_renderable:${error instanceof Error ? error.message : String(error)}`],
+      };
+    }
+
     const renameResult = performGuardedRename({
       source: input.source,
       destination: input.destination,
@@ -192,24 +229,10 @@ export function applyRelocationTransaction(input: ApplyTransactionInput): ApplyT
       }),
     };
 
-    const capsuleInput: CapsuleInput = {
-      stableId: input.stableId,
-      portfolio: input.portfolio,
-      repository: basename(input.source),
-      oldPath: input.source,
-      newPath: input.destination,
-      githubIdentity: input.githubIdentity,
-      registryEntryPath: input.registryEntryDirectoryPath,
-      packetDigest: input.packetDigest,
-      knowledgeRef: input.knowledgeRef,
-      rollbackCommand: input.rollbackCommand,
-      integrityManifest: {
-        headBefore,
-        headAfter,
-        refsDigestBefore,
-        refsDigestAfter,
-      },
-    };
+    // Same builder the pre-rename check validated, so the shape that was
+    // proven renderable is exactly the shape that gets written. Only the
+    // post-rename integrity values differ, and those are not scanned.
+    const capsuleInput: CapsuleInput = buildCapsuleInput(headAfter, refsDigestAfter);
 
     const recordResult = recordPostRenameArtifacts({
       registryEntryDirectoryPath: input.registryEntryDirectoryPath,
