@@ -205,12 +205,40 @@ function hasBunLockFor(repositoryPath: string): boolean {
   return existsSync(join(repositoryPath, "bun.lock")) || existsSync(join(repositoryPath, "bun.lockb"));
 }
 
-function writePacketFiles(repositoryPath: string, files: Record<string, string>): void {
+/**
+ * A packet file is only safe to draft over if it doesn't already exist, or
+ * exists with no real content. Many repos already have their own AGENTS.md
+ * (or, in principle, any of the other five) for unrelated reasons — real
+ * build/test instructions, coding conventions, agent rosters — and a draft
+ * run must never silently destroy that. Whitespace-only content doesn't
+ * count as real, so an empty placeholder file is still safe to overwrite.
+ */
+function detectPreExistingPacketFiles(repositoryPath: string): string[] {
+  return REQUIRED_PACKET_FILES.filter((relativePath) => {
+    const fullPath = join(repositoryPath, relativePath);
+    if (!existsSync(fullPath)) return false;
+    return readFileSync(fullPath, "utf8").trim().length > 0;
+  });
+}
+
+function writePacketFiles(
+  repositoryPath: string,
+  files: Record<string, string>,
+  skip: readonly string[],
+): { written: string[]; skipped: string[] } {
+  const written: string[] = [];
+  const skipped: string[] = [];
   for (const [relativePath, content] of Object.entries(files)) {
+    if (skip.includes(relativePath)) {
+      skipped.push(relativePath);
+      continue;
+    }
     const fullPath = join(repositoryPath, relativePath);
     mkdirSync(dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, content, "utf8");
+    written.push(relativePath);
   }
+  return { written, skipped };
 }
 
 function parseArgs(argv: string[]): { portfolios: Portfolio[]; output: string; maxDepth: number } {
@@ -853,8 +881,15 @@ try {
           packageJsonScripts: packageJsonScriptsFor(repositoryPath),
           hasBunLock: hasBunLockFor(repositoryPath),
         });
+        const preExisting = detectPreExistingPacketFiles(repositoryPath);
+        if (preExisting.length > 0) {
+          evidence.needsReview = [
+            ...evidence.needsReview,
+            ...preExisting.map((file) => `${file} (pre-existing, not overwritten — needs manual reconciliation)`),
+          ];
+        }
         const files = renderPacket(evidence);
-        writePacketFiles(repositoryPath, files);
+        const { skipped } = writePacketFiles(repositoryPath, files, preExisting);
         draftedCount += 1;
         summaryLines.push(`## ${candidateName}`, "");
         summaryLines.push(`- WorkObject: \`${evidence.workObjectId}\` (${evidence.workObjectName})`);
@@ -863,6 +898,9 @@ try {
             ? "- All fields sourced confidently."
             : `- Needs review: ${evidence.needsReview.join(", ")}`,
         );
+        if (skipped.length > 0) {
+          summaryLines.push(`- Skipped (pre-existing content, not overwritten): ${skipped.join(", ")}`);
+        }
         summaryLines.push("");
       } catch (error) {
         failedCount += 1;

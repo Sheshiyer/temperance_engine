@@ -181,6 +181,14 @@ resolves every flagged field, commits the six files, and updates
 `packet_status` to `reviewed-held` — the same review gate the canary packet
 went through before its own relocation.
 
+If any of the six target files already exists with real content — a repo's
+own pre-existing `AGENTS.md` is the common case — that file is never
+overwritten. It's skipped, left exactly as it was, and flagged in the
+review summary and the candidate's own `.project/CONTEXT.md` for manual
+reconciliation. Re-running `draft-packets` against an already-committed
+packet is safe for the same reason: every file it finds with real content
+gets skipped, not re-drafted.
+
 ## Dry-run and the exact approval digest
 
 `bun scripts/vault-project-relocation.ts plan --repository <path> --dry-run --output <path>`
