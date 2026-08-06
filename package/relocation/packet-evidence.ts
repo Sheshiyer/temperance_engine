@@ -43,13 +43,44 @@ export interface PacketEvidence {
   needsReview: string[];
 }
 
+/**
+ * Ancestor segments of a vault-relative path, longest first, excluding the
+ * candidate itself: `a/b/c` -> ["a/b", "a"].
+ */
+function ancestorPaths(relativePath: string): string[] {
+  const parts = relativePath.split("/").filter(Boolean);
+  const out: string[] = [];
+  for (let i = parts.length - 1; i > 0; i -= 1) out.push(parts.slice(0, i).join("/"));
+  return out;
+}
+
 export function matchCandidateToWorkObject(
   candidateName: string,
   registry: CanonicalRegistry,
+  candidateRelativePath?: string,
 ): RegistryWorkObject {
-  const matches = registry.sourceInventory.filter(
+  let matches = registry.sourceInventory.filter(
     (entry) => entry.path.split("/").filter(Boolean).pop() === candidateName,
   );
+
+  // The registry catalogues containers, not every repository inside them: all
+  // four klear-karma repos belong to the one sapling and none is listed
+  // individually. Without an ancestor fallback a nested candidate can never be
+  // drafted. Nearest ancestor wins, and only when the candidate itself is
+  // uncatalogued -- an exact match always takes precedence.
+  if (matches.length === 0 && candidateRelativePath) {
+    for (const ancestor of ancestorPaths(candidateRelativePath)) {
+      const ancestorName = ancestor.split("/").pop();
+      const found = registry.sourceInventory.filter(
+        (entry) => entry.path.split("/").filter(Boolean).pop() === ancestorName,
+      );
+      if (found.length > 0) {
+        matches = found;
+        break;
+      }
+    }
+  }
+
   if (matches.length === 0) {
     throw new Error(`${candidateName}: no sourceInventory match`);
   }
@@ -115,13 +146,23 @@ function selectCommands(
 
 export function gatherPacketEvidence(input: {
   candidateName: string;
+  /**
+   * Vault-relative path when the candidate is nested (`klear-karma/kkv2-admin-panel`).
+   * Only used to find a catalogued ancestor; `candidateName` stays the basename, so
+   * the packet's project_id and repository are the repo's own name, not a path.
+   */
+  candidateRelativePath?: string;
   portfolio: "thoughtseed" | "tryambakam-noesis";
   registry: CanonicalRegistry;
   gitRemoteUrl: string | null;
   packageJsonScripts: Record<string, string> | null;
   packageManager: PackageManager;
 }): PacketEvidence {
-  const workObject = matchCandidateToWorkObject(input.candidateName, input.registry);
+  const workObject = matchCandidateToWorkObject(
+    input.candidateName,
+    input.registry,
+    input.candidateRelativePath,
+  );
   const needsReview: string[] = [];
 
   const githubIdentity = extractGithubIdentity(input.gitRemoteUrl);

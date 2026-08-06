@@ -196,3 +196,55 @@ describe("gatherPacketEvidence", () => {
     expect(evidence.identityStatus).toBe("unknown");
   });
 });
+
+describe("matchCandidateToWorkObject — nested candidates resolve via their container", () => {
+  const registry = {
+    workObjects: [
+      { workId: "sapling:klear-karma", name: "Klear Karma", kind: "sapling" },
+      { workId: "branch:heyzack", name: "HeyZack", kind: "program" },
+    ],
+    sourceInventory: [
+      { path: "/v/thoughtseed/klear-karma", disposition: "work-source", workRefs: ["sapling:klear-karma"] },
+      { path: "/v/thoughtseed/HeyZack", disposition: "work-source", workRefs: ["branch:heyzack", "branch:heyzack-crm"] },
+      { path: "/v/thoughtseed/Archive", disposition: "excluded", workRefs: [] },
+    ],
+  } as never;
+
+  test("a nested repo resolves to its nearest catalogued ancestor", () => {
+    // The registry catalogues containers, not every repo inside them. All four
+    // klear-karma repos belong to the one sapling; nothing lists them
+    // individually, so without this they cannot be drafted at all.
+    expect(
+      matchCandidateToWorkObject("kkv2-admin-panel", registry, "klear-karma/kkv2-admin-panel").workId,
+    ).toBe("sapling:klear-karma");
+    expect(
+      matchCandidateToWorkObject("fullscreen-clip-base", registry, "klear-karma/klearkarma-landing/fullscreen-clip-base").workId,
+    ).toBe("sapling:klear-karma");
+  });
+
+  test("FAILS CLOSED when the ancestor owns more than one WorkObject", () => {
+    // HeyZack's container covers 11 client branches. Nothing in the tree says
+    // which one a given repo delivers, and picking is a commercial-boundary
+    // decision — so refuse rather than attach the packet to a guess.
+    expect(() =>
+      matchCandidateToWorkObject("react-native-tuya", registry, "HeyZack/react-native-tuya"),
+    ).toThrow("multiple workRefs");
+  });
+
+  test("FAILS CLOSED under a deliberately excluded container", () => {
+    expect(() =>
+      matchCandidateToWorkObject("lettheratout", registry, "Archive/lettheratout"),
+    ).toThrow("no workRefs");
+  });
+
+  test("an exact match still wins over any ancestor", () => {
+    expect(matchCandidateToWorkObject("klear-karma", registry, "klear-karma").workId).toBe(
+      "sapling:klear-karma",
+    );
+  });
+
+  test("depth-0 behaviour is unchanged when no relative path is given", () => {
+    expect(matchCandidateToWorkObject("klear-karma", registry).workId).toBe("sapling:klear-karma");
+    expect(() => matchCandidateToWorkObject("nope", registry)).toThrow("no sourceInventory match");
+  });
+});

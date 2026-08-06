@@ -728,6 +728,15 @@ function packetIdentityStatus(
 ): "pending-teamforge-verification" | "verified-teamforge" | "unknown" {
   if (present.length !== REQUIRED_PACKET_FILES.length) return "unknown";
   const yaml = readFileSync(join(path, ".project/project.yaml"), "utf8");
+  // An explicit `identity_status: unknown` outranks `draft-held`. Every freshly
+  // drafted packet is draft-held, so without this the drafter's own finding
+  // that a repository has NO resolvable GitHub identity is masked by the
+  // draft state -- and `--allow-unverified-identity`, which deliberately never
+  // waives `packet_identity_unrecognized`, would relocate it anyway because
+  // that state was never computed.
+  if (/(^|\n)identity_status:\s*unknown\s*(?:#.*)?$/m.test(yaml)) {
+    return "unknown";
+  }
   if (
     /(^|\n)packet_status:\s*draft-held\s*(?:#.*)?$/m.test(yaml)
     || /(^|\n)project_id:\s*null\s*(?:#.*)?$/m.test(yaml)
@@ -1125,10 +1134,15 @@ try {
     let draftedCount = 0;
     let failedCount = 0;
     for (const candidateName of candidates) {
+      // --candidate accepts a nested vault-relative path. The basename stays the
+      // candidate's identity (project_id / repository); the path is only used to
+      // locate the repo and to find its catalogued ancestor in the registry.
       const repositoryPath = join(vaultRoot, candidateName);
+      const candidateBasename = basename(candidateName);
       try {
         const evidence = gatherPacketEvidence({
-          candidateName,
+          candidateName: candidateBasename,
+          candidateRelativePath: candidateName,
           portfolio,
           registry,
           gitRemoteUrl: gitRemoteUrlFor(repositoryPath),
