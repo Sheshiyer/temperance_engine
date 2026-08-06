@@ -87,17 +87,19 @@ function extractKnowledgeRef(sourceRefs: string[]): { value: string; isPlacehold
   };
 }
 
+export type PackageManager = "bun" | "pnpm" | "npm";
+
 function selectCommands(
   packageJsonScripts: Record<string, string> | null,
-  hasBunLock: boolean,
+  packageManager: PackageManager,
   needsReview: string[],
 ): { setupCommand: string; testCommand: string; verifyCommand: string } {
   if (!packageJsonScripts) {
     needsReview.push("commands.verify");
     return { setupCommand: "not-applicable", testCommand: "not-applicable", verifyCommand: "true" };
   }
-  const runner = hasBunLock ? "bun" : "npm";
-  const setupCommand = hasBunLock ? "bun install" : "npm install";
+  const runner = packageManager;
+  const setupCommand = `${packageManager} install`;
   const testCommand = packageJsonScripts.test ? `${runner} run test` : "not-applicable";
   let verifyCommand: string;
   if (packageJsonScripts.build) {
@@ -117,7 +119,7 @@ export function gatherPacketEvidence(input: {
   registry: CanonicalRegistry;
   gitRemoteUrl: string | null;
   packageJsonScripts: Record<string, string> | null;
-  hasBunLock: boolean;
+  packageManager: PackageManager;
 }): PacketEvidence {
   const workObject = matchCandidateToWorkObject(input.candidateName, input.registry);
   const needsReview: string[] = [];
@@ -132,7 +134,7 @@ export function gatherPacketEvidence(input: {
 
   const { setupCommand, testCommand, verifyCommand } = selectCommands(
     input.packageJsonScripts,
-    input.hasBunLock,
+    input.packageManager,
     needsReview,
   );
 

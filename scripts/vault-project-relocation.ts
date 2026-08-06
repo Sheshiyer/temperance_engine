@@ -37,7 +37,7 @@ import {
   applyCopilotSessionFix,
   receiptPathFor,
 } from "../package/relocation/copilot-session-fix";
-import { gatherPacketEvidence, type CanonicalRegistry } from "../package/relocation/packet-evidence";
+import { gatherPacketEvidence, type CanonicalRegistry, type PackageManager } from "../package/relocation/packet-evidence";
 import { renderPacket } from "../package/relocation/packet-draft";
 
 const DESTINATION_ROOT = "/Volumes/madara/2026/Projects";
@@ -201,8 +201,10 @@ function packageJsonScriptsFor(repositoryPath: string): Record<string, string> |
   }
 }
 
-function hasBunLockFor(repositoryPath: string): boolean {
-  return existsSync(join(repositoryPath, "bun.lock")) || existsSync(join(repositoryPath, "bun.lockb"));
+function detectPackageManager(repositoryPath: string): PackageManager {
+  if (existsSync(join(repositoryPath, "bun.lock")) || existsSync(join(repositoryPath, "bun.lockb"))) return "bun";
+  if (existsSync(join(repositoryPath, "pnpm-lock.yaml"))) return "pnpm";
+  return "npm";
 }
 
 /**
@@ -879,7 +881,7 @@ try {
           registry,
           gitRemoteUrl: gitRemoteUrlFor(repositoryPath),
           packageJsonScripts: packageJsonScriptsFor(repositoryPath),
-          hasBunLock: hasBunLockFor(repositoryPath),
+          packageManager: detectPackageManager(repositoryPath),
         });
         const preExisting = detectPreExistingPacketFiles(repositoryPath);
         if (preExisting.length > 0) {

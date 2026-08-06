@@ -54,14 +54,14 @@ describe("matchCandidateToWorkObject", () => {
 });
 
 describe("gatherPacketEvidence", () => {
-  test("full confident match: vault knowledge ref, GitHub identity, build script, bun lockfile", () => {
+  test("full confident match: vault knowledge ref, GitHub identity, build script, npm project", () => {
     const evidence = gatherPacketEvidence({
       candidateName: "hostscalev0",
       portfolio: "thoughtseed",
       registry: REGISTRY,
       gitRemoteUrl: "https://github.com/Sheshiyer/hostscalev0.git",
       packageJsonScripts: { build: "next build", dev: "next dev" },
-      hasBunLock: false,
+      packageManager: "npm",
     });
     expect(evidence.projectId).toBe("hostscalev0");
     expect(evidence.workObjectId).toBe("sapling:hostscale");
@@ -76,17 +76,31 @@ describe("gatherPacketEvidence", () => {
     expect(evidence.needsReview).toEqual([]);
   });
 
-  test("bun lockfile present selects bun as the runner", () => {
+  test("bun package manager selects bun as the runner", () => {
     const evidence = gatherPacketEvidence({
       candidateName: "thoughtseed-paperclip",
       portfolio: "thoughtseed",
       registry: REGISTRY,
       gitRemoteUrl: "https://github.com/Sheshiyer/thoughtseed-paperclip.git",
       packageJsonScripts: { start: "./scripts/babysitter.sh start" },
-      hasBunLock: true,
+      packageManager: "bun",
     });
     expect(evidence.setupCommand).toBe("bun install");
     expect(evidence.knowledgeRef).toBe("00-meta/system-of-records.md");
+  });
+
+  test("pnpm package manager selects pnpm as the runner for both setup and verify", () => {
+    const evidence = gatherPacketEvidence({
+      candidateName: "hostscalev0",
+      portfolio: "thoughtseed",
+      registry: REGISTRY,
+      gitRemoteUrl: "https://github.com/Sheshiyer/hostscalev0.git",
+      packageJsonScripts: { build: "vite build", test: "vitest run" },
+      packageManager: "pnpm",
+    });
+    expect(evidence.setupCommand).toBe("pnpm install");
+    expect(evidence.testCommand).toBe("pnpm run test");
+    expect(evidence.verifyCommand).toBe("pnpm run build");
   });
 
   test("no package.json: setup and test are not-applicable, verify is the flagged placeholder", () => {
@@ -96,7 +110,7 @@ describe("gatherPacketEvidence", () => {
       registry: REGISTRY,
       gitRemoteUrl: "https://github.com/Sheshiyer/hostscalev0.git",
       packageJsonScripts: null,
-      hasBunLock: false,
+      packageManager: "npm",
     });
     expect(evidence.setupCommand).toBe("not-applicable");
     expect(evidence.testCommand).toBe("not-applicable");
@@ -111,7 +125,7 @@ describe("gatherPacketEvidence", () => {
       registry: REGISTRY,
       gitRemoteUrl: "https://github.com/Sheshiyer/thoughtseed-paperclip.git",
       packageJsonScripts: { standup: "./scripts/standup.sh" },
-      hasBunLock: true,
+      packageManager: "bun",
     });
     expect(evidence.verifyCommand).toBe("true");
     expect(evidence.needsReview).toContain("commands.verify");
@@ -125,7 +139,7 @@ describe("gatherPacketEvidence", () => {
       registry: REGISTRY,
       gitRemoteUrl: "https://github.com/Sheshiyer/hostscalev0.git",
       packageJsonScripts: { test: "vitest run" },
-      hasBunLock: false,
+      packageManager: "npm",
     });
     expect(evidence.testCommand).toBe("npm run test");
     expect(evidence.verifyCommand).toBe("npm run test");
@@ -150,7 +164,7 @@ describe("gatherPacketEvidence", () => {
       registry: registryNoVaultRef,
       gitRemoteUrl: "https://github.com/Sheshiyer/hostscalev0.git",
       packageJsonScripts: { build: "next build" },
-      hasBunLock: false,
+      packageManager: "npm",
     });
     expect(evidence.knowledgeRefIsPlaceholder).toBe(true);
     expect(evidence.needsReview).toContain("knowledge_ref");
@@ -163,7 +177,7 @@ describe("gatherPacketEvidence", () => {
       registry: REGISTRY,
       gitRemoteUrl: null,
       packageJsonScripts: { build: "next build" },
-      hasBunLock: false,
+      packageManager: "npm",
     });
     expect(evidence.githubIdentity).toBeUndefined();
     expect(evidence.identityStatus).toBe("unknown");
@@ -176,7 +190,7 @@ describe("gatherPacketEvidence", () => {
       registry: REGISTRY,
       gitRemoteUrl: "https://gitlab.com/some/nested/path/hostscalev0.git",
       packageJsonScripts: { build: "next build" },
-      hasBunLock: false,
+      packageManager: "npm",
     });
     expect(evidence.githubIdentity).toBeUndefined();
     expect(evidence.identityStatus).toBe("unknown");
