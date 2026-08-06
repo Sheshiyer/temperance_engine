@@ -19,6 +19,7 @@ import {
   isCanonicalizableRepositorySegment,
 } from "../package/relocation/project-relocation-grammar";
 import { projectDestinationPath } from "../package/relocation/project-destination-path";
+import { toPortablePath } from "../package/relocation/project-portable-path";
 import { discoverNestedGitRoots } from "../package/relocation/project-nested-repo-discovery";
 import { findCandidateCollisions } from "../package/relocation/project-candidate-collision";
 import { parseFlatProjectYaml } from "../package/relocation/project-packet";
@@ -48,6 +49,8 @@ import { resolveWorkflowProvenance, renderWorkflowProvenanceMd } from "../packag
 import { writeWorkObjectEntry } from "../package/relocation/work-object-registry-write";
 
 const DESTINATION_ROOT = "/Volumes/madara/2026/Projects";
+/** Roots for aliasing paths written into committed (public) artifacts. */
+const PORTABLE_ROOTS = { vault: "/Volumes/madara/2026/twc-vault", projects: DESTINATION_ROOT };
 const PORTFOLIO_ROOTS = {
   thoughtseed: "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed",
   "tryambakam-noesis": "/Volumes/madara/2026/twc-vault/01-Projects/tryambakam-noesis",
@@ -983,6 +986,7 @@ try {
       unresolvedPathConsumers: plan.pathConsumers.checkedInMatches,
       otherPortfolioRegistryEntries: listRegistryEntryIdentities(registryRootFor(OTHER_PORTFOLIO[plan.portfolio])),
       registryEntryDirectoryPath: registryEntryPath(plan.portfolio, plan.repository.name),
+      registryOldPath: toPortablePath(source, PORTABLE_ROOTS),
       registryHostStatusPorcelain: registryHostStatus.status === 0 ? registryHostStatus.stdout : "",
       approvedRegistryHostBaselineDigest: registryBaselineDigest,
       knowledgeRef:

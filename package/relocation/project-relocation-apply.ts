@@ -94,6 +94,8 @@ export interface ApplyTransactionInput {
   registryEntryDirectoryPath: string;
   registryHostStatusPorcelain: string;
   approvedRegistryHostBaselineDigest?: string;
+  /** Portable (`$VAULT/...`) form of `source` for the committed registry entry. */
+  registryOldPath?: string;
   knowledgeRef: string;
   rollbackCommand: string;
   lockFilePath: string;
@@ -178,7 +180,11 @@ export function applyRelocationTransaction(input: ApplyTransactionInput): ApplyT
       stableId: input.stableId,
       portfolio: input.portfolio,
       githubIdentity: input.githubIdentity,
-      oldPath: input.source,
+      // Aliased form when the caller supplies one: the registry entry is a
+      // committed artifact in a public repository, unlike the capsule below,
+      // which stays absolute because it is a local breadcrumb read by whoever
+      // lands on the old path.
+      oldPath: input.registryOldPath ?? input.source,
       packetDigest: input.packetDigest,
       transitions: appendReconcilingTransition([], {
         at: new Date().toISOString(),
