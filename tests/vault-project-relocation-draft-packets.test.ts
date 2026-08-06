@@ -216,4 +216,29 @@ describe("draft-packets CLI subcommand", () => {
     expect(yaml).toContain("setup: pnpm install");
     expect(yaml).toContain("verify: pnpm run build");
   });
+
+  test("fails closed when --vault-root's basename doesn't match --portfolio", () => {
+    const outputPath = join(fixtureRoot, "review-summary.md");
+    expect(() =>
+      execFileSync(
+        "bun",
+        [
+          join(import.meta.dir, "..", "scripts", "vault-project-relocation.ts"),
+          "draft-packets",
+          "--vault-root",
+          join(fixtureRoot, "thoughtseed"),
+          "--portfolio",
+          "tryambakam-noesis",
+          "--registry-path",
+          join(fixtureRoot, "thoughtseed-labs", "00-meta", "work-object-registry.v1.json"),
+          "--candidate",
+          "example-app",
+          "--output",
+          outputPath,
+        ],
+        { encoding: "utf8" },
+      ),
+    ).toThrow();
+    expect(existsSync(outputPath)).toBe(false);
+  });
 });

@@ -514,6 +514,25 @@ function inferPortfolio(path: string): Portfolio | null {
   return null;
 }
 
+/**
+ * `--vault-root` and `--portfolio` are accepted as two independent CLI
+ * flags (draft-packets and new-project both take them), which lets an
+ * operator pass a mismatched pair -- e.g. a thoughtseed vault-root with
+ * --portfolio tryambakam-noesis -- silently baking the wrong portfolio
+ * into drafted/scaffolded packet content while writing real files under
+ * the OTHER portfolio's directory tree. Checked by basename rather than
+ * exact equality against PORTFOLIO_ROOTS so fixture-directory tests (which
+ * use a temp root's "thoughtseed"-named child, not the real hardcoded
+ * vault path) keep working -- the real portfolio roots' own basenames are
+ * exactly "thoughtseed" and "tryambakam-noesis", so this check is exact
+ * for real runs and still meaningful for fixtures.
+ */
+function assertVaultRootMatchesPortfolio(vaultRoot: string, portfolio: Portfolio): void {
+  if (basename(vaultRoot) !== portfolio) {
+    throw new Error(`vault_root_portfolio_mismatch:${basename(vaultRoot)}:${portfolio}`);
+  }
+}
+
 function trackedInventorySha(path: string): string | null {
   const value = git(path, ["ls-files", "-z"]);
   return value == null ? null : sha256(value);
@@ -881,6 +900,7 @@ try {
         "draft_packets_requires_vault_root_portfolio_registry_path_output_and_at_least_one_candidate",
       );
     }
+    assertVaultRootMatchesPortfolio(vaultRoot, portfolio);
     const registry = JSON.parse(readFileSync(registryPath, "utf8")) as CanonicalRegistry;
     const summaryLines: string[] = ["# Packet draft summary", ""];
     let draftedCount = 0;
@@ -964,6 +984,7 @@ try {
         "new_project_requires_vault_root_portfolio_name_kind_registry_path_and_output",
       );
     }
+    assertVaultRootMatchesPortfolio(vaultRoot, portfolio);
     if (!isCanonicalRepositoryBasename(name)) {
       throw new Error(`repository_basename_invalid:${JSON.stringify(name)}`);
     }

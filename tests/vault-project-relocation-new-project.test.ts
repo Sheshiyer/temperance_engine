@@ -166,4 +166,32 @@ describe("new-project CLI subcommand", () => {
     ).toThrow();
     expect(existsSync(join(vaultRoot, "client-dup", "PROJECT.md"))).toBe(true);
   });
+
+  test("fails closed when --vault-root's basename doesn't match --portfolio", () => {
+    const outputPath = join(fixtureRoot, "receipt.json");
+    expect(() =>
+      execFileSync(
+        "bun",
+        [
+          join(import.meta.dir, "..", "scripts", "vault-project-relocation.ts"),
+          "new-project",
+          "--vault-root",
+          vaultRoot,
+          "--portfolio",
+          "tryambakam-noesis",
+          "--name",
+          "client-mismatch",
+          "--kind",
+          "sapling",
+          "--registry-path",
+          registryPath,
+          "--output",
+          outputPath,
+        ],
+        { encoding: "utf8" },
+      ),
+    ).toThrow();
+    expect(existsSync(join(vaultRoot, "client-mismatch"))).toBe(false);
+    expect(existsSync(outputPath)).toBe(false);
+  });
 });
