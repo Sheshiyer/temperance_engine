@@ -21,6 +21,7 @@ import {
   qualifiedStableId,
 } from "../package/relocation/project-relocation-grammar";
 import { projectDestinationPath } from "../package/relocation/project-destination-path";
+import { symlinkDependentsOf, type SymlinkCandidate } from "../package/relocation/project-symlink-dependents";
 import { toPortablePath } from "../package/relocation/project-portable-path";
 import { discoverNestedGitRoots } from "../package/relocation/project-nested-repo-discovery";
 import { findCandidateCollisions } from "../package/relocation/project-candidate-collision";
@@ -85,6 +86,17 @@ const ALWAYS_HELD_THOUGHTSEED_NAMES = new Set([
   // held the registry. Pinning the host is a precondition of the host being
   // trustworthy, not a statement about cambium's own lifecycle.
   "cambium",
+  // 63 symlinks point INTO this repo: ~/.agents/skill-clusters plus 62 under
+  // ~/.agents/skills/* that form the working set auto-loaded every session.
+  // It is the hands/taste organ and its WorkObject is program:skill-clusters --
+  // a capability, not portfolio work -- so relocating it buys cosmetic
+  // consistency and risks silent skill-resolution failure.
+  //
+  // Note the distinguishing property is NOT "is an organ": brandmint-v2 is
+  // Sheshiyer/meristem, the genesis organ, and relocated cleanly because
+  // nothing symlinks into it. The rule is whether anything points at it, which
+  // is what external_symlink_dependent now checks generally.
+  "Skill-clusters",
 ]);
 
 /**
@@ -110,6 +122,7 @@ function heldSegmentOnPath(portfolio: Portfolio, sourceRoot: string, path: strin
 function heldReasonFor(segment: string): string {
   if (segment === "thoughtseed-labs") return "pinned_knowledge_vault";
   if (segment === "cambium") return "registry_host_repository";
+  if (segment === "Skill-clusters") return "skill_resolution_root";
   return "owner_mapping_or_active_control_hold";
 }
 
@@ -180,6 +193,12 @@ interface InventoryRecord {
    * A depth-0 repo's identity is just its name, so flat entries are unchanged.
    */
   stableId: string;
+  /**
+   * External symlinks pointing at or into this repo; each breaks on a move.
+   * `null` means the check did not run because no manifest was supplied --
+   * distinct from `[]`, which means it ran and found none.
+   */
+  symlinkDependents: { link: string; target: string }[] | null;
   /** Canonical container path above the repo; null for depth-0 candidates. */
   tenant: string | null;
   /** Segments canonicalization rewrote, surfaced for the approval boundary. */
@@ -340,6 +359,20 @@ function parseIdentityOverride(values: Record<string, string | boolean>): Identi
     throw new Error("allow_unverified_identity_requires_override_ratifier_and_override_reason");
   }
   return { reason, ratifier, waivedHold: "packet_identity_pending_teamforge" };
+}
+
+/**
+ * Reads the manifest produced by scripts/scan-symlink-dependents.ts. Returns
+ * undefined when the flag is absent, which makes the plan report
+ * `symlinkDependents: null` -- "not checked", never mistaken for "clean".
+ */
+function loadSymlinkManifest(values: Record<string, string | boolean>): SymlinkCandidate[] | undefined {
+  const path = typeof values["--symlink-manifest"] === "string" ? values["--symlink-manifest"] : "";
+  if (!path) return undefined;
+  if (!isAbsolute(path)) throw new Error("symlink_manifest_must_be_absolute");
+  const parsed = JSON.parse(readFileSync(path, "utf8")) as { candidates?: SymlinkCandidate[] };
+  if (!Array.isArray(parsed.candidates)) throw new Error("symlink_manifest_missing_candidates");
+  return parsed.candidates;
 }
 
 function stableManifestDigest(plan: PlanReport): string {
@@ -765,7 +798,12 @@ function packetIdentityStatus(
   return "unknown";
 }
 
-function buildPlan(sourcePath: string, identityOverride?: IdentityOverride): PlanReport {
+
+function buildPlan(
+  sourcePath: string,
+  identityOverride?: IdentityOverride,
+  symlinkManifest?: SymlinkCandidate[],
+): PlanReport {
   const source = resolve(sourcePath);
   const name = basename(source);
   const portfolio = inferPortfolio(source);
@@ -832,6 +870,22 @@ function buildPlan(sourcePath: string, identityOverride?: IdentityOverride): Pla
       holdReasons.push(`packet_not_valid:${(validation.errors ?? []).join("; ")}`);
     }
   }
+  // Outward dependency check. Tooling wired to this repo's CURRENT path breaks
+  // silently on relocation, and nothing else looks for it -- the path-consumer
+  // audit only inspects tracked files INSIDE the repo.
+  // Evidence this function does NOT gather itself, exactly like packet
+  // validation and the path-consumer audit: scanning it would mean walking
+  // ~/.claude, ~/.kimi and friends, i.e. the provider-home traversal this
+  // subsystem forbids and has an executable source guard against. The operator
+  // supplies it via scripts/scan-symlink-dependents.ts.
+  //
+  // null means NOT CHECKED; [] means checked and clean. Never conflate them.
+  const symlinkDependents = symlinkManifest
+    ? symlinkDependentsOf(source, symlinkManifest)
+    : null;
+  if (symlinkDependents && symlinkDependents.length > 0) {
+    holdReasons.push(`external_symlink_dependent:${symlinkDependents.length}`);
+  }
   const identityStatus = packetIdentityStatus(source, present);
   // Only the *pending* state is waivable. `unknown` means the packet could not
   // be read or parsed at all, which is a different failure -- overriding it
@@ -861,6 +915,7 @@ function buildPlan(sourcePath: string, identityOverride?: IdentityOverride): Pla
     source,
     destination,
     stableId: qualifiedStableId(projected.segments),
+    symlinkDependents,
     tenant: projected.tenant,
     destinationRewrites: projected.rewritten,
     ...(identityOverride ? { identityOverride } : {}),
@@ -950,6 +1005,7 @@ try {
       "--allow-unverified-identity",
       "--override-ratifier",
       "--override-reason",
+      "--symlink-manifest",
     ]);
     const repository = typeof values["--repository"] === "string" ? values["--repository"] : "";
     const output = typeof values["--output"] === "string" ? values["--output"] : "";
@@ -957,7 +1013,7 @@ try {
     if (!repository || !output || !isAbsolute(repository) || !isAbsolute(output) || !dryRun) {
       throw new Error("plan_requires_absolute_repository_output_and_dry_run");
     }
-    const plan = buildPlan(repository, parseIdentityOverride(values));
+    const plan = buildPlan(repository, parseIdentityOverride(values), loadSymlinkManifest(values));
     writeOwnerOnly(resolve(output), plan);
     console.log(
       JSON.stringify({
@@ -978,6 +1034,7 @@ try {
       "--allow-unverified-identity",
       "--override-ratifier",
       "--override-reason",
+      "--symlink-manifest",
     ]);
     const repository = typeof values["--repository"] === "string" ? values["--repository"] : "";
     const manifestDigest = typeof values["--manifest-digest"] === "string" ? values["--manifest-digest"] : "";
@@ -998,7 +1055,7 @@ try {
     }
 
     const source = resolve(repository);
-    const plan = buildPlan(source, parseIdentityOverride(values));
+    const plan = buildPlan(source, parseIdentityOverride(values), loadSymlinkManifest(values));
     if (!plan.portfolio) throw new Error("source_not_under_approved_portfolio_root");
 
     const projectYamlPath = join(source, ".project/project.yaml");
