@@ -161,20 +161,16 @@ bun scripts/vault-project-relocation.ts new-project \
 workflow) produces a fixed-folder-only scaffold with no error and no
 `WORKFLOW.md`.
 
-`--kind`'s exact allowed value set is unresolved and must be confirmed as
-the first implementation step, not assumed here: direct code research
-found `PacketEvidence.workObjectKind` typed as exactly
-`"sapling" | "program"` in `packet-evidence.ts`, but earlier real work this
-session matched existing registry entries with a `branch:` prefix (e.g.
-`branch:bwssb`, `branch:valmark`, `branch:harsh-truths`) — meaning either
-`RegistryWorkObject.kind` (the raw registry field, as opposed to the
-possibly-narrower `PacketEvidence.workObjectKind` derived from it) supports
-a third value the packet-evidence interface doesn't fully expose, or
-`branch:`-prefixed entries are handled through a different path entirely.
-The implementer must re-read `RegistryWorkObject`'s actual definition (not
-just `PacketEvidence`'s) and the real `work-object-registry.v1.json`
-directly to settle this before writing `--kind`'s validation, rather than
-trusting either source alone.
+**Resolved during planning:** `--kind` accepts exactly `sapling` or
+`program`, matching `RegistryWorkObject.kind: "sapling" | "program"` in
+`packet-evidence.ts` (confirmed by direct re-read of the type definition,
+not just the research brief). The `branch:`-prefixed identifiers observed
+in real registry entries earlier this session (e.g. `branch:bwssb`,
+`branch:valmark`) are `workId` *string* values — `workId` is an opaque
+string matched by equality in `matchCandidateToWorkObject`, not a value
+parsed apart from `kind` — so a `branch:`-style `workId` naming convention
+coexists independently of the two-value `kind` enum; it does not imply a
+third `kind` value exists.
 
 ## Data flow
 
