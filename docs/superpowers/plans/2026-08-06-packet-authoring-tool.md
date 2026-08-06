@@ -642,7 +642,7 @@ function renderContextMd(evidence: PacketEvidence): string {
   const reviewSection =
     evidence.needsReview.length === 0
       ? "No fields were flagged during drafting — every field in this packet came from a real, sourced value."
-      : `The following fields need review before this packet moves to
+      : `This packet needs review for the following fields before moving to
 \`reviewed-held\`, since this tool could not confidently source them:
 
 ${evidence.needsReview.map((field) => `- \`${field}\``).join("\n")}`;
