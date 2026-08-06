@@ -148,9 +148,25 @@ export function looksLikeSecret(value: string): boolean {
   return (
     /-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(value) ||
     /^(sk|ghp|gho|ghu|ghs|AKIA)[-_]?[A-Za-z0-9]{16,}$/.test(value) ||
-    /^[A-Za-z0-9+/]{40,}={0,2}$/.test(value) ||
+    (!isAbsolutePosixPath(value) && /^[A-Za-z0-9+/]{40,}={0,2}$/.test(value)) ||
     /^[0-9a-f]{32,}$/i.test(value)
   );
+}
+
+/**
+ * The base64-shape check treats `/` as a payload character, so a sufficiently
+ * long absolute path made only of alphanumerics and separators matches it. The
+ * relocation destination root has no hyphens or dots, which made every
+ * alphanumerically-named repository's destination read as a credential and
+ * abort its capsule write mid-relocation.
+ *
+ * Exempting absolute paths from *that one check* is safe: a leading slash
+ * followed by slash-separated segments is not a credential encoding. The
+ * key-material, token-prefix, and hex checks still run on every value, so
+ * secrets embedded in or alongside a path are still caught.
+ */
+function isAbsolutePosixPath(value: string): boolean {
+  return value.startsWith("/") && value.slice(1).includes("/");
 }
 
 function looksLikeMachineLocalPath(value: string): boolean {

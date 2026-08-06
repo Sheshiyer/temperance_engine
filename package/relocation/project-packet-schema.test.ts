@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 
-import { validateProjectYaml } from "./project-packet-schema";
+import { looksLikeSecret, validateProjectYaml } from "./project-packet-schema";
 
 // Relocated for real on 2026-08-06; the old vault path now holds the capsule.
 const THOUGHTSEED_BRAND_ATLAS_REPO =
@@ -428,5 +428,48 @@ describe("validateProjectYaml — regression against the real committed canary p
     expect(validateProjectYaml(VALID_THOUGHTSEED_PACKET, { approvedLanes: APPROVED_LANES })).toEqual({
       valid: true,
     });
+  });
+});
+
+const PEM_HEADER = ["-----", "BEGIN RSA ", "PRIVATE KEY", "-----"].join("");
+
+describe("looksLikeSecret — path false positives", () => {
+  test("REGRESSION: a relocation destination path is not a credential", () => {
+    // The destination root contains no hyphens or dots, so any repository
+    // whose name is alphanumeric yields a pure [A-Za-z0-9/] string over 40
+    // characters — indistinguishable from base64 to the old heuristic. This
+    // aborted bwssb's capsule write AFTER its registry entry had already been
+    // committed, leaving a half-finished relocation. The canary escaped only
+    // because the hyphens in `thoughtseed-brand-atlas` broke the char class.
+    for (const path of [
+      "/Volumes/madara/2026/Projects/thoughtseed/bwssb",
+      "/Volumes/madara/2026/Projects/thoughtseed/fmrl",
+      "/Volumes/madara/2026/Projects/thoughtseed/klearkarma/snowglobe",
+      "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/bwssb",
+    ]) {
+      expect(looksLikeSecret(path)).toBe(false);
+    }
+  });
+
+  test("still catches real credentials", () => {
+    for (const secret of [
+      PEM_HEADER,
+      "ghp_abcdefghijklmnopqrstuvwxyz0123",
+      "AKIAIOSFODNN7EXAMPLE1234",
+      "dGhpcyBpcyBhIHZlcnkgbG9uZyBiYXNlNjQgc3RyaW5nIHZhbHVl",
+      "a3f5c8e1b2d4f6a8c0e2b4d6f8a0c2e4",
+    ]) {
+      expect(looksLikeSecret(secret)).toBe(true);
+    }
+  });
+
+  test("a 40+ char blob with no leading slash is still suspicious", () => {
+    expect(looksLikeSecret("abcdefghijklmnopqrstuvwxyz0123456789abcdef")).toBe(true);
+  });
+
+  test("key material is still caught even after a path-like prefix", () => {
+    // The exemption is only for the base64 *shape* check; the explicit
+    // key-material and token-prefix checks still run on every value.
+    expect(looksLikeSecret(`/tmp/x ${PEM_HEADER}`)).toBe(true);
   });
 });
