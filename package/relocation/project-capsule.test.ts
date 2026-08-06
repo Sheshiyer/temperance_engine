@@ -24,7 +24,7 @@ const VALID_INPUT: CapsuleInput = {
   newPath: "/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas",
   githubIdentity: "Sheshiyer/thoughtseed-brand-atlas",
   registryEntryPath:
-    "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed/thoughtseed-brand-atlas",
+    "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/cambium/docs/project-management/relocation-registry/thoughtseed/thoughtseed-brand-atlas",
   packetDigest: "a".repeat(64),
   knowledgeRef: "thoughtseed-labs/10-brand-essence/visual-identity-2026-08/",
   rollbackCommand: "bun scripts/vault-project-relocation.ts rollback --repository thoughtseed-brand-atlas",

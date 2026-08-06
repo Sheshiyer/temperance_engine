@@ -26,7 +26,7 @@ function fixtureEntryDir(): string {
 describe("registryRootFor", () => {
   test("resolves the ratified Thoughtseed registry root (ISC-730)", () => {
     expect(registryRootFor("thoughtseed")).toBe(
-      "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed",
+      "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/cambium/docs/project-management/relocation-registry/thoughtseed",
     );
   });
 
@@ -40,7 +40,7 @@ describe("registryRootFor", () => {
 describe("registryEntryPath", () => {
   test("joins the Thoughtseed root with the repository name", () => {
     expect(registryEntryPath("thoughtseed", "thoughtseed-brand-atlas")).toBe(
-      "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed/thoughtseed-brand-atlas",
+      "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/cambium/docs/project-management/relocation-registry/thoughtseed/thoughtseed-brand-atlas",
     );
   });
 

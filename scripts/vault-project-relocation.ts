@@ -55,7 +55,9 @@ const PORTFOLIO_ROOTS = {
 type Portfolio = keyof typeof PORTFOLIO_ROOTS;
 
 const REGISTRY_HOST_ROOTS: Record<Portfolio, string> = {
-  thoughtseed: "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs",
+  // See REGISTRY_ROOTS in project-registry.ts -- the registry host repo moved
+  // from thoughtseed-labs to cambium on 2026-08-07.
+  thoughtseed: "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/cambium",
   "tryambakam-noesis": "/Volumes/madara/2026/twc-vault/_System/10865xseed",
 };
 

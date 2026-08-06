@@ -15,8 +15,12 @@ import { isCanonicalRepositoryBasename } from "./project-relocation-grammar";
 export type Portfolio = "thoughtseed" | "tryambakam-noesis";
 
 const REGISTRY_ROOTS: Record<Portfolio, string> = {
+  // Moved out of thoughtseed-labs on 2026-08-07: cambium is the owner-
+  // designated single home for project-management and movement artifacts, so
+  // the registry sits beside the records and closures it refers to rather
+  // than in a different repository.
   thoughtseed:
-    "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed",
+    "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/cambium/docs/project-management/relocation-registry/thoughtseed",
   "tryambakam-noesis": "/Volumes/madara/2026/twc-vault/_System/10865xseed/projects",
 };
 
