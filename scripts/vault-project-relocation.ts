@@ -188,6 +188,24 @@ interface InventoryReport {
   counts: Record<string, number>;
 }
 
+/**
+ * An explicit, owner-ratified waiver of the TeamForge identity gate.
+ *
+ * Deliberately NOT a boolean and NOT defaultable: it requires a reason and a
+ * ratifier, it must be passed per invocation, and it is recorded in the plan,
+ * the receipt, and the registry entry. The gate still fails closed; this makes
+ * skipping it a visible, attributable act rather than a weaker check.
+ *
+ * Exists because the owner sequenced relocation before identity mapping --
+ * the portfolio tracker maps repositories to projects after they move, so
+ * requiring verification first would deadlock the move it depends on.
+ */
+interface IdentityOverride {
+  reason: string;
+  ratifier: string;
+  waivedHold: "packet_identity_pending_teamforge";
+}
+
 interface PlanReport {
   schemaVersion: 1;
   generatedAt: string;
@@ -205,6 +223,14 @@ interface PlanReport {
    * must show this rather than let it pass unseen.
    */
   destinationRewrites: { from: string; to: string; index: number }[];
+  /**
+   * Present only when the owner explicitly overrode the TeamForge identity
+   * gate for this repository. Part of the plan body, so it is covered by
+   * `stableManifestDigest` -- an overridden plan can never share a digest
+   * with a clean one, which means an approval granted for a verified plan
+   * cannot be replayed against an overridden apply.
+   */
+  identityOverride?: IdentityOverride;
   portfolio: Portfolio | null;
   repository: Pick<InventoryRecord, "name" | "entryType" | "repositoryKind" | "gitTopLevel" | "gitCommonDir" | "head" | "branch" | "remotes" | "statusPorcelainV2Sha256" | "device" | "inode">;
   packet: {
@@ -231,7 +257,15 @@ function usage(): never {
   bun scripts/vault-project-relocation.ts plan \
     --repository <absolute-source-path> \
     --dry-run \
-    --output <owner-only-manifest.json>
+    --output <owner-only-manifest.json> \
+    [--allow-unverified-identity --override-ratifier <who> --override-reason <why>]
+
+    --allow-unverified-identity waives ONLY the
+    packet_identity_pending_teamforge hold, and only when a ratifier and a
+    reason are both supplied. The waiver becomes part of the plan body, so it
+    changes stableManifestDigest -- an approval for a verified plan cannot be
+    replayed against an overridden apply. It never waives
+    packet_identity_unrecognized.
   bun scripts/vault-project-relocation.ts apply \
     --repository <absolute-source-path> \
     --manifest-digest <owner-approved-stable-manifest-digest> \
@@ -273,6 +307,26 @@ function usage(): never {
  * plans of the same real state ever match, defeating the entire point of
  * an "exact approved digest" gate.
  */
+/**
+ * Builds an IdentityOverride from CLI flags, or returns undefined when the
+ * override was not requested. All three flags are required together: the bare
+ * `--allow-unverified-identity` is rejected rather than defaulted, so a waiver
+ * always carries who authorized it and why.
+ */
+function parseIdentityOverride(values: Record<string, string | boolean>): IdentityOverride | undefined {
+  const requested = values["--allow-unverified-identity"] === true;
+  const ratifier = typeof values["--override-ratifier"] === "string" ? values["--override-ratifier"].trim() : "";
+  const reason = typeof values["--override-reason"] === "string" ? values["--override-reason"].trim() : "";
+  if (!requested) {
+    if (ratifier || reason) throw new Error("override_reason_requires_allow_unverified_identity");
+    return undefined;
+  }
+  if (!ratifier || !reason) {
+    throw new Error("allow_unverified_identity_requires_override_ratifier_and_override_reason");
+  }
+  return { reason, ratifier, waivedHold: "packet_identity_pending_teamforge" };
+}
+
 function stableManifestDigest(plan: PlanReport): string {
   const { generatedAt, ...stable } = plan;
   return sha256(JSON.stringify(stable));
@@ -687,7 +741,7 @@ function packetIdentityStatus(
   return "unknown";
 }
 
-function buildPlan(sourcePath: string): PlanReport {
+function buildPlan(sourcePath: string, identityOverride?: IdentityOverride): PlanReport {
   const source = resolve(sourcePath);
   const name = basename(source);
   const portfolio = inferPortfolio(source);
@@ -730,7 +784,12 @@ function buildPlan(sourcePath: string): PlanReport {
   const missing = REQUIRED_PACKET_FILES.filter((file) => !present.includes(file));
   if (missing.length > 0) holdReasons.push(`packet_missing:${missing.join(",")}`);
   const identityStatus = packetIdentityStatus(source, present);
-  if (identityStatus === "pending-teamforge-verification") holdReasons.push("packet_identity_pending_teamforge");
+  // Only the *pending* state is waivable. `unknown` means the packet could not
+  // be read or parsed at all, which is a different failure -- overriding it
+  // would waive a gate on evidence nobody has actually seen.
+  if (identityStatus === "pending-teamforge-verification" && !identityOverride) {
+    holdReasons.push("packet_identity_pending_teamforge");
+  }
   if (identityStatus === "unknown") holdReasons.push("packet_identity_unrecognized");
   const checkedInMatches = [...new Set([
     ...gitGrepFiles(source, source),
@@ -754,6 +813,7 @@ function buildPlan(sourcePath: string): PlanReport {
     destination,
     tenant: projected.tenant,
     destinationRewrites: projected.rewritten,
+    ...(identityOverride ? { identityOverride } : {}),
     portfolio,
     repository: {
       name,
@@ -806,15 +866,25 @@ function writeOwnerOnlyText(output: string, text: string): void {
   chmodSync(output, 0o600);
 }
 
+/**
+ * Value-less flags must be declared here. Previously `--dry-run` was the only
+ * one and it was hardcoded, so any new boolean flag silently consumed the
+ * following argument as its value -- which then read as "not requested"
+ * instead of erroring, turning a safety waiver into a no-op.
+ */
+const BOOLEAN_FLAGS = new Set(["--dry-run", "--allow-unverified-identity", "--no-relink"]);
+
 function parseFlagArgs(argv: string[], flags: string[]): Record<string, string | true> {
   const values: Record<string, string | true> = {};
   for (let i = 1; i < argv.length; i += 1) {
     const arg = argv[i];
     if (!flags.includes(arg)) throw new Error(`unknown_argument:${arg}`);
-    if (arg === "--dry-run") {
+    if (BOOLEAN_FLAGS.has(arg)) {
       values[arg] = true;
     } else {
-      values[arg] = argv[++i] ?? "";
+      const next = argv[++i];
+      if (next === undefined || next.startsWith("--")) throw new Error(`flag_requires_value:${arg}`);
+      values[arg] = next;
     }
   }
   return values;
@@ -823,14 +893,21 @@ function parseFlagArgs(argv: string[], flags: string[]): Record<string, string |
 try {
   const argv = process.argv.slice(2);
   if (argv[0] === "plan") {
-    const values = parseFlagArgs(argv, ["--repository", "--output", "--dry-run"]);
+    const values = parseFlagArgs(argv, [
+      "--repository",
+      "--output",
+      "--dry-run",
+      "--allow-unverified-identity",
+      "--override-ratifier",
+      "--override-reason",
+    ]);
     const repository = typeof values["--repository"] === "string" ? values["--repository"] : "";
     const output = typeof values["--output"] === "string" ? values["--output"] : "";
     const dryRun = values["--dry-run"] === true;
     if (!repository || !output || !isAbsolute(repository) || !isAbsolute(output) || !dryRun) {
       throw new Error("plan_requires_absolute_repository_output_and_dry_run");
     }
-    const plan = buildPlan(repository);
+    const plan = buildPlan(repository, parseIdentityOverride(values));
     writeOwnerOnly(resolve(output), plan);
     console.log(
       JSON.stringify({
@@ -848,6 +925,9 @@ try {
       "--lock",
       "--receipt-output",
       "--registry-baseline-digest",
+      "--allow-unverified-identity",
+      "--override-ratifier",
+      "--override-reason",
     ]);
     const repository = typeof values["--repository"] === "string" ? values["--repository"] : "";
     const manifestDigest = typeof values["--manifest-digest"] === "string" ? values["--manifest-digest"] : "";
@@ -868,7 +948,7 @@ try {
     }
 
     const source = resolve(repository);
-    const plan = buildPlan(source);
+    const plan = buildPlan(source, parseIdentityOverride(values));
     if (!plan.portfolio) throw new Error("source_not_under_approved_portfolio_root");
 
     const projectYamlPath = join(source, ".project/project.yaml");
