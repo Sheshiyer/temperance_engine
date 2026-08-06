@@ -157,6 +157,30 @@ parser for this project's own closed YAML subset (deliberately not a general YAM
 library — this repository has no `package.json`/`node_modules` for this module
 family, and the format is fully self-controlled).
 
+## Draft packets
+
+Drafts the six required packet files (`packet_status: draft-held`) for one
+or more candidate repositories, sourcing evidence primarily from the
+canonical registry (`work-object-registry.v1.json`) via each candidate's
+`sourceInventory` match, falling back to the candidate's git remote and
+`package.json` for fields the registry doesn't cover. Writes the files
+directly into each candidate's working tree — never commits. Produces one
+consolidated review summary listing every candidate's flagged fields.
+
+```text
+bun scripts/vault-project-relocation.ts draft-packets \
+  --vault-root <absolute-portfolio-root> \
+  --portfolio thoughtseed|tryambakam-noesis \
+  --registry-path <absolute-registry-json-path> \
+  --candidate <folder-name> [--candidate <folder-name> ...] \
+  --output <owner-only-review-summary.md>
+```
+
+A drafted packet is not ready for `plan`/`apply` until a human reviews it,
+resolves every flagged field, commits the six files, and updates
+`packet_status` to `reviewed-held` — the same review gate the canary packet
+went through before its own relocation.
+
 ## Dry-run and the exact approval digest
 
 `bun scripts/vault-project-relocation.ts plan --repository <path> --dry-run --output <path>`
