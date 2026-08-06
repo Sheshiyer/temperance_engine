@@ -192,8 +192,9 @@ describe("resolvePickupBootstrap — bounded to allowlisted context files only",
   });
 });
 
+// Relocated for real on 2026-08-06; the old vault path now holds the capsule.
 const THOUGHTSEED_BRAND_ATLAS_REPO =
-  "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-brand-atlas";
+  "/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas";
 
 describe("resolvePickupBootstrap — regression against the real committed canary packet", () => {
   test("resolves the actual thoughtseed-brand-atlas packet correctly (read-only — this resolver never writes)", () => {

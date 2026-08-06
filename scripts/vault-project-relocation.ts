@@ -12,9 +12,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 
-import { isCanonicalRepositoryBasename } from "../package/relocation/project-relocation-grammar";
+import {
+  isCanonicalRepositoryBasename,
+  isCanonicalizableRepositorySegment,
+} from "../package/relocation/project-relocation-grammar";
+import { projectDestinationPath } from "../package/relocation/project-destination-path";
 import { discoverNestedGitRoots } from "../package/relocation/project-nested-repo-discovery";
 import { findCandidateCollisions } from "../package/relocation/project-candidate-collision";
 import { parseFlatProjectYaml } from "../package/relocation/project-packet";
@@ -70,6 +74,71 @@ const ALWAYS_HELD_THOUGHTSEED_NAMES = new Set([
   "thoughtseed-labs",
 ]);
 
+/**
+ * Returns the pinned/owner-held segment on a candidate's vault-relative path,
+ * or null. Unlike the registry-readiness rules -- which really are specific to
+ * the direct-child list and do not generalize -- containment generalizes
+ * exactly: if `thoughtseed-labs` is pinned, a repository *inside* it is pinned
+ * too. Without this, `thoughtseed-labs/hermes-aws-ts` surfaced as a live
+ * candidate despite BOTH its own basename and its container being named in
+ * ALWAYS_HELD_THOUGHTSEED_NAMES, and relocating it would have moved a
+ * repository out of the registry host root itself.
+ */
+function heldSegmentOnPath(portfolio: Portfolio, sourceRoot: string, path: string): string | null {
+  if (portfolio !== "thoughtseed") return null;
+  const rootSegments = resolve(sourceRoot).split(sep).filter(Boolean);
+  const pathSegments = resolve(path).split(sep).filter(Boolean);
+  for (const segment of pathSegments.slice(rootSegments.length)) {
+    if (ALWAYS_HELD_THOUGHTSEED_NAMES.has(segment)) return segment;
+  }
+  return null;
+}
+
+function heldReasonFor(segment: string): string {
+  return segment === "thoughtseed-labs" ? "pinned_knowledge_vault" : "owner_mapping_or_active_control_hold";
+}
+
+interface ProjectedDestination {
+  destination: string;
+  tenant: string | null;
+  rewritten: { from: string; to: string; index: number }[];
+  holdReason: string | null;
+}
+
+/**
+ * Destination projection that degrades to a hold instead of throwing, so a
+ * single unprojectable name (a worktree directory, a dotted basename) can
+ * never abort a whole inventory scan. The fallback path is for the report
+ * only -- the accompanying hold reason keeps the entry from ever moving.
+ */
+function projectDestination(
+  portfolio: Portfolio,
+  sourceRoot: string,
+  path: string,
+): ProjectedDestination {
+  try {
+    const projection = projectDestinationPath({
+      destinationRoot: DESTINATION_ROOT,
+      portfolio,
+      sourceRoot,
+      sourcePath: path,
+    });
+    return {
+      destination: projection.destination,
+      tenant: projection.tenant,
+      rewritten: projection.rewritten,
+      holdReason: null,
+    };
+  } catch (error) {
+    return {
+      destination: join(DESTINATION_ROOT, portfolio, basename(path)),
+      tenant: null,
+      rewritten: [],
+      holdReason: `destination_not_projectable:${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 interface InventoryRecord {
   portfolio: Portfolio;
   sourceRoot: string;
@@ -86,6 +155,10 @@ interface InventoryRecord {
   device: number | null;
   inode: number | null;
   proposedDestination: string;
+  /** Canonical container path above the repo; null for depth-0 candidates. */
+  tenant: string | null;
+  /** Segments canonicalization rewrote, surfaced for the approval boundary. */
+  destinationRewrites: { from: string; to: string; index: number }[];
   grammarAccepted: boolean;
   destinationExists: boolean;
   disposition: "candidate" | "held" | "out-of-scope";
@@ -114,6 +187,14 @@ interface PlanReport {
   manifestApprovalRequired: true;
   source: string;
   destination: string;
+  /** Canonical container path above the repo; null for depth-0 candidates. */
+  tenant: string | null;
+  /**
+   * Segments canonicalization rewrote to reach `destination`. Non-empty means
+   * the destination name differs from the on-disk name -- Approval Boundary B
+   * must show this rather than let it pass unseen.
+   */
+  destinationRewrites: { from: string; to: string; index: number }[];
   portfolio: Portfolio | null;
   repository: Pick<InventoryRecord, "name" | "entryType" | "repositoryKind" | "gitTopLevel" | "gitCommonDir" | "head" | "branch" | "remotes" | "statusPorcelainV2Sha256" | "device" | "inode">;
   packet: {
@@ -332,8 +413,10 @@ function classifyRepository(path: string): Pick<InventoryRecord, "repositoryKind
 
 function inventoryEntry(portfolio: Portfolio, sourceRoot: string, name: string): InventoryRecord {
   const path = join(sourceRoot, name);
-  const proposedDestination = join(DESTINATION_ROOT, portfolio, name);
   const holdReasons: string[] = [];
+  const projected = projectDestination(portfolio, sourceRoot, path);
+  const proposedDestination = projected.destination;
+  if (projected.holdReason) holdReasons.push(projected.holdReason);
   let entryType: InventoryRecord["entryType"] = "other";
   let repository = {
     repositoryKind: "not-a-repository" as InventoryRecord["repositoryKind"],
@@ -357,13 +440,12 @@ function inventoryEntry(portfolio: Portfolio, sourceRoot: string, name: string):
   } catch (error) {
     holdReasons.push(`lstat_failed:${error instanceof Error ? error.message : String(error)}`);
   }
-  const grammarAccepted = isCanonicalRepositoryBasename(name);
-  if (!grammarAccepted) holdReasons.push("basename_not_canonical");
+  const grammarAccepted = isCanonicalizableRepositorySegment(name);
+  if (!grammarAccepted) holdReasons.push("basename_not_canonicalizable");
   if (entryType !== "directory") holdReasons.push(`entry_type:${entryType}`);
   if (repository.repositoryKind !== "standalone-repository") holdReasons.push(repository.repositoryKind);
-  if (portfolio === "thoughtseed" && ALWAYS_HELD_THOUGHTSEED_NAMES.has(name)) {
-    holdReasons.push(name === "thoughtseed-labs" ? "pinned_knowledge_vault" : "owner_mapping_or_active_control_hold");
-  }
+  const heldSegment = heldSegmentOnPath(portfolio, sourceRoot, path);
+  if (heldSegment) holdReasons.push(heldReasonFor(heldSegment));
   if (portfolio === "tryambakam-noesis") holdReasons.push("tn_registry_baseline_unresolved");
   if (existsSync(proposedDestination)) holdReasons.push("destination_exists");
   const disposition = holdReasons.length === 0 ? "candidate" : "held";
@@ -377,6 +459,8 @@ function inventoryEntry(portfolio: Portfolio, sourceRoot: string, name: string):
     device,
     inode,
     proposedDestination,
+    tenant: projected.tenant,
+    destinationRewrites: projected.rewritten,
     grammarAccepted,
     destinationExists: existsSync(proposedDestination),
     disposition,
@@ -388,13 +472,16 @@ function inventoryEntry(portfolio: Portfolio, sourceRoot: string, name: string):
 
 /**
  * Builds a full InventoryRecord for a path discovered by the recursive
- * nested-repo walk. Deliberately does not apply ALWAYS_HELD_THOUGHTSEED_NAMES
- * or the tn_registry_baseline_unresolved hold — those are owner-mapping/
- * registry-readiness concerns tied to the direct-child candidate list's
- * specific named entries, not something that generalizes correctly to an
- * arbitrary deep path. Deep candidates get exactly the checks that are
- * actually meaningful for them (grammar, repository kind, destination
- * collision), not a blind copy of every depth-0 rule.
+ * nested-repo walk. Still does not apply the tn_registry_baseline_unresolved
+ * hold — that is a registry-readiness concern tied to the direct-child
+ * candidate list, and does not generalize to an arbitrary deep path.
+ *
+ * ALWAYS_HELD_THOUGHTSEED_NAMES, however, is now applied by *path
+ * containment* rather than skipped. The original reasoning treated it as a
+ * depth-0-only rule, but that let `thoughtseed-labs/hermes-aws-ts` surface as
+ * a live candidate while both its own basename and its container were named
+ * in that set. A pinned container pins what is inside it; that is containment,
+ * not a blind copy of a depth-0 rule.
  */
 function nestedInventoryEntry(
   portfolio: Portfolio,
@@ -403,8 +490,10 @@ function nestedInventoryEntry(
 ): InventoryRecord {
   const name = basename(found.path);
   const immediateParentPath = dirname(found.path);
-  const proposedDestination = join(DESTINATION_ROOT, portfolio, name);
   const holdReasons: string[] = [];
+  const projected = projectDestination(portfolio, sourceRoot, found.path);
+  const proposedDestination = projected.destination;
+  if (projected.holdReason) holdReasons.push(projected.holdReason);
   let entryType: InventoryRecord["entryType"] = "other";
   let device: number | null = null;
   let inode: number | null = null;
@@ -417,10 +506,12 @@ function nestedInventoryEntry(
     holdReasons.push(`lstat_failed:${error instanceof Error ? error.message : String(error)}`);
   }
   const repository = classifyRepository(found.path);
-  const grammarAccepted = isCanonicalRepositoryBasename(name);
-  if (!grammarAccepted) holdReasons.push("basename_not_canonical");
+  const grammarAccepted = isCanonicalizableRepositorySegment(name);
+  if (!grammarAccepted) holdReasons.push("basename_not_canonicalizable");
   if (entryType !== "directory") holdReasons.push(`entry_type:${entryType}`);
   if (repository.repositoryKind !== "standalone-repository") holdReasons.push(repository.repositoryKind);
+  const heldSegment = heldSegmentOnPath(portfolio, sourceRoot, found.path);
+  if (heldSegment) holdReasons.push(heldReasonFor(heldSegment));
   if (existsSync(proposedDestination)) holdReasons.push("destination_exists");
   const disposition = holdReasons.length === 0 ? "candidate" : "held";
   return {
@@ -433,6 +524,8 @@ function nestedInventoryEntry(
     device,
     inode,
     proposedDestination,
+    tenant: projected.tenant,
+    destinationRewrites: projected.rewritten,
     grammarAccepted,
     destinationExists: existsSync(proposedDestination),
     disposition,
@@ -507,9 +600,22 @@ const REQUIRED_PACKET_FILES = [
   ".project/HANDOFF.md",
 ];
 
+/**
+ * Resolves a candidate's portfolio by path containment rather than by parent
+ * equality. Parent equality admitted only direct children, which meant a
+ * nested candidate (`thoughtseed/klear-karma/snowglobe`) could never be
+ * planned at all -- it held on `source_not_under_approved_portfolio_root`
+ * despite being plainly inside an approved root. Compares resolved segments,
+ * so a sibling root that merely shares a string prefix
+ * (`.../thoughtseed-labs` against `.../thoughtseed`) is not mistaken for a
+ * containing root.
+ */
 function inferPortfolio(path: string): Portfolio | null {
+  const pathSegments = resolve(path).split(sep).filter(Boolean);
   for (const [portfolio, root] of Object.entries(PORTFOLIO_ROOTS) as Array<[Portfolio, string]>) {
-    if (dirname(path) === root) return portfolio;
+    const rootSegments = resolve(root).split(sep).filter(Boolean);
+    if (pathSegments.length <= rootSegments.length) continue;
+    if (rootSegments.every((segment, index) => pathSegments[index] === segment)) return portfolio;
   }
   return null;
 }
@@ -576,7 +682,16 @@ function buildPlan(sourcePath: string): PlanReport {
   const name = basename(source);
   const portfolio = inferPortfolio(source);
   const holdReasons: string[] = [];
-  const destination = portfolio ? join(DESTINATION_ROOT, portfolio, name) : join(DESTINATION_ROOT, "unknown", name);
+  const projected: ProjectedDestination = portfolio
+    ? projectDestination(portfolio, PORTFOLIO_ROOTS[portfolio], source)
+    : {
+        destination: join(DESTINATION_ROOT, "unknown", name),
+        tenant: null,
+        rewritten: [],
+        holdReason: null,
+      };
+  const destination = projected.destination;
+  if (projected.holdReason) holdReasons.push(projected.holdReason);
   const repository = classifyRepository(source);
   let device: number | null = null;
   let inode: number | null = null;
@@ -592,7 +707,15 @@ function buildPlan(sourcePath: string): PlanReport {
   if (!portfolio) holdReasons.push("source_not_under_approved_portfolio_root");
   if (entryType !== "directory") holdReasons.push(`entry_type:${entryType}`);
   if (repository.repositoryKind !== "standalone-repository") holdReasons.push(repository.repositoryKind);
-  if (!isCanonicalRepositoryBasename(name)) holdReasons.push("basename_not_canonical");
+  if (!isCanonicalizableRepositorySegment(name)) holdReasons.push("basename_not_canonicalizable");
+  // Previously unguarded here: `plan` relied on the basename grammar to reject
+  // always-held names like `temperance_engine`, which only worked by accident
+  // of its underscore. Now that underscores canonicalize, the hold has to be
+  // stated explicitly or that protection disappears silently.
+  if (portfolio) {
+    const heldSegment = heldSegmentOnPath(portfolio, PORTFOLIO_ROOTS[portfolio], source);
+    if (heldSegment) holdReasons.push(heldReasonFor(heldSegment));
+  }
   const present = REQUIRED_PACKET_FILES.filter((file) => existsSync(join(source, file)));
   const missing = REQUIRED_PACKET_FILES.filter((file) => !present.includes(file));
   if (missing.length > 0) holdReasons.push(`packet_missing:${missing.join(",")}`);
@@ -619,6 +742,8 @@ function buildPlan(sourcePath: string): PlanReport {
     manifestApprovalRequired: true,
     source,
     destination,
+    tenant: projected.tenant,
+    destinationRewrites: projected.rewritten,
     portfolio,
     repository: {
       name,

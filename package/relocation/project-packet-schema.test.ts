@@ -3,8 +3,9 @@ import { spawnSync } from "node:child_process";
 
 import { validateProjectYaml } from "./project-packet-schema";
 
+// Relocated for real on 2026-08-06; the old vault path now holds the capsule.
 const THOUGHTSEED_BRAND_ATLAS_REPO =
-  "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-brand-atlas";
+  "/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas";
 
 const APPROVED_LANES = ["te-plan", "te-review", "te-build"];
 

@@ -13,8 +13,11 @@ import {
   readAndValidatePacket,
 } from "./project-packet";
 
+// Relocated for real on 2026-08-06. The old vault path still exists but now
+// holds the capsule, not the repository -- reading the packet from there
+// silently resolves capsule files instead of the real ones.
 const THOUGHTSEED_BRAND_ATLAS_REPO =
-  "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-brand-atlas";
+  "/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas";
 const APPROVED_LANES = ["te-plan", "te-review", "te-build"];
 
 function writeFile(root: string, relativePath: string, content: string): void {
