@@ -391,3 +391,53 @@ describe("listRegistryEntryIdentities — fixture registry roots only", () => {
     ]);
   });
 });
+
+describe("writeRegistryEntry — basename collision between different projects", () => {
+  test("REGRESSION: a different project claiming the same entry directory is refused by identity", () => {
+    // Entry directories are keyed on the repository basename, so
+    // `parkarea/wiki` and a future `iverif/wiki` would target the same
+    // directory. Nesting the registry to match the tenant-nested destination
+    // is not an option: listRegistryEntryIdentities is deliberately
+    // non-recursive and feeds assertNoCompetingRegistryClaim, so nested
+    // entries would silently stop being seen by the cross-portfolio check.
+    //
+    // Before this, the collision was caught only by accident — two fresh
+    // entries differ by transition timestamp, so transitionsShareApprovedPrefix
+    // rejected them as a "history rewrite". That is the wrong reason, reports
+    // a misleading error, and would pass outright if the timestamps matched.
+    const entryDir = fixtureEntryDir();
+    writeRegistryEntry(entryDir, OPENED_RECORD);
+
+    const differentProject: RegistryEntryRecord = {
+      ...OPENED_RECORD,
+      stableId: "wiki",
+      oldPath: "/vault/01-Projects/thoughtseed/iverif/wiki",
+    };
+
+    expect(() => writeRegistryEntry(entryDir, differentProject)).toThrow(
+      "registry_entry_identity_collision",
+    );
+  });
+
+  test("the collision is caught even when the transition log would have been accepted", () => {
+    // Identical transitions — the prefix check sees nothing wrong. Only an
+    // identity comparison catches this.
+    const entryDir = fixtureEntryDir();
+    writeRegistryEntry(entryDir, OPENED_RECORD);
+
+    const sameLogDifferentRepo: RegistryEntryRecord = {
+      ...OPENED_RECORD,
+      oldPath: "/vault/01-Projects/thoughtseed/somewhere-else/wiki",
+    };
+
+    expect(() => writeRegistryEntry(entryDir, sameLogDifferentRepo)).toThrow(
+      "registry_entry_identity_collision",
+    );
+  });
+
+  test("re-writing the SAME project is still allowed", () => {
+    const entryDir = fixtureEntryDir();
+    writeRegistryEntry(entryDir, OPENED_RECORD);
+    expect(() => writeRegistryEntry(entryDir, OPENED_RECORD)).not.toThrow();
+  });
+});

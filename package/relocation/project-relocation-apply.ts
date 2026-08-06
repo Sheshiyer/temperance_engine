@@ -22,7 +22,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import { CAPSULE_FILES, renderCapsuleFiles, type CapsuleInput } from "./project-capsule";
 import { classifyRepositoryByGitToplevel } from "./project-repository-classification";
@@ -44,7 +44,7 @@ import {
   releaseLock,
   runPreflight,
 } from "./project-relocation-transaction";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 
 const TRANSACTION_ACTOR = "vault-project-relocation-apply";
@@ -150,6 +150,34 @@ function gatherHoldReasons(input: ApplyTransactionInput): string[] {
     });
   } catch (error) {
     holdReasons.push(`registry_host_not_clean:${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  // Registry entry directories are keyed on the repository basename, so two
+  // repos of the same name under different tenants target the same directory.
+  // writeRegistryEntry refuses that, but it runs after the rename -- detecting
+  // it only there would strand the repository (moved, no entry, no capsule,
+  // rollback unable to help), which is the exact failure the capsule check was
+  // moved ahead of the rename to prevent. So it is a preflight hold.
+  const existingEntryPath = join(input.registryEntryDirectoryPath, "entry.json");
+  if (existsSync(existingEntryPath)) {
+    try {
+      const existing = JSON.parse(readFileSync(existingEntryPath, "utf8")) as {
+        stableId?: string;
+        oldPath?: string;
+      };
+      const sameProject =
+        existing.stableId === input.stableId &&
+        existing.oldPath === (input.registryOldPath ?? input.source);
+      if (!sameProject) {
+        holdReasons.push(
+          `registry_entry_identity_collision:${existing.stableId}@${existing.oldPath}`,
+        );
+      }
+    } catch (error) {
+      holdReasons.push(
+        `registry_entry_unreadable:${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   return holdReasons;

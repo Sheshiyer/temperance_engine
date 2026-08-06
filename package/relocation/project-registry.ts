@@ -199,10 +199,40 @@ function transitionsShareApprovedPrefix(
  * would shorten or alter any already-written transition is refused
  * (ISC-743, ISC-747): history only grows, it is never rewritten.
  */
+/**
+ * Two entries describe the same project only if both their stable identity and
+ * their origin agree. `stableId` alone is not enough: it is derived from the
+ * repository basename, which is exactly what collides.
+ */
+function describesSameProject(a: RegistryEntryRecord, b: RegistryEntryRecord): boolean {
+  return a.stableId === b.stableId && a.oldPath === b.oldPath;
+}
+
 export function writeRegistryEntry(entryDirectoryPath: string, record: RegistryEntryRecord): void {
   const filePath = join(entryDirectoryPath, "entry.json");
   if (existsSync(filePath)) {
     const existing = JSON.parse(readFileSync(filePath, "utf8")) as RegistryEntryRecord;
+
+    // Entry directories are keyed on the repository basename, so two repos with
+    // the same name under different tenants target the same directory --
+    // `parkarea/wiki` and a future `iverif/wiki`. Nesting the registry to mirror
+    // the tenant-nested destination is not available as a fix:
+    // listRegistryEntryIdentities is deliberately non-recursive and feeds
+    // assertNoCompetingRegistryClaim, so nested entries would silently stop
+    // being seen by the cross-portfolio check -- trading a loud collision for a
+    // quiet one.
+    //
+    // The transition-prefix check below does not cover this. It only rejected
+    // such a write when the two logs happened to differ, which for two fresh
+    // entries means "the timestamps differ" -- and it reported the misleading
+    // `history_rewrite_refused`. With identical logs it accepted the write and
+    // overwrote the first project's entry outright.
+    if (!describesSameProject(existing, record)) {
+      throw new Error(
+        `registry_entry_identity_collision:${existing.stableId}@${existing.oldPath}:${record.stableId}@${record.oldPath}`,
+      );
+    }
+
     if (!transitionsShareApprovedPrefix(existing.transitions, record.transitions)) {
       throw new Error("registry_entry_history_rewrite_refused");
     }

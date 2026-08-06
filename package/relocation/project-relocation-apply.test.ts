@@ -269,3 +269,43 @@ describe("applyRelocationTransaction — capsule is validated before the point o
     expect(existsSync(input.destination)).toBe(true);
   });
 });
+
+describe("applyRelocationTransaction — registry basename collision is a preflight hold", () => {
+  test("REGRESSION: an entry directory owned by a different project holds BEFORE the rename", () => {
+    // Entry directories are keyed on the repository basename, so two repos
+    // named `wiki` under different tenants target the same directory.
+    // writeRegistryEntry refuses that — but it runs inside
+    // recordPostRenameArtifacts, i.e. after the rename. Detecting it only
+    // there would strand the repository exactly like the capsule failure did:
+    // moved, no registry entry, no capsule, and rollback unable to help.
+    const root = fixtureRoot();
+    const input = validInput(root);
+
+    mkdirSync(input.registryEntryDirectoryPath, { recursive: true });
+    writeFileSync(
+      join(input.registryEntryDirectoryPath, "entry.json"),
+      JSON.stringify({
+        stableId: "source-repo",
+        portfolio: "thoughtseed",
+        oldPath: "/some/other/tenant/source-repo",
+        packetDigest: "c".repeat(64),
+        transitions: [{ type: "reconciling", at: "t0", actor: "x" }],
+      }),
+    );
+
+    const result = applyRelocationTransaction(input);
+
+    expect(result.applied).toBe(false);
+    expect(result.holdReasons.some((r) => r.startsWith("registry_entry_identity_collision"))).toBe(true);
+    expect(existsSync(input.source)).toBe(true);
+    expect(existsSync(input.destination)).toBe(false);
+  });
+
+  test("an entry directory owned by the SAME project does not hold", () => {
+    const root = fixtureRoot();
+    const input = validInput(root);
+    const first = applyRelocationTransaction(input);
+    expect(first.applied).toBe(true);
+    expect(first.heldStateReason).toBeNull();
+  });
+});
