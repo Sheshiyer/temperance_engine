@@ -132,15 +132,25 @@ sets, which stay untouched. When no workflow matches, this file is not
 created at all.
 
 **`work-object-registry-write.ts`** (I/O) — `writeWorkObjectEntry(registryPath,
-entry)`, a genuinely new write path (nothing writes to
-`work-object-registry.v1.json` today; Part 1 only reads it).
-`entry: RegistryWorkObject` with `workId` minted as `` `${kind}:${name}` ``.
-Before writing, checks whether `workId` already exists in the registry file
-and, if so, throws (`work_object_already_exists:<workId>`) rather than
-overwriting — mirroring `project-registry.ts`'s established
-refuse-not-clobber discipline (`registry_entry_history_rewrite_refused`,
-`assertNoCompetingRegistryClaim`). Uses the same `writeOwnerOnly`-style
-`0o700`/`0o600` write idiom as every other mutating write in this package.
+registration)`, a genuinely new write path (nothing writes to
+`work-object-registry.v1.json` today; Part 1 only reads it). Writes
+**two** things atomically, not one: a `RegistryWorkObject` (`workId` minted
+as `` `${kind}:${name}` ``, `sourceRefs` seeded with a `repo:<name>`-style
+evidence pointer — matching the observed convention of every existing
+`sourceRefs` entry, never a raw filesystem path, consistent with this
+codebase's general aversion to embedding machine-local paths in reference
+fields) *and* a `sourceInventory` entry (`{ path: <new project's real
+vault path>, workRefs: [workId] }`). Both are required: `workObjects` alone
+would register the identity but leave it unreachable, since
+`matchCandidateToWorkObject` looks a folder up by its `sourceInventory`
+entry first, not by scanning `workObjects` directly. Before writing, checks
+whether `workId` *or* the target `sourceInventory` path already exists and,
+if so, throws (`work_object_already_exists:<workId>` /
+`source_inventory_path_already_exists:<path>`) rather than overwriting —
+mirroring `project-registry.ts`'s established refuse-not-clobber discipline
+(`registry_entry_history_rewrite_refused`, `assertNoCompetingRegistryClaim`).
+Uses the same `writeOwnerOnly`-style `0o700`/`0o600` write idiom as every
+other mutating write in this package.
 
 **`scripts/vault-project-relocation.ts`** (modified) — adds the
 `new-project` subcommand:
