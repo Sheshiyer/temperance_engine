@@ -34,7 +34,9 @@ This was checked directly against the filesystem and Git state, not assumed from
 | Docs + full verify-all wiring + source guards (Task 9) | **Not started beyond the one grammar-test line already wired.** | |
 | Destination root | **Confirmed empty** | `ls -la /Volumes/madara/2026/Projects/` → no entries besides `.`/`..`. |
 
-**Bottom line:** the project is exactly where its own docs say it should be — sitting at the Stage 4 dry-run gate for one canary, inside the Aug 3 doc's "Planning-only boundary." No repository has moved. No registry entry exists. The code that could perform a live move has not been written.
+**Bottom line (as of 2026-08-05, when this section was last accurate):** the project is exactly where its own docs say it should be — sitting at the Stage 4 dry-run gate for one canary, inside the Aug 3 doc's "Planning-only boundary." No repository has moved. No registry entry exists. The code that could perform a live move has not been written.
+
+**Superseded — see §6.** The canary (`thoughtseed-brand-atlas`) was actually applied for real shortly after this document was written — the first live move this subsystem ever performed. Everything above this line is historical record of how the tooling got built and proved; it is no longer the current state. §6 is the current status.
 
 ---
 
@@ -251,3 +253,121 @@ untracked entry (`? .codegraph/.gitignore`), remote still
 immediately above. Nothing moved between these two checks; the canary is quiet for
 this window but still dirty (1 untracked file), not clean. Same standing instruction:
 re-verify again immediately before any real `apply`.
+
+---
+
+## 6. Update — 2026-08-06/07: real canary applied, packet-content gate closed, current blockers
+
+This section is the current status. §§1–5a above are historical record of how the
+tooling got built and proved against fixtures; nothing in them describes live state
+anymore.
+
+### 6.1 The canary actually moved
+
+Shortly after §5a was written, `thoughtseed-brand-atlas` was applied for real — the
+first live move this subsystem ever performed, using the exact `apply` assembly
+built and fixture-tested in §1's Task-6/10 rows. It now lives at
+`/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas`. Receipt at
+`~/.temperance_engine/receipts/vault-project-relocation-apply/thoughtseed-brand-atlas-20260806T031556Z/receipt.json`.
+A fresh `plan --dry-run` against its old vault path now correctly reports
+`nested-repository`/`destination_exists` (it's gone from there), independently
+confirming the move actually happened rather than just being logged.
+
+This proves the pipeline end-to-end on real state, not just fixtures. Nothing about
+Tasks 1–10's code changed to make this possible — Approval Boundary B was walked
+through explicitly and the apply ran clean on the first real attempt.
+
+### 6.2 The packet-content gate is now closed for every remaining Thoughtseed candidate
+
+A new packet-authoring tool (`package/relocation/packet-evidence.ts` /
+`packet-draft.ts`, CLI subcommand `draft-packets`; design doc
+[`docs/superpowers/specs/2026-08-06-packet-authoring-tool-design.md`](../superpowers/specs/2026-08-06-packet-authoring-tool-design.md))
+was built to close the gap §5's "Dirty-state reality check" implicitly assumed
+someone would eventually fill: 23 of the 29 candidates named in §5, plus `cambium`
+(a 24th candidate the original inventory scan didn't separately surface, resolved as
+`sapling:cambium` after confirming its dual-WorkObject registry link with the owner),
+now all have the required six-file relocation packet
+(`packet_status: draft-held`), sourced from the canonical registry
+(`work-object-registry.v1.json`) wherever possible and honestly flagged
+`needsReview` wherever it couldn't be. All packets are committed and pushed — either
+merged straight to `main`, or (for two repos whose branches carried unrelated
+in-flight feature work) cherry-picked onto dedicated `packet/relocation-packet`
+branches and merged via their own clean PRs, so no packet commit ended up bundled
+into an unrelated feature diff.
+
+Two real bugs were found and fixed in the packet-authoring tool itself during this
+work, both now shipped: it previously could silently overwrite a repository's real
+pre-existing `AGENTS.md` (or any of the other five files) with drafted content — now
+`detectPreExistingPacketFiles`/`writePacketFiles` detect and skip any file that
+already has real content, flagging it for manual reconciliation instead; and it
+defaulted every non-bun repo to `npm` commands even when the repo actually used
+`pnpm` — now `detectPackageManager` checks for `pnpm-lock.yaml` too. Five repos
+(`brandmint-v2`, `manifest-skill-cluster`, `monthlymealprep`, `ratan-pitch`,
+`thoughtseed-paperclip`) also had checked-in files referencing their own current
+absolute vault path (the `checked_in_path_consumer` hold reason) — found and fixed
+by relocation-targeting those references to their real post-move destination path.
+
+A brand-new `new-project` CLI subcommand (design + plan
+2026-08-07: [`docs/superpowers/specs/2026-08-07-new-project-scaffold-design.md`](../superpowers/specs/2026-08-07-new-project-scaffold-design.md))
+now scaffolds this same packet — plus a `git init`'d tree, workflow-derived stage
+folders when the project's type matches a skill-clusters delivery workflow, and a
+real `work-object-registry.v1.json` entry — for any **new** project from birth, so
+this retroactive-cleanup gap doesn't reopen every time a new client engagement
+starts. A related `--vault-root`/`--portfolio` consistency bug (the two flags being
+accepted independently with nothing checking they agree) was found and fixed across
+both `draft-packets` and `new-project` on 2026-08-07.
+
+### 6.3 `team-forge-ts` is explicitly excluded from this effort — owner decision 2026-08-07
+
+`team-forge-ts` (the repo) is retired: it was the management frontend for
+Shesh and his cofounder, superseded once a portable, remote-friendly replacement
+was built. It does not need to rejoin active infra, so it is **not** being given
+the same packet-authoring/relocation treatment as the other 23 — no packet, no
+scaffold, no plan to move it into `/Volumes/madara/2026/Projects/`. If it needs any
+disposition at all, that's a separate, later archival decision, not part of this
+sequence.
+
+**Do not confuse this with "TeamForge" the Cloudflare service** (`teamforgeUrl:
+https://forge.thoughtseed.space`, `TF_ACCESS_TEAM_DOMAIN`, etc.) — that is a
+separate, still-active identity-verification system every *other* packet's
+`identity_status` field actually refers to (see §6.4). The retired repo and the
+active service share a name fragment and nothing else.
+
+### 6.4 Current real blockers for the remaining 23 (verified 2026-08-07, fresh `plan --dry-run` against all of them)
+
+None of the 23 have `holdReasons: []` yet. Every one is blocked by exactly two
+things, and only these two:
+
+- **`packet_identity_pending_teamforge`** — every packet's `identity_status` is
+  still `pending-teamforge-verification`. This is the real, active TeamForge CF
+  service (§6.3) — an external verification step that hasn't run for any of the 23
+  yet. Nothing in this codebase can complete this automatically; it needs to
+  actually happen against the live service.
+- **`working_tree_not_clean`** — every one of the 23 has real, uncommitted content
+  in its working tree right now. This is not new: §5's "Dirty-state reality check"
+  found the same dynamic back on 2026-08-05 (only 1–2 of 29 candidates were ever
+  clean at a given moment, and it kept shifting). It hasn't gone away and won't
+  resolve itself — each repo needs its own owner review/checkpoint at its own
+  plan/apply time, the same discipline the canary itself needed before it moved.
+
+Neither of these is a coding task. The packet-content gate — the one gap that *was*
+code-scoped — is closed (§6.2).
+
+### 6.5 One unverified claim, flagged rather than trusted
+
+A note surfaced during this session (2026-08-07) claiming `cambium`'s real
+"portfolio" implementation (a `portfolio-cartographer` app, a
+`portfolio-workbench.ts` Worker route, etc.) lives in an isolated worktree at
+`/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/.worktrees/cambium-portfolio-registry`,
+distinct from the primary `cambium` checkout. **Checked directly and could not be
+confirmed:** no such worktree exists in `.worktrees/` (the real entries there are
+`cambium-context-projections`, `cambium-operating-fabric`,
+`cambium-release-20260728`, and a detached `cambium-prod-parity`), and a filename
+search across the entire `thoughtseed` vault tree found zero matches for
+`portfolio-cartographer`, `portfolio-workbench.ts`, or `portfolio-catalog*`
+anywhere. Whatever produced that note may be describing stale state, a since-removed
+worktree, or something from a different machine/vault entirely. **Do not trust it
+without independently re-verifying** — if `cambium`'s real authoritative
+implementation genuinely lives somewhere other than the primary checkout, that needs
+confirming fresh before `cambium` is ever planned/applied, since Part 1's tooling
+only ever operates on the primary checkout path it's given.
