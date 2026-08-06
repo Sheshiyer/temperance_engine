@@ -1186,7 +1186,11 @@ try {
           candidateName.split("/").filter(Boolean),
         ).segments;
         const evidence = gatherPacketEvidence({
-          candidateName: candidateBasename,
+          // The CANONICAL basename, not the raw directory name. `repository`
+          // must satisfy the canonical basename rule, and it is also the name
+          // the repo will carry after relocation -- a raw `kkv2-klear-karma-RN`
+          // both fails validation and names a directory that will not exist.
+          candidateName: identitySegments[identitySegments.length - 1],
           candidateRelativePath: candidateName,
           projectId: qualifiedStableId(identitySegments),
           portfolio,
