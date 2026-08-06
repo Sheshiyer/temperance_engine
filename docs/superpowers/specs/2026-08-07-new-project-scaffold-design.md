@@ -237,7 +237,15 @@ third `kind` value exists.
   forcing a rollback of freshly-created, harmless files adds complexity
   Part 1's own relocation transaction machinery (which *does* need
   rollback, because it mutates a real pre-existing repository) doesn't
-  need here. The receipt still records exactly how far the operation got.
+  need here. On this path no receipt file is written — the CLI's own
+  top-level error handler prints the message and exits before the
+  receipt-write statement is reached — so the folder and packet files
+  left on disk are themselves the only record of how far the operation
+  got. A caller that wants a receipt even on this failure path would
+  need to write one from the thrown error before rethrowing; this
+  implementation doesn't do that, matching how every other hard-error
+  case in this list (target-exists, invalid name) also writes no
+  receipt.
 - **`--type` matches no workflow entry** — not an error; documented
   fallback behavior (fixed-folder-only scaffold), consistent with the
   earlier design decision that project types without a defined workflow
