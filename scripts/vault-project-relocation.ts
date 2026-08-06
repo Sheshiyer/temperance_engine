@@ -74,6 +74,12 @@ const ALWAYS_HELD_THOUGHTSEED_NAMES = new Set([
   "snow-gloves-variable-contracts",
   "hermes-aws-ts",
   "thoughtseed-labs",
+  // Registry host as of 2026-08-07. Relocating cambium would move the
+  // relocation registry out from under the operation performing the move --
+  // the same self-reference `thoughtseed-labs` was pinned to prevent while it
+  // held the registry. Pinning the host is a precondition of the host being
+  // trustworthy, not a statement about cambium's own lifecycle.
+  "cambium",
 ]);
 
 /**
@@ -97,7 +103,9 @@ function heldSegmentOnPath(portfolio: Portfolio, sourceRoot: string, path: strin
 }
 
 function heldReasonFor(segment: string): string {
-  return segment === "thoughtseed-labs" ? "pinned_knowledge_vault" : "owner_mapping_or_active_control_hold";
+  if (segment === "thoughtseed-labs") return "pinned_knowledge_vault";
+  if (segment === "cambium") return "registry_host_repository";
+  return "owner_mapping_or_active_control_hold";
 }
 
 interface ProjectedDestination {
