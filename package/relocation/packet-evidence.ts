@@ -152,6 +152,13 @@ export function gatherPacketEvidence(input: {
    * the packet's project_id and repository are the repo's own name, not a path.
    */
   candidateRelativePath?: string;
+  /**
+   * The repository's globally unique identity, used as project_id. Distinct
+   * from candidateName, which stays the basename because it renders into prose
+   * ("the `wiki` repository") and names the repo, not its portfolio identity.
+   * Defaults to candidateName for depth-0 repos, where the two coincide.
+   */
+  projectId?: string;
   portfolio: "thoughtseed" | "tryambakam-noesis";
   registry: CanonicalRegistry;
   gitRemoteUrl: string | null;
@@ -180,7 +187,7 @@ export function gatherPacketEvidence(input: {
   );
 
   return {
-    projectId: input.candidateName,
+    projectId: input.projectId ?? input.candidateName,
     portfolio: input.portfolio,
     repository: input.candidateName,
     workObjectId: workObject.workId,

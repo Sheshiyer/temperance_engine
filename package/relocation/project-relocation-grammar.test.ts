@@ -6,7 +6,9 @@ import {
   isCanonicalRepositoryBasename,
   isCanonicalizableRepositorySegment,
   normalizeRepositoryBasename,
+  parseQualifiedStableId,
   projectCanonicalizedSegments,
+  qualifiedStableId,
   projectRepositoryName,
   validateRepositoryBasename,
 } from "./project-relocation-grammar";
@@ -119,5 +121,51 @@ describe("segment canonicalization for destination projection", () => {
 
   test("rejects an empty segment list rather than projecting a rootless path", () => {
     expect(() => projectCanonicalizedSegments([])).toThrow("repository_segments_empty");
+  });
+});
+
+describe("qualified stable identity", () => {
+  test("a depth-0 repository's identity is unchanged", () => {
+    // Critical: the 13 already-relocated depth-0 entries must keep their ids,
+    // or this becomes a migration of everything instead of two entries.
+    expect(qualifiedStableId(["bwssb"])).toBe("bwssb");
+    expect(qualifiedStableId(["thoughtseed-brand-atlas"])).toBe("thoughtseed-brand-atlas");
+  });
+
+  test("a nested repository is qualified by its whole tenant path", () => {
+    expect(qualifiedStableId(["parkarea", "wiki"])).toBe("parkarea.wiki");
+    expect(qualifiedStableId(["tirak", "admin-webapp", "tirak-admin-command-center"])).toBe(
+      "tirak.admin-webapp.tirak-admin-command-center",
+    );
+  });
+
+  test("INJECTIVITY: distinct paths can never produce the same identity", () => {
+    // The reason the delimiter is '.' and not '-'. Canonical segments are
+    // [a-z0-9-], so a hyphen-joined scheme collapses these two distinct paths
+    // onto one id — which is the collision this is meant to make impossible.
+    expect(qualifiedStableId(["a", "b-c"])).not.toBe(qualifiedStableId(["a-b", "c"]));
+    expect(qualifiedStableId(["a", "b-c"])).toBe("a.b-c");
+    expect(qualifiedStableId(["a-b", "c"])).toBe("a-b.c");
+    // '.' cannot occur inside a canonical segment, so the join is reversible.
+    expect(qualifiedStableId(["a", "b-c"]).split(".")).toEqual(["a", "b-c"]);
+  });
+
+  test("rejects segments that are not canonical, rather than emitting a bad id", () => {
+    for (const segments of [["Tirak", "wiki"], ["a", "b.c"], ["a", ""], []]) {
+      expect(() => qualifiedStableId(segments)).toThrow();
+    }
+  });
+
+  test("an identity never starts with a dot or contains an empty part", () => {
+    const id = qualifiedStableId(["website", "v2-archive", "thoughtseed-2026", "site"]);
+    expect(id.startsWith(".")).toBe(false);
+    expect(id.includes("..")).toBe(false);
+    expect(id).toBe("website.v2-archive.thoughtseed-2026.site");
+  });
+
+  test("parses back to the exact segments it was built from", () => {
+    for (const segments of [["bwssb"], ["parkarea", "wiki"], ["a", "b-c", "d"]]) {
+      expect(parseQualifiedStableId(qualifiedStableId(segments))).toEqual(segments);
+    }
   });
 });

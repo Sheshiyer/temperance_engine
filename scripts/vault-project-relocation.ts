@@ -17,6 +17,8 @@ import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import {
   isCanonicalRepositoryBasename,
   isCanonicalizableRepositorySegment,
+  projectCanonicalizedSegments,
+  qualifiedStableId,
 } from "../package/relocation/project-relocation-grammar";
 import { projectDestinationPath } from "../package/relocation/project-destination-path";
 import { toPortablePath } from "../package/relocation/project-portable-path";
@@ -113,6 +115,8 @@ function heldReasonFor(segment: string): string {
 
 interface ProjectedDestination {
   destination: string;
+  /** Canonical portfolio-root-relative segments; the repo's globally unique identity. */
+  segments: string[];
   tenant: string | null;
   rewritten: { from: string; to: string; index: number }[];
   holdReason: string | null;
@@ -138,6 +142,7 @@ function projectDestination(
     });
     return {
       destination: projection.destination,
+      segments: projection.relativeSegments,
       tenant: projection.tenant,
       rewritten: projection.rewritten,
       holdReason: null,
@@ -145,6 +150,7 @@ function projectDestination(
   } catch (error) {
     return {
       destination: join(DESTINATION_ROOT, portfolio, basename(path)),
+      segments: [basename(path)],
       tenant: null,
       rewritten: [],
       holdReason: `destination_not_projectable:${error instanceof Error ? error.message : String(error)}`,
@@ -168,6 +174,12 @@ interface InventoryRecord {
   device: number | null;
   inode: number | null;
   proposedDestination: string;
+  /**
+   * The repository's globally unique identity: its canonical portfolio-root
+   * relative segments joined by '.', a delimiter outside the segment grammar.
+   * A depth-0 repo's identity is just its name, so flat entries are unchanged.
+   */
+  stableId: string;
   /** Canonical container path above the repo; null for depth-0 candidates. */
   tenant: string | null;
   /** Segments canonicalization rewrote, surfaced for the approval boundary. */
@@ -762,6 +774,7 @@ function buildPlan(sourcePath: string, identityOverride?: IdentityOverride): Pla
     ? projectDestination(portfolio, PORTFOLIO_ROOTS[portfolio], source)
     : {
         destination: join(DESTINATION_ROOT, "unknown", name),
+        segments: [name],
         tenant: null,
         rewritten: [],
         holdReason: null,
@@ -795,6 +808,17 @@ function buildPlan(sourcePath: string, identityOverride?: IdentityOverride): Pla
   const present = REQUIRED_PACKET_FILES.filter((file) => existsSync(join(source, file)));
   const missing = REQUIRED_PACKET_FILES.filter((file) => !present.includes(file));
   if (missing.length > 0) holdReasons.push(`packet_missing:${missing.join(",")}`);
+  // The packet must carry the same identity the plan derives. project_id is
+  // written at draft time from the repo's path; if the repo has since moved
+  // within the vault, or the packet was hand-edited, the two disagree and the
+  // registry would be keyed on one while the packet claims the other.
+  if (missing.length === 0) {
+    const yaml = readFileSync(join(source, ".project/project.yaml"), "utf8");
+    const declared = /(^|\n)project_id:\s*([^\s#]+)/m.exec(yaml)?.[2];
+    if (declared && declared !== projected.segments.join(".")) {
+      holdReasons.push(`packet_project_id_mismatch:${declared}:${projected.segments.join(".")}`);
+    }
+  }
   const identityStatus = packetIdentityStatus(source, present);
   // Only the *pending* state is waivable. `unknown` means the packet could not
   // be read or parsed at all, which is a different failure -- overriding it
@@ -823,6 +847,7 @@ function buildPlan(sourcePath: string, identityOverride?: IdentityOverride): Pla
     manifestApprovalRequired: true,
     source,
     destination,
+    stableId: qualifiedStableId(projected.segments),
     tenant: projected.tenant,
     destinationRewrites: projected.rewritten,
     ...(identityOverride ? { identityOverride } : {}),
@@ -980,10 +1005,11 @@ try {
       source,
       destination: plan.destination,
       portfolio: plan.portfolio,
-      stableId:
-        typeof (parsedYaml as Record<string, unknown>).project_id === "string"
-          ? ((parsedYaml as Record<string, unknown>).project_id as string)
-          : plan.repository.name,
+      // The plan's derived identity is authoritative, not the packet's
+      // project_id. project_id is a basename and therefore not unique across
+      // tenants; using it would reintroduce the collision this identity exists
+      // to remove. Disagreement is a hold, checked in buildPlan.
+      stableId: plan.stableId,
       githubIdentity:
         typeof (parsedYaml as Record<string, unknown>).github_repository === "string"
           ? ((parsedYaml as Record<string, unknown>).github_repository as string)
@@ -994,7 +1020,7 @@ try {
       packetDigest: plan.packet.digest ?? "",
       unresolvedPathConsumers: plan.pathConsumers.checkedInMatches,
       otherPortfolioRegistryEntries: listRegistryEntryIdentities(registryRootFor(OTHER_PORTFOLIO[plan.portfolio])),
-      registryEntryDirectoryPath: registryEntryPath(plan.portfolio, plan.repository.name),
+      registryEntryDirectoryPath: registryEntryPath(plan.portfolio, plan.stableId),
       registryOldPath: toPortablePath(source, PORTABLE_ROOTS),
       registryHostStatusPorcelain: registryHostStatus.status === 0 ? registryHostStatus.stdout : "",
       approvedRegistryHostBaselineDigest: registryBaselineDigest,
@@ -1140,9 +1166,16 @@ try {
       const repositoryPath = join(vaultRoot, candidateName);
       const candidateBasename = basename(candidateName);
       try {
+        // project_id must be the globally unique identity, not the basename --
+        // otherwise every nested packet claims an id that collides across
+        // tenants, and the plan's mismatch check would reject its own drafts.
+        const identitySegments = projectCanonicalizedSegments(
+          candidateName.split("/").filter(Boolean),
+        ).segments;
         const evidence = gatherPacketEvidence({
           candidateName: candidateBasename,
           candidateRelativePath: candidateName,
+          projectId: qualifiedStableId(identitySegments),
           portfolio,
           registry,
           gitRemoteUrl: gitRemoteUrlFor(repositoryPath),

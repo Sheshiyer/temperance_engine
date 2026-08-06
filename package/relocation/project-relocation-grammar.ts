@@ -112,6 +112,45 @@ export function projectCanonicalizedSegments(
   return { segments, rewritten };
 }
 
+/**
+ * Delimiter for qualified stable identities.
+ *
+ * MUST be outside CANONICAL_REPOSITORY_BASENAME's repertoire, which is why it
+ * is `.` and not `-`. Segments may contain hyphens, so a hyphen-joined scheme
+ * is not injective: `a/b-c` and `a-b/c` both collapse to `a-b-c`, which is
+ * precisely the collision a qualified identity exists to make impossible.
+ * Because `.` can never occur inside a segment, the join is reversible and
+ * two distinct paths can never produce the same identity.
+ */
+const STABLE_ID_DELIMITER = ".";
+
+/**
+ * The globally unique identity of a repository: its canonical, portfolio-root
+ * relative path segments. A depth-0 repository's identity is just its name, so
+ * existing flat entries keep their identities unchanged.
+ */
+export function qualifiedStableId(segments: readonly string[]): string {
+  if (segments.length === 0) throw new Error("repository_segments_empty");
+  for (const segment of segments) validateRepositoryBasename(segment);
+  return segments.join(STABLE_ID_DELIMITER);
+}
+
+export function parseQualifiedStableId(stableId: string): string[] {
+  const segments = stableId.split(STABLE_ID_DELIMITER);
+  if (segments.length === 0) throw new Error("stable_id_empty");
+  for (const segment of segments) validateRepositoryBasename(segment);
+  return segments;
+}
+
+export function isQualifiedStableId(value: string): boolean {
+  try {
+    parseQualifiedStableId(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function assertNoIdentityCollision(
   rawName: string,
   existingIdentityKeys: Iterable<string>,

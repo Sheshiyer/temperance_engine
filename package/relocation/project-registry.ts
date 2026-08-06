@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { isCanonicalRepositoryBasename } from "./project-relocation-grammar";
+import { isQualifiedStableId } from "./project-relocation-grammar";
 
 export type Portfolio = "thoughtseed" | "tryambakam-noesis";
 
@@ -28,8 +28,16 @@ export function registryRootFor(portfolio: Portfolio): string {
   return REGISTRY_ROOTS[portfolio];
 }
 
+/**
+ * Entry directories are named by the repository's qualified stable identity,
+ * not its basename. A basename is not unique across tenants -- `parkarea/wiki`
+ * and `iverif/wiki` would target the same directory -- and the registry has to
+ * stay flat because listRegistryEntryIdentities is deliberately non-recursive.
+ * A qualified identity is unique by construction, so flat and collision-free
+ * are no longer in tension.
+ */
 export function registryEntryPath(portfolio: Portfolio, repository: string): string {
-  if (!isCanonicalRepositoryBasename(repository)) {
+  if (!isQualifiedStableId(repository)) {
     throw new Error(`repository_basename_invalid:${JSON.stringify(repository)}`);
   }
   return `${registryRootFor(portfolio)}/${repository}`;
