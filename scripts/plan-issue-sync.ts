@@ -48,6 +48,13 @@ const DEFAULTS = {
 
 /** Directories that hold plan documents. Anything under an archive/ path is skipped. */
 const PLAN_DIRS = [".planning", "docs/plans", "tasks", "docs/superpowers/plans"];
+/**
+ * Snapshot directories are not projects. `parkarea-aleph.pre-restore-20260807-0627`
+ * is a restore point whose plan documents are frozen duplicates of the live
+ * project's -- syncing them creates issues that can never close, because
+ * nobody edits a backup. Matched on the directory name, not on contents.
+ */
+const SNAPSHOT_DIR = /(\.pre-restore-|\.bak$|\.backup$|\.orig$|~$|\.worktrees$)/;
 const OPEN_BOX = /^[ \t]*[-*][ \t]*\[ \][ \t]+(.{4,160})$/gm;
 const DONE_BOX = /^[ \t]*[-*][ \t]*\[[xX]\][ \t]+/gm;
 const HEADING = /^#[ \t]+(.+)$/m;
@@ -120,6 +127,7 @@ function projectDirectories(root: string): string[] {
     } catch {
       return;
     }
+    if (SNAPSHOT_DIR.test(basename(dir))) return;
     if (PLAN_DIRS.some((planDir) => existsSync(join(dir, planDir)))) {
       found.push(dir);
       return; // a project owns its planning; do not descend into sub-projects
