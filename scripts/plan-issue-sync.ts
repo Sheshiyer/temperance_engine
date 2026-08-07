@@ -21,7 +21,13 @@
  * repositories. Most of those are public, and scattering planning across 37 of
  * them makes "which issue" unanswerable, which is the problem this solves.
  *
- * Dry run by default; --apply creates issues.
+ * BIDIRECTIONAL — forward creates an issue for a document with outstanding
+ * work; reverse closes an issue whose document has none left. A document that
+ * has VANISHED is never treated as complete: it may have been renamed, moved,
+ * or its repository relocated, and closing on that guess destroys the only
+ * pointer back to the work. Missing and ambiguous are reported, never acted on.
+ *
+ * Dry run by default; --apply creates and closes.
  *
  * Usage:
  *   bun scripts/plan-issue-sync.ts [--apply] [--limit <n>]
@@ -183,19 +189,63 @@ function collectCandidates(opts: ReturnType<typeof parseArgs>): Candidate[] {
   return rows;
 }
 
-function syncedMarkers(target: string): Set<string> {
+interface SyncedIssue {
+  number: number;
+  state: string;
+  marker: string;
+}
+
+function syncedIssues(target: string): SyncedIssue[] {
   const result = spawnSync(
     "gh",
-    ["issue", "list", "--repo", target, "--state", "all", "--limit", "1000", "--json", "body"],
+    ["issue", "list", "--repo", target, "--state", "all", "--limit", "1000", "--json", "body,number,state"],
     { encoding: "utf8" },
   );
   if (result.status !== 0) throw new Error(`gh_issue_list_failed:${result.stderr.trim()}`);
-  const markers = new Set<string>();
-  for (const issue of JSON.parse(result.stdout) as { body?: string }[]) {
+  const issues: SyncedIssue[] = [];
+  for (const issue of JSON.parse(result.stdout) as { body?: string; number: number; state: string }[]) {
     const found = MARKER.exec(issue.body ?? "");
-    if (found) markers.add(found[1].trim());
+    if (found) issues.push({ number: issue.number, state: issue.state, marker: found[1].trim() });
   }
-  return markers;
+  return issues;
+}
+
+/**
+ * Current state of the document a marker points at.
+ *
+ * The marker carries the repository BASENAME, but a nested repository lives at
+ * a tenant path -- `tirakplus` is at `tirak/standalone-repos/tirakplus`, not at
+ * the portfolio root. Rebuilding the path by joining the basename finds nothing
+ * and reports every nested repository as orphaned, so the basename is resolved
+ * against the repositories actually on disk instead.
+ *
+ * `missing` is deliberately NOT treated as complete. A document can disappear
+ * because its work finished, but equally because it was renamed, moved, or the
+ * repository relocated -- and closing an issue on that guess loses the only
+ * pointer back to the work. Missing is reported for a human to resolve.
+ *
+ * An ambiguous basename (two repositories sharing a name under different
+ * tenants) is reported rather than resolved to whichever matched first.
+ */
+function documentState(
+  marker: string,
+  repositoriesByName: Map<string, string[]>,
+): { missing: boolean; ambiguous: boolean; open: number } {
+  const separator = marker.indexOf(":");
+  const repo = marker.slice(0, separator);
+  const relativePath = marker.slice(separator + 1);
+  const matches = repositoriesByName.get(repo) ?? [];
+  if (matches.length > 1) return { missing: false, ambiguous: true, open: 0 };
+  if (matches.length === 0) return { missing: true, ambiguous: false, open: 0 };
+  const path = join(matches[0], relativePath);
+  if (!existsSync(path)) return { missing: true, ambiguous: false, open: 0 };
+  let text: string;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch {
+    return { missing: true, ambiguous: false, open: 0 };
+  }
+  return { missing: false, ambiguous: false, open: [...text.matchAll(OPEN_BOX)].length };
 }
 
 function issueBody(candidate: Candidate): string {
@@ -225,42 +275,89 @@ function issueBody(candidate: Candidate): string {
 try {
   const opts = parseArgs(process.argv.slice(2));
   const rows = collectCandidates(opts);
-  const synced = syncedMarkers(opts.target);
-  let todo = rows.filter((row) => !synced.has(row.marker));
-  if (opts.limit > 0) todo = todo.slice(0, opts.limit);
+  const issues = syncedIssues(opts.target);
+  const syncedMarkerSet = new Set(issues.map((issue) => issue.marker));
+
+  let toCreate = rows.filter((row) => !syncedMarkerSet.has(row.marker));
+  if (opts.limit > 0) toCreate = toCreate.slice(0, opts.limit);
+
+  // Reverse: an OPEN issue whose document no longer has outstanding items.
+  const repositoriesByName = new Map<string, string[]>();
+  for (const repo of gitRepositories(opts.projectsRoot)) {
+    const name = basename(repo);
+    repositoriesByName.set(name, [...(repositoriesByName.get(name) ?? []), repo]);
+  }
+
+  const openIssues = issues.filter((issue) => issue.state.toUpperCase() === "OPEN");
+  const toClose: { issue: SyncedIssue; open: number }[] = [];
+  const orphaned: SyncedIssue[] = [];
+  const ambiguous: SyncedIssue[] = [];
+  for (const issue of openIssues) {
+    const state = documentState(issue.marker, repositoriesByName);
+    if (state.ambiguous) ambiguous.push(issue);
+    else if (state.missing) orphaned.push(issue);
+    else if (state.open === 0) toClose.push({ issue, open: 0 });
+  }
 
   console.log(`target                   : ${opts.target}`);
   console.log(`plan docs with open work : ${rows.length}`);
-  console.log(`already synced           : ${rows.length - rows.filter((r) => !synced.has(r.marker)).length}`);
-  console.log(`to create                : ${todo.length}${opts.limit > 0 ? ` (limited to ${opts.limit})` : ""}`);
-  console.log(`mode                     : ${opts.apply ? "APPLY" : "DRY RUN — nothing created"}\n`);
-  for (const candidate of todo) {
-    console.log(`  ${candidate.repo.padEnd(26)} ${String(candidate.open).padStart(4)} open  ${candidate.relativePath}`);
+  console.log(`issues carrying a marker : ${issues.length} (${openIssues.length} open)`);
+  console.log(`to create                : ${toCreate.length}${opts.limit > 0 ? ` (limited to ${opts.limit})` : ""}`);
+  console.log(`to close (work complete) : ${toClose.length}`);
+  console.log(`orphaned (doc missing)   : ${orphaned.length}`);
+  console.log(`ambiguous repo basename  : ${ambiguous.length}`);
+  console.log(`mode                     : ${opts.apply ? "APPLY" : "DRY RUN — nothing changed"}\n`);
+
+  for (const candidate of toCreate) {
+    console.log(`  + ${candidate.repo.padEnd(24)} ${String(candidate.open).padStart(4)} open  ${candidate.relativePath}`);
+  }
+  for (const { issue } of toClose) {
+    console.log(`  - close #${issue.number}  ${issue.marker}`);
+  }
+  for (const issue of orphaned) {
+    console.log(`  ? orphan #${issue.number}  ${issue.marker}  (document not found — left open, resolve by hand)`);
+  }
+  for (const issue of ambiguous) {
+    console.log(`  ? ambiguous #${issue.number}  ${issue.marker}  (basename matches >1 repo — left open)`);
   }
 
   if (!opts.apply) process.exit(0);
 
   let created = 0;
-  for (const candidate of todo) {
+  for (const candidate of toCreate) {
     const result = spawnSync(
       "gh",
-      [
-        "issue", "create",
-        "--repo", opts.target,
-        "--title", `${candidate.repo}: ${candidate.title}`,
-        "--body", issueBody(candidate),
-        "--label", "vault",
-      ],
+      ["issue", "create", "--repo", opts.target,
+       "--title", `${candidate.repo}: ${candidate.title}`,
+       "--body", issueBody(candidate), "--label", "vault"],
       { encoding: "utf8" },
     );
     if (result.status !== 0) {
-      console.error(`  FAILED ${candidate.marker}: ${result.stderr.trim().slice(0, 160)}`);
-      break; // stop rather than continue past an unexplained failure
+      console.error(`  FAILED create ${candidate.marker}: ${result.stderr.trim().slice(0, 160)}`);
+      break;
     }
     created += 1;
     console.log(`  created ${result.stdout.trim()}`);
   }
-  console.log(`\ncreated: ${created}/${todo.length}`);
+
+  let closed = 0;
+  for (const { issue } of toClose) {
+    const result = spawnSync(
+      "gh",
+      ["issue", "close", String(issue.number), "--repo", opts.target,
+       "--comment", "All outstanding items in the linked plan document are complete. " +
+         "Closed by plan-issue-sync; reopen if the document gains new items."],
+      { encoding: "utf8" },
+    );
+    if (result.status !== 0) {
+      console.error(`  FAILED close #${issue.number}: ${result.stderr.trim().slice(0, 160)}`);
+      break;
+    }
+    closed += 1;
+    console.log(`  closed #${issue.number}`);
+  }
+
+  console.log(`\ncreated: ${created}/${toCreate.length}   closed: ${closed}/${toClose.length}`);
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
