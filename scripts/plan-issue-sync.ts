@@ -100,7 +100,17 @@ function registryIndex(registryRoot: string): Map<string, { stableId: string; gi
   return index;
 }
 
-function gitRepositories(root: string): string[] {
+/**
+ * Project directories, found by the presence of a plan directory rather than a
+ * `.git`.
+ *
+ * Discovery used to walk for `.git`, which stopped working the moment the
+ * project tree was deliberately de-gitted — every repository's history was
+ * pushed and its `.git` removed so each session can `git init` fresh. A
+ * project is a directory that holds planning, not one that holds a repository;
+ * keying on `.git` conflated the two and made the sync silently find nothing.
+ */
+function projectDirectories(root: string): string[] {
   const found: string[] = [];
   const walk = (dir: string, depth: number): void => {
     if (depth > 4) return;
@@ -110,11 +120,12 @@ function gitRepositories(root: string): string[] {
     } catch {
       return;
     }
-    if (entries.includes(".git")) {
+    if (PLAN_DIRS.some((planDir) => existsSync(join(dir, planDir)))) {
       found.push(dir);
-      return; // do not descend into a repository's own worktrees
+      return; // a project owns its planning; do not descend into sub-projects
     }
     for (const name of entries) {
+      if (name.startsWith(".")) continue;
       const path = join(dir, name);
       try {
         if (statSync(path).isDirectory()) walk(path, depth + 1);
@@ -155,7 +166,7 @@ function markdownFiles(dir: string): string[] {
 function collectCandidates(opts: ReturnType<typeof parseArgs>): Candidate[] {
   const registry = registryIndex(opts.registryRoot);
   const rows: Candidate[] = [];
-  for (const repo of gitRepositories(opts.projectsRoot)) {
+  for (const repo of projectDirectories(opts.projectsRoot)) {
     const repoName = basename(repo);
     const entry = registry.get(repoName);
     for (const planDir of PLAN_DIRS) {
@@ -274,7 +285,24 @@ function issueBody(candidate: Candidate): string {
 
 try {
   const opts = parseArgs(process.argv.slice(2));
+
+  // The projects root lives on an external volume. When it is not mounted every
+  // document looks missing, and on a schedule that would report all 45 issues as
+  // orphaned every run. Nothing would be wrongly CLOSED -- orphans are never
+  // acted on -- but the noise would bury a real orphan. Exit 0 rather than
+  // non-zero: an unmounted drive is not a failure, and launchd should not treat
+  // it as a crashing job.
+  if (!existsSync(opts.projectsRoot)) {
+    console.log(`projects root not present: ${opts.projectsRoot}`);
+    console.log("nothing to sync — is the volume mounted?");
+    process.exit(0);
+  }
+
   const rows = collectCandidates(opts);
+  if (rows.length === 0) {
+    console.log(`no plan documents found under ${opts.projectsRoot} — refusing to act`);
+    process.exit(0);
+  }
   const issues = syncedIssues(opts.target);
   const syncedMarkerSet = new Set(issues.map((issue) => issue.marker));
 
@@ -283,7 +311,7 @@ try {
 
   // Reverse: an OPEN issue whose document no longer has outstanding items.
   const repositoriesByName = new Map<string, string[]>();
-  for (const repo of gitRepositories(opts.projectsRoot)) {
+  for (const repo of projectDirectories(opts.projectsRoot)) {
     const name = basename(repo);
     repositoriesByName.set(name, [...(repositoriesByName.get(name) ?? []), repo]);
   }
