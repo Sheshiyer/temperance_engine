@@ -169,6 +169,10 @@ try {
   }
 
   const byKind = (k: Finding["kind"]) => findings.filter((f) => f.kind === k);
+  // Timestamp first: launchd appends to one log file, so without this a daily
+  // run is indistinguishable from the one before it.
+  console.log(`=== audit-remotes ${new Date().toISOString()} ===`);
+  console.log(`roots: ${opts.roots.join(", ")}`);
   console.log(`repositories scanned: ${scanned}`);
   console.log(`findings: ${findings.length}\n`);
   for (const kind of ["unrelated-remote", "public-remote", "multiple-remotes", "no-remote"] as const) {
