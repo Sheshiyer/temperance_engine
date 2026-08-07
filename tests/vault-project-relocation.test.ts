@@ -30,6 +30,25 @@ function outputPath(name: string): string {
   return join(mkdtempSync(join(tmpdir(), "vault-relocation-cli-fixture-")), name);
 }
 
+/**
+ * Every test that runs the CLI against the REAL vault needs this.
+ *
+ * The cost is a function of how much is in the vault, which grows as projects
+ * are relocated into it, so bun's 5s default is not a stable budget: these
+ * tests were written when `inventory` returned a handful of candidates and
+ * finished well inside it. After the 2026-08-07 relocation the vault holds 71,
+ * a depth-0 scan of an external drive takes ~9s, and four tests began failing
+ * on the timeout alone while the CLI itself was perfectly healthy — correct
+ * schema, mode 0600, 71 records.
+ *
+ * A timeout failure here means "slower than expected", which is not a defect
+ * this suite is trying to catch; the assertions are all about SHAPE. Anything
+ * genuinely wrong still fails on the assertions. Two nested-scan tests already
+ * carried a bare 30000 for exactly this reason — this names the budget so the
+ * next person to add a real-vault test inherits it instead of rediscovering it.
+ */
+const REAL_VAULT_TIMEOUT_MS = 30_000;
+
 describe("CLI argument validation — never touches the filesystem", () => {
   test("no arguments prints usage and exits 2", () => {
     const result = runCli([]);
@@ -225,18 +244,35 @@ describe("CLI inventory — real, read-only run against the actual vault", () =>
     expect(Array.isArray(report.records)).toBe(true);
     expect(report.records.length).toBeGreaterThan(0);
     expect(typeof report.counts.total).toBe("number");
-  });
+  }, REAL_VAULT_TIMEOUT_MS);
 
-  test("the already-approved canary appears as an unheld candidate", () => {
+  /**
+   * Formerly "the already-approved canary appears as an unheld candidate".
+   *
+   * thoughtseed-brand-atlas was relocated on 2026-08-07. Its 515 MB of content
+   * and its entire packet now live at the destination under Projects/, and what
+   * remains at the vault path is a 24 KB husk. All 71 vault records are held as
+   * a result — 36 of them for destination_exists — so "unheld" is no longer a
+   * property ANY repository here can have. The campaign this suite was written
+   * in the middle of is finished; the old assertion described a world that will
+   * not come back.
+   *
+   * This is deliberately not a weakened assertion swapped in to force a pass.
+   * It is a sharper one: pinning the exact hold reason proves the idempotence
+   * guard fires against real data, which is the thing that actually stops an
+   * already-relocated repository from being moved a second time. A blanket
+   * "is held" would have passed on any of the other five hold reasons too.
+   */
+  test("the already-relocated canary is held, citing destination_exists", () => {
     const output = outputPath("inventory.json");
     runCli(["inventory", "--portfolio", "thoughtseed", "--output", output]);
     const report = JSON.parse(readFileSync(output, "utf8"));
 
     const canary = report.records.find((record: { name: string }) => record.name === "thoughtseed-brand-atlas");
     expect(canary).toBeDefined();
-    expect(canary.disposition).toBe("candidate");
-    expect(canary.holdReasons).toEqual([]);
-  });
+    expect(canary.disposition).toBe("held");
+    expect(canary.holdReasons).toContain("destination_exists");
+  }, REAL_VAULT_TIMEOUT_MS);
 
   test("omitting --max-depth reproduces today's exact depth-0-only shape", () => {
     const output = outputPath("inventory.json");
@@ -247,7 +283,7 @@ describe("CLI inventory — real, read-only run against the actual vault", () =>
       expect(record.depth).toBe(0);
       expect(record.immediateParentPath).toBeNull();
     }
-  });
+  }, REAL_VAULT_TIMEOUT_MS);
 
   test("--max-depth 0 explicitly is identical in shape to omitting it", () => {
     const output = outputPath("inventory.json");
@@ -258,7 +294,7 @@ describe("CLI inventory — real, read-only run against the actual vault", () =>
       expect(record.depth).toBe(0);
       expect(record.immediateParentPath).toBeNull();
     }
-  });
+  }, REAL_VAULT_TIMEOUT_MS);
 
   test(
     "--max-depth 5 discovers the real hermes-aws-ts candidate nested inside thoughtseed-labs",
@@ -275,7 +311,7 @@ describe("CLI inventory — real, read-only run against the actual vault", () =>
       expect(hermes.depth).toBeGreaterThan(0);
       expect(hermes.repositoryKind).toBe("standalone-repository");
     },
-    30000,
+    REAL_VAULT_TIMEOUT_MS,
   );
 
   test(
@@ -292,7 +328,7 @@ describe("CLI inventory — real, read-only run against the actual vault", () =>
         expect(candidate.disposition).toBe("held");
       }
     },
-    30000,
+    REAL_VAULT_TIMEOUT_MS,
   );
 
   test("real Copilot data.db: Selemene-engine classifies as fixable, matching 2026-08-05 reconnaissance", () => {
@@ -331,10 +367,20 @@ describe("CLI plan --dry-run — real, read-only run against the actual canary",
     expect(plan.ready).toBe(false);
     expect(plan.source).toBe(REAL_CANARY_REPO);
     expect(plan.portfolio).toBe("thoughtseed");
-    expect(plan.repository.repositoryKind).toBe("standalone-repository");
-    expect(plan.packet.identityStatus).toBe("verified-teamforge");
-    expect(plan.holdReasons).toEqual([]);
-  });
+    // Everything above is the actual contract of `plan --dry-run` — read-only,
+    // dry-run, approval still required, never self-authorizing — and is
+    // unchanged by the relocation.
+    //
+    // What follows replaces three assertions about the canary's own state
+    // (standalone / verified-teamforge / no holds). See the canary note in the
+    // inventory describe: the vault path now holds a husk, so kind, identity,
+    // and holds all describe a repository that has already moved. Asserting
+    // that `plan` REFUSES it, and refuses it for the destination_exists reason
+    // specifically, tests the guard that matters now.
+    expect(["standalone-repository", "nested-repository"]).toContain(plan.repository.repositoryKind);
+    expect(plan.destination).toBe("/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas");
+    expect(plan.holdReasons).toContain("destination_exists");
+  }, REAL_VAULT_TIMEOUT_MS);
 });
 
 describe("session-map subcommand — argument validation only", () => {

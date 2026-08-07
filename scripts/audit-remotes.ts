@@ -12,8 +12,19 @@
  *
  * What it flags:
  *   unrelated-remote  the remote's tracked history shares NO merge-base with
- *                     HEAD. The strongest signal, and exactly the iverif case:
- *                     two repositories that were never the same project.
+ *                     HEAD, AND a push to it is possible. The strongest signal,
+ *                     and exactly the iverif case: two repositories that were
+ *                     never the same project, one `git push` away from mixing.
+ *   archival-remote   unrelated history, but `remote.<name>.pushurl` is set to a
+ *                     non-URL sentinel, so git cannot push there at all. This is
+ *                     the deliberate opposite of the iverif defect: a fetch-only
+ *                     pointer to a predecessor repository. Reported so the link
+ *                     stays visible, but it never sets the exit code — the first
+ *                     version flagged it as `unrelated-remote` and would have
+ *                     had someone "fix" a correct configuration by deleting it.
+ *   duplicate-remote  two remote names, one URL. Harmless in itself, but the
+ *                     stale tracking refs diverge and each looks like history
+ *                     the other lacks.
  *   public-remote     a PUBLIC remote on a repository named private via
  *                     --private-repo. Scoped to exact repos, not a tree: the
  *                     vault contains legitimately public projects, so flagging
@@ -36,7 +47,13 @@ const MAX_DEPTH = 6;
 
 interface Finding {
   repo: string;
-  kind: "unrelated-remote" | "public-remote" | "multiple-remotes" | "no-remote";
+  kind:
+    | "unrelated-remote"
+    | "archival-remote"
+    | "duplicate-remote"
+    | "public-remote"
+    | "multiple-remotes"
+    | "no-remote";
   detail: string;
 }
 
@@ -120,6 +137,24 @@ function repoVisibility(url: string): string | null {
 }
 
 /**
+ * True when git cannot push to this remote at all.
+ *
+ * `git push` resolves `remote.<name>.pushurl` ahead of `remote.<name>.url`, so
+ * setting pushurl to something that is not a URL — the convention is the literal
+ * `DISABLED` — makes every push fail before it opens a connection. A remote
+ * configured this way cannot leak anything no matter how badly a command is
+ * mistyped, which is the entire hazard `unrelated-remote` exists to catch.
+ */
+function isPushDisabled(dir: string, remote: string): boolean {
+  const pushUrl = git(dir, ["config", "--get", `remote.${remote}.pushurl`]);
+  if (pushUrl === null || pushUrl === "") return false;
+  // Anything git could actually dial. Not an allow-list of schemes: scp-style
+  // `git@host:path` and local paths are both pushable, so the test is whether
+  // the value could name a destination at all.
+  return !/[:/]/.test(pushUrl);
+}
+
+/**
  * True when the remote's tracked history and HEAD share no common ancestor.
  * Uses existing remote-tracking refs only — no fetch, so this stays read-only
  * and offline. A remote with no tracking refs yet is not evidence either way.
@@ -154,10 +189,31 @@ try {
       if (remotes.length > 1) {
         findings.push({ repo: short, kind: "multiple-remotes", detail: remotes.join(", ") });
       }
+      // One URL under two names. Found on noesismirror-web-falseearth, where
+      // `legacy` and `origin` addressed the same GitHub repo and their stale
+      // tracking refs had drifted 25 commits apart, each looking like history
+      // the other was missing.
+      const byUrl = new Map<string, string[]>();
+      for (const remote of remotes) {
+        const url = git(dir, ["remote", "get-url", remote]) ?? "";
+        byUrl.set(url, [...(byUrl.get(url) ?? []), remote]);
+      }
+      for (const [url, names] of byUrl) {
+        if (names.length > 1) {
+          findings.push({ repo: short, kind: "duplicate-remote", detail: `${names.join(" + ")} -> ${url}` });
+        }
+      }
+
       for (const remote of remotes) {
         const url = git(dir, ["remote", "get-url", remote]) ?? "";
         if (isUnrelated(dir, remote) === true) {
-          findings.push({ repo: short, kind: "unrelated-remote", detail: `${remote} -> ${url} (no merge-base with HEAD)` });
+          // Push-disabled first: unrelated history behind a pushurl git cannot
+          // dial is an intentional archival link, not the iverif defect.
+          const kind = isPushDisabled(dir, remote) ? "archival-remote" : "unrelated-remote";
+          const why = kind === "archival-remote"
+            ? "no merge-base with HEAD; push disabled, so fetch-only"
+            : "no merge-base with HEAD";
+          findings.push({ repo: short, kind, detail: `${remote} -> ${url} (${why})` });
         }
         if (opts.visibility && isPrivateRepo) {
           if (repoVisibility(url) === "PUBLIC") {
@@ -175,7 +231,10 @@ try {
   console.log(`roots: ${opts.roots.join(", ")}`);
   console.log(`repositories scanned: ${scanned}`);
   console.log(`findings: ${findings.length}\n`);
-  for (const kind of ["unrelated-remote", "public-remote", "multiple-remotes", "no-remote"] as const) {
+  for (const kind of [
+    "unrelated-remote", "public-remote", "duplicate-remote",
+    "archival-remote", "multiple-remotes", "no-remote",
+  ] as const) {
     const rows = byKind(kind);
     console.log(`=== ${kind} (${rows.length}) ===`);
     for (const f of rows.slice(0, 25)) console.log(`  ${f.repo}\n      ${f.detail}`);
