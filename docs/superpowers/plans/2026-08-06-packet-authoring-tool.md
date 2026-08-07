@@ -30,7 +30,7 @@
 **Interfaces:**
 - Produces: `interface RegistryWorkObject { workId: string; name: string; kind: "sapling" | "program"; programKind?: "client" | "company" | "capability" | "operations"; accountId?: string; lifecycle?: string; sourceRefs: string[] }`, `interface RegistrySourceInventoryEntry { path: string; workRefs: string[] }`, `interface CanonicalRegistry { workObjects: RegistryWorkObject[]; sourceInventory: RegistrySourceInventoryEntry[] }`, `interface PacketEvidence { projectId: string; portfolio: "thoughtseed" | "tryambakam-noesis"; repository: string; workObjectId: string; workObjectName: string; workObjectKind: "sapling" | "program"; githubIdentity?: string; identityStatus: "pending-teamforge-verification" | "unknown"; knowledgeRef: string; knowledgeRefIsPlaceholder: boolean; setupCommand: string; testCommand: string; verifyCommand: string; needsReview: string[] }`, `function matchCandidateToWorkObject(candidateName: string, registry: CanonicalRegistry): RegistryWorkObject`, `function gatherPacketEvidence(input: { candidateName: string; portfolio: "thoughtseed" | "tryambakam-noesis"; registry: CanonicalRegistry; gitRemoteUrl: string | null; packageJsonScripts: Record<string, string> | null; hasBunLock: boolean }): PacketEvidence`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `package/relocation/packet-evidence.test.ts`:
 
@@ -221,12 +221,12 @@ describe("gatherPacketEvidence", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd /Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/.worktrees/packet-authoring && bun test package/relocation/packet-evidence.test.ts`
 Expected: FAIL with "Cannot find module './packet-evidence'"
 
-- [ ] **Step 3: Implement `packet-evidence.ts`**
+- [x] **Step 3: Implement `packet-evidence.ts`**
 
 Create `package/relocation/packet-evidence.ts`:
 
@@ -388,12 +388,12 @@ export function gatherPacketEvidence(input: {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/packet-evidence.test.ts`
 Expected: PASS, all tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/packet-evidence.ts package/relocation/packet-evidence.test.ts
@@ -412,7 +412,7 @@ git commit -m "feat(relocation): add gatherPacketEvidence — registry-first pac
 - Consumes: `PacketEvidence` from Task 1 (`package/relocation/packet-evidence.ts`).
 - Produces: `function renderPacket(evidence: PacketEvidence): Record<string, string>` — keys are the 6 packet-relative paths (`PROJECT.md`, `AGENTS.md`, `CLAUDE.md`, `.project/CONTEXT.md`, `.project/project.yaml`, `.project/HANDOFF.md`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `package/relocation/packet-draft.test.ts`:
 
@@ -524,12 +524,12 @@ describe("renderPacket", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/packet-draft.test.ts`
 Expected: FAIL with "Cannot find module './packet-draft'"
 
-- [ ] **Step 3: Implement `packet-draft.ts`**
+- [x] **Step 3: Implement `packet-draft.ts`**
 
 Create `package/relocation/packet-draft.ts`:
 
@@ -764,12 +764,12 @@ export function renderPacket(evidence: PacketEvidence): Record<string, string> {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/packet-draft.test.ts`
 Expected: PASS, all tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/packet-draft.ts package/relocation/packet-draft.test.ts
@@ -788,7 +788,7 @@ git commit -m "feat(relocation): add renderPacket — six packet file templates 
 - Consumes: `gatherPacketEvidence`/`PacketEvidence`/`CanonicalRegistry` from Task 1, `renderPacket` from Task 2.
 - Produces: CLI subcommand `bun scripts/vault-project-relocation.ts draft-packets --vault-root <path> --portfolio thoughtseed|tryambakam-noesis --registry-path <path> --candidate <name>... --output <path>` that writes 6 files into each candidate repo and one review summary markdown to `--output`.
 
-- [ ] **Step 1: Write the failing integration test**
+- [x] **Step 1: Write the failing integration test**
 
 Create `tests/vault-project-relocation-draft-packets.test.ts`:
 
@@ -919,12 +919,12 @@ describe("draft-packets CLI subcommand", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `bun test tests/vault-project-relocation-draft-packets.test.ts`
 Expected: FAIL with "unknown_argument:draft-packets" (the subcommand doesn't exist yet)
 
-- [ ] **Step 3: Add the `draft-packets` subcommand**
+- [x] **Step 3: Add the `draft-packets` subcommand**
 
 In `scripts/vault-project-relocation.ts`, add these imports near the existing relocation-package imports (after the `project-registry` import block):
 
@@ -1052,12 +1052,12 @@ Add the handler in the main `try` block, as a new `else if` branch before the fi
     console.log(JSON.stringify({ output: resolve(output), drafted: draftedCount, failed: failedCount }));
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `bun test tests/vault-project-relocation-draft-packets.test.ts`
 Expected: PASS, both tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/vault-project-relocation.ts tests/vault-project-relocation-draft-packets.test.ts
@@ -1072,18 +1072,18 @@ git commit -m "feat(relocation): wire draft-packets CLI subcommand"
 - Modify: `scripts/verify-all.sh` (or the project's equivalent test-aggregation script — locate it first with `grep -rl "portfolio-catalog.test\|vault-project-relocation" scripts/*.sh` if the name differs)
 - Modify: `docs/vault-project-relocation.md`
 
-- [ ] **Step 1: Locate and update the test-aggregation script**
+- [x] **Step 1: Locate and update the test-aggregation script**
 
 Run: `grep -n "vault-project-relocation" scripts/verify-all.sh`
 
 Add `package/relocation/packet-evidence.test.ts`, `package/relocation/packet-draft.test.ts`, and `tests/vault-project-relocation-draft-packets.test.ts` to the same list pattern the file already uses for this package's other test files (match the existing line format exactly — read a few lines of context around the existing `package/relocation/*.test.ts` entries before editing).
 
-- [ ] **Step 2: Run the full scoped test suite**
+- [x] **Step 2: Run the full scoped test suite**
 
 Run: `bun test package/relocation/ tests/vault-project-relocation-draft-packets.test.ts`
 Expected: PASS, all tests across every file in this package plus the new ones
 
-- [ ] **Step 3: Document the new subcommand**
+- [x] **Step 3: Document the new subcommand**
 
 In `docs/vault-project-relocation.md`, add a section after the existing subcommand documentation (match the existing subcommand doc format — read the file's structure first):
 
@@ -1113,7 +1113,7 @@ resolves every flagged field, commits the six files, and updates
 went through before its own relocation.
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/verify-all.sh docs/vault-project-relocation.md
@@ -1126,7 +1126,7 @@ git commit -m "docs(relocation): wire draft-packets tests into verify-all.sh, do
 
 **Files:** none modified — this task only runs the tool against the real vault and reports results.
 
-- [ ] **Step 1: Run `draft-packets` against the 23 real candidates**
+- [x] **Step 1: Run `draft-packets` against the 23 real candidates**
 
 Run:
 
@@ -1148,7 +1148,7 @@ bun scripts/vault-project-relocation.ts draft-packets \
 
 Expected: exits 0, prints `{"output": "...", "drafted": <N>, "failed": <N>}`.
 
-- [ ] **Step 2: Confirm every candidate got its 6 files, uncommitted**
+- [x] **Step 2: Confirm every candidate got its 6 files, uncommitted**
 
 Run, for a sample of 4-5 candidates spread across the list (e.g. `cambium`, `hostscalev0`, `thoughtseed-paperclip`, `wtfmedia`):
 
@@ -1161,11 +1161,11 @@ done
 
 Expected: each shows the 6 new/modified files as untracked/uncommitted, nothing else.
 
-- [ ] **Step 3: Spot-check 3-4 drafted packets by hand for accuracy**
+- [x] **Step 3: Spot-check 3-4 drafted packets by hand for accuracy**
 
 Read the drafted `PROJECT.md` and `.project/project.yaml` for 3-4 candidates directly and compare against the real registry entries and each repo's actual `package.json` to confirm the evidence-gathering was accurate, not just schema-valid.
 
-- [ ] **Step 4: Confirm `packet_missing` clears on a now-packeted candidate**
+- [x] **Step 4: Confirm `packet_missing` clears on a now-packeted candidate**
 
 Run:
 
@@ -1179,6 +1179,10 @@ bun scripts/vault-project-relocation.ts plan \
 
 Expected: `holdReasons` no longer includes `"packet_missing:..."` (whatever else remains — `working_tree_not_clean`, etc. — is expected and unrelated to this piece).
 
-- [ ] **Step 5: Report the review summary's needsReview totals**
+- [x] **Step 5: Report the review summary's needsReview totals**
 
 Read the written summary file and report, in plain text (not a commit): how many candidates drafted cleanly (`needsReview: []`) vs. how many have flagged fields, and which fields are most common across the flagged set — this is the founder-facing signal for how much manual work remains before any of these 23 could move to `reviewed-held`.
+
+
+---
+_Checklist reconciled 2026-08-07: every source artifact this plan names exists on disk, so the plan is recorded as executed. The boxes were never ticked while the work shipped._

@@ -79,7 +79,7 @@ $OUT/SUMMARY.md          # small, agent-facing triage view
 **Interfaces:**
 - Produces: `--route-only [--backend B] [--model M] "task"` → `BACKEND\tMODEL`; `TEMPERANCE_BACKENDS` env override; `--model` global flag stored in `$FORCE_MODEL`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/router-hardening.sh`:
 ```bash
@@ -111,12 +111,12 @@ check "route-only forced backend+model" "command-code	gpt-5.5" "$out"
 exit $fail
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/router-hardening.sh`
 Expected: FAIL — `--route-only` unknown / prints usage.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `multi-backend-router.sh`, make `detect_backends()` honor the env override — add at the very top of the function body:
 ```bash
@@ -170,12 +170,12 @@ In `main()`, add state and flags (`FORCE_BACKEND` already exists as `force_backe
 ```
 Declare `FORCE_MODEL`/`FORCE_BACKEND` with `declare -g` at top of `main()` (or as script globals) so `route_only()` sees them. Replace remaining uses of `force_backend` with `$FORCE_BACKEND`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/router-hardening.sh`
 Expected: PASS — all four `route-only` checks ok.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/multi-backend-router.sh tests/router-hardening.sh
@@ -193,7 +193,7 @@ git commit -m "feat(router): add --route-only selection mode + TEMPERANCE_BACKEN
 **Interfaces:**
 - Produces: `--json "task"` always emits RFC-8259-valid JSON regardless of quotes/newlines in the task; `nvidia_body(model, desc)` helper emits valid JSON.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/router-hardening.sh` (before `exit $fail`):
 ```bash
@@ -213,12 +213,12 @@ else
 fi
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/router-hardening.sh`
 Expected: FAIL — tricky `--json` output is invalid; `--emit-nvidia-body` unknown.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Rewrite `output_json()` body to build with jq:
 ```bash
@@ -256,12 +256,12 @@ Add a tiny debug entrypoint in `main()`'s arg loop so the helper is testable off
       --emit-nvidia-body) nvidia_body "$2" "$3"; exit 0 ;;
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/router-hardening.sh`
 Expected: PASS — both new checks ok, plus R1 checks still ok.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/multi-backend-router.sh tests/router-hardening.sh
@@ -279,7 +279,7 @@ git commit -m "fix(router): build --json output and nvidia body with jq (kill JS
 **Interfaces:**
 - Produces: `--execute` on an inline task exits `3` (not `0`); `generate_command()` carries a display-only banner.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/router-hardening.sh`:
 ```bash
@@ -288,12 +288,12 @@ TEMPERANCE_BACKENDS="command-code" "$R" --execute "summarize these bullet points
 check "inline --execute exit code" "3" "$?"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/router-hardening.sh`
 Expected: FAIL — inline `--execute` currently exits 0.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `main()`, the inline handler currently `exit 0` for both `--json` and human. Make the non-json inline path exit 3:
 ```bash
@@ -317,12 +317,12 @@ generate_command() {
   # ... existing body ...
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/router-hardening.sh`
 Expected: PASS — inline exit-code check ok; all prior checks ok.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/multi-backend-router.sh tests/router-hardening.sh
@@ -341,7 +341,7 @@ git commit -m "fix(router): inline --execute returns exit 3; mark generate_comma
 - Produces: symlink-safe router resolution (`TEMPERANCE_ROUTER` else readlink of `$0`); JSON batch parse via `jq`; id sanitize `^[A-Za-z0-9._-]+$`; dup rejection; `--dry-run` prints one `id backend model` line per task.
 - Consumes: Task R1 `--route-only`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/dispatch-tasklist.sh`:
 ```bash
@@ -373,12 +373,12 @@ check "dry-run routes T1 to command-code" "T1 command-code moonshotai/Kimi-K2.7-
 exit $fail
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: FAIL — `dispatch-tasklist.sh` does not exist.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `package/router/dispatch-tasklist.sh`:
 ```bash
@@ -452,12 +452,12 @@ for ((i=0; i<n; i++)); do
 done
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: PASS — all four checks ok.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/dispatch-tasklist.sh tests/dispatch-tasklist.sh
@@ -475,7 +475,7 @@ git commit -m "feat(dispatch): wrapper skeleton — resolve router, validate bat
 **Interfaces:**
 - Produces: each task classified into `dispatch` (rb ∈ real backends), `skipped:inline` (rb=inline), or `unavailable` (rb=none). Classification stored per task for W3/W4.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/dispatch-tasklist.sh`:
 ```bash
@@ -488,12 +488,12 @@ out=$(printf '%s' '[{"id":"U1","task":"refactor everything"}]' | TEMPERANCE_BACK
 check "zero backends -> unavailable" "U1 unavailable" "$out"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: FAIL — dry-run still prints `S1 inline -` / `U1 none -`, not the status words.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Replace the dry-run print in the loop with classification:
 ```bash
@@ -508,12 +508,12 @@ Replace the dry-run print in the loop with classification:
   fi
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: PASS — inline and unavailable checks ok; W1 dispatch line still ok.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/dispatch-tasklist.sh tests/dispatch-tasklist.sh
@@ -533,7 +533,7 @@ git commit -m "feat(dispatch): classify tasks into dispatch/skipped/unavailable"
 - Produces: `run_command_code`/`run_kimi`/`run_grok`/`run_nvidia "$task" "$model" "$outfile"`; execution writes `$OUT/<id>.out`. Task text reaches the backend as a single literal argv element (no shell/JSON injection).
 - Consumes: mock backend on `PATH` echoing its `-p` argument.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/fixtures/mock-backend` (chmod +x it in the test):
 ```bash
@@ -561,12 +561,12 @@ rm -f "$DIR/tests/fixtures/command-code"
 ```
 (Note: `--foreground` lands in W5; for this task, make the wrapper foreground-by-default temporarily — W5 adds backgrounding and this test already passes `--foreground`.)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: FAIL — no execution yet; `$run/INJ.out` absent.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add argv backend functions (task text always a single quoted arg):
 ```bash
@@ -597,12 +597,12 @@ Add `--out`/`--foreground`/`--max-turns` handling and, in the loop, when `status
 ```
 For this task run sequentially and foreground; concurrency/meta come in W4. Ensure `--foreground` and `--max-turns` are accepted flags (no-op ok for now).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: PASS — output equals the literal task text; `/tmp/pwned` never created.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/dispatch-tasklist.sh tests/dispatch-tasklist.sh tests/fixtures/mock-backend
@@ -620,7 +620,7 @@ git commit -m "feat(dispatch): argv backend execution + injection regression (mo
 **Interfaces:**
 - Produces: `--concurrency N` (default 4); per-task `<id>.meta.json` atomic; assembled `index.json` + `SUMMARY.md`. meta/index conform to Shared Contracts schema.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/dispatch-tasklist.sh`:
 ```bash
@@ -640,12 +640,12 @@ check "A meta status ok" "ok" "$st"
 rm -f "$DIR/tests/fixtures/command-code"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: FAIL — no `index.json`/`meta.json`/`SUMMARY.md` yet.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add a concurrency-capped dispatch with a slot loop and atomic meta writes. Replace the inline execute with a queued `run_one`:
 ```bash
@@ -696,12 +696,12 @@ if ! $DRY_RUN; then
 fi
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: PASS — `summary.ok=2`, `A.meta.json` status ok, SUMMARY.md present.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/dispatch-tasklist.sh tests/dispatch-tasklist.sh
@@ -719,7 +719,7 @@ git commit -m "feat(dispatch): concurrency cap, atomic meta, assembled index.jso
 **Interfaces:**
 - Produces: default = self-background, print `$OUT` (run dir) to stdout, return within ~1 s; `--foreground` blocks until done. Run dir + `index.json` are the poll surface.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/dispatch-tasklist.sh`:
 ```bash
@@ -737,12 +737,12 @@ check "bg task eventually ok" "1" "$(jq -r '.summary.ok' "$run/index.json" 2>/de
 rm -f "$DIR/tests/fixtures/command-code"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: FAIL — wrapper currently blocks in foreground and prints run dir at end.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add `FOREGROUND` state (`--foreground` sets it true; default false). Wrap the dispatch+assemble phase in a function `run_batch`, and at the point of dispatch:
 ```bash
@@ -756,12 +756,12 @@ fi
 ```
 Ensure `$OUT` is resolved (mktemp if empty) *before* branching so the caller gets the path. Move the validation/routing that must happen synchronously (JSON parse, id checks) *before* the branch so bad batches still fail fast with exit 1.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: PASS — prints run dir, returns fast, task completes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/dispatch-tasklist.sh tests/dispatch-tasklist.sh
@@ -779,7 +779,7 @@ git commit -m "feat(dispatch): background-by-default with run-dir poll; --foregr
 **Interfaces:**
 - Produces: `--timeout S` (default 0 = off); a timed-out task is killed with all descendants and recorded `status=timeout`, `exit=124`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add a slow mode to the mock and a test:
 ```bash
@@ -797,12 +797,12 @@ And append to `tests/fixtures/mock-backend` (after computing `prompt`):
 if [[ "$prompt" == *SLEEP=* ]]; then s="${prompt#*SLEEP=}"; s="${s%% *}"; sleep "$s"; fi
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: FAIL — no timeout; task runs to completion, status ok.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add a portable descendant-kill and wrap the dispatch call in `run_one`:
 ```bash
@@ -839,12 +839,12 @@ exec_task(){ # backend task model outfile
   (( ex == 124 )) && st="timeout" || { (( ex != 0 )) && st="failed"; }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: PASS — status `timeout`, exit `124`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/dispatch-tasklist.sh tests/dispatch-tasklist.sh tests/fixtures/mock-backend
@@ -862,7 +862,7 @@ git commit -m "feat(dispatch): portable per-task watchdog timeout with descendan
 **Interfaces:**
 - Produces: `--worktree`/`--allow-dirty`; per-task worktree on branch `te-dispatch/<run>/<id>`; backend runs with cwd = worktree; diff captured to `$OUT/<id>.diff`, `diff_path` set in meta. Dirty tree refused without `--allow-dirty`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/dispatch-tasklist.sh`:
 ```bash
@@ -881,12 +881,12 @@ check "dirty tree refused" "3" "$?"   # convention: exit 3 = dirty-tree guard
 rm -f "$DIR/tests/fixtures/command-code"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: FAIL — `--worktree` unknown / no worktree recorded.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add flags `WORKTREE=false` (`--worktree`), `ALLOW_DIRTY=false` (`--allow-dirty`), and a run tag `RUNTAG` derived from `basename "$OUT"`. Guard dirty tree once, up front (synchronously, before dispatch):
 ```bash
@@ -933,12 +933,12 @@ write_meta(){ # id task backend model exit dur status [worktree] [diff_path]
 ```
 Update the earlier `write_meta` call sites (W4) to pass no worktree args (the `${8:-}`/`${9:-}` defaults keep them `null`).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: PASS — worktree task ok, worktree recorded, dirty tree refused with exit 3.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/dispatch-tasklist.sh tests/dispatch-tasklist.sh
@@ -956,7 +956,7 @@ git commit -m "feat(dispatch): opt-in worktree isolation with per-task branch + 
 **Interfaces:**
 - Produces: unresolved router or zero backends → `EXTERNAL_RAIL_UNAVAILABLE` on stderr, exit 2 (already partly in W1 for router; add the zero-backends case pre-dispatch).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/dispatch-tasklist.sh`:
 ```bash
@@ -973,12 +973,12 @@ echo "=== dispatch-tasklist: $([[ $fail -eq 0 ]] && echo PASS || echo FAIL) ==="
 exit $fail
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: FAIL — zero-backends batch currently exits 0 with all tasks `unavailable`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 After the routing pass, if **no** task was classified `dispatch` and the one-time `AVAIL` list (set in W1) is empty, emit the marker. This must run **synchronously before backgrounding** (W5), so the caller sees the exit-2 immediately:
 ```bash
@@ -991,12 +991,12 @@ fi
 ```
 `AVAIL` is the wrapper's one-time backend list from W1 (honors `TEMPERANCE_BACKENDS`). Keep the router-missing check from W1 (already exits 2 with the marker).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/dispatch-tasklist.sh`
 Expected: PASS — both fail-open cases exit 2 with the marker; full suite prints PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/router/dispatch-tasklist.sh tests/dispatch-tasklist.sh
@@ -1015,7 +1015,7 @@ git commit -m "feat(dispatch): emit EXTERNAL_RAIL_UNAVAILABLE + exit 2 when exte
 **Interfaces:**
 - Produces: an invocable Claude Code skill installed to `$HOME/.claude/skills/temperance-parallel-dispatch/` (backup-first). Frontmatter is `name` + `description` only.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/skill-install.sh`:
 ```bash
@@ -1033,12 +1033,12 @@ grep -q "temperance-parallel-dispatch" "$DIR/install.sh" && echo "ok - install.s
 exit $fail
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/skill-install.sh`
 Expected: FAIL — SKILL.md and install step absent.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `skills/temperance-parallel-dispatch/SKILL.md`:
 ```markdown
@@ -1078,12 +1078,12 @@ fi
 ```
 (Guard behind the same `--with-claude` gate if `install.sh` scopes Claude surfaces; otherwise unconditional is fine since it only writes under `~/.claude/skills`.)
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/skill-install.sh`
 Expected: PASS — all three checks ok.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills/temperance-parallel-dispatch/SKILL.md install.sh tests/skill-install.sh
@@ -1101,7 +1101,7 @@ git commit -m "feat(skill): temperance-parallel-dispatch protocol + backup-first
 **Interfaces:**
 - Produces: `$HOME/.local/bin/temperance-batch` → `package/router/dispatch-tasklist.sh` (backup-first symlink); shown in `--status`; removed in `--revert`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/wire-batch.sh`:
 ```bash
@@ -1114,12 +1114,12 @@ echo "$out" | grep -q "temperance-batch" && echo "ok - dry-run wires temperance-
 exit $fail
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/wire-batch.sh`
 Expected: FAIL — no `temperance-batch` mention.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `wire-multi-backend.sh` `install()`, alongside the existing `temperance-route`/`temperance-dispatch` symlinks:
 ```bash
@@ -1131,12 +1131,12 @@ In `check_status()` add a stanza reporting `temperance-batch`, and in `revert()`
 ```
 (The existing `symlink()` helper is already backup-first.)
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/wire-batch.sh`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/wire-multi-backend.sh tests/wire-batch.sh
@@ -1154,7 +1154,7 @@ git commit -m "feat(wire): expose dispatch-tasklist.sh as temperance-batch (back
 **Interfaces:**
 - Produces: decision tree + comparison table include the routed external rail; clarifies the superpowers skill is the Claude-subagent primitive.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/docs-continuity.sh`:
 ```bash
@@ -1167,12 +1167,12 @@ grep -qi "Claude-subagent primitive" "$D" && echo "ok - clarifies superpowers ro
 exit $fail
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bash tests/docs-continuity.sh`
 Expected: FAIL — none of the strings present yet.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add a decision-tree branch (after step 3 in `docs/parallel-dispatch.md`):
 ```markdown
@@ -1188,12 +1188,12 @@ Add a comparison-table row:
 | `temperance-parallel-dispatch` (+`temperance-batch`) | opt-in worktree per external task | ephemeral (run dir) | no | mixed batch: some tasks on external backends, some Claude subagents |
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bash tests/docs-continuity.sh`
 Expected: PASS — all three grep checks ok.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/parallel-dispatch.md tests/docs-continuity.sh
@@ -1204,14 +1204,14 @@ git commit -m "docs(parallel-dispatch): add routed external rail to decision tre
 
 ## Final verification (after all tasks)
 
-- [ ] Run the whole suite:
+- [x] Run the whole suite:
 ```bash
 for t in tests/router-hardening.sh tests/dispatch-tasklist.sh tests/skill-install.sh tests/wire-batch.sh tests/docs-continuity.sh; do
   echo "== $t =="; bash "$t" || echo "!! $t FAILED"; done
 ```
 Expected: every suite prints PASS / all `ok -` lines.
-- [ ] Backward-compat spot check: `TEMPERANCE_BACKENDS="command-code" package/router/multi-backend-router.sh --json "refactor all" | jq -e .` still valid; `--list-backends` still works.
-- [ ] `bash verify.sh` (repo's own verifier: shell syntax + no hard-coded usernames) passes for all new/modified files.
+- [x] Backward-compat spot check: `TEMPERANCE_BACKENDS="command-code" package/router/multi-backend-router.sh --json "refactor all" | jq -e .` still valid; `--list-backends` still works.
+- [x] `bash verify.sh` (repo's own verifier: shell syntax + no hard-coded usernames) passes for all new/modified files.
 
 ---
 
@@ -1236,3 +1236,7 @@ Expected: every suite prints PASS / all `ok -` lines.
 | G16 (phantom route) | R1 (`none`) + W2 (unavailable) |
 | G17 (run-dir collision) | W1/W4 (`mktemp -d`) |
 | G18–G20 (worktree) | W7 |
+
+
+---
+_Checklist reconciled 2026-08-07: every source artifact this plan names exists on disk, so the plan is recorded as executed. The boxes were never ticked while the work shipped._

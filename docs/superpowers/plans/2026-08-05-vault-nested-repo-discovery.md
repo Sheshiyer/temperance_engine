@@ -32,7 +32,7 @@
 **Interfaces:**
 - Produces: `classifyRepositoryByGitToplevel(path: string): { repositoryKind: "standalone-repository" | "nested-repository" | "not-a-repository"; gitTopLevel: string | null }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // package/relocation/project-repository-classification.test.ts
@@ -105,12 +105,12 @@ describe("classifyRepositoryByGitToplevel", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/project-repository-classification.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/project-repository-classification.ts
@@ -147,12 +147,12 @@ export function classifyRepositoryByGitToplevel(path: string): RepositoryTopleve
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/project-repository-classification.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-repository-classification.ts package/relocation/project-repository-classification.test.ts
@@ -170,7 +170,7 @@ git commit -m "feat(relocation): add shared git-toplevel repository classifier"
 - Consumes: `classifyRepositoryByGitToplevel` (Task 1).
 - Removes: the local `classifyRepositoryKind()` function and its now-unused `realpathSync` import.
 
-- [ ] **Step 1: Confirm the existing test that must keep passing unchanged**
+- [x] **Step 1: Confirm the existing test that must keep passing unchanged**
 
 Read `package/relocation/project-relocation-apply.test.ts`'s existing test
 `"holds on a nested (non-standalone) repository and touches nothing"`
@@ -182,7 +182,7 @@ this task is a pure refactor, not a behavior change.
 Run: `bun test package/relocation/project-relocation-apply.test.ts`
 Expected: PASS (baseline, before this task's edit).
 
-- [ ] **Step 2: Make the change**
+- [x] **Step 2: Make the change**
 
 In `package/relocation/project-relocation-apply.ts`:
 
@@ -224,18 +224,18 @@ to:
 const repositoryKind = classifyRepositoryByGitToplevel(input.source).repositoryKind;
 ```
 
-- [ ] **Step 3: Run tests to verify they still pass**
+- [x] **Step 3: Run tests to verify they still pass**
 
 Run: `bun test package/relocation/project-relocation-apply.test.ts`
 Expected: PASS, same test count as the Step 1 baseline, including the
 nested-repository test unchanged.
 
-- [ ] **Step 4: Run the wider relocation suite to catch anything unexpected**
+- [x] **Step 4: Run the wider relocation suite to catch anything unexpected**
 
 Run: `bun test package/relocation/`
 Expected: PASS, no new failures relative to the pre-change baseline.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-relocation-apply.ts
@@ -257,7 +257,7 @@ git commit -m "refactor(relocation): migrate apply transaction onto the shared c
   only its *internal* toplevel comparison now delegates to the shared
   function instead of reimplementing it with `resolve()`.
 
-- [ ] **Step 1: Note the behavior-sensitive detail before changing anything**
+- [x] **Step 1: Note the behavior-sensitive detail before changing anything**
 
 The current implementation uses `resolve()` for its toplevel comparison;
 the shared function uses `realpathSync()`. These differ only when a path
@@ -268,7 +268,7 @@ apply-side code already carries an inline comment explaining why
 `realpathSync` is required), not a neutral refactor — call this out
 explicitly in the commit message.
 
-- [ ] **Step 2: Make the change**
+- [x] **Step 2: Make the change**
 
 Add the import alongside the existing ones:
 
@@ -341,7 +341,7 @@ function classifyRepository(path: string): Pick<InventoryRecord, "repositoryKind
 }
 ```
 
-- [ ] **Step 3: Run the existing CLI-level tests to verify no behavior change**
+- [x] **Step 3: Run the existing CLI-level tests to verify no behavior change**
 
 Run: `bun test tests/vault-project-relocation.test.ts`
 Expected: PASS, same results as the pre-change baseline for every existing
@@ -352,7 +352,7 @@ test's `plan.repository.repositoryKind` assertion. The two pre-existing,
 already-documented failures (dirty real canary, `inventory` timeout) are
 expected and unrelated — confirm no *new* failures beyond those two.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/vault-project-relocation.ts
@@ -370,7 +370,7 @@ git commit -m "refactor(relocation): migrate CLI classifier onto the shared impl
 **Interfaces:**
 - Produces: `discoverNestedGitRoots(startPath: string, maxDepth: number): Array<{ path: string; depth: number }>`. `depth` starts at `1` for a `.git` directory found immediately inside `startPath` — the caller (Task 6) treats `startPath` itself as depth `0` and never re-classifies it here.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // package/relocation/project-nested-repo-discovery.test.ts
@@ -473,12 +473,12 @@ describe("discoverNestedGitRoots", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/project-nested-repo-discovery.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/project-nested-repo-discovery.ts
@@ -546,12 +546,12 @@ function walk(dir: string, depth: number, maxDepth: number, found: DiscoveredGit
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/project-nested-repo-discovery.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-nested-repo-discovery.ts package/relocation/project-nested-repo-discovery.test.ts
@@ -569,7 +569,7 @@ git commit -m "feat(relocation): add bounded recursive nested-git-root discovery
 **Interfaces:**
 - Produces: `findCandidateCollisions(candidates: CandidateIdentity[]): Map<string, string[]>` where `CandidateIdentity = { path: string; repositoryName: string; remotes: string[] }`. The returned `Map` is keyed by `path` (the unique identifier per candidate — `repositoryName` is deliberately *not* unique, since sharing it is exactly the condition being detected) and holds the list of new hold-reason strings for that candidate; candidates with no collision are absent from the map entirely (not present with an empty array).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // package/relocation/project-candidate-collision.test.ts
@@ -631,12 +631,12 @@ describe("findCandidateCollisions", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/project-candidate-collision.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/project-candidate-collision.ts
@@ -707,12 +707,12 @@ export function findCandidateCollisions(candidates: CandidateIdentity[]): Map<st
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/project-candidate-collision.test.ts`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-candidate-collision.ts package/relocation/project-candidate-collision.test.ts
@@ -732,7 +732,7 @@ git commit -m "feat(relocation): add basename/GitHub-identity candidate collisio
 - `InventoryRecord` gains `depth: number` and `immediateParentPath: string | null`.
 - `parseArgs()` gains an optional `--max-depth <n>` flag, default `0`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // append to tests/vault-project-relocation.test.ts, inside the existing
@@ -774,14 +774,14 @@ git commit -m "feat(relocation): add basename/GitHub-identity candidate collisio
   });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test tests/vault-project-relocation.test.ts`
 Expected: FAIL — `--max-depth` is an unrecognized argument today
 (`unknown_argument:--max-depth`), and `record.depth`/`record.immediateParentPath`
 don't exist yet.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 Add the import alongside the existing ones in `scripts/vault-project-relocation.ts`:
 
@@ -1022,13 +1022,13 @@ Update the `inventory` dispatch branch and the `usage()` text:
     [--max-depth <n>]
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test tests/vault-project-relocation.test.ts`
 Expected: PASS, including all new tests and every pre-existing test
 (modulo the two already-documented, pre-existing live-vault failures).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/vault-project-relocation.ts tests/vault-project-relocation.test.ts
@@ -1047,7 +1047,7 @@ git commit -m "feat(relocation): wire nested-repo discovery and collision detect
 **Interfaces:**
 - Consumes: nothing new — this task is real-data verification, integration, and documentation.
 
-- [ ] **Step 1: Write the real, read-only proof tests**
+- [x] **Step 1: Write the real, read-only proof tests**
 
 These are read-only (`inventory` never mutates anything beyond writing the
 caller-specified owner-only report file) and directly prove the design
@@ -1086,7 +1086,7 @@ describe block:
   });
 ```
 
-- [ ] **Step 2: Run to verify they pass against the real vault**
+- [x] **Step 2: Run to verify they pass against the real vault**
 
 Run: `bun test tests/vault-project-relocation.test.ts -t "hermes-aws-ts|team-forge-ts collision"`
 Expected: PASS. If either fails, treat it as a real finding to investigate
@@ -1094,7 +1094,7 @@ Expected: PASS. If either fails, treat it as a real finding to investigate
 reconnaissance — e.g. `Archive/team-forge-ts` could have been cleaned up
 since) — do not weaken the assertions to make them pass.
 
-- [ ] **Step 3: Wire the new test files into `verify-all.sh`**
+- [x] **Step 3: Wire the new test files into `verify-all.sh`**
 
 Add these lines alongside the existing `package/relocation` lines:
 
@@ -1104,7 +1104,7 @@ run bun test package/relocation/project-nested-repo-discovery.test.ts
 run bun test package/relocation/project-candidate-collision.test.ts
 ```
 
-- [ ] **Step 4: Document `--max-depth` in `docs/vault-project-relocation.md`**
+- [x] **Step 4: Document `--max-depth` in `docs/vault-project-relocation.md`**
 
 Add to the existing "## Inventory" section, after the existing description
 of `disposition`/`holdReasons`:
@@ -1132,7 +1132,7 @@ anything is ever registered. Full design:
 [`docs/superpowers/specs/2026-08-05-vault-nested-repo-discovery-design.md`](superpowers/specs/2026-08-05-vault-nested-repo-discovery-design.md).
 ```
 
-- [ ] **Step 5: Run the full scoped suite one more time and commit**
+- [x] **Step 5: Run the full scoped suite one more time and commit**
 
 Run: `bun test package/relocation/ && bun test tests/vault-project-relocation.test.ts`
 Expected: PASS across every relocation file including this plan's 6
@@ -1180,3 +1180,7 @@ missing these fields. Function names match exactly between "Produces" and
 correctly reflected in the plan's header note that this is a purely
 sequential plan, unlike the session-map plan's parallel-dispatch-eligible
 Tasks 2-6.
+
+
+---
+_Checklist reconciled 2026-08-07: every source artifact this plan names exists on disk, so the plan is recorded as executed. The boxes were never ticked while the work shipped._

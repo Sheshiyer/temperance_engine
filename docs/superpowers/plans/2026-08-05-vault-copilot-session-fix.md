@@ -72,7 +72,7 @@ reusing the exact portfolio/repository/old-path derivation the existing
   transaction without opening a second connection.
 - Consumes: nothing from earlier tasks (this is the first task).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // package/relocation/copilot-session-fix.test.ts
@@ -264,12 +264,12 @@ describe("planCopilotSessionFix", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/copilot-session-fix.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```typescript
 // package/relocation/copilot-session-fix.ts
@@ -438,12 +438,12 @@ per-row afterward is what actually decides whether a change is produced —
 never trust the `LIKE` match alone. This is the fix for the exact risk
 the design doc flagged in §10.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/copilot-session-fix.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/copilot-session-fix.ts package/relocation/copilot-session-fix.test.ts
@@ -489,7 +489,7 @@ report in your implementation notes exactly what you tried and why you
 landed on the final pattern, since this is a real, flagged-uncertain
 decision, not a settled fact.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // append to package/relocation/copilot-session-fix.test.ts
@@ -557,12 +557,12 @@ describe("hasActiveWalFile", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/copilot-session-fix.test.ts`
 Expected: FAIL — `isCopilotCliRunning`/`hasActiveWalFile` not defined.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Add to `package/relocation/copilot-session-fix.ts` (alongside the
 existing `node:fs` import, add `execFileSync` from `node:child_process`):
@@ -592,12 +592,12 @@ export function hasActiveWalFile(dbPath: string = COPILOT_DB_PATH): boolean {
 Replace the process-match regex with whatever your real §"Before writing
 code" verification found if it differs from `\bcopilot\b`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/copilot-session-fix.test.ts`
 Expected: PASS, 13 tests total (7 from Task 1 + 6 new).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/copilot-session-fix.ts package/relocation/copilot-session-fix.test.ts
@@ -637,7 +637,7 @@ changes for the same `(workspaceId, repoPathAtPlanTime)` row into one
 call**, exactly as shown in Step 3 below — do not issue two statements
 against the same row.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // append to package/relocation/copilot-session-fix.test.ts
@@ -782,12 +782,12 @@ describe("applyCopilotSessionFix", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/copilot-session-fix.test.ts`
 Expected: FAIL — `applyCopilotSessionFix` and friends not defined.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Add to `package/relocation/copilot-session-fix.ts` (new imports:
 `mkdirSync, chmodSync, writeFileSync, readFileSync` from `node:fs`,
@@ -951,12 +951,12 @@ export function applyCopilotSessionFix(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/copilot-session-fix.test.ts`
 Expected: PASS, 19 tests total (13 from Tasks 1-2 + 6 new).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/copilot-session-fix.ts package/relocation/copilot-session-fix.test.ts
@@ -983,7 +983,7 @@ git commit -m "feat(relocation): add applyCopilotSessionFix — transactional ap
   `scripts/vault-project-relocation.ts`, the `else if (argv[0] === "session-map")` block — before writing this task's code, so the two
   subcommands stay structurally consistent).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // append to tests/vault-project-relocation.test.ts, inside the existing
@@ -1004,12 +1004,12 @@ git commit -m "feat(relocation): add applyCopilotSessionFix — transactional ap
   });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test tests/vault-project-relocation.test.ts`
 Expected: FAIL — `session-fix` is an unrecognized argument today.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Add the import alongside the existing ones in
 `scripts/vault-project-relocation.ts`:
@@ -1078,7 +1078,7 @@ block):
     [--dry-run]
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test tests/vault-project-relocation.test.ts`
 Expected: PASS, including the 3 new tests and every pre-existing test
@@ -1087,7 +1087,7 @@ Expected: PASS, including the 3 new tests and every pre-existing test
 nested-repo-discovery plan for full history on that failure; it is
 unrelated to this plan's code).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/vault-project-relocation.ts tests/vault-project-relocation.test.ts
@@ -1108,7 +1108,7 @@ git commit -m "feat(relocation): wire Copilot session-fix into the CLI as sessio
   integration, and documentation, matching the same shape as the final
   task of the nested-repo-discovery plan.
 
-- [ ] **Step 1: Write the real, read-only proof test**
+- [x] **Step 1: Write the real, read-only proof test**
 
 This is read-only — it calls `planCopilotSessionFix` only, never
 `applyCopilotSessionFix` — directly proving the design doc's real
@@ -1144,7 +1144,7 @@ Import `planCopilotSessionFix` from
 `"../package/relocation/copilot-session-fix"` at the top of the test
 file if not already imported.
 
-- [ ] **Step 2: Run to verify it passes against the real database**
+- [x] **Step 2: Run to verify it passes against the real database**
 
 Run: `bun test tests/vault-project-relocation.test.ts -t "Selemene-engine"`
 Expected: PASS with `status: "fixable"` (matching 2026-08-05
@@ -1155,7 +1155,7 @@ still a legitimate pass (the real database state moved on since
 reconnaissance) — only a `"held"` or unexpected `"not-found"` result
 should be investigated as a real finding.
 
-- [ ] **Step 3: Wire the new test file into `verify-all.sh`**
+- [x] **Step 3: Wire the new test file into `verify-all.sh`**
 
 Add this line alongside the existing `package/relocation` lines:
 
@@ -1163,7 +1163,7 @@ Add this line alongside the existing `package/relocation` lines:
 run bun test package/relocation/copilot-session-fix.test.ts
 ```
 
-- [ ] **Step 4: Document `session-fix` in `docs/vault-project-relocation.md`**
+- [x] **Step 4: Document `session-fix` in `docs/vault-project-relocation.md`**
 
 Add a new `## Copilot session fix` section, after the existing
 `## Inventory` section (read the existing doc's section ordering and
@@ -1208,7 +1208,7 @@ for OpenCode, index-only granularity for Codex/Kimi, no per-project
 storage convention at all for Craft Agent).
 ```
 
-- [ ] **Step 5: Run the full scoped suite one more time and commit**
+- [x] **Step 5: Run the full scoped suite one more time and commit**
 
 Run: `bun test package/relocation/ && bun test tests/vault-project-relocation.test.ts`
 Expected: PASS across every relocation file including this plan's new
@@ -1266,3 +1266,7 @@ this is a purely sequential plan, like the nested-repo-discovery plan
 before it, not the session-map plan's parallel-dispatch-eligible middle
 tasks (there is no independent-matcher-per-tool structure here; Copilot
 is the only tool in scope).
+
+
+---
+_Checklist reconciled 2026-08-07: every source artifact this plan names exists on disk, so the plan is recorded as executed. The boxes were never ticked while the work shipped._

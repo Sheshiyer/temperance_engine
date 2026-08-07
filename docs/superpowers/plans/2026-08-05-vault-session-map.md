@@ -35,7 +35,7 @@
 **Interfaces:**
 - Produces: `MatchMechanism`, `ToolMatchResult`, `ClaudeCodeRelinkAction`, `SessionMapEntry`, `SessionMapRecord`, `BuildSessionMapInput` (types, in `project-session-map.ts`); `encodeClaudeCodeProjectPath(path: string): string` and `matchClaudeCode(path: string, projectsRoot?: string): ToolMatchResult` (in `session-store-matchers/claude-code-matcher.ts`, importing `ToolMatchResult` and `MatchMechanism` from `../project-session-map`). Every task in this plan imports the shared types from `project-session-map.ts`; every matcher task imports nothing from any other matcher file.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // package/relocation/session-store-matchers/claude-code-matcher.test.ts
@@ -88,12 +88,12 @@ describe("matchClaudeCode", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/session-store-matchers/claude-code-matcher.test.ts`
 Expected: FAIL — neither `project-session-map.ts` nor `claude-code-matcher.ts` exists yet (module not found).
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/project-session-map.ts
@@ -176,12 +176,12 @@ export function matchClaudeCode(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/session-store-matchers/claude-code-matcher.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-session-map.ts package/relocation/session-store-matchers/claude-code-matcher.ts package/relocation/session-store-matchers/claude-code-matcher.test.ts
@@ -202,7 +202,7 @@ git commit -m "feat(relocation): add session-map shared types and Claude Code ma
 
 **Does not touch:** `project-session-map.ts`, or any other file in `session-store-matchers/`. Safe to run concurrently with Tasks 3–6.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // package/relocation/session-store-matchers/opencode-matcher.test.ts
@@ -265,12 +265,12 @@ describe("matchOpenCode", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/session-store-matchers/opencode-matcher.test.ts`
 Expected: FAIL — `opencode-matcher.ts` does not exist yet.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/session-store-matchers/opencode-matcher.ts
@@ -316,12 +316,12 @@ export function matchOpenCode(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/session-store-matchers/opencode-matcher.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/session-store-matchers/opencode-matcher.ts package/relocation/session-store-matchers/opencode-matcher.test.ts
@@ -342,7 +342,7 @@ git commit -m "feat(relocation): add OpenCode session-map matcher"
 
 **Does not touch:** `project-session-map.ts`, or any other file in `session-store-matchers/`. Safe to run concurrently with Tasks 2, 4, 5, 6.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // package/relocation/session-store-matchers/copilot-matcher.test.ts
@@ -404,12 +404,12 @@ describe("matchCopilot", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/session-store-matchers/copilot-matcher.test.ts`
 Expected: FAIL — `copilot-matcher.ts` does not exist yet.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/session-store-matchers/copilot-matcher.ts
@@ -455,12 +455,12 @@ export function matchCopilot(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/session-store-matchers/copilot-matcher.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/session-store-matchers/copilot-matcher.ts package/relocation/session-store-matchers/copilot-matcher.test.ts
@@ -481,7 +481,7 @@ git commit -m "feat(relocation): add GitHub Copilot CLI session-map matcher"
 
 **Does not touch:** `project-session-map.ts`, or any other file in `session-store-matchers/`. Safe to run concurrently with Tasks 2, 3, 5, 6.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // package/relocation/session-store-matchers/codex-matcher.test.ts
@@ -544,12 +544,12 @@ describe("matchCodex", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/session-store-matchers/codex-matcher.test.ts`
 Expected: FAIL — `codex-matcher.ts` does not exist yet.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/session-store-matchers/codex-matcher.ts
@@ -597,12 +597,12 @@ export function matchCodex(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/session-store-matchers/codex-matcher.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/session-store-matchers/codex-matcher.ts package/relocation/session-store-matchers/codex-matcher.test.ts
@@ -623,7 +623,7 @@ git commit -m "feat(relocation): add Codex session-map matcher"
 
 **Does not touch:** `project-session-map.ts`, or any other file in `session-store-matchers/`. Safe to run concurrently with Tasks 2, 3, 4, 6.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // package/relocation/session-store-matchers/kimi-matcher.test.ts
@@ -671,12 +671,12 @@ describe("matchKimi", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/session-store-matchers/kimi-matcher.test.ts`
 Expected: FAIL — `kimi-matcher.ts` does not exist yet.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/session-store-matchers/kimi-matcher.ts
@@ -710,12 +710,12 @@ export function matchKimi(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/session-store-matchers/kimi-matcher.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/session-store-matchers/kimi-matcher.ts package/relocation/session-store-matchers/kimi-matcher.test.ts
@@ -736,7 +736,7 @@ git commit -m "feat(relocation): add Kimi session-map matcher"
 
 **Does not touch:** `project-session-map.ts`, or any other file in `session-store-matchers/`. Safe to run concurrently with Tasks 2, 3, 4, 5.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // package/relocation/session-store-matchers/craft-agent-matcher.test.ts
@@ -753,12 +753,12 @@ describe("matchCraftAgent", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/session-store-matchers/craft-agent-matcher.test.ts`
 Expected: FAIL — `craft-agent-matcher.ts` does not exist yet.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // package/relocation/session-store-matchers/craft-agent-matcher.ts
@@ -769,12 +769,12 @@ export function matchCraftAgent(_path: string): ToolMatchResult {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/session-store-matchers/craft-agent-matcher.test.ts`
 Expected: PASS, 1 test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/session-store-matchers/craft-agent-matcher.ts package/relocation/session-store-matchers/craft-agent-matcher.test.ts
@@ -794,7 +794,7 @@ git commit -m "feat(relocation): add Craft Agent session-map matcher (unsupporte
 - Produces: `buildSessionMap(input: BuildSessionMapInput, generatedAt: string, matchers?: Array<(path: string) => ToolMatchResult>): SessionMapRecord`. The optional `matchers` parameter exists solely so this task's tests can inject fixture-backed matchers instead of the six hardcoded-path production ones — production call sites (Task 10) never pass it.
 - Precedence rule (must match exactly, see Self-Review note below): for each matcher, check `oldPath` first; if `matched` is `true`, use that result. Otherwise check `newPath`; if `matched` is `true`, use that result. Otherwise use the `oldPath` result (preserves `error`/`unsupported` state).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // package/relocation/project-session-map.test.ts
@@ -902,12 +902,12 @@ describe("buildSessionMap", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/project-session-map.test.ts`
 Expected: FAIL — `buildSessionMap` is not exported.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // append to package/relocation/project-session-map.ts
@@ -950,12 +950,12 @@ export function buildSessionMap(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/project-session-map.test.ts`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-session-map.ts package/relocation/project-session-map.test.ts
@@ -974,7 +974,7 @@ git commit -m "feat(relocation): add buildSessionMap orchestrator wiring all six
 - Consumes: `ClaudeCodeRelinkAction`, `SessionMapRecord`, `SessionMapEntry` (Task 1, same file); `encodeClaudeCodeProjectPath` (Task 1, imported from `./session-store-matchers/claude-code-matcher` — it lives in the matcher file, not this one).
 - Produces: `attemptClaudeCodeRelink(oldSessionDir: string, newSessionDir: string): ClaudeCodeRelinkAction`; `applyClaudeCodeRelink(record: SessionMapRecord, projectsRoot?: string): SessionMapRecord`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```typescript
 // append to package/relocation/project-session-map.test.ts
@@ -1064,12 +1064,12 @@ describe("applyClaudeCodeRelink", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `bun test package/relocation/project-session-map.test.ts -t "Relink"`
 Expected: FAIL — `attemptClaudeCodeRelink`/`applyClaudeCodeRelink` are not exported.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // append to package/relocation/project-session-map.ts
@@ -1106,12 +1106,12 @@ export function applyClaudeCodeRelink(
 
 Note: `existsSync` must be imported into `project-session-map.ts`'s top-level `node:fs` import at this point (it was not needed by the file before this task) — add it to the existing import statement rather than writing a second one; same for `join` from `node:path` if not already present from an earlier append.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/project-session-map.test.ts`
 Expected: PASS, 9 tests total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-session-map.ts package/relocation/project-session-map.test.ts
@@ -1130,7 +1130,7 @@ git commit -m "feat(relocation): add never-clobber Claude Code active relink"
 - Consumes: `SessionMapRecord` (Task 1, same file).
 - Produces: `writeSessionMap(filePath: string, record: SessionMapRecord): void`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // append to package/relocation/project-session-map.test.ts
@@ -1161,12 +1161,12 @@ describe("writeSessionMap", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/project-session-map.test.ts -t "writeSessionMap"`
 Expected: FAIL — `writeSessionMap` is not exported.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // append to package/relocation/project-session-map.ts
@@ -1182,12 +1182,12 @@ export function writeSessionMap(filePath: string, record: SessionMapRecord): voi
 
 Consolidate every `node:fs`/`node:path` import accumulated across Tasks 1, 7, 8, 9 into the single existing import block at the top of `project-session-map.ts` — by this task it must include, from `node:fs`: `existsSync, symlinkSync, chmodSync, mkdirSync, writeFileSync, readFileSync` (test file only), and from `node:path`: `join, dirname`. This is a mechanical cleanup, not new behavior — do it as part of this task's commit.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test package/relocation/project-session-map.test.ts`
 Expected: PASS, 10 tests total.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-session-map.ts package/relocation/project-session-map.test.ts
@@ -1206,7 +1206,7 @@ git commit -m "feat(relocation): add writeSessionMap I/O and consolidate imports
 - Consumes: `buildSessionMap`, `applyClaudeCodeRelink`, `writeSessionMap` (Tasks 7–9, all from `../package/relocation/project-session-map` — the CLI never imports directly from any `session-store-matchers/*` file); `registryEntryPath` (existing, `project-registry.ts`); `inferPortfolio` (existing, `scripts/vault-project-relocation.ts`).
 - Produces: a `session-map` branch in the existing `if (argv[0] === "plan") ... else if (...) ...` dispatch chain, and a `usage()` line documenting it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // append to tests/vault-project-relocation.test.ts
@@ -1234,12 +1234,12 @@ describe("session-map subcommand — argument validation only", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test tests/vault-project-relocation.test.ts -t "session-map"`
 Expected: FAIL — `session-map` is not a recognized subcommand yet.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 Add the import at the top of `scripts/vault-project-relocation.ts` alongside the existing relocation imports:
 
@@ -1311,12 +1311,12 @@ Add a new branch to the existing `if (argv[0] === "plan") ... else if (...) ...`
 
 Confirmed (2026-08-05): `scripts/vault-project-relocation.ts` is already in `PRODUCTION_RELOCATION_FILES` (`project-relocation-source-guards.test.ts:33`) and is therefore already covered by the `homedir()`/`process.env.HOME` ban — the literal path above is not a style choice, it's required to keep Task 11's guard passing. No new import is needed beyond the one shown above: `basename`, `existsSync`, `readFileSync`, `join`, and `isAbsolute` are already imported at the top of `scripts/vault-project-relocation.ts` (verified directly).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `bun test tests/vault-project-relocation.test.ts`
 Expected: PASS, including the two new tests and every pre-existing test in this file.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/vault-project-relocation.ts tests/vault-project-relocation.test.ts
@@ -1334,7 +1334,7 @@ git commit -m "feat(relocation): wire session-map CLI subcommand"
 - Consumes: `PRODUCTION_RELOCATION_FILES`, `readProductionCode`, `readAllProductionCode`, `assertNoneContain` (all existing in this file).
 - Produces: no new exports — extends the existing guard suite with coverage for `project-session-map.ts` and all six `session-store-matchers/*.ts` files.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add these seven entries to the existing `PRODUCTION_RELOCATION_FILES` array (this alone extends every existing guard in this file — `homedir()` ban, network/history-rewrite Git bans, credential-pattern bans — to cover all seven new files automatically, since none of them touch Git at all):
 
@@ -1369,19 +1369,19 @@ Then add these two new test cases inside the existing `describe("source guards �
   });
 ```
 
-- [ ] **Step 2: Run tests — expected to pass immediately (verification task, not new production behavior)**
+- [x] **Step 2: Run tests — expected to pass immediately (verification task, not new production behavior)**
 
 Run: `bun test package/relocation/project-relocation-source-guards.test.ts`
 Expected: PASS, all tests including the two new ones — since Tasks 1–10 already implemented every file correctly. If any guard fails here, it means an earlier task's implementation violated an invariant; fix the implementation in the relevant earlier task's file, not the guard.
 
-- [ ] **Step 3: (No new production code — this task only extends test coverage.)**
+- [x] **Step 3: (No new production code — this task only extends test coverage.)**
 
-- [ ] **Step 4: Re-run to confirm**
+- [x] **Step 4: Re-run to confirm**
 
 Run: `bun test package/relocation/project-relocation-source-guards.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-relocation-source-guards.test.ts
@@ -1400,7 +1400,7 @@ git commit -m "test(relocation): extend source guards to cover the session-map m
 - Consumes: nothing new — this task is integration and documentation only.
 - Produces: nothing new — closes out the plan.
 
-- [ ] **Step 1: Add the seven new test files to `verify-all.sh`**
+- [x] **Step 1: Add the seven new test files to `verify-all.sh`**
 
 Add these lines to `scripts/verify-all.sh`, alongside the existing `run bun test package/relocation/project-relocation-apply.test.ts` line:
 
@@ -1414,7 +1414,7 @@ run bun test package/relocation/session-store-matchers/craft-agent-matcher.test.
 run bun test package/relocation/project-session-map.test.ts
 ```
 
-- [ ] **Step 2: Document the subcommand in `docs/vault-project-relocation.md`**
+- [x] **Step 2: Document the subcommand in `docs/vault-project-relocation.md`**
 
 Add a new subsection after the existing "The end-to-end apply transaction" section:
 
@@ -1438,12 +1438,12 @@ new sessions accumulate at the new path. Full design:
 [`docs/superpowers/specs/2026-08-05-vault-session-map-design.md`](superpowers/specs/2026-08-05-vault-session-map-design.md).
 ```
 
-- [ ] **Step 3: Run the full scoped relocation suite**
+- [x] **Step 3: Run the full scoped relocation suite**
 
 Run: `bun test package/relocation/ && bun test tests/vault-project-relocation.test.ts`
 Expected: PASS, all tests across every relocation file including the 13 new/modified files from this plan.
 
-- [ ] **Step 4: Verify no real mutation occurred**
+- [x] **Step 4: Verify no real mutation occurred**
 
 Run these read-only checks and confirm the outputs show no change to real machine state:
 
@@ -1452,7 +1452,7 @@ ls ~/.temperance_engine/session-maps 2>&1   # expected: "No such file or directo
 find ~/.claude/projects -maxdepth 1 -type l 2>/dev/null   # expected: no new symlinks — attemptClaudeCodeRelink was only ever called against temp fixture dirs in tests
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/verify-all.sh docs/vault-project-relocation.md
@@ -1470,3 +1470,7 @@ git commit -m "docs(relocation): wire session-map into verify-all.sh and documen
 **Type consistency:** `ToolMatchResult`, `SessionMapEntry`, `SessionMapRecord`, `ClaudeCodeRelinkAction`, `BuildSessionMapInput` are defined once in Task 1's `project-session-map.ts` and imported identically (`import type { ToolMatchResult } from "../project-session-map"`) by every matcher file — no task redefines them. `matched: boolean | null` is used consistently as a three-state field per Design §6 across every matcher (`true`/`false`/`null`, never a bare boolean default). Function names match exactly between "Produces" blocks and later "Consumes" blocks: `matchClaudeCode`, `matchOpenCode`, `matchCopilot`, `matchCodex`, `matchKimi`, `matchCraftAgent`, `buildSessionMap`, `attemptClaudeCodeRelink`, `applyClaudeCodeRelink`, `writeSessionMap` — no renames across tasks.
 
 **File-boundary revision (2026-08-05):** the original draft of this plan had Tasks 1–6 all appending to one shared `project-session-map.ts`/`.test.ts` pair, which is not safe for parallel/worktree-based dispatch (concurrent diffs against the same growing file don't compose). Revised so Tasks 2–6 each own a disjoint file pair under `session-store-matchers/`, importing only the read-only types from Task 1. Task 7 is the first task that re-touches the shared file, and it is correctly sequenced after Tasks 1–6 in its "Consumes" block.
+
+
+---
+_Checklist reconciled 2026-08-07: every source artifact this plan names exists on disk, so the plan is recorded as executed. The boxes were never ticked while the work shipped._

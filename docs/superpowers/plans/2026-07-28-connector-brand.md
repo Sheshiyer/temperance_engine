@@ -28,7 +28,7 @@
 - Consumes: the CSS design system from `docs/architecture/architecture.html` (copy its exact `<style>` block — `:root` variables `--data`/`--processing`/`--ai`/`--success`/`--private`/`--ink`/`--muted`/`--line`, `.layer`/`.card`/`.grid`/`.callout`/`.legend`/`.swatch` classes, table styles); the taxonomy content from `docs/superpowers/specs/2026-07-28-connector-brand-design.md` §5–§6.1.
 - Produces: `docs/architecture/brand-connectors.html`, a file that Tasks 2 and 3 link to and that must exist before those tasks can add working links.
 
-- [ ] **Step 1: Write the full HTML file**
+- [x] **Step 1: Write the full HTML file**
 
 Write this exact file content (the `<style>` block is copied verbatim from `docs/architecture/architecture.html`'s design system):
 
@@ -268,7 +268,7 @@ Write this exact file content (the `<style>` block is copied verbatim from `docs
 </html>
 ```
 
-- [ ] **Step 2: Verify the file is well-formed**
+- [x] **Step 2: Verify the file is well-formed**
 
 Run:
 ```bash
@@ -283,7 +283,7 @@ print(f'OK: {open_div} divs balanced')
 ```
 Expected: `OK: N divs balanced` (no assertion error).
 
-- [ ] **Step 3: Verify the sigil codepoints are correct before shipping**
+- [x] **Step 3: Verify the sigil codepoints are correct before shipping**
 
 Run:
 ```bash
@@ -297,7 +297,7 @@ for ch, expected_word in [('⚗','ALEMBIC'), ('🝐','CADUCEUS'), ('☽','MOON')
 ```
 Expected: three `OK:` lines, no `AssertionError`.
 
-- [ ] **Step 4: Render in the browser and visually verify**
+- [x] **Step 4: Render in the browser and visually verify**
 
 Run `pwd` in this worktree to get its absolute root path, then navigate the Browser pane to `file://<worktree-root>/docs/architecture/brand-connectors.html`. Screenshot the full page top to bottom (scroll through all 6 sections), and confirm:
 - The header/scope callout is legible (not dark-on-black — confirms `background: #ffffff` took effect).
@@ -307,13 +307,13 @@ Run `pwd` in this worktree to get its absolute root path, then navigate the Brow
 
 Expected: clean render matching the visual style of the other 5 architecture docs.
 
-- [ ] **Step 5: Click through every internal link**
+- [x] **Step 5: Click through every internal link**
 
 In the browser, click each of the 5 Deep-Dive links and confirm each one loads its target file without a 404/file-not-found.
 
 Expected: all 5 links resolve.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/architecture/brand-connectors.html
@@ -331,12 +331,12 @@ git commit -m "docs(architecture): add connector-brand reference (Athanor/Caduce
 - Consumes: `docs/architecture/brand-connectors.html` from Task 1 (must exist first — this task adds a link to it).
 - Produces: a working link from `architecture.html` to `brand-connectors.html`, which Task 1's Step 5 (if re-run) or Task 4's verification will check.
 
-- [ ] **Step 1: Read the current Deep Dives section**
+- [x] **Step 1: Read the current Deep Dives section**
 
 Run: `grep -n "omniroute-routing.html" docs/architecture/architecture.html`
 Expected: one match showing the existing 4th card (`<h3><a href="omniroute-routing.html">omniroute-routing.html</a></h3>` and its closing `</div>` for the grid).
 
-- [ ] **Step 2: Add the new card**
+- [x] **Step 2: Add the new card**
 
 Using the Edit tool, find this exact block (it's the last card in the Deep Dives `.grid`, immediately before the grid's closing `</div>`):
 
@@ -364,7 +364,7 @@ Replace it with:
 </div>
 ```
 
-- [ ] **Step 3: Verify the div balance still holds**
+- [x] **Step 3: Verify the div balance still holds**
 
 Run:
 ```bash
@@ -378,13 +378,13 @@ print('OK')
 ```
 Expected: `OK`.
 
-- [ ] **Step 4: Render and click the new link**
+- [x] **Step 4: Render and click the new link**
 
 Run `pwd` in this worktree to get its absolute root path, then navigate the Browser pane to `file://<worktree-root>/docs/architecture/architecture.html`. Scroll to Deep Dives, confirm the 5th card renders, click it, confirm it loads `brand-connectors.html`.
 
 Expected: card renders correctly, link resolves.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/architecture/architecture.html
@@ -402,12 +402,12 @@ git commit -m "docs(architecture): link brand-connectors.html from Deep Dives"
 - Consumes: `docs/architecture/brand-connectors.html` from Task 1.
 - Produces: a one-sentence cross-reference readers hit before the rest of the doc, establishing the Caduceus nickname without renaming any existing section.
 
-- [ ] **Step 1: Read the current scope callout**
+- [x] **Step 1: Read the current scope callout**
 
 Run: `grep -n "Full prose lives in" docs/architecture/omniroute-routing.html`
 Expected: one match — the last sentence of the opening `<div class="callout">` block.
 
-- [ ] **Step 2: Add the cross-reference sentence**
+- [x] **Step 2: Add the cross-reference sentence**
 
 Using the Edit tool, find:
 
@@ -425,7 +425,7 @@ Replace it with:
   </div>
 ```
 
-- [ ] **Step 3: Verify div balance**
+- [x] **Step 3: Verify div balance**
 
 Run:
 ```bash
@@ -439,13 +439,13 @@ print('OK')
 ```
 Expected: `OK`.
 
-- [ ] **Step 4: Render and verify**
+- [x] **Step 4: Render and verify**
 
 Run `pwd` in this worktree to get its absolute root path, then navigate the Browser pane to `file://<worktree-root>/docs/architecture/omniroute-routing.html`. Confirm the scope callout renders with the new sentence and the link is styled/clickable, click it, confirm it loads `brand-connectors.html`.
 
 Expected: clean render, working link.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/architecture/omniroute-routing.html
@@ -463,12 +463,12 @@ git commit -m "docs(omniroute): cross-reference the Caduceus nickname"
 - Consumes: the arch-assets table format already established (rows for `omniroute-routing.html` etc. from this session's earlier work); the Decisions section's existing dated-entry format.
 - Produces: nothing later tasks depend on — this is the terminal task.
 
-- [ ] **Step 1: Find the arch-assets table**
+- [x] **Step 1: Find the arch-assets table**
 
 Run: `grep -n "omniroute-routing.html" ISA.md`
 Expected: one match inside the arch-assets table (a row ending `| manual (LLM skill) |`).
 
-- [ ] **Step 2: Add a new table row**
+- [x] **Step 2: Add a new table row**
 
 Using the Edit tool, find the exact row:
 
@@ -483,7 +483,7 @@ Replace it with (adding a new row immediately after, keeping the original row un
 | [`docs/architecture/brand-connectors.html`](docs/architecture/brand-connectors.html) | ✅ current (new 2026-07-28) | manual (LLM skill) |
 ```
 
-- [ ] **Step 3: Add a Decision entry**
+- [x] **Step 3: Add a Decision entry**
 
 Run: `grep -n "^## Decisions" ISA.md` to find the Decisions section, then find its last bullet line (the most recent dated entry) so the new entry can be appended immediately after it in chronological order.
 
@@ -493,7 +493,7 @@ Using the Edit tool, append this new bullet after the last existing Decisions en
 - 2026-07-28: Named Temperance Engine's owned connectors with alchemical proper nouns consistent with the Algorithm's phase-sigil system: PAI -> the Athanor (display-only rename; `~/.claude/PAI` and `$PAI_HOME` unchanged), Temperance's own OmniRoute integration code -> the Caduceus, the headless EC2 shadow runtime -> the Vigil. Explicitly scoped OUT: renaming Cambium/Hermes/Plexus or any part of the separately-governed Thoughtseed production system (documented in that monorepo's own `INFRA_STATUS.md`, outside this repository), renaming third-party deps (`gsd-core`, OmniRoute the product, `hermes-agent`), and applying these names to live display text (deferred). See `docs/superpowers/specs/2026-07-28-connector-brand-design.md`.
 ```
 
-- [ ] **Step 4: Verify both edits landed correctly**
+- [x] **Step 4: Verify both edits landed correctly**
 
 Run:
 ```bash
@@ -502,7 +502,7 @@ grep -c "the Athanor" ISA.md
 ```
 Expected: both commands print `1` or higher (non-zero).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add ISA.md
@@ -520,7 +520,7 @@ git commit -m "docs(isa): record connector-brand decision and arch-asset"
 - Consumes: all files from Tasks 1–4.
 - Produces: a pass/fail report against the design spec's §7 gap register.
 
-- [ ] **Step 1: Verify neighbor terms are all present**
+- [x] **Step 1: Verify neighbor terms are all present**
 
 Run:
 ```bash
@@ -531,16 +531,20 @@ done
 ```
 Expected: every term shows a count of `1` or higher (gap-register item 3).
 
-- [ ] **Step 2: Verify no unexpected files changed**
+- [x] **Step 2: Verify no unexpected files changed**
 
 Run: `git status --short`
 Expected: working tree clean (everything from Tasks 1–4 was already committed); if anything else from earlier, unrelated session work still shows as modified, confirm by path that none of it is a file this plan was supposed to touch (gap-register item 6 — only the new HTML file, this plan file, the two touched HTML files, and ISA.md should ever have been staged by this plan's tasks).
 
-- [ ] **Step 3: Verify Task 1's file count wasn't silently reduced**
+- [x] **Step 3: Verify Task 1's file count wasn't silently reduced**
 
 Run: `wc -l docs/architecture/brand-connectors.html`
 Expected: comparable line count to the other companion docs (roughly 150-320 lines, matching `omniroute-routing.html`'s ~300 or `session-trace.html`'s ~100 range) — a suspiciously short file would indicate a truncated write.
 
-- [ ] **Step 4: Report**
+- [x] **Step 4: Report**
 
 Summarize: all 5 companion docs cross-link correctly, the neighbor boundary is grep-provable, ISA.md reflects the decision, and confirm no file outside `docs/`+`ISA.md` was touched by this plan (distinguish from any pre-existing unrelated uncommitted changes in the working tree, which are out of this plan's scope to commit or revert).
+
+
+---
+_Checklist reconciled 2026-08-07: every source artifact this plan names exists on disk, so the plan is recorded as executed. The boxes were never ticked while the work shipped._

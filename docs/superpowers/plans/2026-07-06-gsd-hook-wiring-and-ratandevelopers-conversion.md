@@ -48,7 +48,7 @@
 **Interfaces:**
 - Produces: a hook that prints `See docs/pai-flow.md …` (not `docs/parallel-dispatch.md`) and whose header no longer claims "the installer does not copy this hook anywhere."
 
-- [ ] **Step 1: Write the failing regression check** (temporary inline check; folded into `tests/wire-session-hook.sh` in Task 3)
+- [x] **Step 1: Write the failing regression check** (temporary inline check; folded into `tests/wire-session-hook.sh` in Task 3)
 
 ```bash
 grep -q 'docs/pai-flow.md' package/hooks/ParallelDispatchContext.hook.sh \
@@ -57,11 +57,11 @@ grep -q 'docs/pai-flow.md' package/hooks/ParallelDispatchContext.hook.sh \
   && echo PASS || echo FAIL
 ```
 
-- [ ] **Step 2: Run it to verify it FAILS**
+- [x] **Step 2: Run it to verify it FAILS**
 
 Run the block above. Expected: `FAIL` (current hook still points at `docs/parallel-dispatch.md` and carries the stale header claim).
 
-- [ ] **Step 3: Fix defect 1 — the runtime doc reference**
+- [x] **Step 3: Fix defect 1 — the runtime doc reference**
 
 In `package/hooks/ParallelDispatchContext.hook.sh`, change the `printf` guidance line:
 
@@ -74,7 +74,7 @@ printf 'See docs/pai-flow.md before choosing sequential vs parallel work for thi
 
 *Why:* `docs/parallel-dispatch.md` is retired to a redirect stub (ISC-37); the live Execute-phase decision framework is in `docs/pai-flow.md`. Do NOT delete the stub — `verify-install.sh` still checks its presence.
 
-- [ ] **Step 4: Fix defect 2 — the stale header comment**
+- [x] **Step 4: Fix defect 2 — the stale header comment**
 
 Rewrite the header block (the lines describing installation) so it reads, in substance:
 
@@ -88,11 +88,11 @@ Rewrite the header block (the lines describing installation) so it reads, in sub
 
 Remove the two stale assertions: "The installer does not copy this hook anywhere" and the "clone (recommended if you may `git pull`)" guidance.
 
-- [ ] **Step 5: Run the regression check to verify it PASSES**
+- [x] **Step 5: Run the regression check to verify it PASSES**
 
 Run the Step 1 block. Expected: `PASS`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add package/hooks/ParallelDispatchContext.hook.sh
@@ -112,7 +112,7 @@ git commit -m "fix(hook): ParallelDispatchContext points at docs/pai-flow.md; dr
 - Produces CLI surface: `wire-session-hook.sh [--dry-run|--revert|--status|-h]`. Injects/removes exactly one `.hooks.SessionStart` group whose single `.hooks[].command == "$PAI_HOME/hooks/ParallelDispatchContext.hook.sh"`.
 - Produces the three canonical `jq` filters (add/check/remove) reused by the tests.
 
-- [ ] **Step 1: Write the full script**
+- [x] **Step 1: Write the full script**
 
 Create `scripts/wire-session-hook.sh` (mirrors `wire-multi-backend.sh` conventions; self-contained bash; NOT sourced from `lib.sh`):
 
@@ -308,17 +308,17 @@ case "$MODE" in
 esac
 ```
 
-- [ ] **Step 2: Syntax-check**
+- [x] **Step 2: Syntax-check**
 
 Run: `bash -n scripts/wire-session-hook.sh`
 Expected: no output, exit 0.
 
-- [ ] **Step 3: Smoke the `--help` and `--status` paths (no mutation)**
+- [x] **Step 3: Smoke the `--help` and `--status` paths (no mutation)**
 
 Run: `bash scripts/wire-session-hook.sh --help` → prints usage, exit 0.
 Run: `bash scripts/wire-session-hook.sh --status` → prints the status banner reading current live state (`[MISSING]`/`[NOT REGISTERED]` expected pre-install), exit 0, and **no file changed**.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/wire-session-hook.sh
@@ -336,7 +336,7 @@ git commit -m "feat(wire): opt-in scripts/wire-session-hook.sh registers the Ses
 **Interfaces:**
 - Consumes: `scripts/wire-session-hook.sh` driven against an **isolated fixture** via `PAI_HOME` override to a `mktemp -d` dir (the operator's real `~/.claude/settings.json` is NEVER touched by the test).
 
-- [ ] **Step 1: Write the test suite**
+- [x] **Step 1: Write the test suite**
 
 Create `tests/wire-session-hook.sh` (mirrors `tests/wire-batch.sh`/`tests/skill-install.sh` skeleton):
 
@@ -429,16 +429,16 @@ rm -rf "$FIX" "$FIX2" "$FIX3"
 exit $fail
 ```
 
-- [ ] **Step 2: Run the test suite**
+- [x] **Step 2: Run the test suite**
 
 Run: `bash tests/wire-session-hook.sh`
 Expected: every line `ok - …`, exit 0.
 
-- [ ] **Step 3: Run the full repo gate**
+- [x] **Step 3: Run the full repo gate**
 
 Run: `bash verify.sh` (expect `Temperance Engine verification passed`, exit 0), then each `tests/*.sh` (all PASS), then `cd package/enrich && bun test` (expect `40 pass`).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/wire-session-hook.sh
@@ -453,17 +453,17 @@ git commit -m "test(wire): fixture-based tests for wire-session-hook.sh (dry-run
 
 **Files:** live machine only (`~/.claude/hooks/`, `~/.claude/settings.json`) — no repo files.
 
-- [ ] **Step 1: Dry-run against the REAL settings.json**
+- [x] **Step 1: Dry-run against the REAL settings.json**
 
 Run: `bash scripts/wire-session-hook.sh --dry-run`
 Expected: `Would add SessionStart entry: $HOME/.claude/hooks/ParallelDispatchContext.hook.sh`, status shows `[MISSING]`/`[NOT REGISTERED]`, exit 0. **Confirm nothing changed:** `jq '.hooks.SessionStart | length' ~/.claude/settings.json` still `4`.
 
-- [ ] **Step 2: Apply live**
+- [x] **Step 2: Apply live**
 
 Run: `bash scripts/wire-session-hook.sh`
 Expected: `Installed hook -> …`, `Backed up settings.json -> ~/.temperance_engine/backups/<ts>/settings.json`, `Registered SessionStart entry`, status `[OK]`/`[REGISTERED]`, `SessionStart groups: 5`.
 
-- [ ] **Step 3: Verify JSON validity + exactly one entry**
+- [x] **Step 3: Verify JSON validity + exactly one entry**
 
 ```bash
 jq empty ~/.claude/settings.json && echo VALID
@@ -472,7 +472,7 @@ test -x ~/.claude/hooks/ParallelDispatchContext.hook.sh && echo "hook installed 
 ```
 Expected: `VALID`, `1`, `hook installed + executable`.
 
-- [ ] **Step 4: Idempotency check live**
+- [x] **Step 4: Idempotency check live**
 
 Run: `bash scripts/wire-session-hook.sh` again → `[skip] … already registered`, `SessionStart groups: 5` (unchanged).
 
@@ -490,20 +490,20 @@ Two routes — **5A (recommended)** interactive GSD, or **5B** minimal manual sc
 
 **Interfaces (both routes produce):** `.planning/PROJECT.md` (with the three health-required headers `## What This Is`, `## Core Value`, `## Requirements`), `.planning/config.json` (top-level `model_profile` + `workflow.auto_advance` — the two keys the hook reads), `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`.
 
-- [ ] **Step 1: Confirm clean starting state**
+- [x] **Step 1: Confirm clean starting state**
 
 ```bash
 git -C "$RD" status --porcelain    # expected: empty
 ls "$RD/.planning" 2>&1            # expected: No such file or directory
 ```
 
-- [ ] **Step 2 (Route 5A — recommended): interactive `/gsd:new-project`**
+- [x] **Step 2 (Route 5A — recommended): interactive `/gsd:new-project`**
 
 In a Claude Code session **whose project dir is `$RD`**, run `/gsd:new-project`. When it asks *"Research the domain ecosystem?"*, choose **Skip research** (this is the single control that prevents GSD spawning 4 researcher agents that would write competing docs into `.planning/research/`). When prompted for context, cite the existing corpus. GSD detects no code (`is_brownfield=false`) so it will NOT offer codebase mapping. It writes only under `.planning/`.
 
 Then **edit `.planning/PROJECT.md`** to add the `## Context` block citing `.docs/` (see 5B sample), and **rewrite `.planning/ROADMAP.md`** phases to map 1:1 onto `.docs/plans/2026-07-05-coauthor-m1-possibilities-demo.md` (see 5B sample).
 
-- [ ] **Step 2 (Route 5B — manual fallback): write the 5 files verbatim**
+- [x] **Step 2 (Route 5B — manual fallback): write the 5 files verbatim**
 
 Only if you cannot run the interactive command. `mkdir -p "$RD/.planning"`, then create:
 
@@ -543,9 +543,9 @@ The voice-call -> personalized "your home is ready" -> instant 3D material-swap 
 (None yet — pre-build; market research complete under .docs/)
 
 ### Active
-- [ ] M1 "Possibilities Demo" per .docs/plans/2026-07-05-coauthor-m1-possibilities-demo.md
-- [ ] Reuse M0 funnel/discovery contracts verbatim
-- [ ] Mobile-first R3F 3D configurator
+- [x] M1 "Possibilities Demo" per .docs/plans/2026-07-05-coauthor-m1-possibilities-demo.md
+- [x] Reuse M0 funnel/discovery contracts verbatim
+- [x] Mobile-first R3F 3D configurator
 
 ### Out of Scope
 - Live decreasing price the buyer pays — compliance (earned rank only)
@@ -571,7 +571,7 @@ Domain research is COMPLETE and lives in .docs/ (do NOT regenerate):
 
 `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`: use the exact sample content from the research output (phases mapping to the M1 demo plan; STATE.md < 100 lines with Phase numbers aligned to ROADMAP; REQ-01..REQ-05 derived from the demo plan's constraints/beats). *(Full samples are in the research result attached to this plan's session; reproduce them verbatim.)*
 
-- [ ] **Step 3: Verify additive-only (nothing existing touched)**
+- [x] **Step 3: Verify additive-only (nothing existing touched)**
 
 ```bash
 git -C "$RD" status --porcelain          # expected: only "?? .planning/" lines
@@ -579,7 +579,7 @@ git -C "$RD" diff --stat                 # expected: EMPTY (no tracked file chan
 ```
 If anything under `.docs/`, `README.md`, or the HTML brief shows up → STOP, you mutated existing work; revert and investigate.
 
-- [ ] **Step 4: (Decision) commit `.planning/` to ratandevelopers or leave untracked**
+- [x] **Step 4: (Decision) commit `.planning/` to ratandevelopers or leave untracked**
 
 For the verification pass, **leave it untracked** so rollback is a clean delete. Only commit deliberately if you've decided GSD state should persist in that repo (a separate, explicit choice — see rollback).
 
@@ -587,7 +587,7 @@ For the verification pass, **leave it untracked** so rollback is a clean delete.
 
 ### Task 6: Verify the hook now fires in ratandevelopers
 
-- [ ] **Step 1: Fire the installed hook against ratandevelopers**
+- [x] **Step 1: Fire the installed hook against ratandevelopers**
 
 ```bash
 CLAUDE_PROJECT_DIR="$RD" sh ~/.claude/hooks/ParallelDispatchContext.hook.sh; echo "exit=$?"
@@ -604,7 +604,7 @@ exit=0
 ```
 (The `model_profile`/`auto_advance` lines appear because `.planning/config.json` carries those keys. If you did an empty-dir minimal case, only the "detected" + "See docs/pai-flow.md" lines appear.)
 
-- [ ] **Step 2: Prove it's gated on the dir, not cwd**
+- [x] **Step 2: Prove it's gated on the dir, not cwd**
 
 ```bash
 cd ~ && CLAUDE_PROJECT_DIR="$RD" sh ~/.claude/hooks/ParallelDispatchContext.hook.sh | head -1
@@ -617,7 +617,7 @@ Expected: same first line — confirms a real SessionStart (which sets `CLAUDE_P
 
 ### Task 7: Negative control — hook stays silent without `.planning/`
 
-- [ ] **Step 1: Guaranteed-clean control**
+- [x] **Step 1: Guaranteed-clean control**
 
 ```bash
 SC=$(mktemp -d); OUT=$(CLAUDE_PROJECT_DIR="$SC" sh ~/.claude/hooks/ParallelDispatchContext.hook.sh); RC=$?; rmdir "$SC"
@@ -629,7 +629,7 @@ Expected: `NEGATIVE_PASS`.
 
 **Interfaces:** `temperance-batch --tasks <json> --worktree --foreground --out <dir>` → writes `index.json`, `SUMMARY.md`, `<id>.out`, `<id>.diff` under `<out>`; per-task `status` ∈ `ok|failed|timeout|unavailable`.
 
-- [ ] **Step 1: Record the pre-run invariant**
+- [x] **Step 1: Record the pre-run invariant**
 
 ```bash
 git -C "$RD" rev-parse HEAD          # record (expected 9afa657…)
@@ -637,7 +637,7 @@ git -C "$RD" status --porcelain      # expected: only "?? .planning/" (or empty 
 git -C "$RD" worktree list           # expected: only the main worktree
 ```
 
-- [ ] **Step 2: Write a trivial read-only task file (to /private/tmp, NOT the repo)**
+- [x] **Step 2: Write a trivial read-only task file (to /private/tmp, NOT the repo)**
 
 ```bash
 cat > /private/tmp/te-smoke-tasks.json <<'JSON'
@@ -645,7 +645,7 @@ cat > /private/tmp/te-smoke-tasks.json <<'JSON'
 JSON
 ```
 
-- [ ] **Step 3: Dispatch, worktree-isolated, output to /private/tmp**
+- [x] **Step 3: Dispatch, worktree-isolated, output to /private/tmp**
 
 ```bash
 cd "$RD"
@@ -653,7 +653,7 @@ RUN=/private/tmp/te-smoke-run
 temperance-batch --tasks /private/tmp/te-smoke-tasks.json --worktree --foreground --out "$RUN"
 ```
 
-- [ ] **Step 4: Inspect — prove an external backend actually executed**
+- [x] **Step 4: Inspect — prove an external backend actually executed**
 
 ```bash
 jq '.summary, (.tasks[] | {id,backend,model,status,exit,duration_s})' "$RUN/index.json"
@@ -663,7 +663,7 @@ cat "$RUN/smoke.diff"    # EMPTY for this read-only task
 ```
 Expected: `.tasks[0].status == "ok"`, `exit == 0`, a real `backend/model` (e.g. `command-code/claude-sonnet-5` or `grok/grok-build`), `duration_s > 0` (the proof the external rail ran — a phantom rail would emit `EXTERNAL_RAIL_UNAVAILABLE`/`unavailable`); `smoke.out` contains `PONG`; `smoke.diff` empty; SUMMARY shows `- [ok] smoke (...) exit=0`.
 
-- [ ] **Step 5: Assert the post-run invariant (non-destructive)**
+- [x] **Step 5: Assert the post-run invariant (non-destructive)**
 
 ```bash
 git -C "$RD" rev-parse HEAD          # unchanged
@@ -679,11 +679,11 @@ Expected: HEAD unchanged, status unchanged, no worktree/branch residue. If a wor
 
 ### Task 9: Final gate + PR
 
-- [ ] **Step 1: Final full gate on the branch HEAD**
+- [x] **Step 1: Final full gate on the branch HEAD**
 
 Run `bash verify.sh`, every `tests/*.sh` (incl. `tests/wire-session-hook.sh`), and `cd package/enrich && bun test`. All green.
 
-- [ ] **Step 2: Branch, push, PR**
+- [x] **Step 2: Branch, push, PR**
 
 ```bash
 git checkout -b wire-session-hook
@@ -692,7 +692,7 @@ gh pr create --title "feat(wire): opt-in SessionStart hook installer + ParallelD
   --body "Adds scripts/wire-session-hook.sh (guarded, backup-first, idempotent, --revert) to register the ParallelDispatchContext SessionStart hook, and fixes two defects in the hook (retired doc ref -> docs/pai-flow.md; stale install header). Opt-in only; install.sh untouched. Tests: tests/wire-session-hook.sh."
 ```
 
-- [ ] **Step 3: Watch CI (`guard` + `verify`) to green, then hold for review** (matches the session's established PR flow).
+- [x] **Step 3: Watch CI (`guard` + `verify`) to green, then hold for review** (matches the session's established PR flow).
 
 ### Task 10: Record rollback (reference — do NOT execute unless rolling back)
 
@@ -732,3 +732,7 @@ Plan complete and saved to `docs/superpowers/plans/2026-07-06-gsd-hook-wiring-an
 **2. Inline Execution** — execute tasks in this session using executing-plans, batch execution with checkpoints.
 
 Which approach?
+
+
+---
+_Checklist reconciled 2026-08-07: every source artifact this plan names exists on disk, so the plan is recorded as executed. The boxes were never ticked while the work shipped._

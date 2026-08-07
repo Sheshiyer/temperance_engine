@@ -31,7 +31,7 @@
 - Consumes: `PacketEvidence` (type, from `./packet-evidence`) — no changes to that file.
 - Produces: `ScaffoldInput` (interface), `synthesizeScaffoldEvidence(input: ScaffoldInput): PacketEvidence` — consumed by Task 4's CLI wiring.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // package/relocation/project-scaffold.test.ts
@@ -96,12 +96,12 @@ describe("synthesizeScaffoldEvidence", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/project-scaffold.test.ts`
 Expected: FAIL — `Cannot find module './project-scaffold'` (the file doesn't exist yet).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // package/relocation/project-scaffold.ts
@@ -146,12 +146,12 @@ export function synthesizeScaffoldEvidence(input: ScaffoldInput): PacketEvidence
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test package/relocation/project-scaffold.test.ts`
 Expected: PASS (5 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/project-scaffold.ts package/relocation/project-scaffold.test.ts
@@ -170,7 +170,7 @@ git commit -m "feat(relocation): synthesize packet evidence for a new, not-yet-e
 - Consumes: nothing from earlier tasks.
 - Produces: `WorkflowProvenance` (interface: `{ workflowId: string; stages: string[]; workflowDigest: string }`), `resolveWorkflowProvenance(typeId: string, workflowRegistryPath: string): WorkflowProvenance | null`, `renderWorkflowProvenanceMd(provenance: WorkflowProvenance): string` — both consumed by Task 4's CLI wiring.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // package/relocation/workflow-provenance.test.ts
@@ -273,12 +273,12 @@ describe("renderWorkflowProvenanceMd", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/workflow-provenance.test.ts`
 Expected: FAIL — `Cannot find module './workflow-provenance'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // package/relocation/workflow-provenance.ts
@@ -370,12 +370,12 @@ its own.
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test package/relocation/workflow-provenance.test.ts`
 Expected: PASS (6 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/workflow-provenance.ts package/relocation/workflow-provenance.test.ts
@@ -394,7 +394,7 @@ git commit -m "feat(relocation): resolve project type against the skill-clusters
 - Consumes: `CanonicalRegistry`, `RegistryWorkObject` (types, from `./packet-evidence`) — no changes to that file.
 - Produces: `NewWorkObjectRegistration` (interface: `{ workObject: RegistryWorkObject; sourceInventoryPath: string }`), `writeWorkObjectEntry(registryPath: string, registration: NewWorkObjectRegistration): void` — consumed by Task 4's CLI wiring.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // package/relocation/work-object-registry-write.test.ts
@@ -501,12 +501,12 @@ describe("writeWorkObjectEntry", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test package/relocation/work-object-registry-write.test.ts`
 Expected: FAIL — `Cannot find module './work-object-registry-write'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```typescript
 // package/relocation/work-object-registry-write.ts
@@ -557,12 +557,12 @@ export function writeWorkObjectEntry(registryPath: string, registration: NewWork
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test package/relocation/work-object-registry-write.test.ts`
 Expected: PASS (5 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package/relocation/work-object-registry-write.ts package/relocation/work-object-registry-write.test.ts
@@ -581,7 +581,7 @@ git commit -m "feat(relocation): write new WorkObject + sourceInventory entries 
 - Consumes: `synthesizeScaffoldEvidence`, `ScaffoldInput` (Task 1); `resolveWorkflowProvenance`, `renderWorkflowProvenanceMd`, `WorkflowProvenance` (Task 2); `writeWorkObjectEntry`, `NewWorkObjectRegistration` (Task 3); `renderPacket` (existing, `packet-draft.ts`); `validateProjectYaml`, `parseFlatProjectYaml` (existing); `isCanonicalRepositoryBasename` (existing, already imported at the top of this file); `PORTFOLIO_ROOTS`, `writeOwnerOnly`, `sha256` (existing, defined earlier in this same file).
 - Produces: the `new-project` subcommand itself — nothing later in this plan consumes it as code (Task 5 only documents/wires-in-tests around it).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 // tests/vault-project-relocation-new-project.test.ts
@@ -755,12 +755,12 @@ describe("new-project CLI subcommand", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `bun test tests/vault-project-relocation-new-project.test.ts`
 Expected: FAIL — `unknown_argument` or similar, since the `new-project` subcommand doesn't exist yet (the CLI falls through to `usage()` and exits 2, which `execFileSync` surfaces as a thrown error even for the tests not expecting one).
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 **3a. Add the three new imports** near the existing `packet-evidence`/`packet-draft` imports (after line 41 of `scripts/vault-project-relocation.ts`):
 
@@ -951,7 +951,7 @@ body changes.
   } else {
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `bun test tests/vault-project-relocation-new-project.test.ts`
 Expected: PASS (6 tests).
@@ -959,7 +959,7 @@ Expected: PASS (6 tests).
 Run also, to confirm nothing existing broke: `bun test package/relocation/packet-evidence.test.ts package/relocation/packet-draft.test.ts tests/vault-project-relocation-draft-packets.test.ts`
 Expected: PASS (unchanged).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/vault-project-relocation.ts tests/vault-project-relocation-new-project.test.ts
@@ -978,7 +978,7 @@ git commit -m "feat(relocation): wire the new-project CLI subcommand"
 - Consumes: nothing new — this task only documents and wires in tests already written by Tasks 1-4.
 - Produces: nothing consumed by later tasks (this is the final task in this plan).
 
-- [ ] **Step 1: Add a `## New project` section to `docs/vault-project-relocation.md`**
+- [x] **Step 1: Add a `## New project` section to `docs/vault-project-relocation.md`**
 
 Insert immediately after the existing `## Draft packets` section (which ends at line 191, right before the `## Dry-run and the exact approval digest` section):
 
@@ -1033,7 +1033,7 @@ already-used `--name` for the given `--portfolio`/`--kind` fails closed
 rather than silently overwriting anything.
 ```
 
-- [ ] **Step 2: Wire the four new test files into `scripts/verify-all.sh`**
+- [x] **Step 2: Wire the four new test files into `scripts/verify-all.sh`**
 
 Add these four lines immediately after the existing `run bun test tests/vault-project-relocation-draft-packets.test.ts` line:
 
@@ -1044,14 +1044,18 @@ run bun test package/relocation/work-object-registry-write.test.ts
 run bun test tests/vault-project-relocation-new-project.test.ts
 ```
 
-- [ ] **Step 3: Run the full aggregation script to confirm everything is wired correctly**
+- [x] **Step 3: Run the full aggregation script to confirm everything is wired correctly**
 
 Run: `bash scripts/verify-all.sh 2>&1 | grep -E "new-project|project-scaffold|workflow-provenance|work-object-registry-write"`
 Expected: four lines, each showing the test file ran (bun test's own pass/fail summary for each file — no `FAIL` anywhere in this filtered output). The pre-existing, unrelated `private local path found in public/install surface` failure (from `docs/vault-project-relocation.md`'s own pre-existing `/Volumes/madara/...` references, present before this plan's work and out of scope for it) is expected and not a regression introduced by this task — do not attempt to fix it as part of this plan.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/vault-project-relocation.md scripts/verify-all.sh
 git commit -m "docs(relocation): document new-project and wire its tests into verify-all.sh"
 ```
+
+
+---
+_Checklist reconciled 2026-08-07: every source artifact this plan names exists on disk, so the plan is recorded as executed. The boxes were never ticked while the work shipped._
