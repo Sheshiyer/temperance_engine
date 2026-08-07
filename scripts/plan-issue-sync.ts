@@ -41,7 +41,19 @@ import { basename, join, relative } from "node:path";
 
 const DEFAULTS = {
   target: "Sheshiyer/thoughtseed-vault",
-  projectsRoot: "/Volumes/madara/2026/Projects/thoughtseed",
+  // Ordered by precedence. A repository present in more than one root is the
+  // SAME project, not two: the first root listed wins. temperance_engine is
+  // ALWAYS_HELD and so lives only in the vault, which is why the vault is a
+  // root at all -- without it, its plans are invisible and its issues orphan.
+  projectsRoots: [
+    "/Volumes/madara/2026/Projects/thoughtseed",
+    // Narrowly the one project, NOT the whole vault tree. Rooting at the vault
+    // directory pulls in review clones whose plans duplicate the live project's
+    // (plexus-ts-github-settings-ota-review mirrors plexus-ts), plus ad-hoc
+    // folders that were never projects. Only temperance_engine is both
+    // ALWAYS_HELD and genuinely tracked, so only it is named.
+    "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine",
+  ],
   registryRoot:
     "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/cambium/docs/project-management/relocation-registry/thoughtseed",
 };
@@ -75,13 +87,19 @@ interface Candidate {
 }
 
 function parseArgs(argv: string[]) {
-  const opts = { ...DEFAULTS, apply: false, limit: 0 };
+  const opts = { ...DEFAULTS, projectsRoots: [...DEFAULTS.projectsRoots], apply: false, limit: 0 };
+  let sawRoot = false;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--apply") opts.apply = true;
     else if (arg === "--limit") opts.limit = Number(argv[++i] ?? 0);
     else if (arg === "--target") opts.target = argv[++i] ?? "";
-    else if (arg === "--projects-root") opts.projectsRoot = argv[++i] ?? "";
+    else if (arg === "--projects-root") {
+      // Repeatable. The first occurrence replaces the defaults rather than
+      // appending to them, so an explicit root list is exactly what is scanned.
+      if (!sawRoot) { opts.projectsRoots = []; sawRoot = true; }
+      opts.projectsRoots.push(argv[++i] ?? "");
+    }
     else if (arg === "--registry-root") opts.registryRoot = argv[++i] ?? "";
     else throw new Error(`unknown_argument:${arg}`);
   }
@@ -117,6 +135,16 @@ function registryIndex(registryRoot: string): Map<string, { stableId: string; gi
  * project is a directory that holds planning, not one that holds a repository;
  * keying on `.git` conflated the two and made the sync silently find nothing.
  */
+/**
+ * The name a project is known by, in the grammar the rest of the system uses:
+ * lowercase, underscores folded to hyphens. The vault directory is
+ * `temperance_engine` while every issue marker says `temperance-engine`; without
+ * folding, those never match and the issues orphan forever.
+ */
+function repoKey(dir: string): string {
+  return basename(dir).toLowerCase().replace(/_/g, "-");
+}
+
 function projectDirectories(root: string): string[] {
   const found: string[] = [];
   const walk = (dir: string, depth: number): void => {
@@ -174,8 +202,19 @@ function markdownFiles(dir: string): string[] {
 function collectCandidates(opts: ReturnType<typeof parseArgs>): Candidate[] {
   const registry = registryIndex(opts.registryRoot);
   const rows: Candidate[] = [];
-  for (const repo of projectDirectories(opts.projectsRoot)) {
-    const repoName = basename(repo);
+  const seenRepos = new Set<string>();
+  const allRepos: string[] = [];
+  for (const root of opts.projectsRoots) {
+    if (!existsSync(root)) continue;
+    for (const repo of projectDirectories(root)) {
+      const key = repoKey(repo);
+      if (seenRepos.has(key)) continue;   // first root wins; same project, not two
+      seenRepos.add(key);
+      allRepos.push(repo);
+    }
+  }
+  for (const repo of allRepos) {
+    const repoName = repoKey(repo);
     const entry = registry.get(repoName);
     for (const planDir of PLAN_DIRS) {
       const dir = join(repo, planDir);
@@ -300,15 +339,16 @@ try {
   // acted on -- but the noise would bury a real orphan. Exit 0 rather than
   // non-zero: an unmounted drive is not a failure, and launchd should not treat
   // it as a crashing job.
-  if (!existsSync(opts.projectsRoot)) {
-    console.log(`projects root not present: ${opts.projectsRoot}`);
+  const presentRoots = opts.projectsRoots.filter((r) => existsSync(r));
+  if (presentRoots.length === 0) {
+    console.log(`no projects root present: ${opts.projectsRoots.join(", ")}`);
     console.log("nothing to sync — is the volume mounted?");
     process.exit(0);
   }
 
   const rows = collectCandidates(opts);
   if (rows.length === 0) {
-    console.log(`no plan documents found under ${opts.projectsRoot} — refusing to act`);
+    console.log(`no plan documents found under ${presentRoots.join(", ")} — refusing to act`);
     process.exit(0);
   }
   const issues = syncedIssues(opts.target);
@@ -318,10 +358,15 @@ try {
   if (opts.limit > 0) toCreate = toCreate.slice(0, opts.limit);
 
   // Reverse: an OPEN issue whose document no longer has outstanding items.
+  // Same precedence as discovery: a repository present in more than one root
+  // is one project, and the first root listed wins.
   const repositoriesByName = new Map<string, string[]>();
-  for (const repo of projectDirectories(opts.projectsRoot)) {
-    const name = basename(repo);
-    repositoriesByName.set(name, [...(repositoriesByName.get(name) ?? []), repo]);
+  for (const root of opts.projectsRoots) {
+    if (!existsSync(root)) continue;
+    for (const repo of projectDirectories(root)) {
+      const key = repoKey(repo);
+      if (!repositoriesByName.has(key)) repositoriesByName.set(key, [repo]);
+    }
   }
 
   const openIssues = issues.filter((issue) => issue.state.toUpperCase() === "OPEN");
