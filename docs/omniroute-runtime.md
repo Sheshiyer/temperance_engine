@@ -12,7 +12,7 @@ was not OmniRoute's provider catalog. The current boundary is:
 5. `temperance-coding` is the relay's compatibility rail, while
    `te-algorithm` is the S-only Algorithm coordinator. `te-fast`, `te-build`,
    `te-reason`, `te-validate`, and `te-creative` are the five governed task
-   portfolios. `te-plan` and `te-dispatch` are bounded helper roles.
+   portfolios. `te-plan` and `te-dispatch-paid` are bounded helper roles.
 6. Command Code, Grok, and Kimi remain direct outage fallbacks.
 
 This avoids two classifiers and preserves filesystem-capable agents. Calling
@@ -105,7 +105,7 @@ The distinction is observable in OmniRoute call logs: `temperance-coding` is a
 compatibility rail; `te-algorithm` is the S-only primary coordinator;
 `te-fast`/`te-build`/`te-reason`/`te-creative` are priority portfolios; and
 `te-validate` is a fusion council. `te-plan` protects the planner;
-`te-dispatch` is the bounded round-robin B-tier worker fleet. An unavailable
+`te-dispatch-paid` is the bounded paid worker fleet. An unavailable
 S-tier coordinator fails visibly. It never silently degrades; the operator
 must explicitly select the A-tier `temperance-continuity` profile backed by
 `te-build`.
@@ -126,7 +126,7 @@ owned virtual pool and is never silently promoted into a Temperance portfolio.
 - Compatibility combo: `temperance-coding`
 - Governed combos: `te-fast`, `te-build`, `te-reason`, `te-validate`, `te-creative`
 - Role combos: `te-algorithm` (S-only coordinator), `te-plan` (planner), and
-  `te-dispatch` (B-tier fleet workers)
+  `te-dispatch-paid` (bounded paid fleet workers)
 - Writing combos: `te-write` (drafting rail), `te-write-critique`
   (drift-scoring fusion council), `te-write-research` (claim-grounding
   fusion council), and `te-write-media` (image-brief priority planner); see
@@ -166,21 +166,21 @@ The two `.env` files used by this installation are mode `600`. The scoped API
 key is referenced through `OMNIROUTE_API_KEY`; it is not embedded in config or
 source files.
 
-## Codex Spark fleet mode
+## Manual fleet and automatic-swarm boundary
 
-`te-dispatch` starts with the exact catalog route
-`codex/gpt-5.3-codex-spark`, then includes the existing Command Code, Kimi,
-Grok, and Nebius workers. [OpenAI describes GPT-5.3-Codex-Spark](https://openai.com/index/introducing-gpt-5-3-codex-spark/)
-as a text-only, 128k-context research preview with a separate rate limit.
-Temperance therefore treats Spark as a low-latency targeted-coding capacity
-slot, not the universal base model. The Codex adapter advertises a 128k window
-and compacts at 108k whenever `te-dispatch` can select Spark.
+`te-dispatch` is retired. Manual paid fleet work uses the governed
+`te-dispatch-paid` combination and remains subject to normal worktree and
+capacity rules. Automatic paid fleet work is stricter: the controller must
+obtain a one-use PostgreSQL approval claim and revalidate frozen project, Git,
+source, task, policy, quota, concurrency, and worktree inputs before it invokes
+`temperance-batch`. See [`manifest-control-plane.md`](manifest-control-plane.md).
 
 There are two different scheduling decisions:
 
-1. `temperance-batch` runs independent tasks concurrently and owns worktree
-   isolation.
-2. OmniRoute round-robins each new `te-dispatch` request across models, with
+1. `temperance-batch` runs explicitly requested manual tasks concurrently and
+   owns worktree isolation. It is not automatic-swarm authority by itself.
+2. OmniRoute selects each new `te-dispatch-paid` request within the frozen
+   route, with
    per-model concurrency `2`, a 15-second queue wait, and failover before any
    same-target retry. The dispatch caller, rather than the OmniRoute combo,
    bounds queue depth because OmniRoute 3.8.x does not persist `queueDepth`.
@@ -198,13 +198,13 @@ Fleet tasks make the role explicit:
     "id": "router-tests",
     "task": "Add the bounded routing tests and report evidence.",
     "backend": "omniroute",
-    "model": "te-dispatch"
+    "model": "te-dispatch-paid"
   },
   {
     "id": "runtime-docs",
     "task": "Update the accepted runtime contract and verify links.",
     "backend": "omniroute",
-    "model": "te-dispatch"
+    "model": "te-dispatch-paid"
   }
 ]
 ```
@@ -214,12 +214,12 @@ temperance-batch --tasks tasks.json --concurrency 4 --worktree
 ```
 
 For remote or Paseo-hosted sessions, the execution host must reach the same
-OmniRoute instance that owns `te-dispatch`. Importing a project/session into
+OmniRoute instance that owns `te-dispatch-paid`. Importing a project/session into
 Paseo carries the session and project context; it does not copy the Mac
 Keychain credential or local combo database. Configure
 `TEMPERANCE_OMNIROUTE_BASE_URL=https://router.example/v1` and
 `OMNIROUTE_API_KEY` in that remote project's environment, then verify its
-`/v1/models` catalog exposes `te-dispatch` before dispatch. This host affinity
+`/v1/models` catalog exposes `te-dispatch-paid` before dispatch. This host affinity
 keeps local and remote runs on the same governed portfolio without copying
 provider credentials into repository settings.
 
@@ -272,7 +272,7 @@ The four primary session profiles are:
 | `temperance-continuity` | `omniroute/te-build` | Explicit A-tier continuation after an S-tier miss |
 
 Algorithm sessions may delegate one level to `temperance-planner`
-(`te-plan`), `temperance-worker` (`te-dispatch`), and
+(`te-plan`), `temperance-worker` (`te-dispatch-paid`), and
 `temperance-validator` (`te-validate`). Workers start on B-tier capacity and
 may escalate B→A→S when evidence demands it. A downgrade starts a new task ID;
 no in-flight task silently changes tier.
@@ -288,7 +288,7 @@ The local Mac configuration exposes this exact 14-entry set:
 | `te-reason` | Deliberation, assumptions, and alternatives (content rail) | Temperance task portfolio |
 | `te-plan` | Planner helper | A/S planning rail |
 | `te-validate` | Multi-model challenge and synthesis with tools | Temperance fusion council |
-| `te-dispatch` | Parallel independent grunt work | B-tier bounded worker fleet |
+| `te-dispatch-paid` | Parallel independent bounded work | approval-gated automatic path or explicit manual batch |
 | `te-creative` | Creative brief and artifact planning (text rail) | Native media workflow; not a chat fallback |
 | `te-write` | Draft generation | Governed writing rail |
 | `te-write-critique` | Editorial challenge | Governed writing council |

@@ -8,3 +8,6 @@ table (Execute row) and **Doctrine**.
 
 The `temperance-parallel-dispatch` skill (external backends via `temperance-batch`)
 builds on `superpowers:dispatching-parallel-agents` (the Claude-subagent primitive).
+`temperance-batch` remains a manual CLI; automatic paid dispatch requires the
+separate approval-and-claim controller documented in
+[`manifest-control-plane.md`](./manifest-control-plane.md).

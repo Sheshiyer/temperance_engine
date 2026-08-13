@@ -84,7 +84,7 @@ is no PATCH), preserving the combo id and every untouched field — only the
 that can mutate snapshots `{settings, combos, catalog, policy, plan}` to
 `.omniroute-backups/omniroute-reconcile-<UTC>.json` first — dry-runs
 included — and the global `activeCombo` is verified unchanged afterwards.
-`te-dispatch` and `te-write` are monitoring-only entries: their providers are
+The retired `te-dispatch` and `te-write` are monitoring-only entries: their providers are
 observed and reported, but they carry no substitute chains and are never
 mutated.
 
@@ -120,18 +120,18 @@ from its expected path.
 
 ## Temperance Dispatch fleet
 
-`te-dispatch` is a worker portfolio, not the planner. Independent tasks are
+`te-dispatch-paid` is the governed worker portfolio, not the planner. Independent tasks are
 sharded across distinct failure domains and capabilities:
 
 | Worker role | OmniRoute target | Direct CLI fallback |
 | --- | --- | --- |
-| Spark fast worker | `codex/gpt-5.3-codex-spark` | Other `te-dispatch` targets, then direct CLIs |
+| Spark fast worker | `codex/gpt-5.3-codex-spark` | Other `te-dispatch-paid` targets, then direct CLIs |
 | Fast worker | `command-code/deepseek/deepseek-v4-flash` | Command Code DeepSeek Flash |
 | Coding worker | `command-code/moonshotai/Kimi-K2.7-Code` | Kimi Code |
 | Build worker | `grok-cli/grok-build` | Grok Build |
 | Backbone worker | `nebius/Qwen/Qwen3-235B-A22B-Instruct-2507` | Claude fallback if all external rails fail |
 
-OmniRoute rotates new fleet requests across these targets with `round-robin`.
+OmniRoute selects new paid-fleet requests through `te-dispatch-paid`.
 That selection step is distinct from ordered fallback inside a request: an
 unavailable or saturated target fails over before any same-target retry.
 Per-model concurrency and queue wait are persisted on the combo; the dispatch
@@ -143,6 +143,9 @@ identifier before creating or updating the governed combo.
 
 This protects GitHub/Codex/Claude limits: planner requests are not consumed by
 worker fan-out, and dispatch can use lower-cost or separately entitled rails.
+Manual `temperance-batch` remains a batch tool; automatic paid work must first
+pass the approval-and-claim controller described in
+[`manifest-control-plane.md`](manifest-control-plane.md).
 
 ## Creative workflow
 

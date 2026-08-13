@@ -84,6 +84,25 @@ and provider-topology semantics.
 
 Default install is OpenCode/Cursor-first. It does not install Claude Code or Codex templates unless you pass `--with-claude` or `--with-codex`.
 
+## Live Manifest Operator View
+
+Temperance provides the runtime half of a local operator view. The
+`package/manifest-bridge` package turns bounded hook and planning observations
+into a project-scoped JSONL read model and Server-Sent Events; the separate
+[Manifest Skill Cluster](https://github.com/Sheshiyer/manifest-skill-137)
+repository renders those facts as the five-page visual console.
+
+The authority boundary matters:
+
+- Temperance/PAI own planning, routing, approval policy, and execution rules.
+- The bridge and visual console are projection layers; they cannot authorize a worker.
+- Automatic paid-fleet launch is disabled by default and requires a PostgreSQL
+  one-use claim, a frozen request, fresh preflight evidence, and explicit
+  environment gates.
+
+See [docs/manifest-control-plane.md](docs/manifest-control-plane.md) for the
+full architecture, local startup sequence, and current release boundary.
+
 On non-macOS systems, voice installation is skipped automatically. On macOS, voice integration is enabled only if a local peon-ping script is present at `~/.claude/hooks/peon-ping/peon.sh` unless `--with-voice` or `--skip-voice` is provided.
 
 <!-- readme-gen:start:notebooklm-report -->
@@ -334,6 +353,9 @@ Cursor's current rules documentation covers Project, Team, and User Rules plus `
 ## Documentation
 
 - **[QUICKSTART.md](QUICKSTART.md)** — Multi-backend routing CLI quick reference.
+- **[docs/manifest-control-plane.md](docs/manifest-control-plane.md)** — two-repository event plane, authority boundary, safe swarm gate, and live-console startup.
+- **[package/manifest-bridge/README.md](package/manifest-bridge/README.md)** — local bridge API, project lifecycle, and event-redaction contract.
+- **[docs/SWARM-CONTROL-RUNBOOK.md](docs/SWARM-CONTROL-RUNBOOK.md)** — opt-in automatic-swarm checks, recovery, and unresolved release gates.
 - `docs/multi-surface-architecture.md` — Complete multi-surface orchestration architecture.
 - `skills/temperance-engine/SKILL.md` is the skills.sh-ready skill card.
 - `docs/architecture.md` explains the runtime model.

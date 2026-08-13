@@ -15,7 +15,7 @@ The control plane uses PostgreSQL for approval records, one-use claims, cancella
 1. In this source checkout, run `TEMPERANCE_CONTROL_DATABASE_URL=… bun test` in `package/manifest-bridge`.
 2. Require the PostgreSQL behavior cases: race, expiry, immutable drift, stale/ineligible quota, and cancellation.
 3. Supply a frozen `swarm-claim.json` with the approved plan/option, current Git head, source fingerprints, task fingerprint, exact `te-dispatch-paid`, 1–4 concurrency, worktree requirement, and quota snapshot path.
-4. First run `temperance-swarm-dispatch --request .planning/swarm-claim.json --dry-run`.
+4. First run `node package/router/temperance-swarm-dispatch.mjs --request .planning/swarm-claim.json --dry-run` from this checkout.
 5. Enable auto-launch only for a clean Git worktree and bounded project root. Merges, deploys, GitHub sync, skill installation, credentials, and backend/model overrides need separate approval.
 
 ## Recovery

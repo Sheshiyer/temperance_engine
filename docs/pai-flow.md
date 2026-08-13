@@ -78,7 +78,7 @@ is met. gsd-core commands are shown in the canonical `/gsd-*` hyphen form.
 | 2 | Think | Discuss: `/gsd-discuss-phase`, `/gsd-spec-phase`, `/gsd-spike` | `brainstorming` (design); `systematic-debugging` (bugs) | no | Hidden requirements + risks surfaced; approach candidates listed |
 | 3 | Plan | Plan: `/gsd-plan-phase`, `/gsd-plan-review-convergence`, `/gsd-mvp-phase` | `writing-plans` (standalone lightweight plans) | no | PLAN.md files with declared deps + verification criteria; user aligned |
 | 4 | Build | *(folds into Execute — gsd-core has no separate Build)* | `subagent-driven-development`, `test-driven-development` | no | Per-task tests green; task checkbox done |
-| 5 | Execute | Execute: `/gsd-execute-phase`, `/gsd-fast`, `/gsd-quick` | `dispatching-parallel-agents`, `subagent-driven-development` | **YES** — 2+ independent tasks use `omniroute:te-dispatch` (Spark/provider round-robin); direct Command Code/Grok/Kimi remain outage fallbacks | All plans complete; branch ready for verify |
+| 5 | Execute | Execute: `/gsd-execute-phase`, `/gsd-fast`, `/gsd-quick` | `dispatching-parallel-agents`, `subagent-driven-development` | **YES, bounded** — 2+ independent tasks may use `te-dispatch-paid`; automatic launch additionally requires the approval-and-claim controller. `te-dispatch` is retired. | All plans complete; branch ready for verify |
 | 6 | Verify | Verify: `/gsd-verify-work`, `/gsd-code-review`, `/gsd-ui-review` | `verification-before-completion`, `requesting-code-review` | Optional — parallel verifier fan-out | Fresh evidence per criterion; review clean |
 | 7 | Learn | Ship: `/gsd-ship`, `/gsd-milestone-summary`, `/gsd-complete-milestone`, `/gsd-progress` | `finishing-a-development-branch`, `receiving-code-review` | no | Decisions recorded; PR/ship done; milestone archived |
 
@@ -93,7 +93,7 @@ Claude Code / gsd-core docs; Gemini CLI spells them `/gsd:*` (colon); Codex uses
 
 1. The table is DEFAULTS, not mandates — exit on done-signal.
 2. gsd-core is the backbone but not every cell has a gsd-core command (Observe/Build gaps are honest — no ceremony where it adds nothing).
-3. temperance-parallel-dispatch fires only in Execute (and optionally Verify). Single-agent work is the default elsewhere.
+3. temperance-parallel-dispatch fires only in Execute (and optionally Verify). Direct `temperance-batch` is a manual batch tool; automatic paid work must enter through the one-use approval claim and controller described in [`manifest-control-plane.md`](manifest-control-plane.md).
 4. Done-signals are the enforcement wedge (future sub-project B nudges on skip/premature-exit; A only documents them).
 5. Escape hatch: the agent overrides any row when the situation genuinely doesn't fit; the framework nudges, never gates.
 6. Degradation: gsd-core absent → the superpowers column IS the flow (`brainstorming → writing-plans → subagent-driven-development → verification-before-completion → finishing-a-development-branch`).
@@ -122,6 +122,7 @@ No completion claim without fresh verification evidence.
 - `docs/parallel-dispatch.md` — the Execute-phase dispatch decision is now this
   doc's Execute row + doctrine. `superpowers:dispatching-parallel-agents` remains
   the **Claude-subagent primitive**; `temperance-parallel-dispatch` (external
-  backends via `temperance-batch`) builds on it. (Redirect stub retained.)
+  backends via `temperance-batch`) builds on it. Automatic paid dispatch adds the
+  separate approval-and-claim controller. (Redirect stub retained.)
 - `docs/multi-surface-architecture.md` — the enrichment/router/adapter layers are
   this doc's Architecture section. (Redirect stub retained.)

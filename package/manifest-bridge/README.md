@@ -7,16 +7,20 @@ It is intentionally additive: existing PAI hooks, project planning files, Temper
 ## Run
 
 ```bash
-cd /Users/sheshnarayaniyer/.temperance_engine/manifest-bridge
+cd /path/to/temperance_engine/package/manifest-bridge
 bun test
 bun run src/cli.ts init --cwd /path/to/project
 bun run src/cli.ts sync --cwd /path/to/project
 bun run src/cli.ts serve --all
 
 # In a second terminal:
-cd /Users/sheshnarayaniyer/.temperance_engine/integrations/manifest-skill-137/visual-pcb
+cd /path/to/manifest-skill-137/visual-pcb
 VITE_MANIFEST_BRIDGE_URL=http://127.0.0.1:8766 npm run dev -- --host 127.0.0.1
 ```
+
+The visual client is a separate repository on purpose. See
+[../../docs/manifest-control-plane.md](../../docs/manifest-control-plane.md)
+for the end-to-end ownership map and local setup.
 
 The default local endpoints are:
 
@@ -81,10 +85,29 @@ failure path exits successfully so agent execution is never coupled to the UI.
 - Duplicate event IDs are ignored.
 - The bridge remains usable with no connected visual client.
 - Synthetic events are explicitly marked and must never be presented as observed runtime truth.
+- JSONL, snapshots, SSE, and the visual client are projection only. They do not
+  grant approval, claim a dispatch, or start a worker.
 
 ## Visual-client handoff
 
-`visual-pcb` now loads `/snapshot`, subscribes to named `snapshot` and `manifest`
-SSE events, and renders live/stale/offline provenance. Its seeded state and
-simulation controls remain behind an explicit Demo mode. Configure the bridge
-with `VITE_MANIFEST_BRIDGE_URL`; no OmniRoute credentials are sent to the UI.
+`visual-pcb` loads `/snapshot`, subscribes to named `snapshot` and `manifest`
+SSE events, and renders live/stale/offline provenance. It has no seeded runtime
+state or simulation controls: empty telemetry stays visibly empty. Configure the
+bridge with `VITE_MANIFEST_BRIDGE_URL`; no OmniRoute credentials are sent to the
+UI.
+
+## Optional swarm-control gate
+
+The bridge can host the database-backed claim endpoint only when both
+`TEMPERANCE_SWARM_CONTROL_ENABLED=1` and `TEMPERANCE_CONTROL_DATABASE_URL` are
+set. Automatic launch remains separately disabled unless
+`TEMPERANCE_SWARM_AUTOLAUNCH=1` is deliberately enabled by the controller.
+
+Run PostgreSQL behavior tests only against an explicit disposable database:
+
+```bash
+TEMPERANCE_CONTROL_DATABASE_URL='postgresql://…' bun test
+```
+
+The remaining worker-receipt and terminal-closure release gates are tracked in
+[../../docs/ORCHESTRATION-GAP-REGISTER.md](../../docs/ORCHESTRATION-GAP-REGISTER.md).

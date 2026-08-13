@@ -47,7 +47,7 @@ remain separate runtime gates.
 | Think | `te-reason` | SystemsThinking, Council, RedTeam, Exa deep search, PostHog when data evidence is needed |
 | Plan | `te-plan` | writing-plans, ISA, CodeGraph, project planning, Google Drive references |
 | Build | `te-build` | test-driven-development, subagent-driven-development, CodeGraph, GitHub context |
-| Execute | `te-dispatch` | dispatching-parallel-agents, temperance-parallel-dispatch, CodeGraph, Chrome DevTools, Vercel, Supabase |
+| Execute | `te-dispatch-paid` | dispatching-parallel-agents, temperance-parallel-dispatch, CodeGraph, Chrome DevTools, Vercel, Supabase. Automatic launch additionally needs the approval-and-claim controller. |
 | Verify | `te-validate` | verification-before-completion, browser automation, CodeGraph, PostHog, Supabase, Vercel |
 | Learn | `te-reason` today (dedicated `te-learn` is a future proposal) | ISA append, reflections, failures, reusable knowledge pointers; no MCP by default |
 
