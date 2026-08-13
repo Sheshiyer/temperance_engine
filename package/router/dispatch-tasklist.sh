@@ -49,6 +49,7 @@ dispatch_backend(){ # backend task model outfile -> exit code
 }
 
 DRY_RUN=false; TASKS_FILE=""; OUT=""; FOREGROUND=false; MAX_TURNS="${MAX_TURNS:-10}"
+CONTROL_CLAIM=""
 CONCURRENCY="${CONCURRENCY:-4}"
 TIMEOUT="${TIMEOUT:-0}"   # per-task watchdog timeout in seconds; 0 = off
 WORKTREE=false; ALLOW_DIRTY=false; APPLY_WORKTREE=false
@@ -64,9 +65,20 @@ while [[ $# -gt 0 ]]; do
     --worktree) WORKTREE=true; shift ;;
     --allow-dirty) ALLOW_DIRTY=true; shift ;;
     --apply-worktree) APPLY_WORKTREE=true; shift ;;
+    --control-claim) CONTROL_CLAIM="$2"; shift 2 ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
+
+# The automatic controller sets this flag only after the database transaction
+# has consumed the bound approval. Manual one-off batch usage stays explicit;
+# automatic launches fail before task parsing, worktree creation, or providers.
+if [[ "${TEMPERANCE_REQUIRE_CONTROL_CLAIM:-0}" == "1" ]]; then
+  [[ "$CONTROL_CLAIM" =~ ^clm_[A-Za-z0-9]+$ ]] || {
+    echo "automatic swarm dispatch requires a valid database control claim" >&2
+    exit 6
+  }
+fi
 
 [[ -z "$OUT" ]] && OUT="$(mktemp -d)"
 if ! mkdir -p "$OUT" \

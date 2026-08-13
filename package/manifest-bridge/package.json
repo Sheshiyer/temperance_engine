@@ -1,0 +1,21 @@
+{
+  "name": "temperance-manifest-bridge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "bun run src/cli.ts serve",
+    "init": "bun run src/cli.ts init",
+    "sync": "bun run src/cli.ts sync",
+    "projects": "bun run src/cli.ts projects",
+    "emit": "bun run src/cli.ts emit",
+    "snapshot": "bun run src/cli.ts snapshot",
+    "test": "bun test",
+    "test:control": "bun test test/control-ledger.test.ts"
+  },
+  "dependencies": {
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.21.0"
+  }
+}

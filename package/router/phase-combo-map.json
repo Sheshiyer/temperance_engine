@@ -1,0 +1,252 @@
+{
+  "schema": "temperance.phase-combo-map.v2",
+  "updated": "2026-08-12",
+  "native_orchestrator": {
+    "profile": "temperance-orchestrator",
+    "model": "gpt-5.6",
+    "provider": "native-chatgpt",
+    "role": "babysit-only: classify, plan slices, dispatch, integrate, verify receipts \u2014 no bulk coding"
+  },
+  "announce": {
+    "style": "sigil \u00b7 STAGE \u00b7 PHASE \u00b7 n/7",
+    "no_emoji": true,
+    "include_combo_stack_providers": true,
+    "helpers": [
+      "~/.temperance_engine/router/rail-format.sh",
+      "~/.temperance_engine/router/temperance-phase-dispatch.sh"
+    ]
+  },
+  "task_type_to_combo": {
+    "fast": "te-fast",
+    "balanced": "te-fast",
+    "creative": "te-creative",
+    "plan": "te-plan",
+    "planning": "te-plan",
+    "long-horizon": "te-build",
+    "reasoning": "te-reason",
+    "validation": "te-validate",
+    "dispatch": "te-dispatch-paid",
+    "parallel-worker": "te-dispatch-paid",
+    "inline": "te-fast",
+    "research": "te-write-research",
+    "evidence": "te-write-research",
+    "web-search": "te-write-research",
+    "investigate": "te-reason",
+    "plan-max": "te-plan-max"
+  },
+  "algorithm_phases": {
+    "Observe": "te-reason",
+    "Think": "te-reason",
+    "Plan": "te-plan",
+    "Build": "te-build",
+    "Execute": "te-dispatch-paid",
+    "Verify": "te-validate",
+    "Learn": "te-reason"
+  },
+  "next_wave": {
+    "cli": "temperance-next-wave",
+    "script": "~/.temperance_engine/router/temperance-next-wave.mjs",
+    "state": "~/.temperance_engine/state/next-wave.json",
+    "local_state": "<cwd>/.planning/NEXT-WAVE.json",
+    "enrich_injects": "dispatch: NEXT-WAVE \u2026 into temperance-context",
+    "gh_sync": "com.temperance.engine.plan-issue-sync (hourly) or temperance-next-wave --sync",
+    "execute": {
+      "parallel": "temperance-swarm-dispatch --request .planning/swarm-claim.json (claim required; combo te-dispatch-paid)",
+      "sequential": "temperance-phase-dispatch.sh Build|Execute \"\u2026\"  (combo te-build / te-dispatch-paid)"
+    },
+    "auto_rule": "NEXT-WAVE is a proposal, never execution authority. Render and persist its options; dispatch only after a matching, unexpired human approval receipt confirms the option, plan fingerprint, policy hash, and bounded concurrency.",
+    "approval_policy": {
+      "version": "temperance.approval-policy.v1",
+      "default": "human_required",
+      "receipt_kind": "approval.granted",
+      "expires_after_ms": 600000,
+      "revalidate_before_dispatch": ["project_scope", "git_head", "source_fingerprints", "policy_hash", "quota_snapshot"],
+      "separate_approval_required_for": ["merge", "deploy", "github_sync", "skill_install", "credential_change"]
+    }
+  },
+  "session_limits": {
+    "source": "codexbar CLI + OmniRoute quota_snapshots",
+    "snapshot": "~/.temperance_engine/state/codexbar-session-limits.json",
+    "ranking": "~/.temperance_engine/state/paid-fleet-ranking.json",
+    "rubric": "~/.agents/skills/temperance-parallel-dispatch/references/paid-fleet-rubric.md",
+    "refresh": "python3 ~/.agents/skills/temperance-parallel-dispatch/scripts/rank-paid-fleet.py --refresh-codexbar --apply-combo",
+    "rules": [
+      "Before Execute fleet fan-out, prefer a fresh paid-fleet ranking if snapshot is >6h stale.",
+      "Seats with remaining_pct < 5 or is_exhausted are hard-ineligible for te-dispatch-paid.",
+      "When Claude 5h session remaining < 25%, divert workers to Spark/Cursor/Antigravity-Gemini before Claude Max.",
+      "Never put Sol seats in te-dispatch-paid without explicit --include-sol authorization.",
+      "Capacity phases (Observe/Think/Plan/Build/Verify/Learn side work) stay on te-reason/te-plan/te-build/te-fast \u2014 do not burn Max session on babysit.",
+      "Kimi monthly-exhausted seats stay out of paid fleet even if 5h/weekly rate windows look free.",
+      "SuperGrok (grok-cli/*) is a paid seat; include via rank-paid-fleet when rem>=20%.",
+      "Canonical docs: ~/.temperance_engine/docs/ROUTING.md \u2014 Sol-first planning docs archived.",
+      "plan-max \u2192 te-plan-max (Fable/Sol/Opus); only when complexity signals fire.",
+      "MINIMAL/NATIVE never select te-plan-max (floor te-fast).",
+      "Screenshots/settings audits \u2192 prefer plan-max + Vision Bridge (gemini/gemini-2.5-flash).",
+      "te-plan-max must emit TASK GRAPH + SWARM handoff; never one-round micro-fix as done.",
+      "te-swarm-s is capacity fan-out only; never Sol/Fable heads on swarm."
+    ],
+    "provider_windows": {
+      "claude": [
+        "session (5h)",
+        "weekly (7d)"
+      ],
+      "codex": [
+        "session / weekly Pro",
+        "gpt_5_3_codex_spark_session"
+      ],
+      "cursor": [
+        "Total",
+        "Auto + Composer",
+        "API"
+      ],
+      "antigravity": [
+        "per-model pools (Claude vs Gemini separate)"
+      ],
+      "grok": [
+        "SuperGrok primary session (codexbar --provider grok)"
+      ]
+    },
+    "notes": [
+      "Execute fleet is te-dispatch-paid only (ranked paid seats + SuperGrok).",
+      "Capacity phases stay on te-reason/te-plan/te-build/te-fast \u2014 do not burn Sol/Fable as silent defaults.",
+      "Sol/Fable/Opus are explicit pins when user wants max creative/planning spend.",
+      "Legacy Sol-first docs archived under docs/archive/*-pre-routing-cleanup/"
+    ]
+  },
+  "dispatch": {
+    "single": "~/.temperance_engine/router/omniroute-codex.sh <combo> \"<task>\"",
+    "fleet": "temperance-batch --foreground --tasks tasks.json --concurrency 4 --worktree",
+    "profile": "codex --profile <combo>",
+    "paid_fleet_combo": "te-dispatch-paid",
+    "rank_before_fleet": "python3 ~/.agents/skills/temperance-parallel-dispatch/scripts/rank-paid-fleet.py --apply-combo"
+  },
+  "forbidden_on_orchestrator": [
+    "Do not implement multi-file changes in the native session when a combo is recommended.",
+    "Do not use legacy te-dispatch; use te-dispatch-paid.",
+    "Do not pin Sol as worker fleet head without explicit authorization.",
+    "Do not pin exhausted Antigravity Claude seats when quota_snapshots show remaining 0.",
+    "Do not burn Claude Max 5h session on capacity-class side-quests (use te-fast)."
+  ],
+  "search_evidence": {
+    "gateway": "http://127.0.0.1:20128/v1/search",
+    "fetch": "http://127.0.0.1:20128/v1/web/fetch",
+    "helper": "~/.temperance_engine/router/temperance-search-evidence.sh",
+    "providers": {
+      "search": [
+        "brave-search",
+        "exa-search"
+      ],
+      "fetch": [
+        "firecrawl",
+        "jina-reader"
+      ],
+      "chat_grounded": [
+        "perplexity-web/pplx-sonar",
+        "openrouter/perplexity/sonar-pro"
+      ],
+      "missing_or_broken": [
+        "perplexity-search (needs Search API key, not perplexity-web session)",
+        "serper-search",
+        "tavily-search"
+      ]
+    },
+    "combo": "te-write-research"
+  },
+  "canonical_docs": "~/.temperance_engine/docs/ROUTING.md",
+  "temperance_modes": {
+    "description": "OpenCode 5 modes \u2194 combo selection",
+    "modes": {
+      "temperance-auto": "classifier: mode MINIMAL|NATIVE|ALGORITHM + task_type \u2192 combo",
+      "temperance-native": "pin te-fast (MINIMAL/NATIVE capacity)",
+      "temperance-algorithm": "pin te-algorithm; Plan slices may hard-route te-plan-max when task_type=plan-max",
+      "temperance-continuity": "pin te-build",
+      "temperance-planner": "complexity-aware: te-plan or te-plan-max from classify-task.sh"
+    },
+    "complexity": {
+      "simple_plan": "te-plan",
+      "complex_plan": "te-plan-max",
+      "signals": [
+        "architecture decision",
+        "system design",
+        "/e3-e5",
+        "multi-milestone",
+        "wordcount>=90 with plan keywords"
+      ]
+    }
+  },
+  "algorithm_phases_notes": "Default Plan phase uses te-plan. When classifier returns plan-max (complex ALGORITHM planning), use te-plan-max instead.",
+  "vision": {
+    "bridge_model": "gemini/gemini-2.5-flash",
+    "combo": "te-vision",
+    "settings_keys": [
+      "visionBridgeEnabled",
+      "visionBridgeModel",
+      "visionBridgePrompt",
+      "visionBridgeTimeout",
+      "visionBridgeMaxImages"
+    ]
+  },
+  "plan_max_pipeline": {
+    "plan": "te-plan-max",
+    "deep_pass_outputs": [
+      "MACRO MAP",
+      "DEEP PASS",
+      "TASK GRAPH",
+      "HANDOFF"
+    ],
+    "swarm": "te-swarm-s",
+    "paid": "te-dispatch-paid",
+    "artifacts": [
+      ".planning/DEEP-PASS.md",
+      ".planning/tasks.md",
+      ".planning/NEXT-WAVE.json",
+      "tasks.json"
+    ],
+    "commands": {
+      "make_tasklist": "python/bash make-tasklist from tasks bullets",
+      "swarm_batch": "temperance-batch with model te-swarm-s for capacity slices",
+      "paid_batch": "temperance-batch with te-dispatch-paid for paid implement"
+    },
+    "skill_discovery": [
+      "For each capability gap, run temperance-discover-skills.sh",
+      "Prefer local skill-clusters hubs/spokes before marketplace",
+      "SkillsMP via OmniRoute when local miss (skillsProvider=skillsmp)",
+      "Install public skills only with user approval; then re-tier + gen-index"
+    ]
+  },
+  "skills": {
+    "enabled": true,
+    "provider": "skillsmp",
+    "local_first": "node ~/.agents/skill-clusters/scripts/search-skills.mjs \"<need>\" --json",
+    "helper": "~/.temperance_engine/bin/temperance-discover-skills.sh",
+    "index": "~/.agents/skill-clusters/skill-index.json",
+    "tier_apply": "cd ~/.agents/skill-clusters && node scripts/tier.mjs --apply",
+    "public_find": "npx skills find \"<need>\"",
+    "plan_max_rule": "On te-plan/te-plan-max deep pass, emit SKILL GAPS in TASK GRAPH with resolve path local|skillsmp|install",
+    "startup_policy": {
+      "primary_path": "~/.agents/skills",
+      "source_of_truth": "~/.agents/skill-clusters",
+      "enumerate": "active-hub + profiles.preserve / startup_allowlist only",
+      "never_scan_wholesale": [
+        "~/.agents/skill-clusters/skills"
+      ],
+      "organic_only": true,
+      "no_foreign_symlinks": [
+        "~/.claude/skills",
+        "Craft",
+        "paseo (CLI installs)",
+        ".openclaw",
+        ".codex/plugins"
+      ],
+      "opencode_paths": [
+        "~/.agents/skills"
+      ],
+      "inventory": "~/.temperance_engine/bin/temperance-inventory-skill-surfaces.sh",
+      "codex_plugins_doc": "~/.temperance_engine/docs/CODEX-PLUGIN-DEENABLE-PROPOSAL.md",
+      "target_startup_count": "50-70",
+      "repo_skill_map": "~/.temperance_engine/bin/temperance-repo-skill-map.sh",
+      "skill_routing_doc": "~/.temperance_engine/docs/SKILL-ROUTING.md"
+    },
+    "repo_map": "node ~/.agents/skill-clusters/scripts/repo-skill-map.mjs [cwd] [--prompt] [--inject|--json|--write]"
+  }
+}

@@ -1,0 +1,90 @@
+# Temperance Manifest Bridge
+
+Local-first event plane for the `manifest-skill-137` visual client.
+
+It is intentionally additive: existing PAI hooks, project planning files, Temperance routing, and OmniRoute remain the sources of truth. The bridge normalizes safe projections into an append-only JSONL log, rebuilds a materialized state, and serves a snapshot plus Server-Sent Events.
+
+## Run
+
+```bash
+cd /Users/sheshnarayaniyer/.temperance_engine/manifest-bridge
+bun test
+bun run src/cli.ts init --cwd /path/to/project
+bun run src/cli.ts sync --cwd /path/to/project
+bun run src/cli.ts serve --all
+
+# In a second terminal:
+cd /Users/sheshnarayaniyer/.temperance_engine/integrations/manifest-skill-137/visual-pcb
+VITE_MANIFEST_BRIDGE_URL=http://127.0.0.1:8766 npm run dev -- --host 127.0.0.1
+```
+
+The default local endpoints are:
+
+- `GET http://127.0.0.1:8766/projects` — initialized and observed project registry
+- `GET http://127.0.0.1:8766/snapshot?project_id=<id>` — one project projection
+- `GET http://127.0.0.1:8766/snapshot?project_id=all` — aggregate projection
+- `GET http://127.0.0.1:8766/events?project_id=<id>` — filtered initial snapshot and events
+- `GET http://127.0.0.1:8766/events?project_id=all` — aggregate initial snapshot and events
+- `POST http://127.0.0.1:8766/events` — normalized, redacted event ingestion
+- `GET http://127.0.0.1:8766/health`
+
+The append-only logs default to `~/.temperance_engine/state/manifest/projects/<project_id>/events.jsonl`. Legacy unscoped events remain at `events.jsonl`. Set `TEMPERANCE_MANIFEST_STATE_DIR` to override the host state root.
+
+## Project lifecycle
+
+`temperance-project-init --cwd <repo>` now registers the project identity as
+`.temperance/manifest.json`. The direct bridge commands are:
+
+```bash
+bun run src/cli.ts init --cwd /path/to/project
+bun run src/cli.ts sync --cwd /path/to/project
+bun run src/cli.ts projects
+```
+
+Project IDs are deterministic from canonical paths, so two repositories with
+the same basename cannot collide. A single host bridge owns `127.0.0.1:8766`;
+projects never compete for ports.
+
+`sync --cwd <repo>` is safe to repeat: watcher observations use stable IDs
+derived from their source-file fingerprints. Human planner phase labels that
+do not match the seven Algorithm phases remain in `phase_label` instead of
+being rejected. A running bridge replays external project-log syncs on
+snapshot reads and forwards newly observed events to matching SSE clients.
+
+## Emit a fixture
+
+```bash
+printf '%s' '{"source":"manifest","kind":"demo.pulse","status":"synthetic","project_id":"demo","payload":{"message":"hello"}}' \
+  | bun run src/cli.ts emit
+```
+
+Existing hooks can later call the fail-open summary adapter without sending raw prompts or tool output:
+
+```bash
+printf '%s' '{"hook_event_name":"PostToolUse","tool_name":"Agent","session_id":"s1","tool_input":{"description":"worker one"}}' \
+  | bun run src/cli.ts hook --cwd /path/to/project
+```
+
+## Registered Claude hook
+
+The active Claude settings register one additive async `PostToolUse` matcher for
+`Agent` at `/Users/sheshnarayaniyer/.claude/hooks/ManifestEvent.hook.ts`. It
+normalizes the bounded summary, POSTs it to `/events` when the bridge is live,
+and falls back to the local JSONL file when the bridge is unavailable. Every
+failure path exits successfully so agent execution is never coupled to the UI.
+
+## Contract rules
+
+- Secret-like keys are replaced with `[REDACTED]`.
+- Strings, arrays, objects, and nesting are bounded.
+- Malformed events return a failure result and do not crash the bridge.
+- Duplicate event IDs are ignored.
+- The bridge remains usable with no connected visual client.
+- Synthetic events are explicitly marked and must never be presented as observed runtime truth.
+
+## Visual-client handoff
+
+`visual-pcb` now loads `/snapshot`, subscribes to named `snapshot` and `manifest`
+SSE events, and renders live/stale/offline provenance. Its seeded state and
+simulation controls remain behind an explicit Demo mode. Configure the bridge
+with `VITE_MANIFEST_BRIDGE_URL`; no OmniRoute credentials are sent to the UI.
