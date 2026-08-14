@@ -150,12 +150,14 @@ describe('manifest event plane', () => {
     catalog.ingest({ source: 'manifest', kind: 'doctor.fixture', status: 'synthetic', project_id: 'fixture', payload: {} });
     const server = new ManifestServer(catalog); const address = await server.listen(0);
     const gateway = Bun.serve({ port: 0, fetch: () => new Response('{}', { status: 401 }) });
-    const report = await runManifestDoctor({ state_dir: root, bridge_url: `http://${address.host}:${address.port}`, omniroute_url: `http://127.0.0.1:${gateway.port}`, home: root, platform: 'linux', record: true });
+    const console = Bun.serve({ port: 0, fetch: () => new Response('<html><div id="root"></div></html>') });
+    const report = await runManifestDoctor({ state_dir: root, bridge_url: `http://${address.host}:${address.port}`, omniroute_url: `http://127.0.0.1:${gateway.port}`, console_url: `http://127.0.0.1:${console.port}`, home: root, platform: 'linux', record: true });
     expect(report.overall).toBe('warn');
     expect(report.checks.find((check) => check.id === 'event-log')?.status).toBe('pass');
+    expect(report.checks.find((check) => check.id === 'console-health')?.status).toBe('pass');
     expect(formatDoctorReport(report, true)).toContain('MANIFEST DOCTOR · WARN');
     expect(readdirSync(join(root, 'diagnostics')).some((name) => name.startsWith('doctor-'))).toBe(true);
-    gateway.stop(); await server.close();
+    gateway.stop(); console.stop(); await server.close();
   });
 
   test('doctor fails closed on malformed persisted event records', async () => {
@@ -251,6 +253,18 @@ describe('manifest event plane', () => {
     const second = new TextDecoder().decode((await reader.read()).value);
     expect(second).toContain('evt-sse');
     await reader.cancel();
+    await server.close();
+  });
+
+  test('redirects browser and HEAD root requests to the visual operator console', async () => {
+    const server = new ManifestServer(fixtureStore());
+    const address = await server.listen(0);
+    const response = await fetch(`http://${address.host}:${address.port}/`, { redirect: 'manual' });
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('http://127.0.0.1:5173');
+    const head = await fetch(`http://${address.host}:${address.port}/`, { method: 'HEAD', redirect: 'manual' });
+    expect(head.status).toBe(302);
+    expect(head.headers.get('location')).toBe('http://127.0.0.1:5173');
     await server.close();
   });
 

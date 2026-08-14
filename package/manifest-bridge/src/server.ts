@@ -10,6 +10,7 @@ import { ManifestDiagnostics } from './diagnostics';
 import type { ManifestEvent, ManifestState } from './types';
 
 const MAX_BODY = 1_000_000;
+const DEFAULT_CONSOLE_URL = 'http://127.0.0.1:5173';
 
 function headers(contentType: string): Record<string, string> {
   return { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': 'http://127.0.0.1:5173', 'Access-Control-Allow-Headers': 'Content-Type' };
@@ -77,6 +78,13 @@ export class ManifestServer {
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url || '/', 'http://127.0.0.1');
     if (req.method === 'OPTIONS') { res.writeHead(204, headers('text/plain')); res.end(); return; }
+    if ((req.method === 'GET' || req.method === 'HEAD') && url.pathname === '/') {
+      // The bridge is an API/SSE plane. A browser address should lead to the
+      // visual operator console rather than an opaque JSON 404.
+      res.writeHead(302, { ...headers('text/plain; charset=utf-8'), Location: process.env.TEMPERANCE_MANIFEST_CONSOLE_URL || DEFAULT_CONSOLE_URL });
+      res.end(req.method === 'HEAD' ? undefined : 'Manifest console');
+      return;
+    }
     if (req.method === 'GET' && url.pathname === '/health') {
       const snapshot = this.store.state;
       json(res, 200, { ok: true, service: 'temperance-manifest-bridge', ...snapshot.freshness, event_count: snapshot.event_count });

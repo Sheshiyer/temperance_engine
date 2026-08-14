@@ -89,6 +89,24 @@ header and the Manifest event plane. `OFFLINE` is intentional truth, not a
 fail-open claim: the durable activation remains local but live SSE cannot wake
 until launchd restores the bridge.
 
+### Visual console service
+
+The bridge is an API/SSE server; browser requests to `http://127.0.0.1:8766`
+redirect to the visual console at `http://127.0.0.1:5173`. Install the console
+as its own supervised local service, then use either address in a browser:
+
+```bash
+cd "$TEMPERANCE_ROOT"
+bash scripts/temperance-manifest-console-launchd.sh install
+bash scripts/temperance-manifest-console-launchd.sh status
+```
+
+The console root defaults to
+`~/.temperance_engine/integrations/manifest-skill-137/visual-pcb`; override it
+with `MANIFEST_CONSOLE_ROOT` when the cluster is checked out elsewhere. The
+doctor treats the console as required and reports `console-health` plus
+`console-launchd` separately from the bridge checks.
+
 ## Algorithm-only activation policy
 
 Manifest begins a project run only after PAI's classifier resolves

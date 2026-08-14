@@ -29,6 +29,7 @@ export interface DoctorReport {
 export interface DoctorOptions {
   state_dir: string;
   bridge_url?: string;
+  console_url?: string;
   omniroute_url?: string;
   home?: string;
   platform?: NodeJS.Platform;
@@ -159,17 +160,26 @@ function checkHooks(home: string, checks: DoctorCheck[]): void {
   add(checks, 'prompt-hooks', ready ? (missing ? 'warn' : 'pass') : 'warn', ready ? 'Installed PromptProcessing hook(s) inject a Manifest runtime receipt.' : 'No installed PromptProcessing hook injects a Manifest runtime receipt.', { ready, missing });
 }
 
-function checkLaunchd(platform: NodeJS.Platform, checks: DoctorCheck[]): void {
-  if (platform !== 'darwin') { add(checks, 'launchd', 'warn', 'launchd check is macOS-only.', { platform }); return; }
+function checkLaunchd(platform: NodeJS.Platform, checks: DoctorCheck[], id: 'bridge' | 'console', label: string): void {
+  if (platform !== 'darwin') { add(checks, `${id}-launchd`, 'warn', 'launchd check is macOS-only.', { platform }); return; }
   try {
-    execFileSync('launchctl', ['print', `gui/${process.getuid?.() || 0}/com.temperance.engine.manifest-bridge`], { stdio: 'ignore', timeout: 700 });
-    add(checks, 'launchd', 'pass', 'Manifest bridge LaunchAgent is loaded.');
-  } catch { add(checks, 'launchd', 'warn', 'Manifest bridge LaunchAgent is not loaded; a manual bridge may still be running.'); }
+    execFileSync('launchctl', ['print', `gui/${process.getuid?.() || 0}/${label}`], { stdio: 'ignore', timeout: 700 });
+    add(checks, `${id}-launchd`, 'pass', `Manifest ${id} LaunchAgent is loaded.`);
+  } catch { add(checks, `${id}-launchd`, id === 'bridge' ? 'warn' : 'fail', `Manifest ${id} LaunchAgent is not loaded.`); }
+}
+
+async function consoleHealth(url: string): Promise<{ ready: boolean; status_code?: number }> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(500) });
+    const html = await response.text();
+    return { ready: response.ok && html.includes('<div id="root">'), status_code: response.status };
+  } catch { return { ready: false }; }
 }
 
 export async function runManifestDoctor(options: DoctorOptions): Promise<DoctorReport> {
   const root = options.state_dir;
   const bridgeUrl = options.bridge_url || process.env.TEMPERANCE_MANIFEST_BRIDGE_URL || 'http://127.0.0.1:8766';
+  const consoleUrl = options.console_url || process.env.TEMPERANCE_MANIFEST_CONSOLE_URL || 'http://127.0.0.1:5173';
   const checks: DoctorCheck[] = [];
   if (options.repair_duplicates) {
     try {
@@ -184,7 +194,11 @@ export async function runManifestDoctor(options: DoctorOptions): Promise<DoctorR
   const runtime = await manifestRuntimeReceipt({ bridge_url: bridgeUrl, omniroute_url: options.omniroute_url });
   add(checks, 'bridge-health', runtime.manifest.state === 'ready' ? 'pass' : 'fail', runtime.manifest.state === 'ready' ? 'Manifest loopback bridge health verified.' : 'Manifest loopback bridge is offline.', { url: runtime.manifest.url, status_code: runtime.manifest.status_code || null, event_count: runtime.manifest.event_count ?? null });
   add(checks, 'omniroute', runtime.omniroute.state === 'ready' ? 'pass' : 'warn', runtime.omniroute.state === 'ready' ? 'Protected OmniRoute gateway answered.' : 'OmniRoute gateway did not answer.', { url: runtime.omniroute.url, status_code: runtime.omniroute.status_code || null });
-  checkLaunchd(options.platform || process.platform, checks); checkHooks(options.home || homedir(), checks);
+  const console = await consoleHealth(consoleUrl);
+  add(checks, 'console-health', console.ready ? 'pass' : 'fail', console.ready ? 'Manifest visual console responded with the React root.' : 'Manifest visual console is offline or returned an invalid page.', { url: consoleUrl, status_code: console.status_code || null });
+  checkLaunchd(options.platform || process.platform, checks, 'bridge', 'com.temperance.engine.manifest-bridge');
+  checkLaunchd(options.platform || process.platform, checks, 'console', 'com.temperance.engine.manifest-console');
+  checkHooks(options.home || homedir(), checks);
   const overall: DoctorStatus = checks.some((check) => check.status === 'fail') ? 'fail' : checks.some((check) => check.status === 'warn') ? 'warn' : 'pass';
   const report: DoctorReport = { schema: 'temperance.manifest.doctor.v1', generated_at: new Date().toISOString(), overall, exit_code: overall === 'fail' ? 2 : 0, state_dir: root, bridge_url: bridgeUrl.replace(/\/$/, ''), checks };
   if (options.record) {

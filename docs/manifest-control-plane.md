@@ -52,6 +52,17 @@ Exact duplicate IDs can be repaired only through the explicit
 malformed JSONL file. No diagnostic endpoint exposes prompts, credentials, or
 raw tool bodies to the visual client.
 
+## Browser handoff and console ownership
+
+The bridge on `127.0.0.1:8766` is not an HTML application. Its `/` route
+redirects to the React operator console on `127.0.0.1:5173`; health, snapshot,
+and SSE remain on the bridge port. The separate per-user LaunchAgent
+`com.temperance.engine.manifest-console` runs Vite loopback-only with
+`VITE_MANIFEST_BRIDGE_URL` injected. Install it with
+`scripts/temperance-manifest-console-launchd.sh install`. `manifest-bridge
+doctor` verifies both the React root and both LaunchAgents, so API success can
+no longer mask a missing UI process.
+
 ### Algorithm activation boundary
 
 `PromptProcessing` is the authoritative ingestion point: after it resolves
