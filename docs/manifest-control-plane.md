@@ -26,6 +26,20 @@ flowchart LR
 
 The bridge is intentionally additive. It bounds and redacts incoming data, keeps source pointers, and presents freshness honestly. A missing event, stale snapshot, or offline bridge must stay visible as such in the console.
 
+### Algorithm activation boundary
+
+`PromptProcessing` is the authoritative ingestion point: after it resolves
+`MODE: ALGORITHM`, the shared activation helper canonicalizes `realpath` and
+the Git worktree root, applies the host-owned `activation-policy.json`, then
+persists `algorithm.activated`. Generic Manifest lifecycle hooks require that
+per-session receipt before emitting any agent evidence. This prevents Native
+work and unrelated projects from appearing as active operations.
+
+Eligible but unenrolled repositories are **observed-only**. They receive no
+repository write; an operator explicitly invokes `temperance-project-init` to
+place `.temperance/manifest.json` later. The local policy is intentionally not
+committed because portfolio membership belongs to the operator's machine.
+
 ### Approval-bound automatic swarm path
 
 ```mermaid

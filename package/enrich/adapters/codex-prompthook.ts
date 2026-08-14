@@ -11,6 +11,7 @@
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
+import { activateAlgorithmRun, classificationFromContext, loadActivationPolicy, publishActivationEvent } from "../../manifest-bridge/src/activation.ts"
 
 function promptText(input: any): string {
   return String(input?.prompt || input?.user_prompt || "").trim()
@@ -56,6 +57,12 @@ async function main(): Promise<void> {
   } catch {
     additionalContext = fallback(prompt)
   }
+
+  try {
+    const classification = classificationFromContext(additionalContext)
+    const activation = activateAlgorithmRun({ ...classification, cwd: process.cwd(), session_id: input.session_id, surface: "codex" }, loadActivationPolicy())
+    await publishActivationEvent(activation)
+  } catch {}
 
   try {
     const directory = join(homedir(), ".claude", "MEMORY", "OBSERVABILITY")

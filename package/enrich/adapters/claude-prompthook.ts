@@ -17,6 +17,7 @@
 import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { activateAlgorithmRun, classificationFromContext, loadActivationPolicy, publishActivationEvent } from '../../manifest-bridge/src/activation.ts';
 
 type Mode = 'MINIMAL' | 'NATIVE' | 'ALGORITHM';
 
@@ -59,6 +60,12 @@ async function main() {
   } catch {
     additionalContext = classifyLine(prompt); // never worse than the old shim
   }
+
+  try {
+    const classification = classificationFromContext(additionalContext);
+    const activation = activateAlgorithmRun({ ...classification, cwd: process.cwd(), session_id: input.session_id, surface: 'claude' }, loadActivationPolicy());
+    await publishActivationEvent(activation);
+  } catch {}
 
   // best-effort telemetry (never fatal)
   try {

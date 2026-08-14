@@ -1,14 +1,15 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { normalizeEvent } from '../src/contract';
 import { ManifestCatalog } from '../src/catalog';
-import { initProject, projectIdForCwd, projectManifestPath } from '../src/project';
+import { canonicalCwd, initProject, projectIdForCwd, projectManifestPath } from '../src/project';
 import { ManifestServer } from '../src/server';
 import { ManifestStore } from '../src/store';
 import { RuntimeWatcher } from '../src/watcher';
 import { hookInputToEvent } from '../src/hook-adapter';
+import { activateAlgorithmRun, activeRunFor, classificationFromContext, closeAlgorithmRun, loadActivationPolicy, publishActivationEvent, resolveAlgorithmActivation } from '../src/activation';
 
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
@@ -20,6 +21,103 @@ function fixtureStore(): ManifestStore {
 }
 
 describe('manifest event plane', () => {
+  test('accepts only an allowlisted Algorithm run at its Git worktree root', () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-activation-root-'));
+    dirs.push(root);
+    const portfolio = join(root, 'thoughtseed');
+    const project = join(portfolio, 'cambium');
+    mkdirSync(join(project, 'packages', 'web'), { recursive: true });
+    Bun.spawnSync(['git', 'init', project]);
+    const registered = initProject(project).identity;
+
+    const decision = resolveAlgorithmActivation({
+      mode: 'ALGORITHM', tier: 'E4', cwd: join(project, 'packages', 'web'), session_id: 'session-a',
+    }, { allowed_roots: [portfolio] });
+
+    expect(decision.accepted).toBe(true);
+    expect(decision.enrollment).toBe('enrolled');
+    expect(decision.project?.project_id).toBe(registered.project_id);
+    expect(decision.project?.cwd).toBe(canonicalCwd(project));
+  });
+
+  test('rejects Native mode and project roots outside the policy', () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-activation-deny-'));
+    dirs.push(root);
+    const allowed = join(root, 'thoughtseed');
+    const outside = join(root, 'other', 'repo');
+    mkdirSync(allowed, { recursive: true });
+    mkdirSync(outside, { recursive: true });
+    Bun.spawnSync(['git', 'init', outside]);
+
+    expect(resolveAlgorithmActivation({ mode: 'NATIVE', cwd: outside, session_id: 'session-n' }, { allowed_roots: [allowed] }).reason).toBe('mode_not_algorithm');
+    expect(resolveAlgorithmActivation({ mode: 'ALGORITHM', cwd: outside, session_id: 'session-o' }, { allowed_roots: [allowed] }).reason).toBe('outside_allowlist');
+  });
+
+  test('persists an observed-only active run without writing to its project', () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-activation-candidate-'));
+    dirs.push(root);
+    const portfolio = join(root, 'tryambakam-noesis');
+    const project = join(portfolio, 'new-repo');
+    const state = join(root, 'state');
+    mkdirSync(project, { recursive: true });
+    Bun.spawnSync(['git', 'init', project]);
+
+    const result = activateAlgorithmRun({ mode: 'ALGORITHM', tier: 'E3', cwd: project, session_id: 'session-c' }, { allowed_roots: [portfolio], state_dir: state });
+
+    expect(result.accepted).toBe(true);
+    expect(result.enrollment).toBe('observed-only');
+    expect(existsSync(join(project, '.temperance', 'manifest.json'))).toBe(false);
+    expect(activeRunFor('session-c', state)?.project_cwd).toBe(canonicalCwd(project));
+    const catalog = new ManifestCatalog(state);
+    expect(catalog.snapshot(result.project!.project_id).sessions['session-c'].mode).toBe('ALGORITHM');
+  });
+
+  test('stops observing lifecycle events once an Algorithm run closes', () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-activation-close-'));
+    dirs.push(root);
+    const portfolio = join(root, 'thoughtseed');
+    const project = join(portfolio, 'repo');
+    const state = join(root, 'state');
+    mkdirSync(project, { recursive: true });
+    Bun.spawnSync(['git', 'init', project]);
+    activateAlgorithmRun({ mode: 'ALGORITHM', cwd: project, session_id: 'session-z' }, { allowed_roots: [portfolio], state_dir: state });
+
+    expect(closeAlgorithmRun('session-z', state)?.run_id).toBe('session-z');
+    expect(activeRunFor('session-z', state)).toBeNull();
+  });
+
+  test('loads a versioned host policy and parses both PAI classifier formats', () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-activation-policy-'));
+    dirs.push(root);
+    const state = join(root, 'state');
+    mkdirSync(state, { recursive: true });
+    writeFileSync(join(state, 'activation-policy.json'), JSON.stringify({ schema: 'temperance.manifest.activation-policy.v1', allowed_roots: [join(root, 'thoughtseed')] }));
+
+    expect(loadActivationPolicy(state).allowed_roots).toEqual([canonicalCwd(join(root, 'thoughtseed'))]);
+    expect(classificationFromContext('MODE: ALGORITHM | TIER: E4').tier).toBe('E4');
+    expect(classificationFromContext('mode/tier: ALGORITHM / E3 | reason: policy').mode).toBe('ALGORITHM');
+  });
+
+  test('refreshes a direct activation before accepting its HTTP retry', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-activation-sse-'));
+    dirs.push(root);
+    const portfolio = join(root, 'thoughtseed');
+    const project = join(portfolio, 'repo');
+    const state = join(root, 'state');
+    mkdirSync(project, { recursive: true });
+    Bun.spawnSync(['git', 'init', project]);
+    const catalog = new ManifestCatalog(state);
+    const server = new ManifestServer(catalog);
+    const address = await server.listen(0);
+    const activation = activateAlgorithmRun({ mode: 'ALGORITHM', cwd: project, session_id: 'session-sse' }, { allowed_roots: [portfolio], state_dir: state });
+
+    const retry = await publishActivationEvent(activation, `http://${address.host}:${address.port}`);
+
+    expect(retry).toBe(true);
+    expect(catalog.snapshot(activation.project!.project_id).event_count).toBe(1);
+    await server.close();
+  });
+
   test('normalizes, bounds, and redacts payloads', () => {
     const event = normalizeEvent({ source: 'pai-hook', kind: 'prompt.classified', payload: { api_key: 'secret', prompt: 'x'.repeat(800) } });
     expect(event.schema).toBe('temperance.manifest.event.v1');

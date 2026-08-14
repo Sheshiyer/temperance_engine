@@ -1,0 +1,8 @@
+{
+  "schema": "temperance.manifest.activation-policy.v1",
+  "enabled": true,
+  "allowed_roots": [
+    "/absolute/path/to/thoughtseed",
+    "/absolute/path/to/tryambakam-noesis"
+  ]
+}

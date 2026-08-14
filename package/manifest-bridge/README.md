@@ -34,6 +34,30 @@ The default local endpoints are:
 
 The append-only logs default to `~/.temperance_engine/state/manifest/projects/<project_id>/events.jsonl`. Legacy unscoped events remain at `events.jsonl`. Set `TEMPERANCE_MANIFEST_STATE_DIR` to override the host state root.
 
+## Algorithm-only activation policy
+
+Manifest begins a project run only after PAI's classifier resolves
+`MODE: ALGORITHM`. It then resolves the real Git worktree root, checks a
+host-owned allowlist, and writes a bounded `algorithm.activated` event. Native,
+Minimal, non-Git, and out-of-policy paths are intentionally silent.
+
+Create `~/.temperance_engine/state/manifest/activation-policy.json` from
+[`examples/activation-policy.json`](examples/activation-policy.json):
+
+```json
+{
+  "schema": "temperance.manifest.activation-policy.v1",
+  "enabled": true,
+  "allowed_roots": ["/absolute/path/to/portfolio"]
+}
+```
+
+An eligible repository without `.temperance/manifest.json` is projected as
+**observed-only**; the hook does not create files in that repository. Use
+`temperance-project-init --cwd <git-root>` only when the operator chooses to
+enroll it. The active run receipt is keyed by session ID, so later lifecycle
+events carry the same `run_id` and cannot leak between projects.
+
 ## Project lifecycle
 
 `temperance-project-init --cwd <repo>` now registers the project identity as

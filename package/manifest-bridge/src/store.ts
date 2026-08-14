@@ -113,6 +113,7 @@ export class ManifestStore {
       last_kind: event.kind,
       source: event.source,
       status: event.status,
+      ...(event.kind === 'algorithm.activated' ? { enrollment: event.payload.enrollment, cwd: event.payload.project_cwd } : {}),
     };
     const session = event.session_id;
     if (session) {
@@ -123,7 +124,7 @@ export class ManifestStore {
         phase: event.phase || this.stateValue.sessions[session]?.phase || null,
         last_kind: event.kind,
         last_event_at: event.ts,
-        ...(event.kind === 'prompt.classified' ? { mode: event.payload.mode, tier: event.payload.tier } : {}),
+        ...((event.kind === 'prompt.classified' || event.kind === 'algorithm.activated') ? { mode: event.payload.mode, tier: event.payload.tier, run_id: event.payload.run_id, enrollment: event.payload.enrollment } : {}),
       };
     }
     const agent = event.agent_id;

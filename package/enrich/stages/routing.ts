@@ -25,6 +25,7 @@ function resolveClassifyScript(): string {
   const envDir = process.env.TEMPERANCE_ROUTER_DIR;
   if (envDir) candidates.push(join(envDir, 'classify-task.sh'));
   candidates.push(join(__dirname, '..', '..', 'router', 'classify-task.sh'));
+  candidates.push(join(homedir(), '.temperance_engine', 'router', 'classify-task.sh'));
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
@@ -39,6 +40,7 @@ function resolvePortfolioScript(): string {
   const envPath = process.env.TEMPERANCE_OMNIROUTE_PORTFOLIO_RESOLVER;
   if (envPath) candidates.push(envPath);
   candidates.push(join(__dirname, '..', '..', 'router', 'omniroute-portfolios.ts'));
+  candidates.push(join(homedir(), '.temperance_engine', 'router', 'omniroute-portfolios.ts'));
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
