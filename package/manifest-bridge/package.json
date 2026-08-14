@@ -9,6 +9,8 @@
     "projects": "bun run src/cli.ts projects",
     "emit": "bun run src/cli.ts emit",
     "snapshot": "bun run src/cli.ts snapshot",
+    "doctor": "bun run src/cli.ts doctor",
+    "debug": "bun run src/cli.ts debug",
     "test": "bun test",
     "test:control": "bun test test/control-ledger.test.ts"
   },

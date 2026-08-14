@@ -18,12 +18,13 @@ EOF
 done
 
 HOME="$TEMP/home" PATH="$TEMP/bin:/usr/bin:/bin:/usr/sbin:/sbin" TEMPERANCE_ENGINE_ROOT="$ROOT" \
-  bash "$ROOT/scripts/temperance-manifest-bridge-launchd.sh" install >/dev/null
+  bash "$ROOT/scripts/temperance-manifest-bridge-launchd.sh" install --debug >/dev/null
 PLIST="$TEMP/home/Library/LaunchAgents/com.temperance.engine.manifest-bridge.plist"
 plutil -lint "$PLIST" >/dev/null
 grep -q '<string>--no-watch</string>' "$PLIST"
 grep -q '<string>8766</string>' "$PLIST"
 grep -q 'com.temperance.engine.manifest-bridge' "$PLIST"
+grep -q '<string>TEMPERANCE_MANIFEST_LOG_LEVEL=debug</string>' "$PLIST"
 HOME="$TEMP/home" PATH="$TEMP/bin:/usr/bin:/bin:/usr/sbin:/sbin" TEMPERANCE_ENGINE_ROOT="$ROOT" \
   bash "$ROOT/scripts/temperance-manifest-bridge-launchd.sh" status | grep -q '"health":"ready"'
 echo "=== manifest-bridge-launchd: PASS ==="

@@ -44,6 +44,14 @@ only proves its protected loopback gateway answered, not a provider-level
 success. This keeps ports, active run correlation, and model combo context
 independently observable.
 
+The developer toolkit is intentionally operator-first: `manifest-bridge doctor`
+reads and validates the event plane, `debug` renders a bounded recent-event and
+alert snapshot, and launchd `logs` exposes opt-in redacted request telemetry.
+Exact duplicate IDs can be repaired only through the explicit
+`--repair-duplicates` switch, which takes a timestamped backup and refuses any
+malformed JSONL file. No diagnostic endpoint exposes prompts, credentials, or
+raw tool bodies to the visual client.
+
 ### Algorithm activation boundary
 
 `PromptProcessing` is the authoritative ingestion point: after it resolves

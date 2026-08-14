@@ -6,6 +6,7 @@ import { ManifestCatalog } from './catalog';
 import { SwarmControlLedger, fingerprint, type ClaimRequest } from './control-ledger';
 import { LEGACY_PROJECT_ID } from './project';
 import { ManifestStore } from './store';
+import { ManifestDiagnostics } from './diagnostics';
 import type { ManifestEvent, ManifestState } from './types';
 
 const MAX_BODY = 1_000_000;
@@ -32,7 +33,13 @@ async function body(req: IncomingMessage): Promise<string> {
 }
 
 export class ManifestServer {
-  private server = createServer((req, res) => void this.handle(req, res));
+  private readonly diagnostics = new ManifestDiagnostics();
+  private server = createServer((req, res) => {
+    const started = Date.now();
+    const url = new URL(req.url || '/', 'http://127.0.0.1');
+    res.once('finish', () => this.diagnostics.request({ method: req.method, path: url.pathname, status: res.statusCode, duration_ms: Date.now() - started }));
+    void this.handle(req, res);
+  });
   private clients = new Map<ServerResponse, string | undefined>();
   private unsubscribe: (() => void) | null = null;
   private readonly controlLedger = process.env.TEMPERANCE_SWARM_CONTROL_ENABLED === '1' && process.env.TEMPERANCE_CONTROL_DATABASE_URL ? SwarmControlLedger.fromUrl() : null;
@@ -94,7 +101,12 @@ export class ManifestServer {
         const input = JSON.parse(await body(req)) as Record<string, unknown>;
         const kind = typeof input.kind === 'string' ? input.kind : '';
         if (/^(approval|dispatch)\./.test(kind)) throw new Error('approval and dispatch lifecycle events are reserved for controlled local endpoints');
+        // Activation hooks persist first so the event survives a bridge outage.
+        // Reload that durable append before retrying the same event over HTTP;
+        // otherwise a long-lived server can write a second copy of its ID.
+        if ('refresh' in this.store) this.store.refresh();
         const result = this.store.ingest(input);
+        this.diagnostics.event({ kind, project_id: typeof input.project_id === 'string' ? input.project_id : undefined, accepted: result.accepted, outcome: result.error ? 'rejected' : result.accepted ? 'accepted' : 'deduplicated', error: result.error });
         json(res, result.error ? 400 : result.accepted ? 201 : 200, result);
       } catch (error) { json(res, 400, { accepted: false, error: error instanceof Error ? error.message : String(error) }); }
       return;

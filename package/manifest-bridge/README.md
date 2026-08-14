@@ -55,6 +55,32 @@ bash scripts/temperance-manifest-bridge-launchd.sh status
 bash scripts/temperance-manifest-bridge-launchd.sh uninstall
 ```
 
+### Doctor, debug snapshot, and safe traces
+
+Use the doctor before blaming the visual console. It checks the state root,
+activation policy, registry, active-run receipts, JSONL normalization and
+project scope, bridge health, protected OmniRoute reachability, launchd, and
+installed prompt-hook receipt wiring. It is read-only unless `--record` or
+`--repair-duplicates` is explicit.
+
+```bash
+cd "$TEMPERANCE_ROOT/package/manifest-bridge"
+bun run doctor --verbose
+bun run doctor --json --record
+bun run doctor --repair-duplicates # timestamped JSONL backup first
+bun run debug --project-id <id> --limit 50
+
+# Optional: restart under redacted request/event tracing, then inspect it.
+cd "$TEMPERANCE_ROOT"
+bash scripts/temperance-manifest-bridge-launchd.sh install --debug
+bash scripts/temperance-manifest-bridge-launchd.sh logs 100
+```
+
+Debug traces include only method, path, status, duration, event kind, project
+ID, acceptance, idempotency outcome, and error class. They never include request bodies, prompts,
+tool output, headers, environment values, or evidence contents; the log rotates
+at 1 MB to `bridge-debug.jsonl.1`.
+
 After an Algorithm classifier result, the installed PromptProcessing adapters
 append `<manifest-runtime>` to the same prompt context that contains
 `<temperance-rail>`. It makes the bridge port, active run ID/project/enrollment,

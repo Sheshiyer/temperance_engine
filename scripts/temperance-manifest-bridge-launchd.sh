@@ -13,6 +13,9 @@ LOG_DIR="${STATE_DIR}/logs"
 PORT="${TEMPERANCE_MANIFEST_PORT:-8766}"
 CLI_SOURCE="${ROOT_DIR}/package/manifest-bridge/src/cli.ts"
 BUN_BIN="$(command -v bun)"
+DEBUG="${TEMPERANCE_MANIFEST_LOG_LEVEL:-off}"
+
+if [[ "${2:-}" == "--debug" ]]; then DEBUG="debug"; fi
 
 require_source() {
   [[ -x "$BUN_BIN" ]] && [[ -f "$CLI_SOURCE" ]] || {
@@ -61,6 +64,7 @@ write_plist() {
     <string>HOME=${HOME}</string>
     <string>TEMPERANCE_MANIFEST_STATE_DIR=${STATE_DIR}</string>
     <string>TEMPERANCE_MANIFEST_BRIDGE_URL=http://127.0.0.1:${PORT}</string>
+    <string>TEMPERANCE_MANIFEST_LOG_LEVEL=${DEBUG}</string>
     <string>${BUN_BIN}</string><string>run</string><string>${CLI_SOURCE}</string>
     <string>serve</string><string>--port</string><string>${PORT}</string><string>--no-watch</string>
   </array>
@@ -103,9 +107,17 @@ uninstall_agent() {
   echo "Unloaded ${LABEL}; plist retained with timestamped .removed suffix"
 }
 
+logs_agent() {
+  local count="${2:-80}" file="${LOG_DIR}/bridge-debug.jsonl"
+  [[ "$count" =~ ^[0-9]+$ ]] || { echo "log count must be numeric" >&2; return 2; }
+  [[ -f "$file" ]] || { echo "No debug trace exists. Reinstall with: $0 install --debug"; return 0; }
+  tail -n "$count" "$file"
+}
+
 case "${1:-status}" in
   install) install_agent ;;
   status) status_agent ;;
   uninstall) uninstall_agent ;;
-  *) echo "usage: $0 {install|status|uninstall}" >&2; exit 2 ;;
+  logs) logs_agent ;;
+  *) echo "usage: $0 {install [--debug]|status|logs [N]|uninstall}" >&2; exit 2 ;;
 esac

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { normalizeEvent } from '../src/contract';
@@ -11,6 +11,8 @@ import { RuntimeWatcher } from '../src/watcher';
 import { hookInputToEvent } from '../src/hook-adapter';
 import { activateAlgorithmRun, activeRunFor, classificationFromContext, closeAlgorithmRun, loadActivationPolicy, publishActivationEvent, resolveAlgorithmActivation } from '../src/activation';
 import { formatManifestRuntimeContext, manifestRuntimeReceipt } from '../src/runtime-status';
+import { formatDoctorReport, repairDuplicateEvents, runManifestDoctor } from '../src/doctor';
+import { ManifestDiagnostics } from '../src/diagnostics';
 
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
@@ -116,6 +118,7 @@ describe('manifest event plane', () => {
 
     expect(retry).toBe(true);
     expect(catalog.snapshot(activation.project!.project_id).event_count).toBe(1);
+    expect((await (await fetch(`http://${address.host}:${address.port}/snapshot?project_id=${activation.project!.project_id}`)).json() as ManifestState).event_count).toBe(1);
     await server.close();
   });
 
@@ -137,6 +140,55 @@ describe('manifest event plane', () => {
     const receipt = await manifestRuntimeReceipt({ bridge_url: 'http://127.0.0.1:1', omniroute_url: 'http://127.0.0.1:1' });
     expect(receipt.manifest.state).toBe('offline');
     expect(formatManifestRuntimeContext(receipt)).toContain('☿ MANIFEST · OFFLINE');
+  });
+
+  test('doctor validates event integrity, runtime reachability, and safe persisted reports', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-doctor-'));
+    dirs.push(root);
+    writeFileSync(join(root, 'activation-policy.json'), JSON.stringify({ schema: 'temperance.manifest.activation-policy.v1', enabled: true, allowed_roots: ['/portfolio'] }));
+    const catalog = new ManifestCatalog(root);
+    catalog.ingest({ source: 'manifest', kind: 'doctor.fixture', status: 'synthetic', project_id: 'fixture', payload: {} });
+    const server = new ManifestServer(catalog); const address = await server.listen(0);
+    const gateway = Bun.serve({ port: 0, fetch: () => new Response('{}', { status: 401 }) });
+    const report = await runManifestDoctor({ state_dir: root, bridge_url: `http://${address.host}:${address.port}`, omniroute_url: `http://127.0.0.1:${gateway.port}`, home: root, platform: 'linux', record: true });
+    expect(report.overall).toBe('warn');
+    expect(report.checks.find((check) => check.id === 'event-log')?.status).toBe('pass');
+    expect(formatDoctorReport(report, true)).toContain('MANIFEST DOCTOR · WARN');
+    expect(readdirSync(join(root, 'diagnostics')).some((name) => name.startsWith('doctor-'))).toBe(true);
+    gateway.stop(); await server.close();
+  });
+
+  test('doctor fails closed on malformed persisted event records', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-doctor-corrupt-'));
+    dirs.push(root); writeFileSync(join(root, 'events.jsonl'), '{not-json}\n');
+    const report = await runManifestDoctor({ state_dir: root, bridge_url: 'http://127.0.0.1:1', omniroute_url: 'http://127.0.0.1:1', home: root, platform: 'linux' });
+    expect(report.overall).toBe('fail');
+    expect(report.exit_code).toBe(2);
+    expect(report.checks.find((check) => check.id === 'event-log')?.status).toBe('fail');
+  });
+
+  test('repairs only exact duplicate event IDs after taking a recoverable backup', () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-doctor-repair-'));
+    dirs.push(root); const file = join(root, 'events.jsonl');
+    writeFileSync(file, `${JSON.stringify({ id: 'same', source: 'manifest', kind: 'fixture', status: 'synthetic', payload: {} })}\n${JSON.stringify({ id: 'same', source: 'manifest', kind: 'fixture', status: 'synthetic', payload: {} })}\n`);
+    const repaired = repairDuplicateEvents(root);
+    expect(repaired.removed).toBe(1);
+    expect(repaired.backups).toHaveLength(1);
+    expect(readFileSync(file, 'utf8').match(/"same"/g)).toHaveLength(1);
+    expect(readFileSync(repaired.backups[0], 'utf8').match(/"same"/g)).toHaveLength(2);
+  });
+
+  test('writes only allowlisted metadata to opt-in rotating debug telemetry', () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-diagnostics-'));
+    dirs.push(root); const diagnostics = new ManifestDiagnostics(root, 'debug');
+    diagnostics.request({ method: 'POST', path: '/events', status: 201, duration_ms: 4 });
+    diagnostics.event({ kind: 'algorithm.activated', project_id: 'fixture', accepted: true, outcome: 'accepted' });
+    const log = readFileSync(join(root, 'logs', 'bridge-debug.jsonl'), 'utf8');
+    expect(log).toContain('http.request');
+    expect(log).toContain('algorithm.activated');
+    expect(log).toContain('"outcome":"accepted"');
+    expect(log).not.toContain('prompt');
+    expect(log).not.toContain('authorization');
   });
 
   test('normalizes, bounds, and redacts payloads', () => {

@@ -6,6 +6,7 @@ import { ManifestServer } from './server';
 import { RuntimeWatcher } from './watcher';
 import { hookInputToEvent } from './hook-adapter';
 import { initProject, readProjectIdentity, stateRoot } from './project';
+import { debugSnapshot, formatDoctorReport, runManifestDoctor } from './doctor';
 
 const HOME = homedir();
 const stateDir = stateRoot();
@@ -16,13 +17,24 @@ function arg(name: string, fallback: string): string {
 }
 
 function usage(): void {
-  console.log('Usage: bun run src/cli.ts <init|sync|serve|emit|hook|snapshot|projects> [--cwd PATH] [--all] [--port PORT] [--no-watch]');
+  console.log('Usage: bun run src/cli.ts <init|sync|serve|emit|hook|snapshot|projects|doctor|debug> [--cwd PATH] [--all] [--port PORT] [--no-watch] [--json] [--verbose] [--record] [--repair-duplicates]');
 }
 
 async function main(): Promise<void> {
   const command = process.argv[2] || 'serve';
   const catalog = new ManifestCatalog(stateDir);
   const cwd = resolve(arg('--cwd', process.cwd()));
+  if (command === 'doctor') {
+    const report = await runManifestDoctor({ state_dir: stateDir, bridge_url: arg('--bridge-url', process.env.TEMPERANCE_MANIFEST_BRIDGE_URL || 'http://127.0.0.1:8766'), record: process.argv.includes('--record'), repair_duplicates: process.argv.includes('--repair-duplicates') });
+    console.log(process.argv.includes('--json') ? JSON.stringify(report, null, 2) : formatDoctorReport(report, process.argv.includes('--verbose')));
+    process.exitCode = report.exit_code;
+    return;
+  }
+  if (command === 'debug') {
+    const limit = Math.max(1, Math.min(200, Number(arg('--limit', '50')) || 50));
+    console.log(JSON.stringify(debugSnapshot(stateDir, process.argv.includes('--all') ? undefined : arg('--project-id', ''), limit), null, 2));
+    return;
+  }
   if (command === 'init') {
     const result = initProject(cwd);
     catalog.ensureProject(result.identity);
