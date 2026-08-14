@@ -26,6 +26,24 @@ flowchart LR
 
 The bridge is intentionally additive. It bounds and redacts incoming data, keeps source pointers, and presents freshness honestly. A missing event, stale snapshot, or offline bridge must stay visible as such in the console.
 
+### Runtime declaration, not background magic
+
+`com.temperance.engine.manifest-bridge` is a per-user LaunchAgent that owns
+the loopback-only `127.0.0.1:8766` server. It is installed with
+`scripts/temperance-manifest-bridge-launchd.sh install`, health-probed before
+promotion, and can be inspected through its JSON `status` command. It runs
+with `--no-watch`; direct Algorithm receipts are the event-plane ingress, so
+the service does not bulk-watch every project merely by existing.
+
+The PAI PromptProcessing hook never forks or hides a server. Once the
+classifier resolves `MODE: ALGORITHM`, it writes/publishes the activation and
+adds a secret-free `<manifest-runtime>` block after `<temperance-rail>`. The
+assistant echoes `☿ MANIFEST · READY|OFFLINE` next to the model combo header.
+`READY` comes from the actual bridge `/health` response; OmniRoute readiness
+only proves its protected loopback gateway answered, not a provider-level
+success. This keeps ports, active run correlation, and model combo context
+independently observable.
+
 ### Algorithm activation boundary
 
 `PromptProcessing` is the authoritative ingestion point: after it resolves

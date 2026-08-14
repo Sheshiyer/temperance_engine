@@ -13,6 +13,11 @@ bun run src/cli.ts init --cwd /path/to/project
 bun run src/cli.ts sync --cwd /path/to/project
 bun run src/cli.ts serve --all
 
+# Or install the supervised, loopback-only service (recommended for PAI hooks):
+cd /path/to/temperance_engine
+bash scripts/temperance-manifest-bridge-launchd.sh install
+bash scripts/temperance-manifest-bridge-launchd.sh status
+
 # In a second terminal:
 cd /path/to/manifest-skill-137/visual-pcb
 VITE_MANIFEST_BRIDGE_URL=http://127.0.0.1:8766 npm run dev -- --host 127.0.0.1
@@ -33,6 +38,30 @@ The default local endpoints are:
 - `GET http://127.0.0.1:8766/health`
 
 The append-only logs default to `~/.temperance_engine/state/manifest/projects/<project_id>/events.jsonl`. Legacy unscoped events remain at `events.jsonl`. Set `TEMPERANCE_MANIFEST_STATE_DIR` to override the host state root.
+
+### Runtime ownership and visible receipts
+
+The LaunchAgent `com.temperance.engine.manifest-bridge` is the only supported
+long-running owner of port `127.0.0.1:8766`. It starts the bridge with
+`--no-watch`: Algorithm activation and lifecycle hooks publish the event plane
+directly, so installing the service does not scan or mutate every registered
+project. The launchd definition starts with an empty environment (the bridge
+does not need OmniRoute credentials), is reversible, and has a bounded health
+check:
+
+```bash
+bash scripts/temperance-manifest-bridge-launchd.sh install
+bash scripts/temperance-manifest-bridge-launchd.sh status
+bash scripts/temperance-manifest-bridge-launchd.sh uninstall
+```
+
+After an Algorithm classifier result, the installed PromptProcessing adapters
+append `<manifest-runtime>` to the same prompt context that contains
+`<temperance-rail>`. It makes the bridge port, active run ID/project/enrollment,
+and credential-free OmniRoute reachability explicit to both the PAI response
+header and the Manifest event plane. `OFFLINE` is intentional truth, not a
+fail-open claim: the durable activation remains local but live SSE cannot wake
+until launchd restores the bridge.
 
 ## Algorithm-only activation policy
 

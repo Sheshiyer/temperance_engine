@@ -10,6 +10,7 @@ import { ManifestStore } from '../src/store';
 import { RuntimeWatcher } from '../src/watcher';
 import { hookInputToEvent } from '../src/hook-adapter';
 import { activateAlgorithmRun, activeRunFor, classificationFromContext, closeAlgorithmRun, loadActivationPolicy, publishActivationEvent, resolveAlgorithmActivation } from '../src/activation';
+import { formatManifestRuntimeContext, manifestRuntimeReceipt } from '../src/runtime-status';
 
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
@@ -116,6 +117,26 @@ describe('manifest event plane', () => {
     expect(retry).toBe(true);
     expect(catalog.snapshot(activation.project!.project_id).event_count).toBe(1);
     await server.close();
+  });
+
+  test('renders a bounded runtime receipt from verified loopback services', async () => {
+    const store = fixtureStore();
+    const server = new ManifestServer(store);
+    const address = await server.listen(0);
+    const gateway = Bun.serve({ port: 0, fetch: () => new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { 'content-type': 'application/json' } }) });
+    const receipt = await manifestRuntimeReceipt({ bridge_url: `http://${address.host}:${address.port}`, omniroute_url: `http://127.0.0.1:${gateway.port}` });
+    const context = formatManifestRuntimeContext(receipt);
+    expect(receipt.manifest.state).toBe('ready');
+    expect(receipt.omniroute.state).toBe('ready');
+    expect(context).toContain('☿ MANIFEST · READY');
+    expect(context).toContain('auth protected');
+    gateway.stop(); await server.close();
+  });
+
+  test('keeps an offline bridge explicit instead of inventing a healthy receipt', async () => {
+    const receipt = await manifestRuntimeReceipt({ bridge_url: 'http://127.0.0.1:1', omniroute_url: 'http://127.0.0.1:1' });
+    expect(receipt.manifest.state).toBe('offline');
+    expect(formatManifestRuntimeContext(receipt)).toContain('☿ MANIFEST · OFFLINE');
   });
 
   test('normalizes, bounds, and redacts payloads', () => {

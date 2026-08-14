@@ -18,6 +18,7 @@ import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { activateAlgorithmRun, classificationFromContext, loadActivationPolicy, publishActivationEvent } from '../../manifest-bridge/src/activation.ts';
+import { formatManifestRuntimeContext, manifestRuntimeReceipt } from '../../manifest-bridge/src/runtime-status.ts';
 
 type Mode = 'MINIMAL' | 'NATIVE' | 'ALGORITHM';
 
@@ -65,6 +66,9 @@ async function main() {
     const classification = classificationFromContext(additionalContext);
     const activation = activateAlgorithmRun({ ...classification, cwd: process.cwd(), session_id: input.session_id, surface: 'claude' }, loadActivationPolicy());
     await publishActivationEvent(activation);
+    if (classification.mode === 'ALGORITHM') {
+      additionalContext = `${additionalContext}\n\n${formatManifestRuntimeContext(await manifestRuntimeReceipt({ activation, session_id: input.session_id }))}`;
+    }
   } catch {}
 
   // best-effort telemetry (never fatal)

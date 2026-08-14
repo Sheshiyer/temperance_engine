@@ -12,6 +12,7 @@ import { appendFileSync, mkdirSync, readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { activateAlgorithmRun, classificationFromContext, loadActivationPolicy, publishActivationEvent } from "../../manifest-bridge/src/activation.ts"
+import { formatManifestRuntimeContext, manifestRuntimeReceipt } from "../../manifest-bridge/src/runtime-status.ts"
 
 function promptText(input: any): string {
   return String(input?.prompt || input?.user_prompt || "").trim()
@@ -62,6 +63,9 @@ async function main(): Promise<void> {
     const classification = classificationFromContext(additionalContext)
     const activation = activateAlgorithmRun({ ...classification, cwd: process.cwd(), session_id: input.session_id, surface: "codex" }, loadActivationPolicy())
     await publishActivationEvent(activation)
+    if (classification.mode === "ALGORITHM") {
+      additionalContext = `${additionalContext}\n\n${formatManifestRuntimeContext(await manifestRuntimeReceipt({ activation, session_id: input.session_id }))}`
+    }
   } catch {}
 
   try {
