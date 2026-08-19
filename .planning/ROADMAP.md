@@ -3,6 +3,41 @@
 This roadmap maps only ratified work into GSD phases. Pending design surfaces
 stay visible in `REQUIREMENTS.md` but do not become active execution phases.
 
+**Read first:** [docs/README.md](../docs/README.md). The live product is the
+`--with-spine` glove + `/gsd:goal`. Older milestones below stay for audit;
+they are not the current execute queue.
+
+## Historical milestone: public-ready docs glove (2026-08-17)
+
+| GSD phase | Surface | Done signal |
+|---|---|---|
+| Observe | Docs sprawl vs live Mini | Map in `docs/README.md` |
+| Plan | One index, no third planner | `active_planner=isa` |
+| Execute | Four-surface mode-bind + repo `AGENTS.md` | This file + `STATE.md` + `AGENTS.md` |
+| Verify | `temperance-goal --eval` + `./verify.sh` | doctor high_gaps and required greps |
+
+## Current Milestone (requirements and roadmap pending): v1.1 Public Temperance Glove
+
+Ratification source: operator request, 2026-08-19. Evidence and workflow:
+[`docs/plans/2026-08-19-mac-mini-to-public-temperance-glove-audit.md`](../docs/plans/2026-08-19-mac-mini-to-public-temperance-glove-audit.md).
+
+The operator approved v1.1 activation on 2026-08-19. Config, STATE, PROJECT, and
+this roadmap now treat it as the sole active milestone; the previous docs glove
+and full-native audit remain historical/held context rather than completed
+milestones. `workflow.auto_advance=false` remains unchanged. Requirements and
+concrete GSD phase numbers are still pending this milestone workflow; the table
+below is a logical dependency map, not the final numbered roadmap.
+
+| Logical stage | Surface | Done signal |
+|---|---|---|
+| Intake | Reconcile authorities, ratify milestone, assign phase numbers, freeze baseline | config/STATE/ROADMAP agree; approved intake; no milestone silently replaced |
+| A | Versioned install provenance contract | every product surface has one owner and lifecycle class |
+| B | Router, hooks, bridge, UI, enrichment, skill, and portable-path convergence | no unmapped public-capability drift; `verify.sh` and focused tests pass |
+| C | Manifest-driven install, update, doctor, uninstall, and rollback | clean-home install and restoration rehearsal pass |
+| D | README, Quickstart, architecture, rollback, security, contributing, docs site | docs continuity suite passes against real commands |
+| E | macOS full/no-voice and Linux-compatible clean-host qualification | sandbox, provenance, health, and uninstall probes pass |
+| F | Five commit slices, full verification, and release review | clean-clone verifier passes; human release approval recorded |
+
 ## Ratified Milestone (queued): OmniRoute Paseo-Native Routing Overhaul
 
 Ratification source: operator request via `/superpowers:brainstorm` dialogue,
@@ -43,7 +78,7 @@ Paseo-native routing milestone; independent enough to run in parallel.
 | Verify | Fixture-parity gate for any promoted compression engine; bridge tests mirroring Phase 2's pattern | Design doc §6 | Tests pass; no engine promoted without its fixture proving `<temperance-context>` survival — `lite` has that proof live; `headroom` triggers but its risk (model comprehension of TOON output) is a different, unverified kind of evidence this gate can't produce, so it stays unpromoted on that basis |
 | Learn | New ISC entries for the free-tier bridge, compression fixture-parity gate, and memory sync/retrieve scripts | `ISA.md` | Evidence recorded |
 
-## Active Milestone: Full Native Integration Completion Audit
+## Held historical milestone: Full Native Integration Completion Audit
 
 Ratification source: the operator's continuing OmniRoute integration goal and
 2026-08-02 authorization for governed non-Codex workers with Sol excluded.
