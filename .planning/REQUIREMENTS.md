@@ -98,13 +98,56 @@ v1.1 turns the public repository into the source authority for a reproducible lo
 
 ## Traceability
 
-Roadmap phases will populate requirement-to-phase mappings after this requirements set is approved.
-
 | Requirement | Phase | Status |
 |---|---|---|
-| _Pending roadmap_ | — | Unmapped |
+| PROV-01 | Phase 1 | Pending |
+| PROV-02 | Phase 1 | Pending |
+| PROV-03 | Phase 1 | Pending |
+| PROV-04 | Phase 1 | Pending |
+| PROV-05 | Phase 1 | Pending |
+| PROV-06 | Phase 3 | Pending |
+| PROV-07 | Phase 1 | Pending |
+| INST-01 | Phase 3 | Pending |
+| INST-02 | Phase 6 | Pending |
+| INST-03 | Phase 3 | Pending |
+| INST-04 | Phase 3 | Pending |
+| INST-05 | Phase 3 | Pending |
+| INST-06 | Phase 4 | Pending |
+| INST-07 | Phase 3 | Pending |
+| DOCT-01 | Phase 1 | Pending |
+| DOCT-02 | Phase 1 | Pending |
+| DOCT-03 | Phase 1 | Pending |
+| DOCT-04 | Phase 1 | Pending |
+| DOCT-05 | Phase 1 | Pending |
+| LIFE-01 | Phase 3 | Pending |
+| LIFE-02 | Phase 3 | Pending |
+| LIFE-03 | Phase 3 | Pending |
+| LIFE-04 | Phase 4 | Pending |
+| LIFE-05 | Phase 3 | Pending |
+| LIFE-06 | Phase 3 | Pending |
+| LIFE-07 | Phase 3 | Pending |
+| LIFE-08 | Phase 3 | Pending |
+| PLAT-01 | Phase 4 | Pending |
+| PLAT-02 | Phase 4 | Pending |
+| PLAT-03 | Phase 4 | Pending |
+| PLAT-04 | Phase 6 | Pending |
+| PLAT-05 | Phase 4 | Pending |
+| SAFE-01 | Phase 2 | Pending |
+| SAFE-02 | Phase 2 | Pending |
+| SAFE-03 | Phase 3 | Pending |
+| SAFE-04 | Phase 1 | Pending |
+| SAFE-05 | Phase 3 | Pending |
+| SAFE-06 | Phase 3 | Pending |
+| SAFE-07 | Phase 1 | Pending |
+| RELS-01 | Phase 5 | Pending |
+| RELS-02 | Phase 5 | Pending |
+| RELS-03 | Phase 5 | Pending |
+| RELS-04 | Phase 2 | Pending |
+| RELS-05 | Phase 6 | Pending |
+| RELS-06 | Phase 7 | Pending |
+| RELS-07 | Phase 7 | Pending |
 
-**Coverage:** 46 v1.1 requirements; 0 mapped; 46 awaiting roadmap assignment.
+**Coverage:** 46/46 v1.1 requirements mapped exactly once; 0 unmapped.
 
 ## Ratification Record
 

@@ -1,13 +1,138 @@
-# GSD Roadmap
+# Roadmap: Temperance Engine
 
-This roadmap maps only ratified work into GSD phases. Pending design surfaces
-stay visible in `REQUIREMENTS.md` but do not become active execution phases.
+## Overview
 
-**Read first:** [docs/README.md](../docs/README.md). The live product is the
-`--with-spine` glove + `/gsd:goal`. Older milestones below stay for audit;
-they are not the current execute queue.
+v1.1 Public Temperance Glove turns the repository into the downloadable source
+authority for a local Temperance installation. The work moves from one
+read-only provenance contract through public-source convergence, transactional
+lifecycle behavior, native service adapters, verified documentation,
+clean-host qualification, and exact-candidate release proof. `ISA.md` remains
+the acceptance judge, the manifest remains provenance-only, macOS Apple Silicon
+and Intel are release-blocking, Linux is best-effort, and `atlasRecall.ts`
+remains a private overlay.
 
-## Historical milestone: public-ready docs glove (2026-08-17)
+The approved milestone intake is complete as planning evidence only; no
+implementation phase is marked complete. These seven phases start naturally at
+Phase 1 because this repository has no prior numeric phase directories. The
+five required release commit slices remain an integration and review contract,
+not a requirement that phase count equal commit count.
+
+## Authority and Milestone Status
+
+- **Active:** v1.1 Public Temperance Glove, ratified by operator request on 2026-08-19.
+- **Historical:** `public-ready-docs-glove`; preserved below as evidence, not the current queue.
+- **Held:** Full Native Integration Completion Audit; its external promotion gates remain separate.
+- **Queued:** OmniRoute Paseo-Native Routing Overhaul and Memory/Compression work; neither is promoted by this roadmap.
+- **Execution rule:** `workflow.auto_advance=false`; each phase requires explicit planning, execution, verification, and transition.
+
+## Phases
+
+- [ ] **Phase 1: Provenance Contract and Read-Only Control Plane** - Users can inspect one safe, versioned inventory and read-only doctor model.
+- [ ] **Phase 2: Public Source Convergence** - The public repository contains the complete portable product payload and no private workstation state.
+- [ ] **Phase 3: Safe Profiles and Transactional Lifecycle** - Users can install, update, roll back, and uninstall selected profiles reversibly.
+- [ ] **Phase 4: Service and Platform Adapters** - Required macOS services participate safely in lifecycle transactions while Linux remains honest best-effort.
+- [ ] **Phase 5: Documentation as a Verified Interface** - Public guidance and generated facts match the real lifecycle contract.
+- [ ] **Phase 6: Clean-Host Qualification and Failure Rehearsal** - Exact artifacts pass required macOS architecture/profile journeys and visible Linux compatibility checks.
+- [ ] **Phase 7: Reviewable Release and Exact-Candidate Proof** - A clean, reviewable candidate is bound to its evidence and explicitly approved.
+
+## Phase Details
+
+### Phase 1: Provenance Contract and Read-Only Control Plane
+**Goal**: Operators can inspect one versioned provenance model that explains every declared installation surface without mutating the host or crossing private boundaries.
+**Depends on**: Nothing (milestone intake and authority reconciliation are complete)
+**Requirements**: PROV-01, PROV-02, PROV-03, PROV-04, PROV-05, PROV-07, DOCT-01, DOCT-02, DOCT-03, DOCT-04, DOCT-05, SAFE-04, SAFE-07
+**Success Criteria** (what must be TRUE):
+  1. A maintainer can validate manifest schema v1 and see unsafe paths, destination overlaps, dependency cycles, classification contradictions, or unratified scope rejected before any mutation.
+  2. Every included installed surface appears exactly once with a stable ID, owner, lifecycle class, source, destination rule, platform/profile eligibility, verification method, and rollback policy.
+  3. A user can run doctor in human or stable JSON form and receive the same source, destination, class, expected state, actual state, status, and remediation observations without repair or mutation.
+  4. Drift, required failure, optional skip, unsupported capability, and class-aware checksum semantics remain distinguishable, while unsafe destination resolution fails closed.
+**Plans**: TBD
+
+### Phase 2: Public Source Convergence
+**Goal**: Downloaders receive a complete, portable repository payload rather than a copy of the reference Mac or its private overlays.
+**Depends on**: Phase 1
+**Requirements**: SAFE-01, SAFE-02, RELS-04
+**Success Criteria** (what must be TRUE):
+  1. A maintainer can print and review the exact positive candidate inventory, including the required router, hooks, Manifest Bridge/Zone, enrichment, and complete Temperance skill packages, with no unmapped public capability.
+  2. Repository and candidate scans find no credentials, private databases, logs, histories, receipts, backups, personal memory, private atlases, or `atlasRecall.ts`; the separately configured private overlay is neither ingested nor deleted.
+  3. `verify.sh` passes its private-path guard because executable payloads and templates are portable, while any retained historical evidence is narrowly classified instead of hidden by broad exclusions.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 3: Safe Profiles and Transactional Lifecycle
+**Goal**: Users can plan and perform profile-based installation, update, rollback, and uninstall without losing user-owned configuration or being stranded by partial failure.
+**Depends on**: Phase 2
+**Requirements**: PROV-06, INST-01, INST-03, INST-04, INST-05, INST-07, LIFE-01, LIFE-02, LIFE-03, LIFE-05, LIFE-06, LIFE-07, LIFE-08, SAFE-03, SAFE-05, SAFE-06
+**Success Criteria** (what must be TRUE):
+  1. Users can preview and select `minimal`, `full`, or `no-voice`; missing requirements fail before mutation, optionality is explicit, and every surface reports installed, skipped, unsupported, or failed in human and machine output.
+  2. Install, update, doctor, verify, rollback, and uninstall consume the same resolved inventory, never recursively traverse private/provider roots, and preserve user-authored configuration outside Temperance-owned projections.
+  3. Every mutation has persisted compensation, staged atomic promotion, declared modes, and a redacted receipt, and a failed application is never presented as committed state.
+  4. Users can select an exact retained transaction for rollback, while unexpected drift, symlink/hardlink hazards, parent swaps, path-type conflicts, and ambiguous ownership fail closed.
+  5. Uninstall restores displaced pre-existing content, removes only enumerated owned artifacts, preserves private/mutable state by default, and becomes a safe no-op when repeated.
+**Plans**: TBD
+
+### Phase 4: Service and Platform Adapters
+**Goal**: Lifecycle operations manage required macOS services transactionally and expose Linux support as explicit, non-blocking compatibility behavior.
+**Depends on**: Phase 3
+**Requirements**: INST-06, LIFE-04, PLAT-01, PLAT-02, PLAT-03, PLAT-05
+**Success Criteria** (what must be TRUE):
+  1. Repeating a complete install does not duplicate managed blocks, links, PATH entries, or service registrations; rendered LaunchAgent definitions contain no workstation paths and pass validation before replacement.
+  2. Updates and restoration stop dependents before dependencies, start dependencies before dependents, and use functional health probes rather than process presence alone.
+  3. A required macOS service failure returns non-zero and restores prior definitions, files, loaded state, and dependency health through the shared transaction.
+  4. Linux never invokes launchd, reports unsupported or skipped capabilities precisely, and produces visible best-effort results without being represented as release parity.
+**Plans**: TBD
+
+### Phase 5: Documentation as a Verified Interface
+**Goal**: Users can follow one current documentation path whose commands, lifecycle promises, and inventories match the implemented product.
+**Depends on**: Phase 4
+**Requirements**: RELS-01, RELS-02, RELS-03
+**Success Criteria** (what must be TRUE):
+  1. A new user can copy README and Quickstart commands to install, inspect, verify, update, roll back, and uninstall safely using the supported flags.
+  2. Architecture, rollback, security, and contributing guidance accurately describes ownership, private boundaries, service ordering, recovery behavior, and platform support.
+  3. Manifest- and CLI-derived factual inventories match the release source, while authored explanations remain reviewable and lifecycle changes fail documentation continuity when facts diverge.
+  4. The docs index/site presents one current lifecycle and clearly labels historical plans so obsolete commands are not mistaken for the active interface.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 6: Clean-Host Qualification and Failure Rehearsal
+**Goal**: Users have evidence that the downloadable candidate works from an empty host, survives injected failure, and reverses cleanly on every promised platform posture.
+**Depends on**: Phase 5
+**Requirements**: INST-02, PLAT-04, RELS-05
+**Success Criteria** (what must be TRUE):
+  1. The exact candidate artifact or clean release checkout completes `minimal`, `full`, and `no-voice` macOS installs in empty homes without developer paths or undeclared host state.
+  2. Apple Silicon and Intel macOS lanes both pass installation, doctor, verification, update, rollback, uninstall, service health, permission, and preservation probes; either lane can block release.
+  3. Injected file, configuration, path, permission, and required-service failures restore the pre-transaction tree and service state, including targets that were originally absent.
+  4. Linux runs the documented portable subset, never invokes launchd, and publishes its precise best-effort pass, skip, unsupported, or failure receipt without blocking v1.1.
+**Plans**: TBD
+
+### Phase 7: Reviewable Release and Exact-Candidate Proof
+**Goal**: Downloaders and maintainers can bind the reviewed repository state, downloadable bytes, qualification evidence, and human approval to one v1.1 candidate.
+**Depends on**: Phase 6
+**Requirements**: RELS-06, RELS-07
+**Success Criteria** (what must be TRUE):
+  1. Release qualification refuses a dirty tree and records matching tag, commit, artifact digest, manifest version/digest, platform/profile results, and canonical verifier result.
+  2. The milestone is assembled as the five approved reviewable commit slices, each with focused evidence, without implying that those slices must match the seven implementation phases.
+  3. A fresh clone of the proposed candidate builds the artifact, installs it into another empty home, completes the lifecycle rehearsal, and passes `scripts/verify-all.sh`.
+  4. Independent review reports no open Critical/P0/P1 finding and the human release approval cites the exact-candidate receipt.
+**Plans**: TBD
+
+## Progress
+
+**Execution Order:** Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7
+
+| Phase | Plans Complete | Status | Completed |
+|---|---:|---|---|
+| 1. Provenance Contract and Read-Only Control Plane | 0/TBD | Not started | - |
+| 2. Public Source Convergence | 0/TBD | Not started | - |
+| 3. Safe Profiles and Transactional Lifecycle | 0/TBD | Not started | - |
+| 4. Service and Platform Adapters | 0/TBD | Not started | - |
+| 5. Documentation as a Verified Interface | 0/TBD | Not started | - |
+| 6. Clean-Host Qualification and Failure Rehearsal | 0/TBD | Not started | - |
+| 7. Reviewable Release and Exact-Candidate Proof | 0/TBD | Not started | - |
+
+## Preserved Historical and Held Milestones
+
+### Historical milestone: public-ready docs glove (2026-08-17)
 
 | GSD phase | Surface | Done signal |
 |---|---|---|
@@ -15,28 +140,6 @@ they are not the current execute queue.
 | Plan | One index, no third planner | `active_planner=isa` |
 | Execute | Four-surface mode-bind + repo `AGENTS.md` | This file + `STATE.md` + `AGENTS.md` |
 | Verify | `temperance-goal --eval` + `./verify.sh` | doctor high_gaps and required greps |
-
-## Current Milestone (requirements and roadmap pending): v1.1 Public Temperance Glove
-
-Ratification source: operator request, 2026-08-19. Evidence and workflow:
-[`docs/plans/2026-08-19-mac-mini-to-public-temperance-glove-audit.md`](../docs/plans/2026-08-19-mac-mini-to-public-temperance-glove-audit.md).
-
-The operator approved v1.1 activation on 2026-08-19. Config, STATE, PROJECT, and
-this roadmap now treat it as the sole active milestone; the previous docs glove
-and full-native audit remain historical/held context rather than completed
-milestones. `workflow.auto_advance=false` remains unchanged. Requirements and
-concrete GSD phase numbers are still pending this milestone workflow; the table
-below is a logical dependency map, not the final numbered roadmap.
-
-| Logical stage | Surface | Done signal |
-|---|---|---|
-| Intake | Reconcile authorities, ratify milestone, assign phase numbers, freeze baseline | config/STATE/ROADMAP agree; approved intake; no milestone silently replaced |
-| A | Versioned install provenance contract | every product surface has one owner and lifecycle class |
-| B | Router, hooks, bridge, UI, enrichment, skill, and portable-path convergence | no unmapped public-capability drift; `verify.sh` and focused tests pass |
-| C | Manifest-driven install, update, doctor, uninstall, and rollback | clean-home install and restoration rehearsal pass |
-| D | README, Quickstart, architecture, rollback, security, contributing, docs site | docs continuity suite passes against real commands |
-| E | macOS full/no-voice and Linux-compatible clean-host qualification | sandbox, provenance, health, and uninstall probes pass |
-| F | Five commit slices, full verification, and release review | clean-clone verifier passes; human release approval recorded |
 
 ## Ratified Milestone (queued): OmniRoute Paseo-Native Routing Overhaul
 

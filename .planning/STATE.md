@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Public Temperance Glove
 status: planning
-last_updated: "2026-08-19T07:28:41.407Z"
+last_updated: "2026-08-19T11:06:10.000Z"
 last_activity: 2026-08-19
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -14,6 +14,66 @@ progress:
 ---
 
 # Planning State
+
+## Project Reference
+
+See: `.planning/PROJECT.md` (updated 2026-08-19)
+
+**Core value:** A fresh local machine can reproduce verified Temperance behavior from the public repository without inheriting the developer workstation's private state.
+**Current focus:** Phase 1 — Provenance Contract and Read-Only Control Plane
+
+## Current Position
+
+Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
+Plan: — (phase planning not started)
+Status: Roadmap approved — ready for Phase 1 planning
+Last activity: 2026-08-19 — Operator approved the seven-phase, 46-requirement roadmap
+
+Progress: [░░░░░░░░░░] 0%
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 0
+- Average duration: —
+- Total execution time: 0 hours
+
+| Phase | Plans | Status |
+|---|---:|---|
+| 1–7 | TBD | Not started |
+
+## Accumulated Context
+
+### Decisions
+
+- v1.1 Public Temperance Glove is the sole active milestone; earlier authorities remain historical or held.
+- macOS Apple Silicon and Intel qualification blocks release; Linux remains visible best-effort evidence.
+- `atlasRecall.ts` remains a private overlay and is excluded from public source, artifacts, inventories, and generated documentation.
+- The manifest owns provenance mechanics only; `ISA.md` remains the acceptance judge.
+- Five reviewable release commit slices constrain integration and review, not the seven-phase roadmap shape.
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+- Phase 2 must close the existing `verify.sh` private-path guard failure through source convergence, not broad suppression.
+- Phase 4/6 planning must prove meaningful LaunchAgent lifecycle control on both blocking macOS architectures or define an equivalent clean ephemeral Mac gate.
+
+## Deferred Items
+
+| Category | Item | Status | Deferred At |
+|---|---|---|---|
+| Release hardening | Artifact attestations and receipt pruning | Future v1.x | Milestone intake |
+| Platform breadth | Additional Linux service managers and package-manager distribution | Future v1.x | Milestone intake |
+| Private overlay | Generic public recall capability | Future milestone pending generic privacy-safe fixtures | Milestone intake |
+
+## Session Continuity
+
+Last session: 2026-08-19
+Stopped at: Roadmap approved with complete traceability; ready for Phase 1 discussion and planning
+Resume file: None
 
 ## Historical state snapshot (preserved from 2026-08-17)
 
@@ -308,7 +368,7 @@ the 28 open historical ISCs above.
 Move deferred specs into active phases only after their status becomes approved
 or the operator explicitly ratifies that surface for implementation.
 
-## Current Position
+## Historical Intake Position
 
 Phase: Not started (defining requirements)
 Plan: —
