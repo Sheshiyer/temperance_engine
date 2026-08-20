@@ -1,0 +1,12 @@
+{
+  "name": "temperance-install-surface",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "doctor": "bun run src/cli.ts doctor"
+  },
+  "dependencies": {
+    "ajv": "8.20.0"
+  }
+}
