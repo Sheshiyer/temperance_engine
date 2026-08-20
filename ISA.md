@@ -1030,6 +1030,34 @@ untouched.
 - [x] ISC-760.17: The eventual complete canonical grammar separately ratifies collision handling after identity-key projection resolves.
 - [x] ISC-760.18: The eventual complete canonical grammar separately ratifies the normalization algorithm and post-normalization invariant after validity closure resolves.
 - [x] ISC-760.19: The eventual complete canonical grammar separately ratifies interior U+002D flanking and adjacency after multi-codepoint admission and precedence resolve.
+- [x] ISC-761: `docs/plans/2026-08-19-mac-mini-to-public-temperance-glove-audit.md` exists.
+- [x] ISC-762: The audit records the current tracked worktree change count from `git diff --name-status`.
+- [x] ISC-763: The audit records that `~/.temperance_engine/product` resolves to the current repository root.
+- [x] ISC-764: The audit records the sole live-router-only filename reported by the repository/runtime directory diff.
+- [x] ISC-765: The audit records the manifest-bridge source/runtime drift direction.
+- [x] ISC-766: The audit records the enrichment source/runtime drift and local-only `atlasRecall.ts` surface.
+- [x] ISC-767: The audit records byte parity for the four installed Codex/Claude hook files tested.
+- [x] ISC-768: The audit records the installed-skill support files absent from the repository skill package.
+- [x] ISC-769: The audit contains an explicit `COPY` classification table.
+- [x] ISC-770: The audit contains an explicit `TRANSFORM` classification table.
+- [x] ISC-771: The audit contains an explicit `REGENERATE` classification table.
+- [x] ISC-772: The audit contains an explicit `NEVER-SHIP` classification table.
+- [x] ISC-773: Anti: the audit contains no credential, token, cookie, private key, database body, or secret value.
+- [x] ISC-774: The audit defines seven dependency-ordered GSD workflow stages without hard-coding continuing phase numbers.
+- [x] ISC-775: Every proposed GSD workflow stage names its entry command.
+- [x] ISC-776: Every proposed GSD workflow stage names its durable output artifact.
+- [x] ISC-777: Every proposed GSD workflow stage names at least one binary completion gate.
+- [x] ISC-778: Every proposed GSD workflow stage records its immediate dependency.
+- [x] ISC-779: The workflow preserves a ratification gate before milestone activation.
+- [x] ISC-780: The workflow records the config/STATE/ROADMAP milestone-authority disagreement and requires reconciliation before activation.
+- [x] ISC-781: The workflow maps README, Quickstart, architecture, rollback, security, and contributor documentation updates.
+- [x] ISC-782: The workflow maps installer, hook, skill, service, and mutable-state lifecycle updates.
+- [x] ISC-783: The workflow maps source parity, sandbox install, secret scan, and runtime smoke tests.
+- [x] ISC-784: The workflow defines reviewable commit slices rather than one bulk synchronization commit.
+- [x] ISC-785: The workflow defines one empty-home sandbox installation probe.
+- [x] ISC-786: The workflow defines one no-voice or non-macOS compatibility probe.
+- [x] ISC-787: The workflow defines one uninstall or rollback restoration probe.
+- [x] ISC-788: The workflow defines one installed-file provenance or checksum probe.
 
 ## Test Strategy
 
@@ -1781,6 +1809,34 @@ untouched.
 | ISC-760.17 | collision handling | owner ratification | one exact collision policy after identity-key projection | decision readback |
 | ISC-760.18 | normalization algorithm and invariant | owner ratification | one exact normalization transform plus post-normalization validity rule | decision readback |
 | ISC-760.19 | interior hyphen flanking and adjacency | owner ratification | one exact flanking/adjacency rule for interior U+002D after admission and precedence resolve | decision readback |
+| ISC-761 | file | audit artifact exists | present | `test -f` |
+| ISC-762 | text | tracked change count recorded | one numeric count | `rg` |
+| ISC-763 | path equality | product symlink resolves to repository root | exact canonical equality | `readlink` plus `git rev-parse --show-toplevel` |
+| ISC-764 | text | router-only drift recorded | `temperance-search-evidence.sh` | `rg` |
+| ISC-765 | text | manifest bridge drift direction recorded | source-newer statement | `rg` |
+| ISC-766 | text | enrich drift recorded | private overlay plus direction | `rg` |
+| ISC-767 | text | installed hook parity recorded | four hooks | `rg` |
+| ISC-768 | text | skill support-file gap recorded | workflows, references, scripts | `rg` |
+| ISC-769 | text | COPY classification exists | heading present | `rg` |
+| ISC-770 | text | TRANSFORM classification exists | heading present | `rg` |
+| ISC-771 | text | REGENERATE classification exists | heading present | `rg` |
+| ISC-772 | text | NEVER-SHIP classification exists | heading present | `rg` |
+| ISC-773 | security | public artifact has no secret-like values | zero matches | secret scan |
+| ISC-774 | structure | seven GSD workflow stages defined without numeric phase assumptions | 7/7 | table readback |
+| ISC-775 | structure | workflow-stage commands present | 7/7 | table readback |
+| ISC-776 | structure | workflow-stage outputs present | 7/7 | table readback |
+| ISC-777 | structure | workflow-stage completion gates present | 7/7 | table readback |
+| ISC-778 | structure | workflow-stage dependencies present | 7/7 | table readback |
+| ISC-779 | policy | ratification gate present | explicit hold | `rg` |
+| ISC-780 | planning authority | config/STATE/ROADMAP disagreement recorded and activation held | three authorities named plus reconciliation gate | readback |
+| ISC-781 | docs | six documentation families mapped | 6/6 | table readback |
+| ISC-782 | install | five lifecycle families mapped | 5/5 | table readback |
+| ISC-783 | tests | four verification families mapped | 4/4 | table readback |
+| ISC-784 | release | commit slices defined | at least four | table readback |
+| ISC-785 | sandbox | empty-home probe defined | command present | `rg` |
+| ISC-786 | portability | no-voice/non-macOS probe defined | command present | `rg` |
+| ISC-787 | rollback | restoration probe defined | command present | `rg` |
+| ISC-788 | provenance | installed checksum probe defined | command present | `rg` |
 
 ## Features
 
