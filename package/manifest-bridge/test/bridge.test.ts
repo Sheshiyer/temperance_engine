@@ -41,6 +41,39 @@ const VALIDATOR_IDS = {
   film: 'product-guides.film-spec-closed@1.0.0',
 } as const;
 
+const PARKAREA_REQUIREMENTS = ['SCOPE-01', 'SCOPE-02', 'SCOPE-03', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-01', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'CAP-03', 'CAP-04', 'CAP-05', 'CAP-06', 'CAP-07', 'CAP-08', 'CAP-09', 'DATA-02', 'DATA-03', 'DATA-04', 'DATA-05', 'GUIDE-01'];
+const PARKAREA_EDITION_REQUIREMENTS = ['SCOPE-01', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'GUIDE-01'];
+const PARKAREA_COVERAGE_FIXTURE = [
+  {
+    evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
+    requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
+    claim: { de: 'Authentifizierte Suchergebnisse zeigen nicht leere Parkmöglichkeiten im freigegebenen Demo-Szenario.', en: 'Authenticated discovery shows nonempty parking results in the approved demo scenario.' },
+    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-suchen"]', '[data-testid="text-result-count"]', '[data-testid^="card-result-"]', '[data-testid^="text-result-name-"]'],
+    sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' }, claimRoute: '/api/v1/search', claimClassification: 'isolated',
+  },
+  {
+    evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 400,
+    requirementIds: ['CAP-04', 'CAP-06', 'CAP-07', 'DATA-03', 'DATA-05'],
+    claim: { de: 'Ein aktives Inserat zeigt Verfügbarkeit, Preisangebot, Gesamtpreis und Buchungsbereitschaft ohne Buchung.', en: 'An active listing shows availability, quote, total, and booking readiness without creating a booking.' },
+    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
+    sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }, claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimClassification: 'isolated',
+  },
+  {
+    evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
+    requirementIds: ['CAP-08', 'DATA-02'],
+    claim: { de: 'Die Buchungsansicht zeigt eine vorhandene mandantensichere Buchung des Suchenden.', en: 'The bookings view shows an existing tenant-safe Seeker booking.' },
+    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="dashboard-sidebar"]', '[data-testid="button-nav-bookings"]', '[data-testid="bookings-view"]', '[data-testid="input-search-bookings"]', '[data-testid^="button-booking-details-"]', '[data-recurring-bookings-state="settled"]'],
+    sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' }, claimRoute: '/api/v1/me/bookings', claimClassification: 'read-only',
+  },
+  {
+    evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300,
+    requirementIds: ['SCOPE-03', 'CAP-09'],
+    claim: { de: 'Der Moderationsverlauf zeigt die Freigabe desselben aktiven Inserats ohne Änderung.', en: 'Moderation history shows approval of the same active listing without changing it.' },
+    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
+    sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' }, claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimClassification: 'read-only',
+  },
+] as const;
+
 function fixtureWrite(root: string, relativePath: string, value: string | Record<string, unknown>): void {
   const target = join(root, relativePath);
   mkdirSync(dirname(target), { recursive: true });
@@ -60,51 +93,33 @@ function validCapture(sourceVersion = 'source-fixture-v1'): Record<string, unkno
     viewport: { width: 1440, height: 900 },
     forbiddenSelectors: ['[data-testid="cookie-banner"]'],
     seed: { strategy: 'none' },
-    personas: { seeker: 'seeker' },
-    shots: [{ id: 'seeker-search-results', file: 'seeker-search-results.png', route: '/search', persona: 'seeker', requiredSelectors: ['main'] }],
+    personas: { seeker: 'seeker', admin: 'admin' },
+    shots: PARKAREA_COVERAGE_FIXTURE.map((row) => ({ id: row.evidenceId, file: `${row.evidenceId}.png`, route: row.route, persona: row.persona, requiredSelectors: [...row.selectors], minimumBodyTextChars: row.minimumBodyTextChars })),
   };
 }
 
 function validCoverage(): Record<string, unknown> {
-  const evidence = [
-    {
-      evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker',
-      sideEffects: [{ kind: 'search_analytics', status: 'blocked_pending_w1a' }],
-    },
-    {
-      evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker',
-      sideEffects: [{ kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }],
-    },
-    {
-      evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker',
-      sideEffects: [{ kind: 'bookings_read', status: 'read_only_pending_w1a' }],
-    },
-    {
-      evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only',
-      sideEffects: [{ kind: 'admin_audit_read', status: 'read_only_pending_w1a' }],
-    },
-  ];
   return {
     schemaVersion: 1,
-    edition: { audience: 'internal_qa_operators', primaryPersona: 'seeker', primaryLocale: 'de', secondaryLocale: 'en', media: 'deterministic_stills', publication: 'private_only', requirementIds: [] },
+    edition: { audience: 'internal_qa_operators', primaryPersona: 'seeker', primaryLocale: 'de', secondaryLocale: 'en', media: 'deterministic_stills', publication: 'private_only', requirementIds: [...PARKAREA_EDITION_REQUIREMENTS] },
     metadata: { freshContextPerShot: true, runnerContract: 'canonical_shared_runner_new_browser_context_per_shot' },
-    requirements: [],
-    steps: evidence.map((row, index) => ({
+    requirements: [...PARKAREA_REQUIREMENTS],
+    steps: PARKAREA_COVERAGE_FIXTURE.map((row, index) => ({
       order: index + 1,
       stepId: row.evidenceId,
       checkpointKind: row.checkpointKind,
-      requirementIds: [],
-      claim: { de: `DE ${row.evidenceId}`, en: `EN ${row.evidenceId}` },
+      requirementIds: [...row.requirementIds],
+      claim: { ...row.claim },
       route: row.route,
       persona: row.persona,
       locales: ['de', 'en'],
       tenantAuthority: 'authenticated_session',
       scenarioClass: 'synthetic_or_approved_demo',
       evidenceId: row.evidenceId,
-      requiredSelectors: ['[data-testid="parkarea-app-shell"]'],
-      minimumBodyTextChars: [250, 400, 250, 300][index],
+      requiredSelectors: [...row.selectors],
+      minimumBodyTextChars: row.minimumBodyTextChars,
       semanticProof: { kind: 'w1a_postgres_or_read_only_probe', status: 'pending' },
-      sideEffects: row.sideEffects,
+      sideEffects: [{ ...row.sideEffect }],
       admission: 'blocked',
     })),
   };
@@ -113,8 +128,7 @@ function validCoverage(): Record<string, unknown> {
 function validClaimMap(): Record<string, unknown> {
   return {
     schema: 'parkarea.guide.claim-evidence-map.v1',
-    claims: ['seeker-search-results', 'seeker-listing-readiness', 'seeker-existing-bookings', 'admin-listing-readiness']
-      .map((evidenceId, index) => ({ order: index + 1, evidenceId, proof: { kind: 'postgres_postgis' } })),
+    claims: PARKAREA_COVERAGE_FIXTURE.map((row, index) => ({ order: index + 1, evidenceId: row.evidenceId, proof: { kind: 'postgres_postgis' }, correlation: { route: row.claimRoute, persona: row.persona, tenantAuthority: 'authenticated_session' }, sideEffects: { classification: row.claimClassification, allowed: [], forbidden: [] } })),
   };
 }
 
@@ -839,9 +853,10 @@ describe('capability and workflow request v2', () => {
   });
 
   test('validates the exact closed ParkArea semantic coverage inventory', () => {
-    const validate = (capabilityModule as Record<string, unknown>).validateParkAreaCoverageContract as undefined | ((value: unknown) => boolean);
+    const validate = (capabilityModule as Record<string, unknown>).validateParkAreaCoverageContract as undefined | ((value: unknown, trusted: { capture: unknown; claimMap: unknown }) => boolean);
+    const trusted = { capture: validCapture(), claimMap: validClaimMap() };
     expect(typeof validate).toBe('function');
-    expect(validate!(validCoverage())).toBe(true);
+    expect(validate!(validCoverage(), trusted)).toBe(true);
 
     const mutations: Array<[string, (value: Record<string, any>) => void]> = [
       ['extra top-level field', (value) => { value.extra = true; }],
@@ -854,6 +869,15 @@ describe('capability and workflow request v2', () => {
       ['missing route sentinel', (value) => { value.steps[1].route = '/parkplatz/fixture'; }],
       ['wrong persona', (value) => { value.steps[3].persona = 'seeker'; }],
       ['wrong checkpoint', (value) => { value.steps[3].checkpointKind = 'admin'; }],
+      ['broad html selector', (value) => { value.steps[0].requiredSelectors = ['html']; }],
+      ['broad body selector', (value) => { value.steps[0].requiredSelectors = ['body']; }],
+      ['wildcard selector', (value) => { value.steps[0].requiredSelectors = ['*']; }],
+      ['empty step requirements', (value) => { value.steps[0].requirementIds = []; }],
+      ['empty edition requirements', (value) => { value.edition.requirementIds = []; }],
+      ['empty global requirements', (value) => { value.requirements = []; }],
+      ['fabricated German claim', (value) => { value.steps[0].claim.de = 'Erfundene Behauptung.'; }],
+      ['fabricated English claim', (value) => { value.steps[0].claim.en = 'Fabricated claim.'; }],
+      ['locale drift', (value) => { value.steps[0].locales = ['en', 'de']; }],
       ['missing side effect', (value) => { value.steps[0].sideEffects = []; }],
       ['wrong side-effect status', (value) => { value.steps[2].sideEffects[0].status = 'read_only'; }],
       ['extra step field', (value) => { value.steps[0].command = 'project-local'; }],
@@ -861,8 +885,18 @@ describe('capability and workflow request v2', () => {
     for (const [name, mutate] of mutations) {
       const candidate = JSON.parse(JSON.stringify(validCoverage())) as Record<string, any>;
       mutate(candidate);
-      expect(validate!(candidate), name).toBe(false);
+      expect(validate!(candidate, trusted), name).toBe(false);
     }
+
+    const broadCapture = JSON.parse(JSON.stringify(validCapture())) as Record<string, any>;
+    broadCapture.shots[0].requiredSelectors = ['html'];
+    expect(validate!(validCoverage(), { capture: broadCapture, claimMap: validClaimMap() }), 'capture selector drift').toBe(false);
+    const claimVersionDrift = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
+    claimVersionDrift.schema = 'parkarea.guide.claim-evidence-map.v2';
+    expect(validate!(validCoverage(), { capture: validCapture(), claimMap: claimVersionDrift }), 'claim registry version drift').toBe(false);
+    const claimPersonaDrift = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
+    claimPersonaDrift.claims[3].correlation.persona = 'seeker';
+    expect(validate!(validCoverage(), { capture: validCapture(), claimMap: claimPersonaDrift }), 'claim registry persona drift').toBe(false);
   });
 
   test('confines every ScopeBindingV1 component before reading artifact bytes', () => {
@@ -1013,6 +1047,54 @@ describe('capability and workflow request v2', () => {
     expect(recorded).toHaveLength(1);
     expect(recorded[0].scope_hash).toBe(scopeBindingFor(projectRoot, project.project_id, 'source-fixture-v1').scope_hash);
     await server.close();
+  });
+
+  test('bounds approval scope failures without returning paths or approval identifiers', async () => {
+    const mutations: Array<[string, (root: string, projectRoot: string) => void]> = [
+      ['missing', (_root, projectRoot) => { rmSync(join(projectRoot, GUIDE_SCOPE_PATHS[3])); }],
+      ['symlink', (root, projectRoot) => { fixtureWrite(root, 'outside-claims.json', validClaimMap()); rmSync(join(projectRoot, GUIDE_SCOPE_PATHS[3])); symlinkSync(join(root, 'outside-claims.json'), join(projectRoot, GUIDE_SCOPE_PATHS[3])); }],
+      ['component-escape', (root, projectRoot) => { const outside = join(root, 'outside-guides'); fixtureWrite(outside, 'claim-evidence-map.json', validClaimMap()); rmSync(join(projectRoot, 'scripts', 'product-guides'), { recursive: true, force: true }); symlinkSync(outside, join(projectRoot, 'scripts', 'product-guides')); }],
+    ];
+    for (const [name, mutate] of mutations) {
+      const root = mkdtempSync(join(tmpdir(), `temperance-approval-redaction-${name}-`)); dirs.push(root);
+      const projectRoot = join(root, 'parkarea-aleph'); writeGuideScope(projectRoot);
+      Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
+      Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
+      Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
+      Bun.spawnSync(['git', '-C', projectRoot, 'add', ...GUIDE_SCOPE_PATHS]);
+      Bun.spawnSync(['git', '-C', projectRoot, 'commit', '--quiet', '-m', 'fixture']);
+      const catalog = new ManifestCatalog(join(root, 'state'));
+      const project = initProject(projectRoot).identity; catalog.ensureProject(project); seedGuidePlan(catalog, project.project_id);
+      mutate(root, projectRoot);
+      let records = 0;
+      const ledger = { migrate: async () => {}, close: async () => {}, attest: async () => ({ schema: 'temperance.approval-attestation.response.v1', ok: false, code: 'approval_not_found' }), recordApproval: async () => { records += 1; } };
+      const Server = ManifestServer as unknown as new (store: ManifestCatalog, dependencies: Record<string, unknown>) => ManifestServer;
+      const server = new Server(catalog, { controlLedger: ledger }); const address = await server.listen(0);
+      const approvalId = 'apr-guide';
+      const response = await fetch(`http://${address.host}:${address.port}/approvals`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project_id: project.project_id, plan_id: 'guide-plan', option_id: 'guide-option', approval_id: approvalId }) });
+      const text = await response.text(); await server.close();
+      expect(response.status).toBe(409);
+      expect(JSON.parse(text)).toEqual({ accepted: false, code: 'approval_scope_unavailable' });
+      expect(text).not.toContain(root); expect(text).not.toContain(projectRoot); expect(text).not.toContain(approvalId); expect(text).not.toMatch(/ENOENT|symlink|driver|scope_artifact/i);
+      expect(records).toBe(0);
+    }
+  });
+
+  test('bounds approval persistence errors without returning driver internals', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-approval-driver-redaction-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph'); writeGuideScope(projectRoot);
+    Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
+    Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'add', ...GUIDE_SCOPE_PATHS]); Bun.spawnSync(['git', '-C', projectRoot, 'commit', '--quiet', '-m', 'fixture']);
+    const catalog = new ManifestCatalog(join(root, 'state')); const project = initProject(projectRoot).identity; catalog.ensureProject(project); seedGuidePlan(catalog, project.project_id);
+    const ledger = { migrate: async () => {}, close: async () => {}, attest: async () => ({ schema: 'temperance.approval-attestation.response.v1', ok: false, code: 'approval_not_found' }), recordApproval: async () => { throw new Error(`driver failed at ${projectRoot} for apr-guide`); } };
+    const Server = ManifestServer as unknown as new (store: ManifestCatalog, dependencies: Record<string, unknown>) => ManifestServer;
+    const server = new Server(catalog, { controlLedger: ledger }); const address = await server.listen(0);
+    const response = await fetch(`http://${address.host}:${address.port}/approvals`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project_id: project.project_id, plan_id: 'guide-plan', option_id: 'guide-option', approval_id: 'apr-guide' }) });
+    const text = await response.text(); await server.close();
+    expect(response.status).toBe(409); expect(JSON.parse(text)).toEqual({ accepted: false, code: 'approval_request_failed' });
+    expect(text).not.toContain(projectRoot); expect(text).not.toContain('apr-guide'); expect(text).not.toContain('driver failed');
   });
 
   test('serves bounded non-mutating attestation through the injected ledger', async () => {
