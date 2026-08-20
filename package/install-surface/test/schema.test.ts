@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 
 import {
   MAX_FRAGMENT_BYTES,
+  validateDoctorReport,
   validateFragment,
   validateLock,
+  validatePrivateRegistry,
 } from "../src/schema.ts";
 
 const fixture = (name: string): unknown => JSON.parse(
@@ -19,6 +21,25 @@ describe("strict v1 schema validation", () => {
       schema_uri: "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1",
       version: { major: 1, minor: 0 },
       records: [],
+    })).toBe(true);
+  });
+
+  test("accepts valid private-registry and doctor-report envelopes", () => {
+    expect(validatePrivateRegistry({
+      schema: "temperance.private-registry.v1",
+      version: { major: 1, minor: 0 },
+      records: [],
+    })).toBe(true);
+    expect(validateDoctorReport({
+      schema: "temperance.doctor.report.v1",
+      version: { major: 1, minor: 0 },
+      generated_at: "2026-08-20T00:00:00.000Z",
+      scope: "complete",
+      requested_sections: ["install", "privacy", "runtime"],
+      overall_condition: "PASS",
+      exit_code: 0,
+      manifest_digest: `sha256:${"0".repeat(64)}`,
+      sections: [],
     })).toBe(true);
   });
 
