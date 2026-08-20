@@ -47,6 +47,19 @@ describe("strict v1 schema validation", () => {
     expect(validateFragment(fixture("unknown-field.json"))).toBe(false);
   });
 
+  test("rejects an unknown nested field in a compiled lock", () => {
+    const fragment = fixture("valid-fragment.v1.json") as { records: Array<Record<string, unknown>> };
+    const record = structuredClone(fragment.records[0]) as Record<string, unknown>;
+    (record.authority as Record<string, unknown>).surprise = true;
+
+    expect(validateLock({
+      schema: "temperance.install-surface.lock.v1",
+      schema_uri: "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1",
+      version: { major: 1, minor: 0 },
+      records: [record],
+    })).toBe(false);
+  });
+
   test("rejects a missing required field", () => {
     const value = fixture("valid-fragment.v1.json") as Record<string, unknown>;
     delete value.records;

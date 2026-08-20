@@ -44,13 +44,82 @@
               }
             }
           },
-          "authority": { "type": "object" },
-          "eligibility": { "type": "object" },
-          "verification": { "type": "object" },
-          "rollback": { "type": "object" },
-          "depends_on": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
-          "identity_migration": { "type": "object" }
+          "authority": { "$ref": "#/$defs/authority" },
+          "eligibility": { "$ref": "#/$defs/eligibility" },
+          "verification": { "$ref": "#/$defs/verification" },
+          "rollback": { "$ref": "#/$defs/rollback" },
+          "depends_on": {
+            "type": "array",
+            "maxItems": 128,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 3, "maxLength": 192 }
+          },
+          "identity_migration": { "$ref": "#/$defs/identity_migration" }
         }
+      }
+    }
+  },
+  "$defs": {
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_ids", "isa"],
+      "properties": {
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Z]+-[0-9]+$" }
+        },
+        "isa": { "type": "string", "pattern": "^ISC-[0-9]+$" }
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platforms", "profiles", "required"],
+      "properties": {
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["darwin", "linux", "win32"] }
+        },
+        "profiles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+        },
+        "required": { "type": "boolean" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method"],
+      "properties": {
+        "method": { "enum": ["sha256", "adapter", "semantic-probe", "symbolic-exclusion", "presence-only"] },
+        "adapter_id": { "type": "string", "minLength": 1, "maxLength": 192 },
+        "generator_id": { "type": "string", "minLength": 1, "maxLength": 192 }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy"],
+      "properties": {
+        "policy": { "enum": ["restore-backup", "remove-installed", "regenerate", "none-private"] }
+      }
+    },
+    "identity_migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_id", "to_id"],
+      "properties": {
+        "from_id": { "type": "string", "minLength": 1, "maxLength": 192 },
+        "to_id": { "type": "string", "minLength": 1, "maxLength": 192 }
       }
     }
   }
