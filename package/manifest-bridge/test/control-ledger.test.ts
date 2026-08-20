@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { Pool } from 'pg';
-import { SwarmControlLedger, type ApprovedDispatch, type ClaimRequest } from '../src/control-ledger';
+import {
+  SwarmControlLedger,
+  type ApprovalAttestationRequestV1,
+  type ApprovalAttestationResultV1,
+  type ApprovedDispatch,
+  type ClaimRequest,
+} from '../src/control-ledger';
 
 const url = process.env.TEMPERANCE_CONTROL_DATABASE_URL;
 const control = url ? describe.serial : describe.skip;
@@ -16,7 +22,7 @@ const approval = (overrides: Partial<ApprovedDispatch> = {}): ApprovedDispatch =
 });
 const request = (overrides: Partial<ClaimRequest> = {}): ClaimRequest => ({ ...approval(), quota_observed_at: new Date(Date.now() - 1_000).toISOString(), quota_eligible: true, ...overrides });
 
-const attestation = (overrides: Record<string, unknown> = {}) => ({
+const attestation = (overrides: Partial<ApprovalAttestationRequestV1> & Record<string, unknown> = {}): ApprovalAttestationRequestV1 => ({
   schema: 'temperance.approval-attestation.request.v1',
   approval_id: 'apr-test',
   project_id: 'project-test',
@@ -29,7 +35,7 @@ const attestation = (overrides: Record<string, unknown> = {}) => ({
   task_fingerprint: 'tasks-test',
   scope_hash: 'a'.repeat(64),
   ...overrides,
-});
+} as ApprovalAttestationRequestV1);
 
 type ControlSnapshot = {
   counts: Record<string, number>;
@@ -56,8 +62,8 @@ async function controlSnapshot(): Promise<ControlSnapshot> {
   };
 }
 
-async function attest(input: unknown, approvalId?: string): Promise<Record<string, unknown>> {
-  return await (ledger as unknown as { attest(value: unknown, canonicalApprovalId?: string): Promise<Record<string, unknown>> }).attest(input, approvalId);
+async function attest(input: unknown, approvalId?: string): Promise<ApprovalAttestationResultV1> {
+  return await ledger.attest(input, approvalId);
 }
 
 control('PostgreSQL swarm control ledger', () => {
@@ -105,7 +111,7 @@ control('PostgreSQL swarm control ledger', () => {
   test('denies unavailable storage and absent canonical approvals with bounded codes', async () => {
     const unavailablePool = new Pool({ connectionString: 'postgresql://invalid:invalid@127.0.0.1:1/temperance_control_test', connectionTimeoutMillis: 100 });
     const unavailableLedger = new SwarmControlLedger(unavailablePool, 60_000, 60_000);
-    const unavailable = await (unavailableLedger as unknown as { attest(value: unknown): Promise<Record<string, unknown>> }).attest(attestation());
+    const unavailable = await unavailableLedger.attest(attestation());
     await unavailableLedger.close();
     expect(unavailable).toEqual({ schema: 'temperance.approval-attestation.response.v1', ok: false, code: 'control_unavailable' });
     expect(await attest(attestation())).toEqual({ schema: 'temperance.approval-attestation.response.v1', ok: false, code: 'approval_missing' });
@@ -175,6 +181,43 @@ control('PostgreSQL swarm control ledger', () => {
     await expect(ledger.recordApproval({ ...original, git_head: 'different-head' })).rejects.toThrow('approval_conflict');
     await expect(ledger.recordApproval({ ...original })).resolves.toBeUndefined();
     expect(Number((await pool.query("SELECT count(*)::int AS count FROM temperance_swarm_approvals WHERE approval_id = 'apr-duplicate'")).rows[0].count)).toBe(1);
+  });
+
+  test('rejects invalid new scope bindings and every conflicting immutable duplicate', async () => {
+    await expect(ledger.recordApproval(approval({ approval_id: 'apr-invalid-scope', scope_hash: 'not-a-scope-hash' }))).rejects.toThrow('approval_invalid');
+    const original = approval({ approval_id: 'apr-conflict-matrix', expires_at: '2999-01-01T00:00:00.000Z' });
+    await ledger.recordApproval(original);
+    const conflicts: Partial<ApprovedDispatch>[] = [
+      { project_id: 'another-project' },
+      { project_cwd: '/tmp/another-project' },
+      { plan_id: 'another-plan' },
+      { option_id: 'another-option' },
+      { policy_hash: 'another-policy' },
+      { git_head: 'another-head' },
+      { source_fingerprint: 'another-source' },
+      { task_fingerprint: 'another-task' },
+      { scope_hash: 'b'.repeat(64) },
+      { concurrency: 3 },
+      { expires_at: '2999-01-02T00:00:00.000Z' },
+    ];
+    for (const conflict of conflicts) {
+      await expect(ledger.recordApproval({ ...original, ...conflict })).rejects.toThrow('approval_conflict');
+    }
+    await expect(ledger.recordApproval({ ...original, combo: 'te-build' as ApprovedDispatch['combo'] })).rejects.toThrow();
+    await expect(ledger.recordApproval({ ...original, worktree_required: false })).rejects.toThrow();
+  });
+
+  test('runs the additive scope migration twice and preserves legacy-null denial', async () => {
+    await ledger.migrate();
+    await ledger.migrate();
+    const columns = await pool.query(`
+      SELECT is_nullable FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'temperance_swarm_approvals' AND column_name = 'scope_hash'
+    `);
+    expect(columns.rows).toEqual([{ is_nullable: 'YES' }]);
+    await ledger.recordApproval(approval({ approval_id: 'apr-migration-legacy' }));
+    await pool.query("UPDATE temperance_swarm_approvals SET scope_hash = NULL WHERE approval_id = 'apr-migration-legacy'");
+    expect(await attest(attestation({ approval_id: 'apr-migration-legacy' }))).toEqual({ schema: 'temperance.approval-attestation.response.v1', ok: false, code: 'approval_malformed' });
   });
 
   test('attests repeatedly without mutating approvals, claims, outbox, or receipts', async () => {

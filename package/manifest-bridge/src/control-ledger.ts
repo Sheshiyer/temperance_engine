@@ -82,6 +82,7 @@ const APPROVAL_STRING_KEYS = [
   'git_head', 'source_fingerprint', 'task_fingerprint',
 ] as const;
 const ATTESTATION_KEYS = ['schema', ...APPROVAL_STRING_KEYS, 'scope_hash'] as const;
+const SORTED_ATTESTATION_KEYS = [...ATTESTATION_KEYS].sort();
 const IMMUTABLE_APPROVAL_KEYS = [...APPROVAL_STRING_KEYS, 'scope_hash', 'combo'] as const;
 const ATTESTATION_BINDING_KEYS = [...APPROVAL_STRING_KEYS, 'scope_hash'] as const;
 const SCOPE_HASH = /^[a-f0-9]{64}$/;
@@ -103,7 +104,7 @@ function parseAttestationRequest(value: unknown): ApprovalAttestationRequestV1 |
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
   const keys = Object.keys(record).sort();
-  if (keys.length !== ATTESTATION_KEYS.length || keys.some((key, index) => key !== [...ATTESTATION_KEYS].sort()[index])) return null;
+  if (keys.length !== SORTED_ATTESTATION_KEYS.length || keys.some((key, index) => key !== SORTED_ATTESTATION_KEYS[index])) return null;
   if (record.schema !== ATTESTATION_REQUEST_SCHEMA) return null;
   if (!APPROVAL_STRING_KEYS.every((key) => boundedString(record[key], key === 'project_cwd' ? 4096 : 512))) return null;
   if (typeof record.scope_hash !== 'string' || !SCOPE_HASH.test(record.scope_hash)) return null;
@@ -115,11 +116,15 @@ function validStoredApproval(value: StoredApproval): boolean {
     && ['granted', 'claimed', 'revoked', 'expired'].includes(value.status);
 }
 
+function timestampMs(value: string | Date): number {
+  return value instanceof Date ? value.getTime() : Date.parse(value);
+}
+
 function sameImmutableApproval(stored: StoredApproval, input: ApprovedDispatch): boolean {
   return IMMUTABLE_APPROVAL_KEYS.every((key) => stored[key] === input[key])
     && stored.concurrency === input.concurrency
     && stored.worktree_required === input.worktree_required
-    && (stored.expires_at instanceof Date ? stored.expires_at.getTime() : Date.parse(stored.expires_at)) === Date.parse(input.expires_at);
+    && timestampMs(stored.expires_at) === Date.parse(input.expires_at);
 }
 
 function denied(code: Extract<ApprovalAttestationResultV1, { ok: false }>['code']): ApprovalAttestationResultV1 {
@@ -218,7 +223,7 @@ export class SwarmControlLedger {
     try {
       client = await this.pool.connect();
       await client.query('BEGIN TRANSACTION READ ONLY');
-      const time = await client.query<{ database_now: string | Date }>('SELECT now() AS database_now');
+      const time = await client.query<{ database_now: string }>('SELECT now()::text AS database_now');
       const databaseNow = Date.parse(String(time.rows[0]?.database_now));
       const result = await client.query<StoredApproval>(`
         SELECT approval_id, project_id, project_cwd, plan_id, option_id, policy_hash, git_head,
@@ -231,7 +236,7 @@ export class SwarmControlLedger {
       else if (!validStoredApproval(approval) || !Number.isFinite(databaseNow)) outcome = denied('approval_malformed');
       else if (approval.status === 'claimed') outcome = denied('approval_consumed');
       else if (approval.status === 'revoked') outcome = denied('approval_revoked');
-      else if (approval.status === 'expired' || Date.parse(String(approval.expires_at)) <= databaseNow) outcome = denied('approval_expired');
+      else if (approval.status === 'expired' || timestampMs(approval.expires_at) <= databaseNow) outcome = denied('approval_expired');
       else if (approval.status !== 'granted') outcome = denied('approval_malformed');
       else if (ATTESTATION_BINDING_KEYS.some((key) => approval[key] !== request[key])) outcome = denied('binding_mismatch');
       else {
