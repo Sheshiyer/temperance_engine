@@ -7,6 +7,7 @@ import type { ManifestState } from './types';
 
 export const WORKFLOW_PROJECTION_SCHEMA = 'temperance.manifest.skill-workflow.v2' as const;
 export const PRODUCT_GUIDE_WORKFLOW_ID = 'product-guide-production' as const;
+export const WORKFLOW_REQUEST_REQUIRED_FIELDS = ['schema', 'request_id', 'approval_id', 'run_kind', 'plan_id', 'option_id', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'scope_hash'] as const;
 
 export interface SkillRecord { id: string; label: string; role: 'hub' | 'spoke' | 'unknown'; status: string; origin: string; originSource: string | null }
 export interface SkillClusterRecord { id: string; title: string; tier: string; origin: string; originSource: string | null; usage: 'resolved' | 'available' | 'observed'; skills: SkillRecord[] }
@@ -59,6 +60,6 @@ export function projectSkillWorkflow(project: ProjectSummary, snapshot: Manifest
     resolved_cluster_ids: productGuideSkills.length ? ['product-guides'] : [],
     workflow: { id: PRODUCT_GUIDE_WORKFLOW_ID, label: 'PRODUCT GUIDE → EVIDENCE → VIDEO', stages },
     run_kinds: { guide, video },
-    trigger: { id: 'request-bounded-run' as const, state: guide.requestable ? 'gated' : project.cwd ? 'gated' : 'unavailable', eligible: false, requestable: guide.requestable, authority: 'unchecked_at_request' as const, blockers, endpoint: `/projects/${project.project_id}/workflows/${PRODUCT_GUIDE_WORKFLOW_ID}/requests`, requires: ['schema', 'request_id', 'approval_id', 'run_kind', 'plan_id', 'option_id', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'scope_hash'] },
+    trigger: { id: 'request-bounded-run' as const, state: guide.requestable ? 'gated' : project.cwd ? 'gated' : 'unavailable', eligible: false, requestable: guide.requestable, authority: 'unchecked_at_request' as const, blockers, endpoint: `/projects/${project.project_id}/workflows/${PRODUCT_GUIDE_WORKFLOW_ID}/requests`, requires: [...WORKFLOW_REQUEST_REQUIRED_FIELDS] },
   };
 }

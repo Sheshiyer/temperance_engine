@@ -473,7 +473,7 @@ describe('manifest event plane', () => {
     const response = await fetch(`http://${address.host}:${address.port}/projects/${project.project_id}/capabilities`);
     expect(response.status).toBe(200);
     const value = await response.json() as { schema: string; project_id: string; capabilities: Array<{ id: string }>; providers: Array<Record<string, unknown>> };
-    expect(value.schema).toBe('temperance.manifest.capabilities.v1');
+    expect(value.schema).toBe('temperance.manifest.capabilities.v2');
     expect(value.project_id).toBe(project.project_id);
     expect(value.capabilities.map((item) => item.id)).toEqual(['build-product-user-guides', 'guide-to-product-video']);
     expect(value.providers.some((provider) => provider.id === 'elevenlabs')).toBe(true);
@@ -483,7 +483,7 @@ describe('manifest event plane', () => {
     await server.close();
   });
 
-  test('projects skill clusters and workflow stages, then accepts only an approved request', async () => {
+  test('projects skill clusters and workflow stages, then requires a typed canonical request', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-skill-workflow-'));
     dirs.push(root);
     const projectRoot = join(root, 'cambium');
@@ -511,10 +511,10 @@ describe('manifest event plane', () => {
     expect(unsafe.status).toBe(409);
     catalog.ingest({ source: 'project-artifact', kind: 'approval.granted', status: 'observed', project_id: project.project_id, payload: { approval_id: 'approval-a', plan_id: 'guide-plan', option_id: 'guide-option', status: 'granted' } });
     const request = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ request_id: 'guide-run-1', approval_id: 'approval-a' }) });
-    expect(request.status).toBe(201);
+    expect(request.status).toBe(409);
     const repeated = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ request_id: 'guide-run-1', approval_id: 'approval-a' }) });
-    expect(repeated.status).toBe(200);
-    expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(1);
+    expect(repeated.status).toBe(409);
+    expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(0);
     await server.close();
   });
 
@@ -786,6 +786,7 @@ describe('capability and workflow request v2', () => {
       '.temperance/guide/coverage-matrix.json': '08ceaff54fd6382aa91bf19a928db493ba1e616a9937cae1ff99b92f69011bdd',
       'scripts/product-guides/claim-evidence-map.json': '80550b6fdd8a3059bdfd8effb699bff5a869df5805cf7a12e18d45f6491aae0d',
     });
+    expect(() => derive!({ projectId: 'parkarea-aleph', sourceVersion: 'source-fixture-v1', artifactBytes: { ...artifactBytes, 'extra.json': Buffer.from('{}') } })).toThrow('scope_binding_incomplete');
   });
 
   test('reports validated guide readiness without FilmSpec, video, or voice gates', async () => {
@@ -967,6 +968,9 @@ describe('capability and workflow request v2', () => {
       plan_id: 'guide-plan', option_id: 'guide-option', policy_hash: 'a'.repeat(64), git_head: gitHead,
       source_fingerprint: fingerprint([{ path: 'scope' }]), task_fingerprint: fingerprint([{ id: 'guide' }]), scope_hash: scope.scope_hash,
     };
+    const unsafe = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...request, command: 'project-local-script' }) });
+    expect(unsafe.status).toBe(409);
+    expect((await unsafe.json() as Record<string, unknown>).code).toBe('invalid_request');
     const response = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
     expect(response.status).toBe(201);
     const repeated = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });

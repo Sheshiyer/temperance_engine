@@ -76,6 +76,10 @@ function stableJson(value: unknown): string {
 function sha(bytes: Uint8Array | string): string { return createHash('sha256').update(bytes).digest('hex'); }
 
 export function deriveScopeBindingV1(input: { projectId: string; sourceVersion: string; artifactBytes: Record<string, Uint8Array> }): { binding: ScopeBindingV1; scope_hash: string } {
+  if (!input.projectId || !input.sourceVersion || Object.keys(input).sort().join(',') !== 'artifactBytes,projectId,sourceVersion') throw new Error('scope_binding_invalid');
+  const receivedPaths = Object.keys(input.artifactBytes).sort();
+  const expectedPaths = [...GUIDE_SCOPE_PATHS].sort();
+  if (receivedPaths.length !== expectedPaths.length || receivedPaths.some((path, index) => path !== expectedPaths[index])) throw new Error('scope_binding_incomplete');
   const artifacts = Object.fromEntries(GUIDE_SCOPE_PATHS.map((path) => {
     const bytes = input.artifactBytes[path];
     if (!bytes) throw new Error(`scope_artifact_missing:${path}`);
@@ -121,13 +125,13 @@ async function defaultRegistry(): Promise<ValidatorRegistry> {
     try { const value = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>; return { ok: typeof value.schema === 'string', identity: VALIDATOR_IDS.film, code: 'invalid_content' }; }
     catch { return { ok: false, identity: VALIDATOR_IDS.film, code: 'invalid_content' }; }
   };
-  const capture: Validator = async ({ path, project_root }) => {
+  const capture: Validator = async ({ path }) => {
     try {
       const module = await import(pathToFileURL(capturePath).href);
       const validate = module.validateCaptureConfig || module.default;
       if (typeof validate !== 'function') return { ok: false, identity: VALIDATOR_IDS.capture, code: 'validator_unavailable' };
-      const result = await validate(path, { projectRoot: project_root });
-      return { ok: result === true || result?.ok === true || result?.valid === true, identity: VALIDATOR_IDS.capture, code: result?.code || 'invalid_content' };
+      const result = await validate(JSON.parse(readFileSync(path, 'utf8')));
+      return { ok: Boolean(result), identity: VALIDATOR_IDS.capture, code: 'invalid_content' };
     } catch { return { ok: false, identity: VALIDATOR_IDS.capture, code: 'validator_nonzero' }; }
   };
   const guide: Validator = ({ path, project_root }) => {

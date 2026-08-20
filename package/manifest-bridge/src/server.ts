@@ -16,6 +16,10 @@ import type { ManifestEvent, ManifestState } from './types';
 const MAX_BODY = 1_000_000;
 const DEFAULT_CONSOLE_URL = 'http://127.0.0.1:5173';
 const WORKFLOW_REQUEST_SCHEMA = 'temperance.manifest.workflow-request.v2';
+const WORKFLOW_REQUEST_KEYS = ['approval_id', 'git_head', 'option_id', 'plan_id', 'policy_hash', 'request_id', 'run_kind', 'schema', 'scope_hash', 'source_fingerprint', 'task_fingerprint'] as const;
+const BOUNDED_ID = /^[A-Za-z0-9._:-]{1,120}$/;
+const LOWER_SHA256 = /^[a-f0-9]{64}$/;
+const GIT_OBJECT_ID = /^[a-f0-9]{40,64}$/;
 
 type ControlLedger = Pick<SwarmControlLedger, 'migrate' | 'close' | 'attest'> & Partial<Pick<SwarmControlLedger, 'recordApproval' | 'claim'>>;
 interface ManifestServerDependencies { controlLedger?: ControlLedger | null; capabilityOptions?: CapabilityOptions }
@@ -156,7 +160,14 @@ export class ManifestServer {
         const runKind = request.run_kind;
         if (request.schema !== WORKFLOW_REQUEST_SCHEMA || (runKind !== 'guide' && runKind !== 'video')) { json(res, 409, { accepted: false, code: 'invalid_run_kind' }); return; }
         if (runKind === 'video' && capabilities.run_kinds.video.state === 'out_of_scope') { json(res, 409, { accepted: false, code: 'run_kind_out_of_scope' }); return; }
-        if (!/^[A-Za-z0-9._:-]{1,120}$/.test(requestId) || !/^[A-Za-z0-9._:-]{1,120}$/.test(approvalId)) { json(res, 409, { accepted: false, code: 'invalid_request' }); return; }
+        const requestKeys = Object.keys(request).sort();
+        const expectedKeys = [...WORKFLOW_REQUEST_KEYS].sort();
+        if (requestKeys.length !== expectedKeys.length || requestKeys.some((key, index) => key !== expectedKeys[index]) || !BOUNDED_ID.test(requestId) || !BOUNDED_ID.test(approvalId)
+          || !BOUNDED_ID.test(String(request.plan_id || '')) || !BOUNDED_ID.test(String(request.option_id || ''))
+          || !['policy_hash', 'source_fingerprint', 'task_fingerprint', 'scope_hash'].every((key) => LOWER_SHA256.test(String(request[key] || '')))
+          || !GIT_OBJECT_ID.test(String(request.git_head || ''))) {
+          json(res, 409, { accepted: false, code: 'invalid_request' }); return;
+        }
         const existing = snapshot.recent_events.find((event) => event.kind === 'workflow.trigger.requested' && event.project_id === projectId && event.payload.request_id === requestId);
         if (existing) { json(res, 200, { accepted: false, idempotent: true, request_id: requestId, workflow_id: workflowId }); return; }
         if (!capabilities.run_kinds[runKind].requestable || !this.controlLedger) { json(res, 409, { accepted: false, code: 'workflow_trigger_gated', trigger: projection.trigger }); return; }
