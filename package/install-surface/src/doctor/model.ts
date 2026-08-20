@@ -49,6 +49,8 @@ export interface DoctorContext {
   repositoryRoot: string;
   stateRoot: string;
   platform: NodeJS.Platform;
+  rootBindings: Readonly<Record<string, string>>;
+  runtimeUrls: { bridge: string; omniroute: string };
   io: ObservationIO;
   signal: AbortSignal;
 }

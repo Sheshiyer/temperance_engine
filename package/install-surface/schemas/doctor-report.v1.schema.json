@@ -4,7 +4,7 @@
   "title": "Temperance read-only doctor report v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "version", "generated_at", "scope", "requested_sections", "overall_condition", "exit_code", "manifest_digest", "sections"],
+  "required": ["schema", "version", "generated_at", "scope", "trustworthy", "overall_condition", "exit_code", "manifest_digest", "sections"],
   "properties": {
     "schema": { "const": "temperance.doctor.report.v1" },
     "version": {
@@ -14,8 +14,16 @@
       "properties": { "major": { "const": 1 }, "minor": { "const": 0 } }
     },
     "generated_at": { "type": "string", "minLength": 1 },
-    "scope": { "enum": ["complete", "partial"] },
-    "requested_sections": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["install", "privacy", "runtime"] } },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["complete", "requested_sections"],
+      "properties": {
+        "complete": { "type": "boolean" },
+        "requested_sections": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["install", "privacy", "runtime"] } }
+      }
+    },
+    "trustworthy": { "type": "boolean" },
     "overall_condition": { "$ref": "#/$defs/condition" },
     "exit_code": { "enum": [0, 1, 2] },
     "manifest_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },

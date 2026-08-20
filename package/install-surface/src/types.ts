@@ -131,8 +131,11 @@ export interface DoctorReportV1 {
   schema: typeof DOCTOR_REPORT_SCHEMA;
   version: SchemaVersionV1;
   generated_at: string;
-  scope: "complete" | "partial";
-  requested_sections: DoctorSection["id"][];
+  scope: {
+    complete: boolean;
+    requested_sections: DoctorSection["id"][];
+  };
+  trustworthy: boolean;
   overall_condition: DoctorCondition;
   exit_code: DoctorExitCode;
   manifest_digest: `sha256:${string}`;
