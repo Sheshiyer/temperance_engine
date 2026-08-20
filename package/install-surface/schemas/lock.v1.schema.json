@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1",
+  "title": "Temperance compiled install-surface lock v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_uri", "version", "records"],
+  "properties": {
+    "schema": { "const": "temperance.install-surface.lock.v1" },
+    "schema_uri": { "const": "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1" },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major", "minor"],
+      "properties": { "major": { "const": 1 }, "minor": { "const": 0 } }
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "owner", "class", "destination", "authority", "eligibility", "verification", "rollback"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3, "maxLength": 192 },
+          "owner": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "class": { "enum": ["COPY", "TRANSFORM", "REGENERATE", "NEVER-SHIP"] },
+          "source": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*\\\\).+$" },
+          "destination": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["root_token", "relative_path", "ownership"],
+            "properties": {
+              "root_token": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+              "relative_path": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*\\\\).+$" },
+              "ownership": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind"],
+                "properties": {
+                  "kind": { "enum": ["exclusive-path", "managed-block"] },
+                  "marker_id": { "type": "string", "minLength": 1, "maxLength": 192 }
+                }
+              }
+            }
+          },
+          "authority": { "type": "object" },
+          "eligibility": { "type": "object" },
+          "verification": { "type": "object" },
+          "rollback": { "type": "object" },
+          "depends_on": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "identity_migration": { "type": "object" }
+        }
+      }
+    }
+  }
+}
