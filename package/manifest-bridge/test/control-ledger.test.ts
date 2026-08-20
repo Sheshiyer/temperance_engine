@@ -14,7 +14,7 @@ const approval = (overrides: Partial<ApprovedDispatch> = {}): ApprovedDispatch =
   scope_hash: 'a'.repeat(64),
   combo: 'te-dispatch-paid', concurrency: 2, worktree_required: true, expires_at: new Date(Date.now() + 60_000).toISOString(), ...overrides,
 });
-const request = (overrides: Partial<ClaimRequest> = {}): ClaimRequest => ({ ...approval(), quota_observed_at: new Date().toISOString(), quota_eligible: true, ...overrides });
+const request = (overrides: Partial<ClaimRequest> = {}): ClaimRequest => ({ ...approval(), quota_observed_at: new Date(Date.now() - 1_000).toISOString(), quota_eligible: true, ...overrides });
 
 const attestation = (overrides: Record<string, unknown> = {}) => ({
   schema: 'temperance.approval-attestation.request.v1',
