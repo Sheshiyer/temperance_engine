@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Root · report path</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>Security</h1>
+<p>Temperance Engine modifies local AI-agent configuration files. Treat it like developer tooling with access to your home-directory config surface.</p>
+<h2>Review Before Running</h2>
+<p>Read <code>install.sh</code>, <code>scripts/*.sh</code>, and <code>package/pulse-compat/compat-server.ts</code> before installation.</p>
+<h2>Secrets</h2>
+<p>Do not commit:</p>
+<ul>
+<li>API keys or model tokens.</li>
+<li>Claude, Codex, OpenCode, or GitHub auth files.</li>
+<li>Private memory folders.</li>
+<li>Audio packs unless you own redistribution rights.</li>
+<li>Generated backups.</li>
+</ul>
+<h2>Network Behavior</h2>
+<p>The local Pulse compatibility server listens on <code>127.0.0.1:31337</code> by default. It accepts local JSON POSTs to <code>/notify</code> and triggers a local peon-ping command when configured.</p>
+<h2>Reporting Issues</h2>
+<p>Open a GitHub issue with a redacted description, OS, shell, install flags, and relevant logs. Do not include secrets or private memory content.</p>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

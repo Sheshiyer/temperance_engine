@@ -1,0 +1,51 @@
+{
+  "schema": "temperance.install-surface.fragment.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
+  "version": { "major": 1, "minor": 0 },
+  "records": [
+    {
+      "id": "skills.temperance-engine",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "skills/temperance-engine",
+      "destination": { "root_token": "HOME", "relative_path": ".agents/skills/temperance-engine", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "skills.temperance-native",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "skills/temperance-native",
+      "destination": { "root_token": "HOME", "relative_path": ".agents/skills/temperance-native", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "skills.temperance-algorithm",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "skills/temperance-algorithm",
+      "destination": { "root_token": "HOME", "relative_path": ".agents/skills/temperance-algorithm", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "skills.temperance-parallel-dispatch",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "skills/temperance-parallel-dispatch",
+      "destination": { "root_token": "HOME", "relative_path": ".agents/skills/temperance-parallel-dispatch", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    }
+  ]
+}

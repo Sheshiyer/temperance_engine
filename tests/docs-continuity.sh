@@ -38,8 +38,18 @@ grep -q "open-gsd/gsd-core" "$DIR/UPSTREAM.md" && echo "ok - UPSTREAM credits gs
   || { echo "FAIL - UPSTREAM.md missing open-gsd/gsd-core"; fail=1; }
 grep -q "open-gsd/gsd-core" "$DIR/CREDITS.md" && echo "ok - CREDITS credits gsd-core" \
   || { echo "FAIL - CREDITS.md missing open-gsd/gsd-core"; fail=1; }
-grep -q "@opengsd/gsd-core" "$DIR/scripts/install-gsd.sh" && echo "ok - install-gsd points at gsd-core npx" \
-  || { echo "FAIL - install-gsd.sh missing gsd-core npx guidance"; fail=1; }
+grep -q "get-shit-done-cc@1.42.3" "$DIR/scripts/install-gsd.sh" && echo "ok - install-gsd pins the external GSD query CLI" \
+  || { echo "FAIL - install-gsd.sh missing matching external GSD CLI guidance"; fail=1; }
+grep -q "gsd-sdk query current-timestamp" "$DIR/scripts/install-gsd.sh" \
+  && echo "ok - install-gsd probes the GSD query runtime" \
+  || { echo "FAIL - install-gsd.sh missing gsd-sdk query readiness probe"; fail=1; }
+grep -q "Before any workflow Read" "$DIR/package/router/gsd-command-install.mjs" \
+  && grep -q "do not spawn.*gsd-planner.*gsd-plan-checker" "$DIR/package/router/gsd-command-install.mjs" \
+  && echo "ok - generated GSD wrappers fail before planner/checker dispatch" \
+  || { echo "FAIL - generated GSD wrappers lack fail-fast planner/checker guard"; fail=1; }
+grep -q '"gsd_version": "1.42.3"' "$DIR/package/router/gsd-rail-map.json" \
+  && echo "ok - wrapper receipt matches installed GSD 1.42.3" \
+  || { echo "FAIL - wrapper receipt does not match installed GSD 1.42.3"; fail=1; }
 
 # --- A+F Task 5: ISA additive criteria ---
 grep -qi "7-phase decision table" "$DIR/ISA.md" && echo "ok - ISA has unified-table criterion" \
@@ -144,6 +154,11 @@ grep -q 'diegosouzapw/OmniRoute' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
 grep -q 'diegosouzapw/OmniRoute' "$DIR/UPSTREAM.md" \
   && echo "ok - UPSTREAM credits OmniRoute" \
   || { echo "FAIL - UPSTREAM.md missing OmniRoute"; fail=1; }
+grep -q 'vercel-labs/portless' "$DIR/THIRD_PARTY_NOTICES.md" \
+  && grep -q 'vercel-labs/portless' "$DIR/UPSTREAM.md" \
+  && grep -q 'portless alias' "$DIR/scripts/apply-portless-organs.sh" \
+  && echo "ok - portless third-party infra recorded" \
+  || { echo "FAIL - portless attribution or apply script missing"; fail=1; }
 grep -q 'failed, timeout, or unavailable task' \
   "$DIR/skills/temperance-parallel-dispatch/SKILL.md" \
   && grep -q 'before using an in-session subagent' \

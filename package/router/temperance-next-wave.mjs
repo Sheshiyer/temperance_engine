@@ -600,8 +600,29 @@ function main() {
   result.state_path = statePath;
 
   if (opts.writeTasks && result.wave?.tasks?.length) {
-    if (result.orchestration?.approval?.status === "granted") result.batch_tasks_path = writeBatchTasks(result);
-    else result.task_write_blocked = "approval receipt required; task file was not written";
+    if (result.orchestration?.approval?.status === "granted") {
+      result.batch_tasks_path = writeBatchTasks(result);
+      try {
+        const lockDir = join(HOME, ".temperance_engine", "state", "fleet-locks");
+        mkdirSync(lockDir, { recursive: true });
+        const hash = createHash("sha256").update(result.cwd).digest("hex").slice(0, 16);
+        const ids = (result.wave.tasks || []).map((t) => t.id || t.task_id).filter(Boolean);
+        writeFileSync(
+          join(lockDir, `${hash}.json`),
+          JSON.stringify({
+            status: "active",
+            cwd: result.cwd,
+            locked_at: new Date().toISOString(),
+            combo: "te-dispatch-paid",
+            task_ids: ids,
+            batch_tasks_path: result.batch_tasks_path,
+          }, null, 2) + "\n",
+        );
+        result.fleet_lock = join(lockDir, `${hash}.json`);
+      } catch {
+        /* lock is advisory */
+      }
+    } else result.task_write_blocked = "approval receipt required; task file was not written";
   }
   if (opts.sync) {
     result.sync = runSync();

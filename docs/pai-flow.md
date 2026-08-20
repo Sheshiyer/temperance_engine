@@ -1,5 +1,7 @@
 # PAI Flow
 
+Themed page: [site/pai-flow.html](site/pai-flow.html) · library: [index.html](index.html)
+
 The packaged model is a disciplined work loop with one authoritative structure:
 **PAI is the 7-phase outer shell; gsd-core is the recommended workflow backbone;
 superpowers skills + temperance-parallel-dispatch are the tool inventory the
@@ -85,15 +87,30 @@ is met. gsd-core commands are shown in the canonical `/gsd-*` hyphen form.
 **Cross-cutting gsd-core commands** (not phase-bound): `/gsd-progress`,
 `/gsd-resume-work`, `/gsd-pause-work`, `/gsd-manager`, `/gsd-config`, `/gsd-settings`.
 
+**Temperance-owned session loop:** `/gsd:goal` (also `/goal`) writes
+`.temperance/goal.json` and evaluates the same doctor/ISA probes VERIFY
+already uses. It is not a planner. Next-wave approval and the dual-fleet
+lock still gate Execute. Manifest Zone only projects the GOAL card.
+
 **Command-syntax compat note:** gsd-core commands are `/gsd-*` (hyphen) in
-Claude Code / gsd-core docs; Gemini CLI spells them `/gsd:*` (colon); Codex uses
-`$gsd-*`. Identical commands, runtime-specific spelling.
+Claude Code / gsd-core docs; Gemini CLI and this installer's wrappers use
+`/gsd:*` (colon). Identical commands, runtime-specific spelling. After
+`./install.sh --with-spine`, Claude/Codex/OpenCode/Grok get the same wrapper set.
+`/gsd:doctor` and `/gsd:goal` are Temperance-owned (not GSD core workflows).
+`/gsd:*` already binds the mode. A native card (`ask_user_question` / `AskUserQuestion`)
+is only for a bare first prompt with no saved mode. After that, Codex/Claude open
+ChatGPT IAB to Manifest Zone; Grok prints the URL. See
+[`gsd-manifest-spine.md`](gsd-manifest-spine.md) and
+[`gsd-goal-handoff.md`](gsd-goal-handoff.md).
 
 ## Doctrine
 
 1. The table is DEFAULTS, not mandates — exit on done-signal.
 2. gsd-core is the backbone but not every cell has a gsd-core command (Observe/Build gaps are honest — no ceremony where it adds nothing).
 3. temperance-parallel-dispatch fires only in Execute (and optionally Verify). Direct `temperance-batch` is a manual batch tool; automatic paid work must enter through the one-use approval claim and controller described in [`manifest-control-plane.md`](manifest-control-plane.md).
+4. `temperance-manifest` is the operational projection CLI: it reports bridge health, emits bounded observations, and can read CodeGraph status without changing planner, router, approval, GSD, or skill-cluster ownership.
+5. GSD and skill-cluster telemetry is explicit (`--gsd`, `--skill-clusters`) and observational; deferred/archived cluster activation and legacy GSD execution remain operator-owned.
+6. `temperance-manifest omniroute` records only protected gateway reachability; route planning and provider selection remain OmniRoute/router authority.
 4. Done-signals are the enforcement wedge (future sub-project B nudges on skip/premature-exit; A only documents them).
 5. Escape hatch: the agent overrides any row when the situation genuinely doesn't fit; the framework nudges, never gates.
 6. Degradation: gsd-core absent → the superpowers column IS the flow (`brainstorming → writing-plans → subagent-driven-development → verification-before-completion → finishing-a-development-branch`).

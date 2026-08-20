@@ -1,5 +1,7 @@
 # Contributing
 
+Themed page: [docs/site/contributing.html](docs/site/contributing.html) · library: [docs/index.html](docs/index.html)
+
 Temperance Engine is a public packaging repo for local AI-operator runtime setup. Contributions should preserve the safety boundary: no private memory, no credentials, no bundled voice packs, and no hard-coded personal paths.
 
 ## Local Checks

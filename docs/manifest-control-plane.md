@@ -8,7 +8,7 @@ Temperance Engine and Manifest Skill Cluster form one local, evidence-led operat
 | `temperance-next-wave` | reads planning state and proposes bounded waves/options | worker authority |
 | Swarm control ledger | one-use approval claims, immutable revalidation, cancellation, and outbox records | user-interface state |
 | Manifest Bridge | redacted event normalization, JSONL persistence, read-model projection, and SSE | authorization or worker control |
-| Manifest visual console | project-scoped operator view of bridge data | provider-health invention, approval authority, or dispatch authority |
+| Manifest visual console (Speculum) | bound-project operator view; snapshot and SSE are always `?project_id=<registry id>` | ALL PROJECTS mash, unscoped `/snapshot`, `$HOME`, probe cwds, approval authority |
 | Operator | approves a concrete option and enables release gates deliberately | automatic approval of plans or side effects |
 
 ## Two flows, one visible system
@@ -127,7 +127,7 @@ bun install
 bun run src/cli.ts serve --all --port 8766
 
 # In a second terminal:
-cd "$MANIFEST_ROOT/visual-pcb"
+cd "$MANIFEST_ROOT/manifest-zone"
 npm install
 VITE_MANIFEST_BRIDGE_URL=http://127.0.0.1:8766 npm run dev -- --host 127.0.0.1
 ```

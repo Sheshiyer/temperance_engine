@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+set -eu
+
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+for argument in "$@"; do
+  case "$argument" in
+    --record|--repair-duplicates)
+      printf '%s\n' "temperance doctor is permanently read-only; repair and recording move to separately governed Phase 3 lifecycle commands" >&2
+      exit 2
+      ;;
+  esac
+done
+
+exec bun run "$ROOT_DIR/package/install-surface/src/cli.ts" "$@"

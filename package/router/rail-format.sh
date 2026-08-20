@@ -100,6 +100,98 @@ cmd_announce() {
   echo "     ~/.temperance_engine/router/omniroute-codex.sh ${combo} \"…\""
 }
 
+_gsd_box_line() {
+  local inner="$1"
+  local width=60
+  local pad=$((width - ${#inner}))
+  ((pad < 0)) && pad=0
+  printf '| %s%*s |\n' "$inner" "$pad" ""
+}
+
+cmd_gsd_init() {
+  local name="${1:?command}"
+  local map="${TEMPERANCE_GSD_RAIL_MAP:-$HOME/.temperance_engine/router/gsd-rail-map.json}"
+  python3 - "$map" "$name" <<'PY'
+import json, os, sqlite3, subprocess, sys
+from pathlib import Path
+home = Path.home()
+mp, name = sys.argv[1], sys.argv[2]
+try:
+    m = json.loads(Path(mp).read_text())
+except Exception:
+    print("x GSD · rail map unreadable"); sys.exit(1)
+spec = (m.get("commands") or {}).get(name) or dict(m.get("defaults") or {})
+mode = spec.get("mode") or "ALGORITHM"
+combo = spec.get("combo")
+seq = spec.get("combo_sequence") or ([combo] if combo else [])
+alchemy = spec.get("alchemy") or "—"
+view = spec.get("view") or "PLANNING"
+group = spec.get("group") or "ops"
+phase = {
+    "OBSERVE": "observe", "THINK": "think", "PLAN": "plan",
+    "BUILD": "build", "EXECUTE": "execute", "VERIFY": "verify", "LEARN": "learn",
+}.get(str(alchemy).upper(), "observe")
+# banner via self
+script = Path(os.environ.get("HOME", str(home))) / ".temperance_engine/router/rail-format.sh"
+ctx = f"/{name}"
+extra = f"mode {mode} · combo {(' → '.join(seq) if seq else 'none')} · {view}"
+subprocess.run([str(script), "gsd-banner", phase, ctx, extra], check=False)
+print(f"  ·  group     {group}")
+print(f"  ·  alchemy   {alchemy}")
+print(f"  ·  workflow  ~/.claude/get-shit-done/workflows/{name}.md")
+print(f"  ·  map       gsd-rail-map.json")
+goal = Path.cwd() / ".temperance" / "goal.json"
+if goal.exists():
+    try:
+        g = json.loads(goal.read_text())
+        print(f"  ·  goal      {g.get('status','?')} · {str(g.get('text') or '')[:120]}")
+        print(f"  ·  planner   {g.get('planner','?')} · next /gsd:{g.get('gsd_command','progress')}")
+    except Exception:
+        print("  ·  goal      unreadable")
+else:
+    print("  ·  goal      none · temperance-goal --ensure")
+db = Path(os.environ.get("OMNIROUTE_DB") or (home / ".omniroute/storage.sqlite"))
+shown = []
+for c in seq:
+    if not c or c in shown:
+        continue
+    shown.append(c)
+    print(f"  ·  stack     {c}")
+    if not db.exists():
+        print("     ·  (omniroute db missing)")
+        continue
+    try:
+        raw = sqlite3.connect(f"file:{db}?mode=ro", uri=True).execute(
+            "SELECT data FROM combos WHERE name=? LIMIT 1", (c,)
+        ).fetchone()
+    except Exception:
+        raw = None
+    if not raw:
+        print("     ·  (combo not in live catalog)")
+        continue
+    models = (json.loads(raw[0]).get("models") or [])[:6]
+    for i, mrow in enumerate(models, 1):
+        mid = mrow.get("model") or ""
+        mark = ">" if i == 1 else " "
+        print(f"     {mark} {i}  {mid}")
+if spec.get("next_wave"):
+    print("  ·  fleet     temperance-next-wave + te-dispatch-paid (no double spawn)")
+print("  ·  design    ~/.temperance_engine/docs/GSD-PAI-DESIGN-FLOW.md")
+PY
+}
+
+cmd_gsd_banner() {
+  local phase="${1:-execute}" context="${2:-}" extra="${3:-}"
+  local step total stage label sigil
+  IFS='|' read -r step total stage label sigil <<<"$(phase_meta "$phase")"
+  local title="${sigil} GSD · ${stage} · ${label}"
+  [[ -n "$context" ]] && title="${title} · ${context}"
+  echo "+--------------------------------------------------------------+"
+  _gsd_box_line "$title"
+  [[ -n "$extra" ]] && _gsd_box_line "$extra"
+  echo "+--------------------------------------------------------------+"
+}
+
 cmd_resolved() {
   local combo="$1" provider="$2" model="$3"
   echo "☿ COMBO · ${combo} · RESOLVED"
@@ -112,10 +204,14 @@ case "${1:-}" in
   announce) shift; cmd_announce "$@" ;;
   stack) shift; cmd_stack "$@" ;;
   resolved) shift; cmd_resolved "$@" ;;
+  gsd-banner) shift; cmd_gsd_banner "$@" ;;
+  gsd-init) shift; cmd_gsd_init "$@" ;;
   *)
     echo "usage: $0 announce <phase> <combo> [native]" >&2
     echo "       $0 stack <combo>" >&2
     echo "       $0 resolved <combo> <provider> <model>" >&2
+    echo "       $0 gsd-banner <phase> [context] [extra]" >&2
+    echo "       $0 gsd-init <gsd-command>" >&2
     exit 2
     ;;
 esac

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quickstart — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Root · operator path</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html" class="here">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>Temperance Engine - Quick Start</h1>
+<p>Multi-backend routing for AI coding agents.</p>
+<h2>Member install (full glove)</h2>
+<pre><code>cd temperance_engine
+./install.sh --with-spine
+./verify.sh
+/gsd:doctor
+# or: temperance-project-init --cwd . --check</code></pre>
+<p>Opens the operator path: native PAI picker first, then ChatGPT in-app browser at <code>http://127.0.0.1:5173</code>. See <a href="docs/gsd-manifest-spine.md">docs/gsd-manifest-spine.md</a> and the visual map in <a href="docs/architecture/README.md">docs/architecture/README.md</a> (<code>architecture.html</code>, <code>spine-and-goal.html</code>).</p>
+<h2>Install (routing CLIs only)</h2>
+<pre><code>cd temperance_engine
+./scripts/wire-multi-backend.sh</code></pre>
+<p>This installs:</p>
+<ul>
+<li><code>temperance-route</code> CLI to <code>~/.local/bin/</code></li>
+<li><code>temperance-dispatch</code> CLI for parallel comparison</li>
+<li><code>temperance-batch</code> CLI for governed parallel task fleets</li>
+<li><code>temperance-opencode</code> Keychain-backed OpenCode launcher</li>
+<li><code>temperance-claude</code> allowlisted native OmniRoute Claude launcher</li>
+<li>OpenCode hooks with routing context</li>
+<li>Enrichment core with automatic task classification</li>
+</ul>
+<h2>CLI Commands</h2>
+<h3>Route a Task</h3>
+<pre><code># See recommended backend/model
+temperance-route &quot;implement authentication middleware&quot;
+# → Task type: balanced
+# → Backend: command-code
+# → Model: claude-sonnet-5
+
+# Get JSON output
+temperance-route --json &quot;refactor the database layer&quot;
+
+# Generate execution command
+temperance-route --command &quot;quick fix: typo&quot;
+
+# Execute directly
+temperance-route --execute &quot;simple task&quot;
+
+# Force specific backend
+temperance-route --backend kimi &quot;long coding task&quot;</code></pre>
+<h3>Compare Across Backends</h3>
+<pre><code># Run same task on multiple backends
+temperance-dispatch &quot;analyze architecture&quot;
+
+# Specify backends
+temperance-dispatch --backends &quot;kimi,grok&quot; &quot;implement feature&quot;
+
+# Use all available
+temperance-dispatch --all &quot;complex task&quot;</code></pre>
+<h3>Run the Governed Fleet</h3>
+<p>For independent coding tasks, pin a model that has passed the exact client-wire</p>
+<p>probe. Do not send a fleet portfolio merely because it appears in the catalog:</p>
+<pre><code>[
+  {&quot;id&quot;:&quot;tests&quot;,&quot;task&quot;:&quot;Implement the routing tests.&quot;,&quot;backend&quot;:&quot;omniroute&quot;,&quot;model&quot;:&quot;&lt;exact-probe-passing-non-sol-model&gt;&quot;},
+  {&quot;id&quot;:&quot;docs&quot;,&quot;task&quot;:&quot;Update the accepted runtime documentation.&quot;,&quot;backend&quot;:&quot;omniroute&quot;,&quot;model&quot;:&quot;&lt;exact-probe-passing-non-sol-model&gt;&quot;}
+]</code></pre>
+<pre><code>temperance-batch --tasks tasks.json --concurrency 4 --worktree</code></pre>
+<p><code>temperance-batch</code> owns parallel tasks, validation, receipts, and worktree</p>
+<p>isolation for models that pass the Codex Responses/tool wire. Spark is an</p>
+<p>optional compatibility rail, not the exclusive default. A failed or truncated</p>
+<p>non-Codex wire probe is never promoted or silently downgraded.</p>
+<p>For governed native non-Codex audits, use an exact allowlisted OmniRoute</p>
+<p>profile. Antigravity and GitHub Claude are separate provider families:</p>
+<pre><code>temperance-claude antigravity-claude-sonnet-5 -p &quot;Audit architecture only; do not edit.&quot;
+temperance-claude gh-claude-sonnet-5 -p &quot;Audit rollback only; do not edit.&quot;</code></pre>
+<p>Both launchers read a dedicated inference key from macOS Keychain. Sol-family</p>
+<p>models remain forbidden for worker dispatch.</p>
+<h2>Task Types &amp; Routing</h2>
+<table>
+<tr><th>Task Type</th><th>Triggers</th><th>Model</th></tr>
+<tr><td><code>fast</code></td><td>&quot;quick&quot;, &quot;simple&quot;, &quot;minor&quot;</td><td>see below</td></tr>
+<tr><td><code>long-horizon</code></td><td>&quot;refactor&quot;, &quot;migrate&quot;, &quot;entire&quot;</td><td>see below</td></tr>
+<tr><td><code>reasoning</code></td><td>&quot;analyze&quot;, &quot;debug&quot;, &quot;explain&quot;</td><td>see below</td></tr>
+<tr><td><code>validation</code></td><td>&quot;review&quot;, &quot;verify&quot;, &quot;audit&quot;</td><td>see below</td></tr>
+<tr><td><code>creative</code></td><td>&quot;brainstorm&quot;, &quot;explore&quot;</td><td>see below</td></tr>
+<tr><td><code>inline</code></td><td>&quot;extract&quot;, &quot;list&quot; (no tools)</td><td>current session</td></tr>
+</table>
+<p>Type→model pins have exactly one source: <code>model_for_type</code> in</p>
+<p><code>package/router/classify-task.sh</code>, verified against the live command-code</p>
+<p>catalog (<code>command-code --list-models</code>). Resolve any task with</p>
+<p><code>sh package/router/classify-task.sh &quot;&lt;task&gt;&quot;</code>. (2026-07-28: this table</p>
+<p>previously carried a stale inline copy of the pins; removed per the</p>
+<p>one-classifier doctrine.)</p>
+<h2>Automatic Routing Context</h2>
+<p>Every prompt gets a <code>&lt;temperance-context&gt;</code> block with routing hints:</p>
+<pre><code>&lt;temperance-context&gt;
+mode/tier: ALGORITHM / E3 | reason: multi-step request | source: classifier
+intent: refactor the auth system | not: none
+guardrails: ...
+isa: /path/to/ISA.md
+routing: backends=command-code,kimi,grok | task=long-horizon | preferred=command-code:moonshotai/Kimi-K2.7-Code
+&lt;/temperance-context&gt;</code></pre>
+<p>The agent sees the <code>routing:</code> line and knows which backend/model to use when delegating.</p>
+<h2>Available Backends</h2>
+<table>
+<tr><th>Backend</th><th>CLI</th><th>Models</th><th>Best For</th></tr>
+<tr><td><strong>omniroute</strong></td><td><code>temperance-batch</code>, <code>temperance-claude</code>, <code>temperance-opencode</code></td><td>Exact probe-passing models and governed aliases</td><td>Authenticated heterogeneous execution</td></tr>
+<tr><td><strong>command-code</strong></td><td><code>command-code</code></td><td>35 models</td><td>Primary, versatile</td></tr>
+<tr><td><strong>kimi</strong></td><td><code>kimi</code></td><td>K2.7 Code (262K)</td><td>Long-horizon coding</td></tr>
+<tr><td><strong>grok</strong></td><td><code>~/.grok/bin/grok</code></td><td>grok-composer-2.5-fast</td><td>Fast iteration</td></tr>
+</table>
+<h3>Latency Characteristics</h3>
+<table>
+<tr><th>Backend</th><th>Startup</th><th>Simple Task</th><th>Complex Task</th><th>Recommended Timeout</th></tr>
+<tr><td><code>command-code</code></td><td>~10s</td><td>15-20s</td><td>30-120s</td><td>180s</td></tr>
+<tr><td><code>kimi</code></td><td>~3s</td><td>10-15s</td><td>30-60s</td><td>120s</td></tr>
+<tr><td><code>grok</code></td><td>~5s</td><td>10-15s</td><td>20-40s</td><td>90s</td></tr>
+</table>
+<p><strong>Note:</strong> command-code has higher latency due to its agentic execution model. For time-critical simple tasks, prefer <code>kimi</code> or <code>grok</code>.</p>
+<h2>Check Status</h2>
+<pre><code>./scripts/wire-multi-backend.sh --status
+./scripts/omniroute-client-auth.sh verify
+./scripts/omniroute-codex-preview.sh
+./scripts/omniroute-hermes-preview.sh
+bun scripts/omniroute-native-cli-readiness.ts</code></pre>
+<p>See <a href="docs/omniroute-native-integration.md"><code>docs/omniroute-native-integration.md</code></a></p>
+<p>for Context Settings, CLI Code/Agents, Hermes, Cloudflare Access, provider</p>
+<p>topology semantics, local auth receipts, and remote promotion gates.</p>
+<p>The preview commands are proposal/validation gates only: they do not replace</p>
+<p>the governed Codex profiles or write a live Hermes configuration. The native</p>
+<p>CLI readiness command compares six reviewed 3.8.48 source digests and markers</p>
+<p>offline; it does not certify the full package and is not an authenticated</p>
+<p>compression preview. MCP remains disabled</p>
+<p>with dormant scope enforcement; A2A</p>
+<p>remains disabled until its execution endpoint enforces governed credentials.</p>
+<h2>Revert</h2>
+<pre><code>./scripts/wire-multi-backend.sh --revert</code></pre>
+<p>All changes are symlinks with backups - fully reversible.</p>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

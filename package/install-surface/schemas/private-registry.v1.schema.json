@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thoughtseed.space/schemas/temperance/private-registry/v1",
+  "title": "Temperance host-private overlay registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "records"],
+  "properties": {
+    "schema": { "const": "temperance.private-registry.v1" },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major", "minor"],
+      "properties": { "major": { "const": 1 }, "minor": { "const": 0 } }
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "class", "enabled", "binding", "label", "provider", "notes", "policy_rule"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3, "maxLength": 192 },
+          "class": { "const": "NEVER-SHIP" },
+          "enabled": { "type": "boolean" },
+          "binding": { "type": "string", "minLength": 1, "maxLength": 2048 },
+          "label": { "type": "string", "maxLength": 256 },
+          "provider": { "type": "string", "maxLength": 256 },
+          "notes": { "type": "string", "maxLength": 2048 },
+          "policy_rule": { "type": "string", "minLength": 1, "maxLength": 192 }
+        }
+      }
+    }
+  }
+}

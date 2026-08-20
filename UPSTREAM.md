@@ -1,5 +1,7 @@
 # Upstream Links
 
+Themed page: [docs/site/upstream.html](docs/site/upstream.html) · library: [docs/index.html](docs/index.html)
+
 Temperance Engine is an integration package. It connects local configuration surfaces and does not claim ownership over upstream tools.
 
 ## Verified GitHub Repositories
@@ -16,6 +18,7 @@ Temperance Engine is an integration package. It connects local configuration sur
 | Codex CLI | https://github.com/openai/codex | Optional local Codex instruction surface. |
 | GitHub CLI | https://github.com/cli/cli | Optional public repo creation and publishing. |
 | Bun | https://github.com/oven-sh/bun | Runtime used by the optional Pulse compatibility server. |
+| portless | https://github.com/vercel-labs/portless | Optional named `.localhost` aliases for operator organs. Not vendored. |
 | ripgrep | https://github.com/BurntSushi/ripgrep | Fast literal search pattern used by local tooling. |
 
 ## Referenced Non-Vendored Surfaces
@@ -25,6 +28,7 @@ Temperance Engine is an integration package. It connects local configuration sur
 - peon-ping: local script and sound packs are referenced, not vendored.
 - skills.sh: `skills/temperance-engine/SKILL.md` is prepared as the marketplace-facing entry.
 - OmniRoute: no proxy, provider catalog, credentials, or runtime packages are bundled; see `docs/omniroute-integration.md` and `THIRD_PARTY_NOTICES.md`.
+- portless: optional host CLI; Temperance stores organ aliases in `package/router/organs.json` and does not vendor the npm package.
 
 ## Asset Notes
 

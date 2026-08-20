@@ -1,8 +1,22 @@
-# Temperance Engine - Quick Start
+# Temperance Engine — Quick Start
+
+Themed page: [docs/site/quickstart.html](docs/site/quickstart.html) · library: [docs/index.html](docs/index.html)
 
 Multi-backend routing for AI coding agents.
 
-## Install
+## Member install (full glove)
+
+```bash
+cd temperance_engine
+./install.sh --with-spine
+./verify.sh
+/gsd:doctor
+# or: temperance-project-init --cwd . --check
+```
+
+`/gsd:*` binds the mode (no NOESIS quiz). A real picker only on a bare first prompt with no saved session/cwd mode. Then ChatGPT IAB (Claude/Codex) or print `http://127.0.0.1:5173` (Grok). Cursor uses the alwaysApply rule + `AGENTS.md`. See [docs/gsd-manifest-spine.md](docs/gsd-manifest-spine.md) and [docs/gsd-goal-handoff.md](docs/gsd-goal-handoff.md).
+
+## Install (routing CLIs only)
 
 ```bash
 cd temperance_engine

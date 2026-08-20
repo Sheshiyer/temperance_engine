@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upstream — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Root · referenced-not-vendored</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>Upstream Links</h1>
+<p>Temperance Engine is an integration package. It connects local configuration surfaces and does not claim ownership over upstream tools.</p>
+<h2>Verified GitHub Repositories</h2>
+<table>
+<tr><th>Surface</th><th>Repository</th><th>Role</th></tr>
+<tr><td>Personal AI Infrastructure</td><td>https://github.com/danielmiessler/Personal_AI_Infrastructure</td><td>Main PAI/Algorithm/ISA inspiration and upstream conceptual root.</td></tr>
+<tr><td>GSD Core</td><td>https://github.com/open-gsd/gsd-core</td><td>Recommended workflow backbone (Discuss→Plan→Execute→Verify→Ship); referenced, not vendored.</td></tr>
+<tr><td>OmniRoute</td><td>https://github.com/diegosouzapw/OmniRoute</td><td>Source-reviewed inspiration for deterministic backend scoring, circuit state, frozen plans, and telemetry; referenced, not vendored.</td></tr>
+<tr><td>CodeGraph</td><td>https://github.com/colbymchenry/codegraph</td><td>Local AST-backed structural code index for <code>.agents</code>.</td></tr>
+<tr><td>peon-ping</td><td>https://github.com/PeonPing/peon-ping</td><td>Local AI-agent voice notification pattern and script surface.</td></tr>
+<tr><td>OpenCode</td><td>https://github.com/anomalyco/opencode</td><td>OpenCode configuration and MCP runtime surface.</td></tr>
+<tr><td>Cursor Rules</td><td>https://cursor.com/docs/rules</td><td>Cursor project rules and AGENTS.md guidance surface.</td></tr>
+<tr><td>Codex CLI</td><td>https://github.com/openai/codex</td><td>Optional local Codex instruction surface.</td></tr>
+<tr><td>GitHub CLI</td><td>https://github.com/cli/cli</td><td>Optional public repo creation and publishing.</td></tr>
+<tr><td>Bun</td><td>https://github.com/oven-sh/bun</td><td>Runtime used by the optional Pulse compatibility server.</td></tr>
+<tr><td>ripgrep</td><td>https://github.com/BurntSushi/ripgrep</td><td>Fast literal search pattern used by local tooling.</td></tr>
+</table>
+<h2>Referenced Non-Vendored Surfaces</h2>
+<ul>
+<li>Claude Code: optional local Claude instruction and hook surfaces are referenced, not redistributed.</li>
+<li>CodeGraph: local <code>codegraph</code> CLI and index are referenced, not vendored.</li>
+<li>peon-ping: local script and sound packs are referenced, not vendored.</li>
+<li>skills.sh: <code>skills/temperance-engine/SKILL.md</code> is prepared as the marketplace-facing entry.</li>
+<li>OmniRoute: no proxy, provider catalog, credentials, or runtime packages are bundled; see <code>docs/omniroute-integration.md</code> and <code>THIRD_PARTY_NOTICES.md</code>.</li>
+</ul>
+<h2>Asset Notes</h2>
+<ul>
+<li><code>assets/banner.png</code> and <code>assets/icon.png</code> were generated for this repo through the local <code>codex-gpt-image</code> workflow.</li>
+<li>Voice/audio packs are intentionally excluded because users must provide packs they have rights to use.</li>
+</ul>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

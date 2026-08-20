@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credits — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Root · upstream names</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>Credits</h1>
+<p>Temperance Engine packages integration patterns around several tools and ideas. This repository does not claim ownership of those upstream projects.</p>
+<h2>Runtime Surfaces</h2>
+<ul>
+<li><a href="https://github.com/danielmiessler/Personal_AI_Infrastructure">Personal AI Infrastructure</a> by Daniel Miessler is the principal upstream inspiration for the PAI/Algorithm/ISA runtime pattern this package installs around.</li>
+<li><a href="https://github.com/open-gsd/gsd-core">GSD Core</a> by open-gsd (MIT) is the recommended workflow backbone whose Discuss→Plan→Execute→Verify→Ship phases map onto the PAI flow; referenced, not vendored.</li>
+<li><a href="https://github.com/anomalyco/opencode">OpenCode</a> configuration and MCP surfaces.</li>
+<li><a href="https://cursor.com/docs/rules">Cursor rules</a> and <code>AGENTS.md</code> project guidance surfaces.</li>
+<li>Claude Code and local Claude configuration surfaces are optional compatibility targets. Claude Code is a product surface from Anthropic; this repo only ships opt-in local templates and does not redistribute Claude Code.</li>
+<li><a href="https://github.com/openai/codex">OpenAI Codex CLI</a> local instruction and hook surfaces as optional compatibility targets.</li>
+<li><a href="https://github.com/cli/cli">GitHub CLI</a> for optional repository creation and publishing.</li>
+<li><a href="https://github.com/oven-sh/bun">Bun</a> for the optional local Pulse compatibility server runtime.</li>
+</ul>
+<h2>Search and Code Intelligence</h2>
+<ul>
+<li><a href="https://github.com/colbymchenry/codegraph">CodeGraph</a> for local AST-backed code indexing and structural search. This repo references the local <code>codegraph</code> CLI but does not vendor it.</li>
+<li><a href="https://github.com/BurntSushi/ripgrep">ripgrep</a>-powered file and text search patterns where structural search is not required.</li>
+</ul>
+<h2>Skills and Agent Routing</h2>
+<ul>
+<li>Skill-cluster routing pattern built around hub/spoke skill organization, <code>skill-index.json</code>, active symlinks, and health checks.</li>
+<li>PAI-style ISA and Algorithm flow: current state to ideal state, criteria as tests, verification as done condition.</li>
+</ul>
+<h2>Voice Feedback</h2>
+<ul>
+<li><a href="https://github.com/PeonPing/peon-ping">peon-ping</a> style local sound notifications.</li>
+<li>Voice/audio packs are referenced, not bundled. Users must provide packs they have rights to use.</li>
+</ul>
+<h2>Public Assets</h2>
+<ul>
+<li><code>assets/banner.png</code> and <code>assets/icon.png</code> were generated for this repository with the local <code>codex-gpt-image</code> workflow using Codex OAuth and GPT Image tooling.</li>
+<li>The generated assets are included under this repository&#x27;s MIT license unless a future replacement asset specifies different terms.</li>
+</ul>
+<h2>GitHub Repositories Linked</h2>
+<table>
+<tr><th>Project</th><th>Link</th><th>Why it matters</th></tr>
+<tr><td>Personal AI Infrastructure</td><td>https://github.com/danielmiessler/Personal_AI_Infrastructure</td><td>PAI/Algorithm/ISA runtime inspiration.</td></tr>
+<tr><td>GSD Core</td><td>https://github.com/open-gsd/gsd-core</td><td>Recommended workflow backbone; Discuss→Plan→Execute→Verify→Ship maps onto the PAI flow.</td></tr>
+<tr><td>CodeGraph</td><td>https://github.com/colbymchenry/codegraph</td><td>Local AST-backed structural code index.</td></tr>
+<tr><td>peon-ping</td><td>https://github.com/PeonPing/peon-ping</td><td>Local voice notification pattern and script surface.</td></tr>
+<tr><td>OpenCode</td><td>https://github.com/anomalyco/opencode</td><td>OpenCode config and MCP surface.</td></tr>
+<tr><td>Cursor Rules</td><td>https://cursor.com/docs/rules</td><td>Cursor project rules and AGENTS.md guidance surface.</td></tr>
+<tr><td>OpenAI Codex CLI</td><td>https://github.com/openai/codex</td><td>Optional Codex local instruction surface.</td></tr>
+<tr><td>GitHub CLI</td><td>https://github.com/cli/cli</td><td>Public repo creation and publishing workflow.</td></tr>
+<tr><td>Bun</td><td>https://github.com/oven-sh/bun</td><td>Runtime for the optional Pulse compatibility server.</td></tr>
+<tr><td>ripgrep</td><td>https://github.com/BurntSushi/ripgrep</td><td>Fast literal file and content search model.</td></tr>
+</table>
+<h2>Local Session Work</h2>
+<p>This repo was shaped from a local integration session that verified:</p>
+<ul>
+<li>Algorithm <code>v6.3.0</code> activation guard.</li>
+<li>Local Pulse compatibility endpoint on <code>localhost:31337</code>.</li>
+<li>peon-ping phase mapping.</li>
+<li>skill-cluster health checks.</li>
+<li><code>.agents</code> CodeGraph indexing and routing.</li>
+<li>OpenCode Augment disablement for blocked home and <code>.agents</code> retrieval paths.</li>
+<li>Cursor project-rule guidance that does not require Claude Code, Claude Pro/Max, Anthropic auth, or a specific model.</li>
+</ul>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

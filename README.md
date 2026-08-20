@@ -1,22 +1,18 @@
-<div align="center">
-
 <img src="assets/banner.png" alt="Temperance Engine banner" width="100%" />
 
 # Temperance Engine
 
-**A one-time installer for an OpenCode/Cursor-first local PAI operator runtime: Algorithm flow, skill-cluster routing, optional peon-ping voice, and CodeGraph-first search.**
+A one-time installer for an OpenCode/Cursor-first local PAI operator runtime: Algorithm flow, skill-cluster routing, optional peon-ping voice, and CodeGraph-first search.
 
-Built by [Thoughtseed Labs](https://github.com/Sheshiyer).
+Built by [Thoughtseed Labs](https://github.com/Sheshiyer). Visual library (navy / gold / cyan, same as Manifest Zone): [docs/index.html](docs/index.html).
 
-![License](https://img.shields.io/github/license/Sheshiyer/temperance_engine?style=flat-square)
-![Verify](https://img.shields.io/github/actions/workflow/status/Sheshiyer/temperance_engine/verify.yml?branch=main&style=flat-square&label=verify)
-![Last Commit](https://img.shields.io/github/last-commit/Sheshiyer/temperance_engine?style=flat-square)
-![Repo Size](https://img.shields.io/github/repo-size/Sheshiyer/temperance_engine?style=flat-square)
-![Shell](https://img.shields.io/badge/shell-POSIX-0d1117?style=flat-square)
-![Bun](https://img.shields.io/badge/runtime-Bun-f3e8d0?style=flat-square)
-![macOS Optional](https://img.shields.io/badge/voice-macOS_optional-5b6ee1?style=flat-square)
-
-</div>
+![License](https://img.shields.io/github/license/Sheshiyer/temperance_engine?style=flat-square&labelColor=07090b&color=e9cf79)
+![Verify](https://img.shields.io/github/actions/workflow/status/Sheshiyer/temperance_engine/verify.yml?branch=main&style=flat-square&label=verify&labelColor=07090b&color=65d9e8)
+![Last Commit](https://img.shields.io/github/last-commit/Sheshiyer/temperance_engine?style=flat-square&labelColor=07090b&color=f39b54)
+![Repo Size](https://img.shields.io/github/repo-size/Sheshiyer/temperance_engine?style=flat-square&labelColor=07090b&color=394951)
+![Shell](https://img.shields.io/badge/shell-POSIX-e9cf79?style=flat-square&labelColor=07090b)
+![Bun](https://img.shields.io/badge/runtime-Bun-f39b54?style=flat-square&labelColor=07090b)
+![macOS Optional](https://img.shields.io/badge/voice-macOS_optional-65d9e8?style=flat-square&labelColor=07090b)
 
 Temperance Engine packages a local AI-operator runtime pattern for teams working primarily in OpenCode or Cursor: PAI-style instruction surfaces, a guarded Algorithm flow, skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first structural search.
 
@@ -33,7 +29,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 - PAI instruction templates for OpenCode, Cursor, and portable `AGENTS.md` use.
 - **OmniRoute-backed agent routing** via `temperance-route` — Temperance classifies work, Codex supplies the tool loop, and OmniRoute owns the live model catalog and provider failover; direct CLIs remain outage fallbacks.
 - **Enrichment context** with automatic task classification — every prompt gets a `<temperance-context>` block with routing hints.
-- Optional templates for Claude Code and Codex when a user explicitly opts in.
+- Optional templates **and compose UPS hooks** for Claude Code and Codex when a user opts in (`--with-claude` / `--with-codex` / `--with-spine`). `/gsd:*` binds PAI mode; a native card only on a bare first prompt with no saved mode.
 - **Optional Kimi surface** — kimi-cli and the Kimi desktop app opt into the governed `temperance/temperance-auto` lane via `scripts/configure-kimi-relay.sh`, with enrichment injected relay-side and the repo skills discoverable in Kimi's skill scopes (see [`docs/kimi-surface.md`](docs/kimi-surface.md)).
 - Optional local Pulse compatibility server on `localhost:31337` when Claude/Pulse compatibility is explicitly enabled.
 - Optional peon-ping phase routing for macOS users with local packs.
@@ -53,6 +49,8 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 | Skill-cluster routing | Preserves startup debloat while keeping skill discovery explicit. |
 | CodeGraph-first search | Routes `.agents` structural lookup through a local AST index. |
 | Backup-first installer | Copies existing target files into timestamped backups before writes. |
+| **GSD slash spine** | Optional `--with-spine` installs `/gsd:*` on Claude, Codex, OpenCode, and Grok, `/gsd:doctor`, `/gsd:goal`, skip-quiz mode-bind, and Manifest LCARS. GSD core stays external. |
+| **Manifest projection** | Local bridge `:8766` + LCARS `:5173`. Projection only — no approve/launch. |
 
 ## Quick Start
 
@@ -62,7 +60,12 @@ cd temperance_engine
 ./install.sh
 ./verify.sh
 
-# Claude Code + Codex app + OpenCode surfaces
+# Thoughtseed member glove (GSD slash remote + Manifest LCARS + Codex hooks)
+./install.sh --with-spine
+./verify.sh
+temperance-project-init --cwd . --check   # /gsd:doctor
+
+# Claude Code + Codex app + OpenCode surfaces (without the full spine)
 ./install.sh --with-claude --with-codex --with-opencode --skip-voice
 
 # Optional: persist the automatic OpenCode relay provider
@@ -352,30 +355,15 @@ Cursor's current rules documentation covers Project, Team, and User Rules plus `
 
 ## Documentation
 
-- **[QUICKSTART.md](QUICKSTART.md)** — Multi-backend routing CLI quick reference.
-- **[docs/manifest-control-plane.md](docs/manifest-control-plane.md)** — two-repository event plane, authority boundary, safe swarm gate, and live-console startup.
-- **[package/manifest-bridge/README.md](package/manifest-bridge/README.md)** — local bridge API, project lifecycle, and event-redaction contract.
-- **[docs/SWARM-CONTROL-RUNBOOK.md](docs/SWARM-CONTROL-RUNBOOK.md)** — opt-in automatic-swarm checks, recovery, and unresolved release gates.
-- `docs/multi-surface-architecture.md` — Complete multi-surface orchestration architecture.
-- `skills/temperance-engine/SKILL.md` is the skills.sh-ready skill card.
-- `docs/architecture.md` explains the runtime model.
-- `docs/architecture/architecture.html` is the visual architecture overview (business context, data flow, pipeline, layers, deployment).
-- `docs/architecture/system-internals.html` documents the mechanics of every installed script and service.
-- `docs/architecture/integration-map.html` shows which seams are real code paths versus reference-only documentation.
-- `docs/architecture/session-trace.html` walks through one concrete install-to-session example.
-- `docs/pai-flow.md` explains how PAI phases work.
-- `docs/skill-clusters.md` explains skill-cluster routing.
-- `docs/peon-ping-packs.md` explains voice pack mapping.
-- `docs/codegraph-routing.md` explains CodeGraph indexing and search rules.
-- `docs/parallel-dispatch.md` explains when to use parallel agent dispatch vs GSD execute-phase/workstreams.
-- `docs/omniroute-integration.md` documents deterministic shadow routing, frozen dispatch plans, circuit observations, promotion, and rollback.
-- `docs/omniroute-runtime.md` documents the live gateway, model inventory, credentials, provider onboarding, and smoke tests.
-- `docs/omniroute-connections.md` documents the read-only connection inventory and Temperance portfolio synthesis.
-- `docs/omniroute-fleet.md` documents the GitHub/Codex planner, Codex Spark/Command Code/Kimi/Grok/Nebius dispatch fleet, and native creative workflow.
-- `docs/rollback.md` explains backups and recovery.
-- `UPSTREAM.md` links the relevant upstream GitHub repos and docs.
-- `assets/` contains generated public-facing banner and icon assets.
-- `docs/skills-sh-upload.md` contains the upload checklist.
+Start at **[docs/README.md](docs/README.md)** (map) or **[docs/index.html](docs/index.html)** (themed library).
+
+Live glove: [QUICKSTART.md](QUICKSTART.md) · [VERSION](VERSION) · [CHANGELOG.md](CHANGELOG.md) · [docs/release-control.md](docs/release-control.md) · [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) · [docs/gsd-manifest-spine.md](docs/gsd-manifest-spine.md) · [docs/gsd-goal-handoff.md](docs/gsd-goal-handoff.md) · [docs/pai-flow.md](docs/pai-flow.md) · [docs/architecture.md](docs/architecture.md)
+
+Routing (tests pin these files): [docs/omniroute-runtime.md](docs/omniroute-runtime.md) · [docs/omniroute-integration.md](docs/omniroute-integration.md) · [docs/omniroute-connections.md](docs/omniroute-connections.md) · [docs/omniroute-fleet.md](docs/omniroute-fleet.md)
+
+Retired stubs (do not expand): [docs/parallel-dispatch.md](docs/parallel-dispatch.md) · [docs/multi-surface-architecture.md](docs/multi-surface-architecture.md)
+
+Also: [docs/rollback.md](docs/rollback.md) · [docs/manifest-control-plane.md](docs/manifest-control-plane.md) · [package/manifest-bridge/README.md](package/manifest-bridge/README.md) · [docs/SWARM-CONTROL-RUNBOOK.md](docs/SWARM-CONTROL-RUNBOOK.md) · [skills/temperance-engine/SKILL.md](skills/temperance-engine/SKILL.md) · [UPSTREAM.md](UPSTREAM.md) · [docs/skills-sh-upload.md](docs/skills-sh-upload.md) · `assets/`
 
 ## Contributing
 

@@ -1,0 +1,9 @@
+{
+  "schema": "temperance.install-surface.fragment.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
+  "version": {
+    "major": 2,
+    "minor": 0
+  },
+  "records": []
+}

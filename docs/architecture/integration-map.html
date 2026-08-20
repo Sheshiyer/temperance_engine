@@ -4,31 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Temperance Engine - Integration Map</title>
-<style>
-  :root {
-    --data: #4299e1; --processing: #ed8936; --ai: #9f7aea; --success: #48bb78;
-    --private: #718096; --ink: #1a202c; --muted: #4a5568; --line: #e2e8f0;
-  }
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; background: #ffffff; }
-  h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 10px; }
-  h1 small { display: block; font-weight: 400; font-size: 15px; opacity: 0.9; margin-top: 8px; }
-  h2 { border-bottom: 3px solid var(--line); padding-bottom: 8px; }
-  .section { margin: 36px 0; }
-  .callout { background: #fffaf0; border: 1px solid #fbd38d; border-left: 5px solid var(--processing); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
-  .callout strong { color: #9c4221; }
-  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-  .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; justify-content: center; }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 10px 0; }
-  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
-  th { background: #f7fafc; }
-  code { background: #edf2f7; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
-  .badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; color: white; }
-  .badge.wired { background: var(--success); }
-  .badge.ref { background: var(--private); }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
 </head>
 <body>
 
@@ -36,8 +15,18 @@
   <small>Where the stitched-together systems actually connect &mdash; and where they deliberately don't</small>
 </h1>
 
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="architecture.html">Overview</a>
+  <a href="spine-and-goal.html">Spine + /goal</a>
+  <a href="session-trace.html">Session trace</a>
+  <a class="here" href="integration-map.html">Integration map</a>
+  <a href="system-internals.html">Internals</a>
+  <a href="omniroute-routing.html">OmniRoute</a>
+</nav>
+
 <div class="callout">
-  <strong>Reading this doc.</strong> Every seam below is labeled <span class="badge wired">WIRED</span> (a real code path in this repo reads/writes/calls the other system) or <span class="badge ref">REFERENCE ONLY</span> (docs point at it; nothing in this repo's code touches it). Confusing the two is the most common misunderstanding about this runtime.
+  <strong>Reading this doc (updated 2026-08-17).</strong> Every seam below is labeled <span class="badge wired">WIRED</span> (a real code path in this repo reads/writes/calls the other system) or <span class="badge ref">REFERENCE ONLY</span> (docs point at it; nothing in this repo's code touches it). New WIRED seams: UPS compose, Manifest Zone, <code>/goal</code>, dual-fleet lock, Pulse&rarr;Voice.
 </div>
 
 <div class="section">
@@ -51,25 +40,25 @@
   <svg viewBox="0 0 1080 160" xmlns="http://www.w3.org/2000/svg">
     <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker></defs>
     <g font-size="11.5" text-anchor="middle" fill="white">
-      <rect x="10" y="40" width="190" height="70" rx="8" fill="#9f7aea"/>
+      <rect x="10" y="40" width="190" height="70" rx="8" fill="#c9a84a"/>
       <text x="105" y="70">Agent emits text</text>
       <text x="105" y="86" font-size="10">"Entering the Execute phase."</text>
 
-      <rect x="245" y="40" width="190" height="70" rx="8" fill="#ed8936"/>
+      <rect x="245" y="40" width="190" height="70" rx="8" fill="#f39b54"/>
       <text x="340" y="65">POST /notify</text>
       <text x="340" y="82" font-size="10">compat-server.ts</text>
       <text x="340" y="96" font-size="10">:31337</text>
 
-      <rect x="480" y="40" width="190" height="70" rx="8" fill="#ed8936"/>
+      <rect x="480" y="40" width="190" height="70" rx="8" fill="#f39b54"/>
       <text x="575" y="65">phaseFromMessage()</text>
       <text x="575" y="82" font-size="10">substring match</text>
       <text x="575" y="96" font-size="10">&rarr; "execute"</text>
 
-      <rect x="715" y="40" width="170" height="70" rx="8" fill="#4299e1"/>
+      <rect x="715" y="40" width="170" height="70" rx="8" fill="#3d8ea8"/>
       <text x="800" y="65">phasePacks table</text>
       <text x="800" y="82" font-size="10">execute &rarr; nier-2b</text>
 
-      <rect x="920" y="40" width="150" height="70" rx="8" fill="#48bb78"/>
+      <rect x="920" y="40" width="150" height="70" rx="8" fill="#5ea882"/>
       <text x="995" y="65">Bun.spawn</text>
       <text x="995" y="82" font-size="10">peon.sh --pack</text>
       <text x="995" y="96" font-size="10">nier-2b</text>
@@ -80,7 +69,7 @@
       <path d="M670,75 L713,75" marker-end="url(#a1)"/>
       <path d="M885,75 L918,75" marker-end="url(#a1)"/>
     </g>
-    <text x="540" y="140" text-anchor="middle" font-size="11" fill="#4a5568">Fails open at every stage: no bun &rarr; {played:false}; no peon.sh &rarr; guidance only; no message match &rarr; {played:false, forwarded:false}</text>
+    <text x="540" y="140" text-anchor="middle" font-size="11" fill="#8d9a9c">Fails open at every stage: no bun &rarr; {played:false}; no peon.sh &rarr; guidance only; no message match &rarr; {played:false, forwarded:false}</text>
   </svg>
 </div>
 
@@ -127,27 +116,27 @@
   <svg viewBox="0 0 1080 220" xmlns="http://www.w3.org/2000/svg">
     <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker></defs>
     <g font-size="11" text-anchor="middle" fill="white">
-      <rect x="10" y="70" width="180" height="80" rx="8" fill="#4299e1"/>
+      <rect x="10" y="70" width="180" height="80" rx="8" fill="#3d8ea8"/>
       <text x="100" y="100">Execute phase</text>
       <text x="100" y="118" font-size="9.5">reached in the loop</text>
 
-      <rect x="235" y="70" width="220" height="80" rx="8" fill="#718096"/>
+      <rect x="235" y="70" width="220" height="80" rx="8" fill="#394951"/>
       <text x="345" y="95">ParallelDispatchContext</text>
       <text x="345" y="110">.hook.sh</text>
       <text x="345" y="126" font-size="9.5">(only if user wired it manually)</text>
 
-      <rect x="500" y="70" width="220" height="80" rx="8" fill="#ed8936"/>
+      <rect x="500" y="70" width="220" height="80" rx="8" fill="#f39b54"/>
       <text x="610" y="93">docs/pai-flow.md</text>
       <text x="610" y="110" font-size="9.5">Execute row + doctrine</text>
       <text x="610" y="124" font-size="9.5">consulted (item 3, retired list)</text>
 
-      <rect x="765" y="20" width="150" height="70" rx="8" fill="#9f7aea"/>
+      <rect x="765" y="20" width="150" height="70" rx="8" fill="#c9a84a"/>
       <text x="840" y="42">gsd-core</text>
       <text x="840" y="58" font-size="9.5">/gsd-execute-phase</text>
       <text x="840" y="72" font-size="9.5">(recommended-default,</text>
       <text x="840" y="84" font-size="9.5">if plan-shaped)</text>
 
-      <rect x="765" y="140" width="150" height="70" rx="8" fill="#48bb78"/>
+      <rect x="765" y="140" width="150" height="70" rx="8" fill="#5ea882"/>
       <text x="840" y="162">superpowers</text>
       <text x="840" y="178" font-size="9.5">dispatching-parallel-agents</text>
       <text x="840" y="192" font-size="9.5">+ temperance-batch</text>
@@ -175,17 +164,46 @@
 </div>
 
 <div class="section">
+  <h2>5c. UPS Compose Seam <span class="badge wired">WIRED</span> &mdash; one additionalContext envelope</h2>
+  <p>Codex UserPromptSubmit last-wins. Only <code>package/hooks/codex/PromptProcessing.hook.ts</code> emits <code>additionalContext</code>. It composes classifier + <code>&lt;temperance-rail&gt;</code> + <code>&lt;gsd-rail&gt;</code> + <code>&lt;pai-mode-offer&gt;</code> + hook receipt. Companion hooks (<code>GsdCommand</code>, <code>TemperanceRailAnnounce</code>, <code>ManifestModeCommit</code>, <code>SessionStartTe</code>) guard on <code>import.meta.main</code> and must not steal stdin or <code>process.exit(0)</code> on import.</p>
+  <p>The native picker is the <code>&lt;pai-mode-offer&gt;</code> tiles. After the pick, Manifest Zone opens in ChatGPT IAB. That IAB step is WIRED as a documented operator contract plus the <code>:5173</code> LaunchAgent &mdash; not as a Chrome/Safari open.</p>
+</div>
+
+<div class="section">
+  <h2>5d. Manifest Zone + /goal Seam <span class="badge wired">WIRED</span> &mdash; projection plus session loop</h2>
+  <table>
+    <tr><th>Sub-seam</th><th>Real code path</th></tr>
+    <tr><td>Manifest bridge</td><td><code>package/manifest-bridge</code> on <code>:8766</code>. Heartbeat + 180s stale window. SSE/JSONL read model. Edge <code>local|clio</code>.</td></tr>
+    <tr><td>Manifest Zone</td><td><code>package/manifest-zone</code> on <code>:5173</code>. <code>GsdDeck.tsx</code> STATE / ROADMAP / GOAL cards. <code>?view=</code> history + popstate. Projection only.</td></tr>
+    <tr><td><code>/gsd:goal</code></td><td>Wrappers parse <code>/goal</code> and <code>/gsd:goal</code>. <code>package/router/temperance-goal.mjs</code> writes <code>.temperance/goal.json</code> (<code>temperance.goal.v1</code>) and runs <code>--eval</code> on doctor/ISA probes. Posts <code>goal.set</code> / <code>goal.tick</code> to the bridge.</td></tr>
+  </table>
+  <p>Manifest cannot approve next-wave or launch <code>te-dispatch-paid</code>. <code>/goal</code> is not a planner.</p>
+</div>
+
+<div class="section">
+  <h2>5e. Dual-Fleet Lock + Pulse/Voice Seam <span class="badge wired">WIRED</span></h2>
+  <table>
+    <tr><th>Sub-seam</th><th>Real code path</th></tr>
+    <tr><td>Fleet lock</td><td><code>package/router/temperance-next-wave.mjs</code> writes <code>~/.temperance_engine/state/fleet-locks/&lt;cwd-hash&gt;.json</code> when next-wave emits tasks. A second <code>gsd-executor</code> swarm on the same <code>[P]</code> ids is forbidden while the lock is active (&lt;2h).</td></tr>
+    <tr><td>Pulse peon</td><td><code>package/pulse-compat/compat-server.ts</code> <code>:31337</code>. Phase messages play peon-ping.</td></tr>
+    <tr><td>Voice forward</td><td>Non-phase messages may forward to Voice <code>:8888</code>. 4xx/5xx classify <code>tts-auth</code> or <code>tts-failed</code>. Pulse still returns 200.</td></tr>
+  </table>
+</div>
+
+<div class="section">
   <h2>6. What Is Explicitly Not Stitched</h2>
   <table>
     <tr><th>Gap</th><th>Why it's left this way</th></tr>
     <tr><td>No hook calls into gsd-core or superpowers automatically</td><td>Automating the judgment call would duplicate gsd-core's own wave-dependency logic and the superpowers skill's own guardrails &mdash; the decision needs codebase-specific context a hook can't have. This holds even though gsd-core is now the recommended-default backbone: recommended is not the same as auto-invoked.</td></tr>
     <tr><td>No shared state file between Pulse server, skill resolver, CodeGraph, gsd-core, and ISA.md</td><td>Each was built independently for a narrow purpose; unifying them into one state store would be new architecture this repo doesn't need yet.</td></tr>
     <tr><td><code>verify.sh</code> only checks Temperance's own install surface</td><td>It does not and cannot verify gsd-core's correctness, superpowers' behavior, or the live PAI runtime &mdash; those are out of this repo's ownership boundary per <code>ISA.md</code> Out of Scope.</td></tr>
-    <tr><td>gsd-core is recommended, never vendored</td><td><code>--with-gsd</code> at install time is detect-only &mdash; <code>scripts/install-gsd.sh</code> checks for <code>open-gsd/gsd-core</code> and points at <code>npx @opengsd/gsd-core@latest</code> if absent, but never installs it on this repo's behalf. The legacy <code>~/.claude/get-shit-done</code> (danielmiessler lineage) path is deprecated; the installer no longer treats it as primary.</td></tr>
+    <tr><td>gsd-core is recommended, never vendored</td><td><code>--with-gsd</code> / <code>--with-spine</code> install remotes only. They never vendor GSD 1.30.0. The legacy <code>~/.claude/get-shit-done</code> path is deprecated.</td></tr>
+    <tr><td>Manifest cannot authorize</td><td>ZONE + bridge are projection. Next-wave approval and <code>te-dispatch-paid</code> stay on the agent/operator side.</td></tr>
+    <tr><td>Hourly OmniRoute <code>--apply</code></td><td>Left dry-run on purpose. Apply would undo the ranked <code>te-dispatch-paid</code> stack.</td></tr>
   </table>
 </div>
 
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>session-trace.html</code> (concrete walkthrough) &middot; <code>omniroute-routing.html</code> (routing seams in depth).</p>
+<p style="color:#6f7d7e; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>spine-and-goal.html</code> (picker /goal) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>session-trace.html</code> (concrete walkthrough) &middot; <code>omniroute-routing.html</code> (routing seams in depth).</p>
 
 </body>
 </html>

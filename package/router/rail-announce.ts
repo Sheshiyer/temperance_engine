@@ -49,6 +49,11 @@ export function classifyTaskType(prompt: string, home = homedir()): string {
     /* fall through */
   }
   const v = prompt.toLowerCase()
+  if (/\b(ralph|maestro|ephemeral feature|feature loop)\b/.test(v)) return "ralph"
+  if (/\b(autoresearch|hill-?climb|optimize loop|eval mode|keep\/discard)\b/.test(v)) return "optimize"
+  if (/\b(elevenlabs|runway|text-to-speech|\btts\b|image-to-video|meshy|voiceover)\b/.test(v)) return "media"
+  if (/\b(screenshot|vision bridge|te-vision|image audit)\b/.test(v)) return "vision"
+  if (/\b(literature|cite sources|web search|search evidence|te-write-research)\b/.test(v)) return "research"
   if (/\b(plan|roadmap|spec|architecture)\b/.test(v)) {
     // Mirror classify-task.sh plan-max signals (complexity → te-plan-max)
     if (
@@ -90,10 +95,18 @@ export function phaseForTaskType(tt: string): string {
     case "plan-max":
       return "Plan"
     case "long-horizon":
+    case "ralph":
       return "Build"
     case "dispatch":
     case "parallel-worker":
       return "Execute"
+    case "media":
+      return "Build"
+    case "optimize":
+      return "Think"
+    case "research":
+    case "vision":
+      return "Observe"
     case "validation":
       return "Verify"
     case "reasoning":

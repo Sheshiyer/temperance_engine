@@ -10,6 +10,8 @@ OPENCODE_MODE=install
 CURSOR_MODE=install
 GSD_MODE=skip
 RELAY_MODE=skip
+MANIFEST_MODE=skip
+SPINE_MODE=skip
 FORCE=0
 
 for arg in "$@"; do
@@ -27,11 +29,21 @@ for arg in "$@"; do
     --skip-cursor) CURSOR_MODE=skip ;;
     --with-gsd) GSD_MODE=install ;;
     --skip-gsd) GSD_MODE=skip ;;
+    --with-manifest) MANIFEST_MODE=install ;;
+    --skip-manifest) MANIFEST_MODE=skip ;;
+    --with-spine)
+      SPINE_MODE=install
+      CODEX_MODE=install
+      GSD_MODE=install
+      MANIFEST_MODE=install
+      CLAUDE_MODE=install
+      ;;
     --with-relay) RELAY_MODE=install ;;
     --skip-relay) RELAY_MODE=skip ;;
     --force) FORCE=1 ;;
     -h|--help)
-      printf '%s\n' "Usage: ./install.sh [--dry-run] [--skip-voice|--with-voice] [--with-claude|--skip-claude] [--with-codex|--skip-codex] [--with-opencode|--skip-opencode] [--with-cursor|--skip-cursor] [--with-gsd|--skip-gsd] [--with-relay|--skip-relay] [--force]"
+      printf '%s\n' "Usage: ./install.sh [--dry-run] [--skip-voice|--with-voice] [--with-claude|--skip-claude] [--with-codex|--skip-codex] [--with-opencode|--skip-opencode] [--with-cursor|--skip-cursor] [--with-gsd|--skip-gsd] [--with-manifest|--skip-manifest] [--with-spine] [--with-relay|--skip-relay] [--force]"
+      printf '%s\n' "  --with-spine  Thoughtseed member glove: Claude+Codex compose hooks, /gsd:* on Claude/Codex/OpenCode/Grok, Manifest, Pulse (does not vendor GSD core or copy secrets)"
       exit 0
       ;;
     *)
@@ -49,7 +61,10 @@ export TEMPERANCE_CODEX_MODE="$CODEX_MODE"
 export TEMPERANCE_OPENCODE_MODE="$OPENCODE_MODE"
 export TEMPERANCE_CURSOR_MODE="$CURSOR_MODE"
 export TEMPERANCE_GSD_MODE="$GSD_MODE"
+export TEMPERANCE_MANIFEST_MODE="$MANIFEST_MODE"
+export TEMPERANCE_SPINE_MODE="$SPINE_MODE"
 export TEMPERANCE_RELAY_MODE="$RELAY_MODE"
+export TEMPERANCE_ENGINE_ROOT="$ROOT_DIR"
 export TEMPERANCE_FORCE="$FORCE"
 export PAI_HOME="${PAI_HOME:-$HOME/.claude}"
 export CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
@@ -70,6 +85,8 @@ printf '%s\n' "CODEX_MODE=$CODEX_MODE"
 printf '%s\n' "OPENCODE_MODE=$OPENCODE_MODE"
 printf '%s\n' "CURSOR_MODE=$CURSOR_MODE"
 printf '%s\n' "GSD_MODE=$GSD_MODE"
+printf '%s\n' "MANIFEST_MODE=$MANIFEST_MODE"
+printf '%s\n' "SPINE_MODE=$SPINE_MODE"
 printf '%s\n' "RELAY_MODE=$RELAY_MODE"
 printf '%s\n' "FORCE=$FORCE"
 
@@ -114,6 +131,7 @@ sh "$ROOT_DIR/scripts/install-skill-clusters.sh"
 sh "$ROOT_DIR/scripts/install-peon-ping.sh"
 sh "$ROOT_DIR/scripts/install-codegraph.sh"
 sh "$ROOT_DIR/scripts/install-gsd.sh"
+sh "$ROOT_DIR/scripts/install-spine.sh"
 sh "$ROOT_DIR/scripts/configure-opencode.sh"
 
 # The primary local surfaces share one router/enrichment wiring pass. Keep it

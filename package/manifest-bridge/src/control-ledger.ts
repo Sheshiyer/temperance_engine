@@ -2,6 +2,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 
 export const CONTROL_SCHEMA = 'temperance.swarm-control.v1' as const;
+export const ATTESTATION_REQUEST_SCHEMA = 'temperance.approval-attestation.request.v1' as const;
+export const ATTESTATION_RESPONSE_SCHEMA = 'temperance.approval-attestation.response.v1' as const;
 export const AUTO_LAUNCH_ENV = 'TEMPERANCE_SWARM_AUTOLAUNCH';
 export const CONTROL_ENABLED_ENV = 'TEMPERANCE_SWARM_CONTROL_ENABLED';
 
@@ -15,6 +17,7 @@ export interface ApprovedDispatch {
   git_head: string;
   source_fingerprint: string;
   task_fingerprint: string;
+  scope_hash: string;
   combo: string;
   concurrency: number;
   worktree_required: boolean;
@@ -29,6 +32,104 @@ export interface ClaimRequest extends ApprovedDispatch {
 export type ClaimResult =
   | { ok: true; claim_id: string; dispatch_id: string; lease_expires_at: string }
   | { ok: false; code: 'missing' | 'expired' | 'revoked' | 'claimed' | 'drift' | 'quota' | 'policy'; detail: string };
+
+export interface ApprovalAttestationRequestV1 {
+  schema: typeof ATTESTATION_REQUEST_SCHEMA;
+  approval_id: string;
+  project_id: string;
+  project_cwd: string;
+  plan_id: string;
+  option_id: string;
+  policy_hash: string;
+  git_head: string;
+  source_fingerprint: string;
+  task_fingerprint: string;
+  scope_hash: string;
+}
+
+export type ApprovalAttestationResultV1 =
+  | {
+    schema: typeof ATTESTATION_RESPONSE_SCHEMA;
+    ok: true;
+    code: 'attested';
+    approval_id: string;
+    attested_at: string;
+    attestation_id: string;
+  }
+  | {
+    schema: typeof ATTESTATION_RESPONSE_SCHEMA;
+    ok: false;
+    code:
+      | 'control_unavailable'
+      | 'invalid_request'
+      | 'approval_missing'
+      | 'approval_expired'
+      | 'approval_revoked'
+      | 'approval_consumed'
+      | 'approval_malformed'
+      | 'binding_mismatch';
+  };
+
+export type ApprovalAttestationResponseV1 = ApprovalAttestationResultV1;
+
+type StoredApproval = Omit<ApprovedDispatch, 'expires_at'> & {
+  expires_at: string | Date;
+  status: string;
+};
+
+const APPROVAL_STRING_KEYS = [
+  'approval_id', 'project_id', 'project_cwd', 'plan_id', 'option_id', 'policy_hash',
+  'git_head', 'source_fingerprint', 'task_fingerprint',
+] as const;
+const ATTESTATION_KEYS = ['schema', ...APPROVAL_STRING_KEYS, 'scope_hash'] as const;
+const SORTED_ATTESTATION_KEYS = [...ATTESTATION_KEYS].sort();
+const IMMUTABLE_APPROVAL_KEYS = [...APPROVAL_STRING_KEYS, 'scope_hash', 'combo'] as const;
+const ATTESTATION_BINDING_KEYS = [...APPROVAL_STRING_KEYS, 'scope_hash'] as const;
+const SCOPE_HASH = /^[a-f0-9]{64}$/;
+
+function boundedString(value: unknown, max = 512): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= max;
+}
+
+function validApprovalBindings(value: Partial<ApprovedDispatch>): value is ApprovedDispatch {
+  return APPROVAL_STRING_KEYS.every((key) => boundedString(value[key], key === 'project_cwd' ? 4096 : 512))
+    && typeof value.scope_hash === 'string' && SCOPE_HASH.test(value.scope_hash)
+    && value.combo === 'te-dispatch-paid'
+    && Number.isInteger(value.concurrency) && Number(value.concurrency) >= 1 && Number(value.concurrency) <= 4
+    && value.worktree_required === true
+    && boundedString(value.expires_at) && Number.isFinite(Date.parse(value.expires_at));
+}
+
+function parseAttestationRequest(value: unknown): ApprovalAttestationRequestV1 | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).sort();
+  if (keys.length !== SORTED_ATTESTATION_KEYS.length || keys.some((key, index) => key !== SORTED_ATTESTATION_KEYS[index])) return null;
+  if (record.schema !== ATTESTATION_REQUEST_SCHEMA) return null;
+  if (!APPROVAL_STRING_KEYS.every((key) => boundedString(record[key], key === 'project_cwd' ? 4096 : 512))) return null;
+  if (typeof record.scope_hash !== 'string' || !SCOPE_HASH.test(record.scope_hash)) return null;
+  return record as unknown as ApprovalAttestationRequestV1;
+}
+
+function validStoredApproval(value: StoredApproval): boolean {
+  return validApprovalBindings({ ...value, expires_at: value.expires_at instanceof Date ? value.expires_at.toISOString() : value.expires_at })
+    && ['granted', 'claimed', 'revoked', 'expired'].includes(value.status);
+}
+
+function timestampMs(value: string | Date): number {
+  return value instanceof Date ? value.getTime() : Date.parse(value);
+}
+
+function sameImmutableApproval(stored: StoredApproval, input: ApprovedDispatch): boolean {
+  return IMMUTABLE_APPROVAL_KEYS.every((key) => stored[key] === input[key])
+    && stored.concurrency === input.concurrency
+    && stored.worktree_required === input.worktree_required
+    && timestampMs(stored.expires_at) === Date.parse(input.expires_at);
+}
+
+function denied(code: Extract<ApprovalAttestationResultV1, { ok: false }>['code']): ApprovalAttestationResultV1 {
+  return { schema: ATTESTATION_RESPONSE_SCHEMA, ok: false, code };
+}
 
 export function fingerprint(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -56,6 +157,7 @@ export class SwarmControlLedger {
         git_head text NOT NULL,
         source_fingerprint text NOT NULL,
         task_fingerprint text NOT NULL,
+        scope_hash text,
         combo text NOT NULL CHECK (combo = 'te-dispatch-paid'),
         concurrency integer NOT NULL CHECK (concurrency BETWEEN 1 AND 4),
         worktree_required boolean NOT NULL CHECK (worktree_required),
@@ -63,6 +165,7 @@ export class SwarmControlLedger {
         status text NOT NULL CHECK (status IN ('granted', 'claimed', 'revoked', 'expired')) DEFAULT 'granted',
         created_at timestamptz NOT NULL DEFAULT now()
       );
+      ALTER TABLE temperance_swarm_approvals ADD COLUMN IF NOT EXISTS scope_hash text;
       CREATE TABLE IF NOT EXISTS temperance_swarm_claims (
         claim_id text PRIMARY KEY,
         dispatch_id text NOT NULL UNIQUE,
@@ -95,13 +198,67 @@ export class SwarmControlLedger {
   }
 
   async recordApproval(input: ApprovedDispatch): Promise<void> {
-    if (input.combo !== 'te-dispatch-paid' || input.concurrency < 1 || input.concurrency > 4 || !input.worktree_required) throw new Error('approval violates bounded paid-fleet policy');
-    await this.pool.query(`
+    if (!validApprovalBindings(input)) throw new Error('approval_invalid');
+    const inserted = await this.pool.query(`
       INSERT INTO temperance_swarm_approvals
-        (approval_id, project_id, project_cwd, plan_id, option_id, policy_hash, git_head, source_fingerprint, task_fingerprint, combo, concurrency, worktree_required, expires_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        (approval_id, project_id, project_cwd, plan_id, option_id, policy_hash, git_head, source_fingerprint, task_fingerprint, scope_hash, combo, concurrency, worktree_required, expires_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       ON CONFLICT (approval_id) DO NOTHING
-    `, [input.approval_id, input.project_id, input.project_cwd, input.plan_id, input.option_id, input.policy_hash, input.git_head, input.source_fingerprint, input.task_fingerprint, input.combo, input.concurrency, input.worktree_required, input.expires_at]);
+      RETURNING approval_id
+    `, [input.approval_id, input.project_id, input.project_cwd, input.plan_id, input.option_id, input.policy_hash, input.git_head, input.source_fingerprint, input.task_fingerprint, input.scope_hash, input.combo, input.concurrency, input.worktree_required, input.expires_at]);
+    if (inserted.rowCount) return;
+    const existing = await this.pool.query<StoredApproval>(`
+      SELECT approval_id, project_id, project_cwd, plan_id, option_id, policy_hash, git_head,
+        source_fingerprint, task_fingerprint, scope_hash, combo, concurrency, worktree_required, expires_at, status
+      FROM temperance_swarm_approvals WHERE approval_id = $1
+    `, [input.approval_id]);
+    if (!existing.rows[0] || !sameImmutableApproval(existing.rows[0], input)) throw new Error('approval_conflict');
+  }
+
+  async attest(expected: unknown, canonicalApprovalId?: string): Promise<ApprovalAttestationResultV1> {
+    const request = parseAttestationRequest(expected);
+    if (!request || (canonicalApprovalId !== undefined && !boundedString(canonicalApprovalId))) return denied('invalid_request');
+    const lookupApprovalId = canonicalApprovalId ?? request.approval_id;
+    let client: PoolClient | undefined;
+    try {
+      client = await this.pool.connect();
+      await client.query('BEGIN TRANSACTION READ ONLY');
+      const time = await client.query<{ database_now: string }>('SELECT now()::text AS database_now');
+      const databaseNow = Date.parse(String(time.rows[0]?.database_now));
+      const result = await client.query<StoredApproval>(`
+        SELECT approval_id, project_id, project_cwd, plan_id, option_id, policy_hash, git_head,
+          source_fingerprint, task_fingerprint, scope_hash, combo, concurrency, worktree_required, expires_at, status
+        FROM temperance_swarm_approvals WHERE approval_id = $1
+      `, [lookupApprovalId]);
+      const approval = result.rows[0];
+      let outcome: ApprovalAttestationResultV1;
+      if (!approval) outcome = denied('approval_missing');
+      else if (!validStoredApproval(approval) || !Number.isFinite(databaseNow)) outcome = denied('approval_malformed');
+      else if (approval.status === 'claimed') outcome = denied('approval_consumed');
+      else if (approval.status === 'revoked') outcome = denied('approval_revoked');
+      else if (approval.status === 'expired' || timestampMs(approval.expires_at) <= databaseNow) outcome = denied('approval_expired');
+      else if (approval.status !== 'granted') outcome = denied('approval_malformed');
+      else if (ATTESTATION_BINDING_KEYS.some((key) => approval[key] !== request[key])) outcome = denied('binding_mismatch');
+      else {
+        outcome = {
+          schema: ATTESTATION_RESPONSE_SCHEMA,
+          ok: true,
+          code: 'attested',
+          approval_id: request.approval_id,
+          attested_at: new Date(databaseNow).toISOString(),
+          attestation_id: `att_${fingerprint({ approval_id: request.approval_id, scope_hash: request.scope_hash }).slice(0, 24)}`,
+        };
+      }
+      await client.query('COMMIT');
+      return outcome;
+    } catch {
+      if (client) {
+        try { await client.query('ROLLBACK'); } catch { /* bounded control-store denial */ }
+      }
+      return denied('control_unavailable');
+    } finally {
+      client?.release();
+    }
   }
 
   async claim(request: ClaimRequest): Promise<ClaimResult> {
@@ -148,7 +305,7 @@ export class SwarmControlLedger {
     if (approval.status === 'claimed') return { ok: false, code: 'claimed', detail: 'approval was already consumed' };
     if (approval.status !== 'granted') return { ok: false, code: 'revoked', detail: `approval is ${approval.status}` };
     if (Date.parse(approval.expires_at) <= databaseNow) return { ok: false, code: 'expired', detail: 'approval expired at database-bound receipt time' };
-    const exact = ['project_id', 'project_cwd', 'plan_id', 'option_id', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'combo'] as const;
+    const exact = ['project_id', 'project_cwd', 'plan_id', 'option_id', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'scope_hash', 'combo'] as const;
     if (exact.some((key) => approval[key] !== request[key]) || approval.concurrency !== request.concurrency || approval.worktree_required !== request.worktree_required) return { ok: false, code: 'drift', detail: 'request differs from immutable approved dispatch' };
     const quotaAge = databaseNow - Date.parse(request.quota_observed_at);
     if (!request.quota_eligible || !Number.isFinite(quotaAge) || quotaAge < 0 || quotaAge > this.quotaMaxAgeMs) return { ok: false, code: 'quota', detail: 'quota snapshot is stale or ineligible' };

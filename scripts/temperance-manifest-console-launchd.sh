@@ -10,7 +10,7 @@ STATE_DIR="${TEMPERANCE_MANIFEST_STATE_DIR:-${HOME}/.temperance_engine/state/man
 LOG_DIR="${STATE_DIR}/logs"
 PORT="${TEMPERANCE_MANIFEST_CONSOLE_PORT:-5173}"
 BRIDGE_URL="${TEMPERANCE_MANIFEST_BRIDGE_URL:-http://127.0.0.1:8766}"
-CONSOLE_ROOT="${MANIFEST_CONSOLE_ROOT:-${HOME}/.temperance_engine/integrations/manifest-skill-137/visual-pcb}"
+CONSOLE_ROOT="${MANIFEST_CONSOLE_ROOT:-${TEMPERANCE_ENGINE_ROOT:-${HOME}/.temperance_engine/product}/package/manifest-zone}"
 NPM_BIN="$(command -v npm)"
 
 require_console() {

@@ -1,5 +1,7 @@
 # Temperance Engine Repo Error Review
 
+Library: [../docs/index.html](../docs/index.html) · planning index: [../docs/site/planning.html](../docs/site/planning.html)
+
 Started: 2026-06-15
 
 ## Intent

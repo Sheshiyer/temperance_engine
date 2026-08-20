@@ -58,12 +58,12 @@
 **Files:**
 - Modify: `package/manifest-bridge/README.md`
 - Modify: `docs/manifest-control-plane.md`
-- Modify: `integrations/manifest-skill-137/visual-pcb/src/pages.tsx`
-- Modify: `integrations/manifest-skill-137/visual-pcb/src/manifest.ts`
+- Modify: `integrations/manifest-skill-137/manifest-zone/src/pages.tsx`
+- Modify: `integrations/manifest-skill-137/manifest-zone/src/manifest.ts`
 
 - [ ] Render observed-only/enrolled and active-run mode/tier state.
 - [ ] Document policy setup, passive observation, bridge startup, and rollback.
-- [ ] Run `npm run lint` and `npm run build` in `visual-pcb`.
+- [ ] Run `npm run lint` and `npm run build` in `manifest-zone`.
 
 ### Task 5: Verify behavior, documentation, and scoped live flow
 

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAI flow — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Spine · 7-phase shell</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html" class="here">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>PAI Flow</h1>
+<p>The packaged model is a disciplined work loop with one authoritative structure:</p>
+<p>**PAI is the 7-phase outer shell; gsd-core is the recommended workflow backbone;</p>
+<p>superpowers skills + temperance-parallel-dispatch are the tool inventory the</p>
+<p>backbone invokes; the skill-cluster resolver is the discovery/lazy-load layer.**</p>
+<h2>Core Principle</h2>
+<p>Move from current state to ideal state. The ideal state is decomposed into</p>
+<p>criteria. Criteria are verified with tools. Work is complete only when the</p>
+<p>criteria pass.</p>
+<h2>Architecture</h2>
+<pre><code>PAI Algorithm (7 phases, ALWAYS active — enforcement is future sub-project B)
+  Observe → Think → Plan → Build → Execute → Verify → Learn
+                     │      │        │          │        │
+                     ▼      ▼        ▼          ▼        ▼
+   ┌───────────────────────────────────────────────────────────┐
+   │  gsd-core backbone (RECOMMENDED default; degrades to       │
+   │  superpowers when absent)                                  │
+   │    Discuss → Plan → Execute → Verify → Ship                │
+   │                    │                                       │
+   │                    │ names a skill to invoke               │
+   │                    ▼                                       │
+   │   ┌──────────────────────────────────────────────────┐    │
+   │   │  Skill-cluster resolver (DISCOVERY + LAZY-LOAD)   │    │
+   │   │  ~/.agents/skill-clusters/skill-index.json        │    │
+   │   │   active-spoke → symlinked → GO                   │    │
+   │   │   deferred     → activate cluster → GO            │    │
+   │   │   archived     → Read from indexed path           │    │
+   │   │   not-found    → hard error                       │    │
+   │   └────────────────────────┬─────────────────────────┘    │
+   │                            ▼ resolved skill                │
+   │   ┌──────────────────────────────────────────────────┐    │
+   │   │  Tool inventory                                   │    │
+   │   │   superpowers: brainstorming · writing-plans ·    │    │
+   │   │     subagent-driven-development ·                 │    │
+   │   │     dispatching-parallel-agents ·                 │    │
+   │   │     verification-before-completion ·              │    │
+   │   │     finishing-a-development-branch                │    │
+   │   │   temperance-parallel-dispatch (external backends)│    │
+   │   │   OpenCode auto relay (request-time portfolio)   │    │
+   │   │   + ~30 more via deferred clusters (on demand)    │    │
+   │   └──────────────────────────────────────────────────┘    │
+   └───────────────────────────────────────────────────────────┘
+  Observe/Think = agent-native (codegraph, read, memory recall)
+  Enrichment: &lt;temperance-context&gt; block every prompt (always-on layer)
+  OpenCode automatic requests: enrich → frozen plan → OmniRoute relay
+  Kimi automatic requests: hook sidecar (cwd) → relay-side enrich → frozen plan → OmniRoute
+
+  Retired: docs/parallel-dispatch.md · docs/multi-surface-architecture.md → redirect stubs</code></pre>
+<p>Only PAI + gsd-core hold the session spine; everything else is a called tool.</p>
+<p>Observe/Think are agent-native. The skill-cluster resolver</p>
+<p>(<code>~/.agents/skill-clusters/skill-index.json</code>) sits between &quot;backbone names a</p>
+<p>skill&quot; and &quot;tool runs&quot; — it is the context-economy mechanism (only active-spoke</p>
+<p>skills loaded; deferred clusters resolved on demand). temperance-parallel-dispatch</p>
+<p>is a specialist tool that fires only in Execute (and optionally Verify), not a</p>
+<p>default. OpenCode&#x27;s <code>temperance/temperance-auto</code> model follows the same route at request</p>
+<p>time through the local relay; direct picker models remain explicit overrides.</p>
+<p>Kimi (CLI and desktop daimon) joins the same governed lane with one difference:</p>
+<p>its hook runner cannot inject context, so the relay performs the enrichment</p>
+<p>server-side for <code>X-Temperance-Surface: kimi</code> requests (see</p>
+<p><a href="kimi-surface.md"><code>docs/kimi-surface.md</code></a>).</p>
+<h2>Phases and the decision framework</h2>
+<p>The table below is DEFAULTS, not mandates — any phase exits when its done-signal</p>
+<p>is met. gsd-core commands are shown in the canonical <code>/gsd-*</code> hyphen form.</p>
+<table>
+<tr><th>#</th><th>PAI Phase</th><th>gsd-core command(s)</th><th>superpowers skill</th><th>temperance-parallel-dispatch</th><th>Done signal</th></tr>
+<tr><td>1</td><td>Observe</td><td><code>/gsd-new-project</code>, <code>/gsd-explore</code>, <code>/gsd-capture</code></td><td>(agent-native: codegraph, read, memory)</td><td>no</td><td>Problem stated; live state read; constraints enumerated</td></tr>
+<tr><td>2</td><td>Think</td><td>Discuss: <code>/gsd-discuss-phase</code>, <code>/gsd-spec-phase</code>, <code>/gsd-spike</code></td><td><code>brainstorming</code> (design); <code>systematic-debugging</code> (bugs)</td><td>no</td><td>Hidden requirements + risks surfaced; approach candidates listed</td></tr>
+<tr><td>3</td><td>Plan</td><td>Plan: <code>/gsd-plan-phase</code>, <code>/gsd-plan-review-convergence</code>, <code>/gsd-mvp-phase</code></td><td><code>writing-plans</code> (standalone lightweight plans)</td><td>no</td><td>PLAN.md files with declared deps + verification criteria; user aligned</td></tr>
+<tr><td>4</td><td>Build</td><td><em>(folds into Execute — gsd-core has no separate Build)</em></td><td><code>subagent-driven-development</code>, <code>test-driven-development</code></td><td>no</td><td>Per-task tests green; task checkbox done</td></tr>
+<tr><td>5</td><td>Execute</td><td>Execute: <code>/gsd-execute-phase</code>, <code>/gsd-fast</code>, <code>/gsd-quick</code></td><td><code>dispatching-parallel-agents</code>, <code>subagent-driven-development</code></td><td><strong>YES, bounded</strong> — 2+ independent tasks may use <code>te-dispatch-paid</code>; automatic launch additionally requires the approval-and-claim controller. <code>te-dispatch</code> is retired.</td><td>All plans complete; branch ready for verify</td></tr>
+<tr><td>6</td><td>Verify</td><td>Verify: <code>/gsd-verify-work</code>, <code>/gsd-code-review</code>, <code>/gsd-ui-review</code></td><td><code>verification-before-completion</code>, <code>requesting-code-review</code></td><td>Optional — parallel verifier fan-out</td><td>Fresh evidence per criterion; review clean</td></tr>
+<tr><td>7</td><td>Learn</td><td>Ship: <code>/gsd-ship</code>, <code>/gsd-milestone-summary</code>, <code>/gsd-complete-milestone</code>, <code>/gsd-progress</code></td><td><code>finishing-a-development-branch</code>, <code>receiving-code-review</code></td><td>no</td><td>Decisions recorded; PR/ship done; milestone archived</td></tr>
+</table>
+<p><strong>Cross-cutting gsd-core commands</strong> (not phase-bound): <code>/gsd-progress</code>,</p>
+<p><code>/gsd-resume-work</code>, <code>/gsd-pause-work</code>, <code>/gsd-manager</code>, <code>/gsd-config</code>, <code>/gsd-settings</code>.</p>
+<p><strong>Temperance-owned session loop:</strong> <code>/gsd:goal</code> (also <code>/goal</code>) writes</p>
+<p><code>.temperance/goal.json</code> and evaluates the same doctor/ISA probes VERIFY</p>
+<p>already uses. It is not a planner. Next-wave approval and the dual-fleet</p>
+<p>lock still gate Execute. Manifest Zone only projects the GOAL card.</p>
+<p><strong>Command-syntax compat note:</strong> gsd-core commands are <code>/gsd-*</code> (hyphen) in</p>
+<p>Claude Code / gsd-core docs; Gemini CLI and this installer&#x27;s wrappers use</p>
+<p><code>/gsd:*</code> (colon). Identical commands, runtime-specific spelling. After</p>
+<p><code>./install.sh --with-spine</code>, Codex/OpenCode/Grok get the same wrapper set.</p>
+<p><code>/gsd:doctor</code> and <code>/gsd:goal</code> are Temperance-owned (not GSD core workflows).</p>
+<p>Native picker tiles (MINIMAL / NATIVE / ALGORITHM) fire before ChatGPT</p>
+<p>in-app browser opens Manifest Zone. See</p>
+<p><a href="gsd-manifest-spine.md"><code>gsd-manifest-spine.md</code></a> and</p>
+<p><a href="gsd-goal-handoff.md"><code>gsd-goal-handoff.md</code></a>.</p>
+<h2>Doctrine</h2>
+<p>1. The table is DEFAULTS, not mandates — exit on done-signal.</p>
+<p>2. gsd-core is the backbone but not every cell has a gsd-core command (Observe/Build gaps are honest — no ceremony where it adds nothing).</p>
+<p>3. temperance-parallel-dispatch fires only in Execute (and optionally Verify). Direct <code>temperance-batch</code> is a manual batch tool; automatic paid work must enter through the one-use approval claim and controller described in <a href="manifest-control-plane.md"><code>manifest-control-plane.md</code></a>.</p>
+<p>4. <code>temperance-manifest</code> is the operational projection CLI: it reports bridge health, emits bounded observations, and can read CodeGraph status without changing planner, router, approval, GSD, or skill-cluster ownership.</p>
+<p>5. GSD and skill-cluster telemetry is explicit (<code>--gsd</code>, <code>--skill-clusters</code>) and observational; deferred/archived cluster activation and legacy GSD execution remain operator-owned.</p>
+<p>6. <code>temperance-manifest omniroute</code> records only protected gateway reachability; route planning and provider selection remain OmniRoute/router authority.</p>
+<p>4. Done-signals are the enforcement wedge (future sub-project B nudges on skip/premature-exit; A only documents them).</p>
+<p>5. Escape hatch: the agent overrides any row when the situation genuinely doesn&#x27;t fit; the framework nudges, never gates.</p>
+<p>6. Degradation: gsd-core absent → the superpowers column IS the flow (<code>brainstorming → writing-plans → subagent-driven-development → verification-before-completion → finishing-a-development-branch</code>).</p>
+<h2>GSD is recommended, not required</h2>
+<p>gsd-core (<code>open-gsd/gsd-core</code>, <code>npx @opengsd/gsd-core@latest</code>) is the recommended</p>
+<p>default backbone. When gsd-core is present, use its phase commands. When absent,</p>
+<p>the superpowers column of the table above IS the flow:</p>
+<p>`brainstorming → writing-plans → subagent-driven-development →</p>
+<p>verification-before-completion → finishing-a-development-branch`.</p>
+<p><code>--with-gsd</code> at install time is detect-only and never vendors gsd-core.</p>
+<h2>ISA Pattern</h2>
+<p>An ISA is the system of record for a task or project. It contains problem,</p>
+<p>vision, constraints, goal, criteria, test strategy, features, decisions,</p>
+<p>changelog, and verification.</p>
+<h2>Completion Rule</h2>
+<p>No completion claim without fresh verification evidence.</p>
+<h2>Retired surfaces (folded into this doc)</h2>
+<ul>
+<li><code>docs/parallel-dispatch.md</code> — the Execute-phase dispatch decision is now this</li>
+</ul>
+<p>  doc&#x27;s Execute row + doctrine. <code>superpowers:dispatching-parallel-agents</code> remains</p>
+<p>  the <strong>Claude-subagent primitive</strong>; <code>temperance-parallel-dispatch</code> (external</p>
+<p>  backends via <code>temperance-batch</code>) builds on it. Automatic paid dispatch adds the</p>
+<p>  separate approval-and-claim controller. (Redirect stub retained.)</p>
+<ul>
+<li><code>docs/multi-surface-architecture.md</code> — the enrichment/router/adapter layers are</li>
+</ul>
+<p>  this doc&#x27;s Architecture section. (Redirect stub retained.)</p>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

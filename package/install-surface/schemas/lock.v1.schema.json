@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1",
+  "title": "Temperance compiled install-surface lock v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_uri", "version", "records"],
+  "properties": {
+    "schema": { "const": "temperance.install-surface.lock.v1" },
+    "schema_uri": { "const": "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1" },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major", "minor"],
+      "properties": { "major": { "const": 1 }, "minor": { "const": 0 } }
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "owner", "class", "destination", "authority", "eligibility", "verification", "rollback"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3, "maxLength": 192 },
+          "owner": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "class": { "enum": ["COPY", "TRANSFORM", "REGENERATE", "NEVER-SHIP"] },
+          "source": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*\\\\).+$" },
+          "destination": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["root_token", "relative_path", "ownership"],
+            "properties": {
+              "root_token": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+              "relative_path": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*\\\\).+$" },
+              "ownership": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind"],
+                "properties": {
+                  "kind": { "enum": ["exclusive-path", "managed-block"] },
+                  "marker_id": { "type": "string", "minLength": 1, "maxLength": 192 }
+                }
+              }
+            }
+          },
+          "authority": { "$ref": "#/$defs/authority" },
+          "eligibility": { "$ref": "#/$defs/eligibility" },
+          "verification": { "$ref": "#/$defs/verification" },
+          "rollback": { "$ref": "#/$defs/rollback" },
+          "depends_on": {
+            "type": "array",
+            "maxItems": 128,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 3, "maxLength": 192 }
+          },
+          "identity_migration": { "$ref": "#/$defs/identity_migration" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_ids", "isa"],
+      "properties": {
+        "requirement_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Z]+-[0-9]+$" }
+        },
+        "isa": { "type": "string", "pattern": "^ISC-[0-9]+$" }
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platforms", "profiles", "required"],
+      "properties": {
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["darwin", "linux", "win32"] }
+        },
+        "profiles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+        },
+        "required": { "type": "boolean" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method"],
+      "properties": {
+        "method": { "enum": ["sha256", "adapter", "semantic-probe", "symbolic-exclusion", "presence-only"] },
+        "adapter_id": { "type": "string", "minLength": 1, "maxLength": 192 },
+        "generator_id": { "type": "string", "minLength": 1, "maxLength": 192 }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy"],
+      "properties": {
+        "policy": { "enum": ["restore-backup", "remove-installed", "regenerate", "none-private"] }
+      }
+    },
+    "identity_migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_id", "to_id"],
+      "properties": {
+        "from_id": { "type": "string", "minLength": 1, "maxLength": 192 },
+        "to_id": { "type": "string", "minLength": 1, "maxLength": 192 }
+      }
+    }
+  }
+}

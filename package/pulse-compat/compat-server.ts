@@ -9,17 +9,10 @@
  * the platform `afplay` binary. It reads peon-ping's own config.json for
  * volume. It exposes /, /health, /healthz (status) and /notify (POST).
  *
- * It deliberately omits, versus prior/adjacent variants:
- *   - Any invocation of peon.sh. peon.sh is a CONTROL surface only
- *     (pause|resume|mute|unmute|toggle|status|volume|rotation|notifications)
- *     and has no "play a pack" command; this server plays sounds directly.
- *   - Forwarding to any other notification service (e.g. a :8888 service).
- *   - Honoring peon-ping's own pause/mute/rotation state — playback here
- *     is unconditional once a phase/pack/sound resolves. (Tracked as a
- *     follow-up; see docs/peon-ping-packs.md.)
- *   - Spoken TTS. Only canned pack sounds are played.
- *   - Any private/absolute host path. All paths are derived from
- *     homedir() or environment variables so this file is safe to publish.
+ * Phase messages play peon-ping packs. Non-phase payloads forward to the
+ * existing ElevenLabs voice server on :8888 (PAI_NOTIFY_FORWARD_URL).
+ * It does not invoke peon.sh (control surface only) and uses no host-absolute
+ * paths — all paths come from homedir() or environment variables.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -27,7 +20,8 @@ import { spawn } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const PORT = Number(process.env.TEMPERANCE_PULSE_PORT || 31337);
+const PORT = Number(process.env.TEMPERANCE_PULSE_PORT || process.env.PULSE_PORT || 31337);
+const FORWARD_URL = process.env.PAI_NOTIFY_FORWARD_URL || 'http://127.0.0.1:8888/notify';
 const PEON_DIR = process.env.PEON_PING_DIR || join(homedir(), '.claude', 'hooks', 'peon-ping');
 const PEON_CONFIG = join(PEON_DIR, 'config.json');
 
@@ -68,6 +62,22 @@ interface PeonPlayResult {
   file?: string;
   played: boolean;
   error?: string;
+}
+
+interface ForwardRecord {
+  forwarded: boolean;
+  forwardStatus: number;
+  forwardError?: string;
+  at?: string;
+}
+
+let lastForward: ForwardRecord = { forwarded: false, forwardStatus: 0 };
+
+function classifyTtsForwardError(status: number, bodyText: string): string | undefined {
+  if (status < 400) return undefined;
+  const haystack = bodyText.toLowerCase();
+  if (haystack.includes('invalid_api_key') || haystack.includes('authentication_error')) return 'tts-auth';
+  return 'tts-failed';
 }
 
 function readVolume(): number {
@@ -153,12 +163,47 @@ async function handleNotify(req: Request): Promise<Response> {
   }
 
   const phase = phaseFromMessage(String(payload.message || ''));
-  if (!phase) {
-    return Response.json({ ok: true, compatibility: true, played: false });
+  if (phase) {
+    const peon = await playPeonPhase(phase);
+    return Response.json({ ok: true, compatibility: true, phase, peon, forwarded: false, forwardStatus: 0 });
   }
 
-  const peon = await playPeonPhase(phase);
-  return Response.json({ ok: true, compatibility: true, phase, peon });
+  let forwarded = false;
+  let forwardStatus = 0;
+  let forwardError: string | undefined;
+  try {
+    const response = await fetch(FORWARD_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(3000),
+    });
+    forwarded = true;
+    forwardStatus = response.status;
+    if (response.status >= 400) {
+      let bodyText = '';
+      try { bodyText = await response.text(); } catch { bodyText = ''; }
+      forwardError = classifyTtsForwardError(response.status, bodyText);
+    }
+  } catch {
+    // Voice server may be down; Pulse still acknowledges the notify.
+  }
+
+  lastForward = {
+    forwarded,
+    forwardStatus,
+    ...(forwardError ? { forwardError } : {}),
+    at: new Date().toISOString(),
+  };
+
+  return Response.json({
+    ok: true,
+    compatibility: true,
+    played: false,
+    forwarded,
+    forwardStatus,
+    ...(forwardError ? { forwardError } : {}),
+  });
 }
 
 const server = Bun.serve({
@@ -167,9 +212,9 @@ const server = Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === '/' || url.pathname === '/health' || url.pathname === '/healthz') {
-      return Response.json({ ok: true, service: 'temperance-pulse-compat', port: PORT });
+      return Response.json({ ok: true, service: 'temperance-pulse-compat', port: PORT, lastForward });
     }
-    if (url.pathname === '/notify' && req.method === 'POST') return handleNotify(req);
+    if ((url.pathname === '/notify' || url.pathname === '/notify/personality') && req.method === 'POST') return handleNotify(req);
     return Response.json({ ok: false, error: 'not found' }, { status: 404 });
   },
 });

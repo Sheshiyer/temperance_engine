@@ -3,7 +3,7 @@ import { dirname } from 'node:path';
 import { normalizeEvent } from './contract';
 import { STATE_SCHEMA, type ManifestEvent, type ManifestState } from './types';
 
-const STALE_AFTER_MS = 30_000;
+export const STALE_AFTER_MS = 180_000;
 const RECENT_LIMIT = 200;
 
 function emptyState(): ManifestState {
@@ -13,7 +13,7 @@ function emptyState(): ManifestState {
     last_event_at: null,
     event_count: 0,
     freshness: { status: 'empty', age_ms: null, stale_after_ms: STALE_AFTER_MS },
-    projects: {}, sessions: {}, agents: {}, waves: {}, plans: {}, approvals: {}, skills: {}, dispatches: {}, reports: {}, routes: {}, evidence: {}, alerts: [], recent_events: [],
+    projects: {}, sessions: {}, agents: {}, waves: {}, plans: {}, approvals: {}, skills: {}, dispatches: {}, reports: {}, routes: {}, codegraph: {}, workflows: {}, evidence: {}, alerts: [], recent_events: [],
   };
 }
 
@@ -158,7 +158,8 @@ export class ManifestStore {
       this.stateValue.approvals[approval] = { ...(this.stateValue.approvals[approval] || {}), ...event.payload, approval_id: approval, project_id: pid, last_event_at: event.ts, status: lifecycle, event_status: event.status };
     }
     if (event.kind.startsWith('skill.')) {
-      const skill = String(event.payload.skill_id || event.payload.name || event.correlation_id || `${pid}:current`);
+      const skillBase = String(event.payload.skill_id || event.payload.name || event.correlation_id || 'current');
+      const skill = event.kind.startsWith('skill.cluster.') ? `${pid}:${skillBase}` : skillBase;
       this.stateValue.skills[skill] = { ...(this.stateValue.skills[skill] || {}), ...event.payload, skill_id: skill, project_id: pid, last_event_at: event.ts, status: event.status };
     }
     if (event.kind.startsWith('dispatch.')) {
@@ -172,6 +173,16 @@ export class ManifestStore {
     if (event.kind.startsWith('route.') || event.source === 'omniroute') {
       const route = String(event.correlation_id || event.payload.request_id || `${pid}:latest`);
       this.stateValue.routes[route] = { ...event.payload, route_id: route, project_id: pid, phase: event.phase || null, last_event_at: event.ts, status: event.status, source: event.source };
+    }
+    if (event.kind.startsWith('codegraph.')) {
+      this.stateValue.codegraph[pid] = { ...this.stateValue.codegraph[pid], ...event.payload, project_id: pid, last_event_at: event.ts, status: event.status };
+    }
+    if (event.kind.startsWith('workflow.')) {
+      this.stateValue.workflows[pid] = { ...this.stateValue.workflows[pid], ...event.payload, project_id: pid, last_event_at: event.ts, status: event.status };
+    }
+    if (event.kind.startsWith('planning.') || event.kind.startsWith('goal.')) {
+      const key = event.kind.startsWith('goal.') ? `${pid}:goal` : `${pid}:planning`;
+      this.stateValue.workflows[key] = { ...this.stateValue.workflows[key], ...event.payload, project_id: pid, last_event_at: event.ts, status: event.status, kind: event.kind };
     }
     for (const pointer of event.evidence) {
       const evidenceId = `${event.id}:${pointer.label}`;

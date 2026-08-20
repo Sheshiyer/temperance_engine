@@ -1,0 +1,28 @@
+{
+  "schema": "temperance.install-surface.fragment.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
+  "version": { "major": 1, "minor": 0 },
+  "records": [
+    {
+      "id": "manifest.bridge-runtime",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/manifest-bridge",
+      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "runtime/manifest-bridge", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "manifest.zone-project-state",
+      "owner": "temperance-engine",
+      "class": "REGENERATE",
+      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "state/manifest-zone.json", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-05", "PROV-07"], "isa": "ISC-771" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": false },
+      "verification": { "method": "semantic-probe", "generator_id": "manifest-zone-v1" },
+      "rollback": { "policy": "regenerate" }
+    }
+  ]
+}

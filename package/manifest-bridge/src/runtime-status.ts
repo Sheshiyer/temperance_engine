@@ -11,7 +11,7 @@ export interface EndpointReceipt {
 
 export interface ManifestRuntimeReceipt {
   manifest: EndpointReceipt & { event_count?: number; freshness?: string };
-  omniroute: EndpointReceipt;
+  omniroute: EndpointReceipt & { edge?: 'local' | 'clio' };
   activation: {
     state: 'active' | 'rejected' | 'unavailable';
     reason: string;
@@ -42,6 +42,7 @@ export async function manifestRuntimeReceipt(input: {
 } = {}): Promise<ManifestRuntimeReceipt> {
   const bridgeUrl = baseUrl(input.bridge_url || process.env.TEMPERANCE_MANIFEST_BRIDGE_URL || 'http://127.0.0.1:8766');
   const omnirouteUrl = baseUrl(input.omniroute_url || process.env.TEMPERANCE_OMNIROUTE_URL || 'http://127.0.0.1:20128');
+  const edge: 'local' | 'clio' = /clio|company|relay/i.test(omnirouteUrl) || process.env.TEMPERANCE_EDGE === 'clio' ? 'clio' : 'local';
   const [bridge, omniroute] = await Promise.all([
     probe(`${bridgeUrl}/health`, 'temperance-manifest-bridge'),
     // OmniRoute deliberately protects this API with auth. A 401 proves the local
@@ -63,7 +64,8 @@ export async function manifestRuntimeReceipt(input: {
     },
     omniroute: {
       state: gatewayReady ? 'ready' : 'offline', url: omnirouteUrl, status_code: omniroute.status_code,
-      detail: gatewayReady ? (omniroute.status_code === 401 ? 'gateway reachable · auth protected' : 'gateway reachable') : 'gateway did not answer',
+      edge,
+      detail: gatewayReady ? (omniroute.status_code === 401 ? `gateway reachable · auth protected · edge ${edge}` : `gateway reachable · edge ${edge}`) : 'gateway did not answer',
     },
     activation: { state: activationState, reason: activationReason, run },
   };
@@ -79,8 +81,95 @@ export function formatManifestRuntimeContext(receipt: ManifestRuntimeReceipt): s
     `☿ MANIFEST · ${manifest.state === 'ready' ? 'READY' : 'OFFLINE'}`,
     `  ·  bridge     ${manifest.url} · ${manifest.detail}${manifest.event_count !== undefined ? ` · events ${manifest.event_count}` : ''}`,
     `  ·  run        ${run ? `${run.run_id} · ${run.project_id}` : receipt.activation.state.toUpperCase()} · ${receipt.activation.reason}`,
-    `  ·  omniroute  ${omniroute.state.toUpperCase()} · ${omniroute.url} · ${omniroute.detail}`,
+    `  ·  omniroute  ${omniroute.state.toUpperCase()} · ${omniroute.url} · edge ${omniroute.edge || 'local'} · ${omniroute.detail}`,
     '  ·  combo      see <temperance-rail> above; this receipt never exposes credentials',
+    `  ·  console    ${process.env.TEMPERANCE_MANIFEST_CONSOLE_URL || 'http://127.0.0.1:5173'}`,
     '</manifest-runtime>',
+  ].join('\n');
+}
+
+export type PaiSessionMode = 'MINIMAL' | 'NATIVE' | 'ALGORITHM';
+export type PaiSurface = 'grok' | 'codex' | 'claude' | 'opencode' | string;
+
+const MODES: PaiSessionMode[] = ['MINIMAL', 'NATIVE', 'ALGORITHM'];
+
+export function asPaiMode(value: unknown): PaiSessionMode | null {
+  const mode = String(value || '').toUpperCase();
+  return (MODES as string[]).includes(mode) ? mode as PaiSessionMode : null;
+}
+
+export function detectPaiSurface(explicit?: string): PaiSurface {
+  const named = String(explicit || process.env.TEMPERANCE_SURFACE || '').toLowerCase();
+  if (named) return named;
+  if (process.env.GROK_SESSION || process.env.GROK) return 'grok';
+  if (process.env.CLAUDE_PROJECT_DIR || process.env.CLAUDECODE) return 'claude';
+  if (process.env.OPENCODE) return 'opencode';
+  return 'codex';
+}
+
+function pickerTool(surface: PaiSurface): string {
+  return surface === 'grok' ? 'ask_user_question' : 'AskUserQuestion';
+}
+
+function iabLine(surface: PaiSurface, url: string): string[] {
+  if (surface === 'grok') {
+    return [
+      `Grok has no ChatGPT in-app browser. Print this Manifest URL; do not open Chrome/Safari: ${url}`,
+    ];
+  }
+  return [
+    'Open the ChatGPT in-app browser only (Browser plugin, agent.browsers.get("iab")).',
+    'Do not use Chrome, Safari, or an external browser.',
+    `Navigate to: ${url}`,
+  ];
+}
+
+export function formatPaiModeOffer(input: {
+  session_id?: string;
+  project_id?: string;
+  chosen?: PaiSessionMode | null;
+  bound?: PaiSessionMode | null;
+  classifier?: PaiSessionMode | null;
+  surface?: PaiSurface;
+  console_url?: string;
+}): string {
+  const consoleUrl = (input.console_url || process.env.TEMPERANCE_MANIFEST_CONSOLE_URL || 'http://127.0.0.1:5173').replace(/\/$/, '');
+  const project = input.project_id || 'all';
+  const surface = detectPaiSurface(input.surface);
+  const bound = asPaiMode(input.bound);
+  const chosen = asPaiMode(input.chosen);
+  const classifier = asPaiMode(input.classifier);
+  const effective = chosen || bound || (classifier === 'ALGORITHM' || classifier === 'MINIMAL' ? classifier : null);
+  if (effective) {
+    const url = `${consoleUrl}/?project=${encodeURIComponent(project)}&mode=${encodeURIComponent(effective)}`;
+    const why = chosen ? 'session pick' : bound ? `/gsd:* map` : 'classifier auto';
+    return [
+      '<pai-mode-offer>',
+      `Mode ${effective} is already bound (${why}). Do not present a picker. Do not write MINIMAL/NATIVE/ALGORITHM as a chat reply.`,
+      ...iabLine(surface, url),
+      'The LCARS phase strip stays visible in every mode. Clusters/workflows change with the mode.',
+      '</pai-mode-offer>',
+    ].join('\n');
+  }
+  const tool = pickerTool(surface);
+  const url = `${consoleUrl}/?project=${encodeURIComponent(project)}&mode=<MINIMAL|NATIVE|ALGORITHM>`;
+  return [
+    '<pai-mode-offer>',
+    `BEFORE any other work, call the native tool ${tool} once.`,
+    surface === 'grok'
+      ? 'On Grok that is the blocking question card (↑↓, 1-3, Enter). It is not a NOESIS bullet list.'
+      : 'On Codex/Claude/OpenCode that is AskUserQuestion / option tiles — the same windows used for model and permission choices.',
+    'Do not paste the three modes into a chat reply. A reply is not a picker.',
+    'Ask exactly one question. Do not start work until the tool returns.',
+    '',
+    'Question: Which PAI path should this session take?',
+    'Options:',
+    '- MINIMAL — greeting/ack only. Alchemical strip still visible. No skill clusters.',
+    '- NATIVE — one-step via temperance-native. One spoke. te-fast only if needed.',
+    '- ALGORITHM — using-superpowers then /temperance-algorithm. Full cluster + workflow. Phase combos.',
+    '',
+    'AFTER the tool returns, persist that mode and:',
+    ...iabLine(surface, url),
+    '</pai-mode-offer>',
   ].join('\n');
 }

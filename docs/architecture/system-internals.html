@@ -4,38 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Temperance Engine - System Internals</title>
-<style>
-  :root {
-    --data: #4299e1; --processing: #ed8936; --ai: #9f7aea; --success: #48bb78;
-    --private: #718096; --ink: #1a202c; --muted: #4a5568; --line: #e2e8f0;
-  }
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; background: #ffffff; }
-  h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 10px; }
-  h1 small { display: block; font-weight: 400; font-size: 15px; opacity: 0.9; margin-top: 8px; }
-  h2 { border-bottom: 3px solid var(--line); padding-bottom: 8px; }
-  h3 { color: var(--ink); margin-bottom: 4px; }
-  .section { margin: 36px 0; }
-  .callout { background: #fffaf0; border: 1px solid #fbd38d; border-left: 5px solid var(--processing); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
-  .callout.info { background: #ebf8ff; border-color: #90cdf4; border-left-color: var(--data); }
-  .callout strong { color: #9c4221; }
-  .callout.info strong { color: #2c5282; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-  .card { border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; background: #fafafa; }
-  .card h3 { margin-top: 0; font-size: 15px; }
-  .card p { margin: 4px 0; font-size: 13.5px; color: var(--muted); }
-  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 2px 8px; border-radius: 10px; color: white; margin-left: 6px; }
-  .tag.always { background: var(--success); }
-  .tag.gated { background: var(--processing); }
-  .tag.detect { background: var(--ai); }
-  code, pre code { background: #edf2f7; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
-  pre { background: #1a202c; color: #e2e8f0; padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-size: 12.5px; }
-  pre code { background: none; color: inherit; padding: 0; }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 10px 0; }
-  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
-  th { background: #f7fafc; }
-  ul { font-size: 13.5px; color: var(--muted); }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
 </head>
 <body>
 
@@ -43,8 +15,18 @@
   <small>How each installed piece of Temperance Engine actually works, mechanically</small>
 </h1>
 
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="architecture.html">Overview</a>
+  <a href="spine-and-goal.html">Spine + /goal</a>
+  <a href="session-trace.html">Session trace</a>
+  <a href="integration-map.html">Integration map</a>
+  <a class="here" href="system-internals.html">Internals</a>
+  <a href="omniroute-routing.html">OmniRoute</a>
+</nav>
+
 <div class="callout info">
-  <strong>Scope.</strong> This doc is the mechanics reference: exact flags, env vars, file writes, endpoints, and fallback behavior for every script and service in this repo. For the productization narrative and business context, see <code>architecture.html</code>. For how these pieces connect to each other (and where they don't), see <code>integration-map.html</code>.
+  <strong>Scope (updated 2026-08-17).</strong> Mechanics reference for flags, env vars, file writes, endpoints, UPS compose, <code>temperance-goal.mjs</code>, and Pulse/Voice. Overview: <code>architecture.html</code>. Seams: <code>integration-map.html</code>. Spine picture: <code>spine-and-goal.html</code>.
 </div>
 
 <div class="section">
@@ -59,10 +41,13 @@
     <tr><td><code>--with-opencode</code> / <code>--skip-opencode</code></td><td><code>OPENCODE_MODE</code></td><td><code>install</code></td></tr>
     <tr><td><code>--with-cursor</code> / <code>--skip-cursor</code></td><td><code>CURSOR_MODE</code></td><td><code>install</code></td></tr>
     <tr><td><code>--with-gsd</code> / <code>--skip-gsd</code></td><td><code>GSD_MODE</code></td><td><code>skip</code></td></tr>
+    <tr><td><code>--with-manifest</code> / <code>--skip-manifest</code></td><td><code>MANIFEST_MODE</code></td><td><code>skip</code></td></tr>
+    <tr><td><code>--with-spine</code></td><td><code>SPINE_MODE</code> plus Codex + GSD + Manifest + Claude</td><td><code>skip</code></td></tr>
+    <tr><td><code>--with-relay</code> / <code>--skip-relay</code></td><td><code>RELAY_MODE</code></td><td><code>skip</code></td></tr>
     <tr><td><code>--dry-run</code></td><td><code>DRY_RUN</code></td><td><code>0</code></td></tr>
   </table>
 
-  <p>Each var is exported as <code>TEMPERANCE_&lt;X&gt;_MODE</code>, then the following seven scripts run in this exact, fixed order &mdash; unconditionally invoked (each script decides internally whether to act, based on its own mode var):</p>
+  <p><code>--with-spine</code> is the Thoughtseed-member glove. It does not vendor GSD core or copy secrets. Each var is exported as <code>TEMPERANCE_&lt;X&gt;_MODE</code>, then the following scripts run (each script decides internally whether to act):</p>
 
   <pre><code>install-pai.sh            # AGENTS.md always; CLAUDE.md + Pulse server gated on CLAUDE_MODE
 install-skill-clusters.sh # Codex resolver hook, always
@@ -70,6 +55,7 @@ install-peon-ping.sh      # voice detection, gated on VOICE_MODE + macOS
 install-codegraph.sh      # codegraph CLI detection + index init
 install-gsd.sh            # detect-only gsd-core reference, gated on GSD_MODE
 configure-opencode.sh     # OpenCode/Cursor/Codex templates, gated per-surface
+install-spine.sh          # UPS hooks, /gsd:* remotes, Manifest Zone + bridge, product symlink
 verify-install.sh         # runs LAST, always, and fails the whole install if it fails</code></pre>
 </div>
 
@@ -118,7 +104,7 @@ verify-install.sh         # runs LAST, always, and fails the whole install if it
 
 <div class="section">
   <h2>4. Pulse Compatibility Server (<code>compat-server.ts</code>)</h2>
-  <p>A ~65-line Bun HTTP server bound to <code>127.0.0.1:31337</code> (overridable via <code>TEMPERANCE_PULSE_PORT</code>). Two routes:</p>
+  <p>A Bun HTTP server bound to <code>127.0.0.1:31337</code> (overridable via <code>TEMPERANCE_PULSE_PORT</code>). Phase messages play peon-ping. Non-phase messages may forward to Voice <code>:8888</code>. Forward 4xx/5xx classify as <code>tts-auth</code> or <code>tts-failed</code>; Pulse still returns 200. Two routes:</p>
   <table>
     <tr><th>Route</th><th>Behavior</th></tr>
     <tr><td><code>GET /healthz</code></td><td>Returns <code>{ ok: true, compatibility: true, port }</code>.</td></tr>
@@ -200,10 +186,27 @@ verify-install.sh         # runs LAST, always, and fails the whole install if it
   <h3 style="font-size:15px;margin-bottom:6px;margin-top:18px;">package/headless (EC2 shadow runtime)</h3>
   <p>Standalone Node package, zero dependency on the <code>install.sh</code> pipeline. <code>scripts/build-headless-shadow.sh</code> refuses a dirty git tree, runs <code>npm test</code> + <code>standalone:audit</code> (asserts zero network/child_process imports) + <code>standalone:smoke</code> (deterministic decision/artifact digests), then emits a typed build result. <code>scripts/install-headless-shadow-archive.sh</code> verifies the archive SHA-256 and every file manifest entry, creates the nologin <code>temperance-shadow</code> system user if absent, and atomically moves the release into <code>/opt/temperance-headless/releases/&lt;version&gt;-&lt;commit12&gt;</code> &mdash; deliberately no <code>current</code> symlink. Full mechanics: <code>docs/runbooks/ec2-headless-shadow.md</code>.</p>
 
-  <p style="margin-top:14px;">Combo roster, provider lanes, and reconciler signal precedence in full: <a href="omniroute-routing.html">omniroute-routing.html</a>.</p>
+  <p style="margin-top:14px;">Combo roster, provider lanes, and reconciler signal precedence in full: <a href="omniroute-routing.html">omniroute-routing.html</a>. Hourly reconcile stays dry-run so it does not undo the ranked <code>te-dispatch-paid</code> stack.</p>
 </div>
 
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>integration-map.html</code> (seams) &middot; <code>session-trace.html</code> (concrete walkthrough) &middot; <code>omniroute-routing.html</code> (routing mechanics).</p>
+<div class="section">
+  <h2>8. UPS Compose, Manifest Zone, and <code>temperance-goal.mjs</code></h2>
+  <h3>PromptProcessing.hook.ts</h3>
+  <p>Resolves <code>engineRoot</code> from <code>TEMPERANCE_ENGINE_ROOT</code> or the product symlink. Emits one <code>additionalContext</code>: classifier + <code>&lt;temperance-rail&gt;</code> + <code>&lt;gsd-rail&gt;</code> + <code>&lt;pai-mode-offer&gt;</code> + hook.receipt. Parses <code>/goal</code> as command name <code>goal</code> (TE-only, like doctor). Other Codex hooks use <code>import.meta.main</code> and must not steal stdin.</p>
+  <h3>install-spine.sh + gsd-command-install.mjs</h3>
+  <p>Copies router SoT to <code>~/.temperance_engine/router</code>, installs <code>/gsd:*</code> remotes (including <code>/gsd:goal</code>), points <code>~/.temperance_engine/product</code> at this clone, and starts Manifest LaunchAgents.</p>
+  <h3>temperance-goal.mjs</h3>
+  <pre><code>temperance-goal --cwd DIR              # print active goal
+temperance-goal --cwd DIR --ensure     # write from ISA Goal or GSD STATE
+temperance-goal --cwd DIR --set TEXT   # set completion condition
+temperance-goal --cwd DIR --eval       # run listed probes
+temperance-goal --cwd DIR --json</code></pre>
+  <p>Schema <code>temperance.goal.v1</code>. Evaluator reuses doctor/ISA probes. Posts <code>goal.set</code> / <code>goal.tick</code> to the Manifest bridge so the GOAL card updates.</p>
+  <h3>temperance-next-wave.mjs</h3>
+  <p>Writes the dual-fleet lock under <code>~/.temperance_engine/state/fleet-locks/</code>. A second <code>gsd-executor</code> swarm on the same <code>[P]</code> ids is forbidden while the lock is active (&lt;2h).</p>
+</div>
+
+<p style="color:#6f7d7e; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>spine-and-goal.html</code> (picker /goal) &middot; <code>integration-map.html</code> (seams) &middot; <code>session-trace.html</code> (concrete walkthrough) &middot; <code>omniroute-routing.html</code> (routing mechanics).</p>
 
 </body>
 </html>

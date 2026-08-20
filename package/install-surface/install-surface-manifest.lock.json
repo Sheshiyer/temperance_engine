@@ -1,0 +1,675 @@
+{
+  "records": [
+    {
+      "authority": {
+        "isa": "ISC-772",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-07"
+        ]
+      },
+      "class": "NEVER-SHIP",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "exclusions/native-sessions",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": false
+      },
+      "id": "boundary.native-sessions",
+      "owner": "operator-private-boundary",
+      "rollback": {
+        "policy": "none-private"
+      },
+      "verification": {
+        "method": "symbolic-exclusion"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-772",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-07"
+        ]
+      },
+      "class": "NEVER-SHIP",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "exclusions/operator-evidence",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": false
+      },
+      "id": "boundary.operator-evidence",
+      "owner": "operator-private-boundary",
+      "rollback": {
+        "policy": "none-private"
+      },
+      "verification": {
+        "method": "symbolic-exclusion"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-772",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-07"
+        ]
+      },
+      "class": "NEVER-SHIP",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "exclusions/personal-substrate",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": false
+      },
+      "id": "boundary.personal-substrate",
+      "owner": "operator-private-boundary",
+      "rollback": {
+        "policy": "none-private"
+      },
+      "verification": {
+        "method": "symbolic-exclusion"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-772",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-07"
+        ]
+      },
+      "class": "NEVER-SHIP",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "exclusions/provider-authority",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": false
+      },
+      "id": "boundary.provider-authority",
+      "owner": "operator-private-boundary",
+      "rollback": {
+        "policy": "none-private"
+      },
+      "verification": {
+        "method": "symbolic-exclusion"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-772",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-07"
+        ]
+      },
+      "class": "NEVER-SHIP",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "exclusions/runtime-datastores",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux",
+          "win32"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": false
+      },
+      "id": "boundary.runtime-datastores",
+      "owner": "operator-private-boundary",
+      "rollback": {
+        "policy": "none-private"
+      },
+      "verification": {
+        "method": "symbolic-exclusion"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-770",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-05",
+          "PROV-07"
+        ]
+      },
+      "class": "TRANSFORM",
+      "destination": {
+        "ownership": {
+          "kind": "managed-block",
+          "marker_id": "temperance-engine"
+        },
+        "relative_path": "AGENTS.md",
+        "root_token": "CODEX_HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "configuration.codex-managed-block",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "templates/codex.AGENTS.md",
+      "verification": {
+        "adapter_id": "managed-template-v1",
+        "method": "adapter"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "runtime/enrichment",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "enrichment.public-pipeline",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/enrich",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "hooks/PromptProcessing.hook.ts",
+        "root_token": "CLAUDE_CONFIG_DIR"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "hooks.claude.prompt-processing",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/hooks/claude/PromptProcessing.hook.ts",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "hooks/GSDCommand.hook.ts",
+        "root_token": "CODEX_HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "hooks.codex.gsd-command",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/hooks/codex/GSDCommand.hook.ts",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "hooks/PromptProcessing.hook.ts",
+        "root_token": "CODEX_HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "hooks.codex.prompt-processing",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/hooks/codex/PromptProcessing.hook.ts",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "hooks/SessionStart.hook.ts",
+        "root_token": "CODEX_HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "hooks.codex.session-start",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/hooks/codex/SessionStart.hook.ts",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "runtime/manifest-bridge",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "manifest.bridge-runtime",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/manifest-bridge",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-771",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-05",
+          "PROV-07"
+        ]
+      },
+      "class": "REGENERATE",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "state/manifest-zone.json",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": false
+      },
+      "id": "manifest.zone-project-state",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "regenerate"
+      },
+      "verification": {
+        "generator_id": "manifest-zone-v1",
+        "method": "semantic-probe"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "router",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "router.governed-runtime",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/router",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": ".agents/skills/temperance-algorithm",
+        "root_token": "HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "skills.temperance-algorithm",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "skills/temperance-algorithm",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": ".agents/skills/temperance-engine",
+        "root_token": "HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "skills.temperance-engine",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "skills/temperance-engine",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": ".agents/skills/temperance-native",
+        "root_token": "HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "skills.temperance-native",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "skills/temperance-native",
+      "verification": {
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": ".agents/skills/temperance-parallel-dispatch",
+        "root_token": "HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "skills.temperance-parallel-dispatch",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "skills/temperance-parallel-dispatch",
+      "verification": {
+        "method": "sha256"
+      }
+    }
+  ],
+  "schema": "temperance.install-surface.lock.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1",
+  "version": {
+    "major": 1,
+    "minor": 0
+  }
+}

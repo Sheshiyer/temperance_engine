@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSD + Manifest spine — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Spine · member glove</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>GSD + Manifest spine</h1>
+<p>This is the Thoughtseed-member glove. Public <code>./install.sh</code> stays OpenCode/Cursor-first. Members run:</p>
+<pre><code>./install.sh --with-spine
+./verify.sh
+temperance-project-init --cwd . --check   # same probe as /gsd:doctor</code></pre>
+<h2>What you get</h2>
+<table>
+<tr><th>Piece</th><th>Where</th><th>Role</th></tr>
+<tr><td><code>/gsd:*</code> wrappers</td><td><code>~/.codex/prompts</code>, <code>~/.config/opencode/command</code>, <code>~/.grok/commands</code></td><td>Thin remotes. They read GSD 1.30.0 workflows. They do not fork GSD.</td></tr>
+<tr><td><code>/gsd:doctor</code></td><td>same</td><td>Host + project truth: Pulse, bridge, bind, IAB pref, STATE, ISA, <code>active_planner</code>, ranker age</td></tr>
+<tr><td>UPS compose</td><td><code>package/hooks/codex/PromptProcessing.hook.ts</code></td><td>One <code>additionalContext</code>: classifier + <code>&lt;temperance-rail&gt;</code> + <code>&lt;gsd-rail&gt;</code> + <code>&lt;pai-mode-offer&gt;</code></td></tr>
+<tr><td>Session start</td><td><code>SessionStartTe.hook.ts</code></td><td>If <code>.planning/</code> exists, prefer <code>/gsd:progress</code></td></tr>
+<tr><td>Manifest LCARS</td><td><code>package/manifest-zone</code> on <code>:5173</code></td><td>Projection only. Live STATE/ROADMAP. <code>?view=</code> history.</td></tr>
+<tr><td>Manifest bridge</td><td><code>package/manifest-bridge</code> on <code>:8766</code></td><td>Event plane. Heartbeat + 180s stale window.</td></tr>
+<tr><td>Product symlink</td><td><code>~/.temperance_engine/product</code></td><td>Always this clone. Scripts must not read the vault archive.</td></tr>
+</table>
+<h2>Picker, then IAB</h2>
+<p>1. If the session has no PAI mode, show the <strong>native</strong> Codex/OpenCode option tiles (MINIMAL / NATIVE / ALGORITHM).</p>
+<p>2. After the pick, open ChatGPT <strong>in-app browser</strong> only: <code>http://127.0.0.1:5173/?mode=…&amp;view=…</code>.</p>
+<p>3. Never Chrome, Safari, or an external browser for Manifest.</p>
+<p>Every mode still shows the seven alchemical steps. Skill clusters and workflows change with the mode.</p>
+<h2>Active planner</h2>
+<p><code>.temperance/project.json</code> should set <code>active_planner</code> to <code>isa</code> or <code>gsd</code>. Cambium uses <code>isa</code> because GSD v0.3 is a closed historical milestone — next command is <code>/gsd:complete-milestone</code>, not <code>/gsd:execute-phase</code>.</p>
+<h2><code>/goal</code> session loop</h2>
+<p><code>/gsd:goal</code> (and Claude native <code>/goal</code>) wraps execute until named probes pass. See <a href="gsd-goal-handoff.md">gsd-goal-handoff.md</a>. It does not replace GSD or next-wave.</p>
+<h2>Dual-fleet lock</h2>
+<p><code>/gsd:execute-phase</code> writes <code>~/.temperance_engine/state/fleet-locks/&lt;cwd-hash&gt;.json</code> when next-wave emits tasks. A second <code>gsd-executor</code> swarm on the same <code>[P]</code> ids is forbidden while the lock is active (&lt;2h).</p>
+<h2>What install never does</h2>
+<ul>
+<li>Vendor GSD core</li>
+<li>Copy API keys or TOML secrets</li>
+<li><code>--apply</code> OmniRoute combos</li>
+<li>Bind OmniRoute to LAN (doctor prints bind; loopback is the member default)</li>
+<li>Make Sol a fleet head</li>
+</ul>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

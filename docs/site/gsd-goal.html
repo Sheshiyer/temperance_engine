@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>/goal handoff — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Spine · session loop</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1><code>/goal</code> handoff</h1>
+<p>Claude Code <code>/goal</code> is a <strong>session loop</strong>: a completion condition plus an independent evaluator. It is not a planner.</p>
+<p>Temperance uses it to <em>finish</em> the spine you already have.</p>
+<pre><code>picker → GSD / writing-plans → next-wave (approval) → te-dispatch-paid
+       → /gsd:verify-phase + ISA probes
+       → /goal evaluator (same probes)</code></pre>
+<h2>Commands</h2>
+<table>
+<tr><th>Surface</th><th>Command</th></tr>
+<tr><td>Codex / OpenCode / Grok</td><td><code>/gsd:goal</code> or <code>/goal</code></td></tr>
+<tr><td>Claude Code</td><td>native <code>/goal</code> <strong>and</strong> the same text in <code>.temperance/goal.json</code></td></tr>
+<tr><td>CLI</td><td>`node ~/.temperance_engine/router/temperance-goal.mjs --cwd . --ensure\</td><td>--eval`</td></tr>
+</table>
+<h2>Contract file</h2>
+<p>Project-local <code>.temperance/goal.json</code> (<code>temperance.goal.v1</code>).</p>
+<ul>
+<li><strong>text</strong> comes from ISA <code>## Goal</code> when <code>active_planner=isa</code>, else GSD STATE.</li>
+<li><strong>evaluator</strong> probes must be the same checks VERIFY already uses. No second judge.</li>
+<li><strong>gsd_command</strong> is the next <code>/gsd:*</code> (plan / execute / complete-milestone).</li>
+<li>Execute still needs a next-wave <strong>approval</strong> and the existing fleet lock.</li>
+</ul>
+<h2>What <code>/goal</code> must not do</h2>
+<ul>
+<li>Fork GSD</li>
+<li>Auto-approve or auto-dispatch <code>temperance-batch</code></li>
+<li>Spawn a second <code>gsd-executor</code> swarm</li>
+<li>Approve from Manifest Zone</li>
+</ul>
+<h2>Swarm-architect</h2>
+<p>using-superpowers names <code>swarm-architect</code> for large-plan split. If that skill is not installed, use <code>writing-plans</code> or <code>/gsd:plan-phase</code>. Those write the plan. <code>/goal</code> only loops execute until the evaluator passes.</p>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

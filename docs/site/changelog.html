@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Changelog — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Root · what landed</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>Changelog</h1>
+<h2>Unreleased</h2>
+<ul>
+<li>Release-control plane: <code>VERSION</code>, <code>docs/release-control.md</code>, <code>docs/COMPATIBILITY.md</code>, organ maps (<code>docs/OWNERS.md</code>, <code>docs/ECOSYSTEM.md</code>). Host runtime has matching <code>~/.temperance_engine/VERSION</code> and <code>CHANGELOG.md</code>. OmniRoute stays independently versioned and pinned at 3.8.48.</li>
+<li>Refreshed the architecture visual set (2026-08-17): <code>docs/architecture/architecture.html</code>, new <code>spine-and-goal.html</code>, rewritten <code>session-trace.html</code>, updated integration-map/system-internals, SERVICES, DEPENDENCY-GRAPH, and <code>notebooklm-prompt.md</code>. Pictures now show <code>--with-spine</code>, Manifest Zone, picker-before-IAB, <code>/gsd:goal</code>, and the dual-fleet lock.</li>
+<li>Added <code>/gsd:goal</code> (and <code>/goal</code>) as the portable session loop around GSD + next-wave + te-dispatch-paid. Writes <code>.temperance/goal.json</code>; evaluator reuses doctor/ISA probes. Does not auto-dispatch or fork GSD. See <code>docs/gsd-goal-handoff.md</code>.</li>
+<li>Folded the live Mac Mini operator spine into the installer: <code>--with-spine</code> installs Codex UPS compose (picker-before-IAB), <code>/gsd:*</code> wrappers including <code>/gsd:doctor</code>, Manifest LCARS (<code>package/manifest-zone</code>) + bridge, Pulse <code>tts-auth</code> class, product symlink, and router SoT copy. GSD core is still not vendored. Secrets are never copied.</li>
+<li>Added <code>docs/gsd-manifest-spine.md</code> and live doctor probes (<code>active_planner</code>, OmniRoute bind, IAB pref, ranker age).</li>
+<li>Added <code>docs/parallel-dispatch.md</code>, an advisory <code>ParallelDispatchContext.hook.sh</code>, and an opt-in <code>--with-gsd</code> reference flag (default off, no vendoring).</li>
+<li>Generated <code>docs/architecture/architecture.html</code>, the visual architecture diagram showing Temperance Engine as a productized extraction of the author&#x27;s live PAI + GSD + superpowers + CodeGraph + peon-ping runtime.</li>
+<li>Added three deep-dive architecture docs: <code>system-internals.html</code> (per-component mechanics), <code>integration-map.html</code> (which seams are real code paths vs. reference-only), and <code>session-trace.html</code> (a concrete install-to-session walkthrough).</li>
+<li>Decided Temperance Engine owns exactly one preference store (<code>ISA.md</code>); GSD config and PAI steering/memory stay fully external. Dropped the separate precedence-rule doc in favor of the decision itself, recorded in <code>ISA.md</code>, plus a read-only <code>config.json</code> display read in <code>ParallelDispatchContext.hook.sh</code> (structurally enforced, no write path).</li>
+<li>Added explicit credits for Personal AI Infrastructure, CodeGraph, and peon-ping.</li>
+<li>Added full system-flow architecture diagram and Thoughtseed Labs attribution to README.</li>
+<li>Added skills.sh-facing skill card and metadata.</li>
+<li>Added generated banner and icon assets.</li>
+<li>Added upstream link map and expanded credits.</li>
+<li>Added GitHub Actions verification workflow.</li>
+</ul>
+<h2>0.1.0</h2>
+<ul>
+<li>Initial public installer package for Temperance Engine.</li>
+<li>Added backup-first install scripts, verifier, rollback docs, PAI templates, Pulse compatibility server, skill resolver shim, and CodeGraph routing guidance.</li>
+</ul>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

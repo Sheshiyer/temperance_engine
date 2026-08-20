@@ -13,13 +13,20 @@ bun run src/cli.ts init --cwd /path/to/project
 bun run src/cli.ts sync --cwd /path/to/project
 bun run src/cli.ts serve --all
 
+# Stable installed entrypoint (wired by scripts/wire-multi-backend.sh)
+temperance-manifest doctor --json
+temperance-manifest codegraph --cwd /path/to/project
+temperance-manifest omniroute --cwd /path/to/project
+temperance-manifest sync --cwd /path/to/project --codegraph
+temperance-manifest sync --cwd /path/to/project --gsd --skill-clusters
+
 # Or install the supervised, loopback-only service (recommended for PAI hooks):
 cd /path/to/temperance_engine
 bash scripts/temperance-manifest-bridge-launchd.sh install
 bash scripts/temperance-manifest-bridge-launchd.sh status
 
 # In a second terminal:
-cd /path/to/manifest-skill-137/visual-pcb
+cd /path/to/manifest-skill-137/manifest-zone
 VITE_MANIFEST_BRIDGE_URL=http://127.0.0.1:8766 npm run dev -- --host 127.0.0.1
 ```
 
@@ -34,10 +41,18 @@ The default local endpoints are:
 - `GET http://127.0.0.1:8766/snapshot?project_id=all` — aggregate projection
 - `GET http://127.0.0.1:8766/events?project_id=<id>` — filtered initial snapshot and events
 - `GET http://127.0.0.1:8766/events?project_id=all` — aggregate initial snapshot and events
+- `GET http://127.0.0.1:8766/projects/:id/capabilities` — project-scoped skill/provider readiness
+- `GET http://127.0.0.1:8766/projects/:id/workflows/product-guide-production/requests` — resolved clusters, workflow stages, and trigger gates
+- `POST http://127.0.0.1:8766/projects/:id/workflows/product-guide-production/requests` — request a bounded run after an existing approval receipt; request-only and idempotent
 - `POST http://127.0.0.1:8766/events` — normalized, redacted event ingestion
 - `GET http://127.0.0.1:8766/health`
 
 The append-only logs default to `~/.temperance_engine/state/manifest/projects/<project_id>/events.jsonl`. Legacy unscoped events remain at `events.jsonl`. Set `TEMPERANCE_MANIFEST_STATE_DIR` to override the host state root.
+
+The capabilities projection is intentionally read-only. It describes the
+active `product-guides` cluster, local capture prerequisites, optional
+voiceover, and host-owned OmniRoute readiness without returning secret names or
+values. Execution remains explicit-approval gated.
 
 ### Runtime ownership and visible receipts
 
@@ -102,7 +117,7 @@ bash scripts/temperance-manifest-console-launchd.sh status
 ```
 
 The console root defaults to
-`~/.temperance_engine/integrations/manifest-skill-137/visual-pcb`; override it
+`~/.temperance_engine/integrations/manifest-skill-137/manifest-zone`; override it
 with `MANIFEST_CONSOLE_ROOT` when the cluster is checked out elsewhere. The
 doctor treats the console as required and reports `console-health` plus
 `console-launchd` separately from the bridge checks.
@@ -152,6 +167,23 @@ do not match the seven Algorithm phases remain in `phase_label` instead of
 being rejected. A running bridge replays external project-log syncs on
 snapshot reads and forwards newly observed events to matching SSE clients.
 
+`codegraph --cwd <repo>` records a read-only CodeGraph health projection. It
+never reindexes by default; pass `--sync` only when the operator explicitly
+requests synchronization. `sync --codegraph` enables the same bounded health
+probe during an explicit project sync. Unavailable CodeGraph remains visible
+as unavailable and never blocks the bridge.
+
+`sync --gsd` observes only bounded fingerprints for `.planning/STATE.md`,
+`.planning/ROADMAP.md`, and `.continue-here.md`; it never invokes a GSD
+command, parses prompt content, or changes planning files. `--skill-clusters`
+reads the canonical `skill-index.json` as health evidence only; deferred and
+archived entries are never activated. Both adapters are opt-in so normal
+bridge watching stays lightweight.
+
+`omniroute --cwd <repo>` records a secret-free gateway reachability receipt as
+an observed route projection. A protected `401` is represented as reachable
+and auth-protected; no credentials or provider payloads are read.
+
 ## Emit a fixture
 
 ```bash
@@ -187,7 +219,7 @@ failure path exits successfully so agent execution is never coupled to the UI.
 
 ## Visual-client handoff
 
-`visual-pcb` loads `/snapshot`, subscribes to named `snapshot` and `manifest`
+`manifest-zone` loads `/snapshot`, subscribes to named `snapshot` and `manifest`
 SSE events, and renders live/stale/offline provenance. It has no seeded runtime
 state or simulation controls: empty telemetry stays visibly empty. Configure the
 bridge with `VITE_MANIFEST_BRIDGE_URL`; no OmniRoute credentials are sent to the

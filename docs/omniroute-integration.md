@@ -1,5 +1,7 @@
 # OmniRoute-Inspired Routing Policy
 
+Status: **provenance**. Live operator guide is [`omniroute-runtime.md`](omniroute-runtime.md). Visual: [`architecture/omniroute-routing.html`](architecture/omniroute-routing.html). Do not delete this file — tests pin the commit hash and REUSE/ADAPT/REJECT matrix.
+
 Temperance adapts a small set of routing and resilience ideas from
 [diegosouzapw/OmniRoute](https://github.com/diegosouzapw/OmniRoute). The review
 was pinned to commit `c1bdd91e7b9681e1056c4883b3e26cd0d416108b` (2026-07-20).

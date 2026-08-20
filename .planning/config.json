@@ -1,7 +1,7 @@
 {
   "project": "temperance_engine",
-  "active_milestone": "full-native-integration-completion-audit",
-  "active_phase": "learn",
+  "active_milestone": "public-temperance-glove",
+  "active_phase": "planning",
   "completed_milestones": [
     "hermes-secretless-discovery-hardening",
     "omniroute-cloudflare-production-boundary",
