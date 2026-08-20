@@ -170,9 +170,10 @@ control('PostgreSQL swarm control ledger', () => {
   });
 
   test('rejects conflicting approval-id reuse and permits byte-equivalent idempotency', async () => {
-    await ledger.recordApproval(approval({ approval_id: 'apr-duplicate' }));
-    await expect(ledger.recordApproval(approval({ approval_id: 'apr-duplicate', git_head: 'different-head' }))).rejects.toThrow('approval_conflict');
-    await expect(ledger.recordApproval(approval({ approval_id: 'apr-duplicate' }))).resolves.toBeUndefined();
+    const original = approval({ approval_id: 'apr-duplicate' });
+    await ledger.recordApproval(original);
+    await expect(ledger.recordApproval({ ...original, git_head: 'different-head' })).rejects.toThrow('approval_conflict');
+    await expect(ledger.recordApproval({ ...original })).resolves.toBeUndefined();
     expect(Number((await pool.query("SELECT count(*)::int AS count FROM temperance_swarm_approvals WHERE approval_id = 'apr-duplicate'")).rows[0].count)).toBe(1);
   });
 
