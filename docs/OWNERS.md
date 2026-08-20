@@ -12,8 +12,9 @@ This is the glove copy of the host owner table. Host live wiring: `~/.temperance
 | Repo planning / execute | **Opus** / GSD `.planning/` (do not fork 1.42.3) | `/gsd:*` wrappers, next-wave |
 | Algorithm acceptance ledger | ISA (`ISA.md` or `MEMORY/WORK/*/ISA.md`) | Algorithm OBSERVE/VERIFY |
 | Session goal loop | `/gsd:goal` → `.temperance/goal.json` | Not a third planner |
-| Event projection | **Vas** `:8766` / **Speculum** `:5173` | Hooks post; Speculum does not plan |
-| Phase furnace | **Athanor** `:31337` (Pulse) | peon packs; non-phase → **Vox** `:8888` |
+| Event projection | **Vas** (`vas.localhost` / `:8766`) | Speculum glass only |
+| Glass | **Speculum** (`speculum.localhost` / IAB `:5173`) | Does not plan |
+| Phase furnace | **Athanor** (`athanor.localhost` / `:31337`) | peon packs; non-phase → **Vox** `:8888` |
 | Human book | **Liber** (GitHub Project) | Speculum showcases; Liber is the board |
 | File/bash guard | SecurityPipeline (v5) + ContainmentGuard | SecurityValidator stays **Read-only** |
 | Hook bells | **Campana** (peon-ping) | — |

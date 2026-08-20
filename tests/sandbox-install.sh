@@ -57,6 +57,8 @@ for rel in \
   ".claude/PAI/router/classify-task.sh" \
   ".claude/hooks/PromptProcessing.hook.ts" \
   ".codex/hooks/PromptProcessing.hook.ts" \
+  ".codex/hooks/GsdCommand.hook.ts" \
+  ".codex/prompts/gsd-doctor.md" \
   ".local/bin/temperance-route" \
   ".local/bin/temperance-dispatch" \
   ".local/bin/temperance-batch" \

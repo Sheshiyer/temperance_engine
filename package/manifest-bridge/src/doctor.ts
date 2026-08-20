@@ -129,6 +129,19 @@ function checkHooks(home: string, checks: DoctorCheck[]): void {
   add(checks, 'prompt-hooks', ready ? (missing ? 'warn' : 'pass') : 'warn', ready ? 'Installed PromptProcessing hook(s) inject a Manifest runtime receipt.' : 'No installed PromptProcessing hook injects a Manifest runtime receipt.', { ready, missing });
 }
 
+function checkCanonicalSource(home: string, checks: DoctorCheck[]): void {
+  const expectedCli = join(import.meta.dir, 'cli.ts');
+  const plist = join(home, 'Library', 'LaunchAgents', 'com.temperance.engine.manifest-bridge.plist');
+  if (!existsSync(plist)) {
+    add(checks, 'bridge-source', 'warn', 'Manifest bridge LaunchAgent source cannot be compared because its plist is absent.', { expected_cli: expectedCli, plist });
+    return;
+  }
+  try {
+    const launchdSource = readFileSync(plist, 'utf8').includes(expectedCli);
+    add(checks, 'bridge-source', launchdSource ? 'pass' : 'fail', launchdSource ? 'LaunchAgent points at the canonical bridge source.' : 'LaunchAgent points at a different bridge copy; runtime/source parity is unsafe.', { expected_cli: expectedCli, plist });
+  } catch { add(checks, 'bridge-source', 'warn', 'Manifest bridge LaunchAgent plist could not be read.', { expected_cli: expectedCli, plist }); }
+}
+
 function checkLaunchd(platform: NodeJS.Platform, checks: DoctorCheck[], id: 'bridge' | 'console', label: string): void {
   if (platform !== 'darwin') { add(checks, `${id}-launchd`, 'warn', 'launchd check is macOS-only.', { platform }); return; }
   try {
@@ -162,6 +175,7 @@ export async function runManifestDoctor(options: DoctorOptions): Promise<DoctorR
   checkLaunchd(options.platform || process.platform, checks, 'bridge', 'com.temperance.engine.manifest-bridge');
   checkLaunchd(options.platform || process.platform, checks, 'console', 'com.temperance.engine.manifest-console');
   checkHooks(options.home || homedir(), checks);
+  checkCanonicalSource(options.home || homedir(), checks);
   const overall: DoctorStatus = checks.some((check) => check.status === 'fail') ? 'fail' : checks.some((check) => check.status === 'warn') ? 'warn' : 'pass';
   const report: DoctorReport = { schema: 'temperance.manifest.doctor.v1', generated_at: new Date().toISOString(), overall, exit_code: overall === 'fail' ? 2 : 0, state_dir: root, bridge_url: bridgeUrl.replace(/\/$/, ''), checks };
   return report;

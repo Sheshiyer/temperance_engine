@@ -1,5 +1,10 @@
 # Temperance Engine OpenCode Guidance
 
+<!-- temperance:mode-bind:start -->
+`/gsd:*` already binds a PAI mode. Do not write a NOESIS quiz of MINIMAL / NATIVE / ALGORITHM.
+A real picker is only `ask_user_question` (Grok) or `AskUserQuestion` (Codex/Claude) on a **bare first prompt with no saved mode**. After `/gsd:goal` or a session pick, go straight to the work.
+<!-- temperance:mode-bind:end -->
+
 First visible line for PAI-formatted responses: `NOESIS`.
 
 Use CodeGraph for structural search in `$HOME/.agents` and avoid Augment/codebase-retrieval for home-directory or `.agents` trees.

@@ -5,7 +5,7 @@ const SECRET_KEY = /(api[_-]?key|authorization|bearer|cookie|password|passwd|sec
 const MAX_STRING = 500;
 const MAX_DEPTH = 5;
 const VALID_PHASES = new Set<AlgorithmPhase>(['OBSERVE', 'THINK', 'PLAN', 'BUILD', 'EXECUTE', 'VERIFY', 'LEARN']);
-const VALID_SOURCES = new Set<EventSource>(['pai-hook', 'temperance-router', 'omniroute', 'project-artifact', 'manifest']);
+const VALID_SOURCES = new Set<EventSource>(['pai-hook', 'temperance-router', 'omniroute', 'project-artifact', 'codegraph', 'manifest']);
 const VALID_STATUS = new Set<EventStatus>(['observed', 'derived', 'synthetic', 'stale', 'failed']);
 
 export function isRecord(value: unknown): value is Record<string, unknown> {

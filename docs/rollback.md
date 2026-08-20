@@ -34,6 +34,22 @@ if [ -f "$HOME/.claude/PAI/PULSE/compat-server.pid" ]; then
 fi
 ```
 
+## Unhook the member spine
+
+```bash
+# stop Manifest
+launchctl bootout "gui/$(id -u)/com.temperance.engine.manifest-console" 2>/dev/null || true
+launchctl bootout "gui/$(id -u)/com.temperance.engine.manifest-bridge" 2>/dev/null || true
+
+# wrappers
+node package/router/gsd-command-install.mjs --uninstall
+
+# Codex hooks were backup-first; restore from
+# $HOME/.temperance_engine/backups/<timestamp>/
+```
+
+`--with-spine` never wrote OmniRoute keys. Do not restore TOML backups that contain plaintext secrets.
+
 ## Restart Apps
 
 After rollback, restart OpenCode and Cursor sessions so they reload instruction surfaces. Restart Claude or Codex only if those optional templates were installed.

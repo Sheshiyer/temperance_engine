@@ -4,100 +4,89 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Temperance Engine - Session Trace</title>
-<style>
-  :root {
-    --data: #4299e1; --processing: #ed8936; --ai: #9f7aea; --success: #48bb78;
-    --private: #718096; --ink: #1a202c; --muted: #4a5568; --line: #e2e8f0;
-  }
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--ink); line-height: 1.5; background: #ffffff; }
-  h1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 10px; }
-  h1 small { display: block; font-weight: 400; font-size: 15px; opacity: 0.9; margin-top: 8px; }
-  h2 { border-bottom: 3px solid var(--line); padding-bottom: 8px; }
-  .section { margin: 36px 0; }
-  .callout { background: #fffaf0; border: 1px solid #fbd38d; border-left: 5px solid var(--processing); border-radius: 8px; padding: 18px 22px; margin: 18px 0; }
-  .callout strong { color: #9c4221; }
-  .steps { list-style: none; padding: 0; counter-reset: step; }
-  .steps li { counter-increment: step; position: relative; padding: 12px 12px 12px 52px; margin: 8px 0; border: 1px solid var(--line); border-radius: 8px; background: #fafafa; }
-  .steps li::before { content: counter(step); position: absolute; left: 12px; top: 12px; width: 26px; height: 26px; border-radius: 50%; background: var(--data); color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-  .steps.phase li::before { background: var(--ai); }
-  .steps li b { display: block; margin-bottom: 3px; }
-  .steps li span.detail { font-size: 13px; color: var(--muted); }
-  .phase-pill { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 10px; color: white; background: var(--ai); margin-left: 6px; }
-  code { background: #edf2f7; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
-  pre { background: #1a202c; color: #e2e8f0; padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-size: 12.5px; }
-  pre code { background: none; color: inherit; padding: 0; }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 10px 0; }
-  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
-  th { background: #f7fafc; }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
 </head>
 <body>
 
 <h1>Session Trace
-  <small>One concrete walkthrough, from installer flags to a finished Execute phase</small>
+  <small>One concrete walkthrough: ./install.sh --with-spine through picker, Manifest Zone, /gsd:goal</small>
 </h1>
 
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="architecture.html">Overview</a>
+  <a href="spine-and-goal.html">Spine + /goal</a>
+  <a class="here" href="session-trace.html">Session trace</a>
+  <a href="integration-map.html">Integration map</a>
+  <a href="system-internals.html">Internals</a>
+  <a href="omniroute-routing.html">OmniRoute</a>
+</nav>
+
 <div class="callout">
-  <strong>Worked example.</strong> This traces a single real invocation: <code>./install.sh --with-claude --with-gsd --with-voice</code>, followed by one live session that reaches the Execute-phase decision point. gsd-core is the recommended-default backbone but is never vendored by this installer &mdash; <code>--with-gsd</code> is detect-only. Part B traces the full-backbone path (gsd-core present); Part C's first row traces the degrade-gracefully path (gsd-core absent &rarr; superpowers chain). Every step cites the exact file/function from <code>system-internals.html</code>; the authoritative decision doc is <code>pai-flow.md</code>.
+  <strong>Worked example, 2026-08-17.</strong> This replaces the July <code>--with-claude --with-gsd --with-voice</code> trace. The member path is now one flag. GSD core is still not vendored. Manifest is ChatGPT in-app browser only.
 </div>
 
 <div class="section">
-  <h2>Part A &mdash; Install</h2>
+  <h2>Part A — Install <code>./install.sh --with-spine</code></h2>
   <ol class="steps">
-    <li><b>Flags parsed.</b> <span class="detail"><code>CLAUDE_MODE=install</code>, <code>GSD_MODE=install</code>, <code>VOICE_MODE=force</code> (force needed unless on macOS); all others stay at their defaults (OpenCode/Cursor install, Codex skip).</span></li>
-    <li><b>install-pai.sh runs.</b> <span class="detail"><code>$HOME/AGENTS.md</code> written. Because <code>CLAUDE_MODE=install</code>: <code>$PAI_HOME/PAI/PULSE</code> and <code>$PAI_HOME/hooks</code> created, <code>CLAUDE.md.template</code> and <code>compat-server.ts</code> copied in (each preceded by a timestamped backup of anything already at that path). If <code>bun</code> exists, any stale <code>compat-server.pid</code> process is killed and a fresh server is spawned on <code>:31337</code>.</span></li>
-    <li><b>install-skill-clusters.sh runs.</b> <span class="detail"><code>skill_cluster_resolver.mjs</code> copied to <code>$CODEX_HOME/hooks/</code> unconditionally. If <code>$AGENTS_HOME/skill-clusters/package.json</code> exists, the three verification commands are printed as a hint.</span></li>
-    <li><b>install-peon-ping.sh runs.</b> <span class="detail">Not skipped (voice forced). Checks <code>$PAI_HOME/hooks/peon-ping/peon.sh</code> is executable. If it isn't yet (peon-ping wasn't installed separately), prints guidance and exits 0 &mdash; the install continues either way.</span></li>
-    <li><b>install-codegraph.sh runs.</b> <span class="detail">If <code>$AGENTS_HOME</code> exists and <code>codegraph</code> is on <code>PATH</code>, runs <code>codegraph init -i</code> once (skipped if <code>.codegraph</code> already present).</span></li>
-    <li><b>install-gsd.sh runs.</b> <span class="detail"><code>GSD_MODE=install</code>, so it checks for <code>gsd-core</code> (<code>open-gsd/gsd-core</code>, installed via <code>npx @opengsd/gsd-core@latest</code>). On this machine it's present &rarr; prints "gsd-core detected" + a pointer to <code>pai-flow.md</code>'s Execute row. Still detect-only: <code>--with-gsd</code> never vendors gsd-core itself. Zero files written. (The legacy <code>$HOME/.claude/get-shit-done</code> path is deprecated &mdash; install-gsd.sh no longer looks there first.)</span></li>
-    <li><b>configure-opencode.sh runs.</b> <span class="detail">OpenCode and Cursor templates land in their default locations; Codex is skipped (not requested).</span></li>
-    <li><b>verify-install.sh runs.</b> <span class="detail">All 21 required files present, all shell scripts lint clean, no private paths found, all content assertions pass &rarr; <code>Temperance Engine verification passed</code>. If any check had failed, <code>install.sh</code> would exit non-zero here &mdash; nothing after this point would print.</span></li>
-    <li><b>Install flow complete.</b> <span class="detail">User is told to restart OpenCode/Cursor to reload instruction surfaces (Claude/Codex only if those optional surfaces were touched).</span></li>
+    <li><b>Alias expands.</b> <span class="detail"><code>SPINE_MODE=install</code> forces <code>CODEX_MODE</code>, <code>GSD_MODE</code>, <code>MANIFEST_MODE</code>, and <code>CLAUDE_MODE</code> to install. OpenCode/Cursor stay on their defaults.</span></li>
+    <li><b>Public surfaces still run.</b> <span class="detail">PAI templates, skill-cluster resolver, peon detect, CodeGraph init, OpenCode/Cursor templates, then <code>scripts/install-spine.sh</code>.</span></li>
+    <li><b>Spine copies SoT.</b> <span class="detail">Codex UPS hooks from <code>package/hooks/codex</code>. Router copy including <code>temperance-goal.mjs</code>, <code>gsd-rail-map.json</code>, <code>temperance-next-wave.mjs</code>. Product symlink <code>~/.temperance_engine/product</code> → this clone.</span></li>
+    <li><b>GSD remotes land.</b> <span class="detail"><code>gsd-command-install.mjs</code> writes <code>/gsd:*</code> wrappers to Codex prompts, OpenCode command, and Grok commands. Includes <code>/gsd:doctor</code> and <code>/gsd:goal</code>. Does not vendor GSD 1.30.0.</span></li>
+    <li><b>Manifest Zone + bridge.</b> <span class="detail">LaunchAgents for <code>:8766</code> and <code>:5173</code>. Working directory is the live Manifest Zone with <code>node_modules</code>, not a bare repo tree.</span></li>
+    <li><b>Pulse starts if bun exists.</b> <span class="detail"><code>:31337</code> peon for phase messages. Non-phase may forward to Voice <code>:8888</code>. Auth failures classify as <code>tts-auth</code>.</span></li>
+    <li><b>verify.sh last.</b> <span class="detail">Required files now include <code>package/router/temperance-goal.mjs</code> and <code>package/manifest-zone/src/GsdDeck.tsx</code>.</span></li>
   </ol>
 </div>
 
 <div class="section">
-  <h2>Part B &mdash; A Live Session Reaching Execute (gsd-core present)</h2>
+  <h2>Part B — First session</h2>
+  <svg viewBox="0 0 1080 140" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker></defs>
+    <g font-size="11" fill="white" text-anchor="middle">
+      <rect x="10" y="30" width="160" height="60" rx="8" fill="#3d8ea8"/><text x="90" y="64">picker tiles</text>
+      <rect x="200" y="30" width="160" height="60" rx="8" fill="#c9a84a"/><text x="280" y="64">IAB :5173</text>
+      <rect x="390" y="30" width="160" height="60" rx="8" fill="#f39b54"/><text x="470" y="64">UPS compose</text>
+      <rect x="580" y="30" width="160" height="60" rx="8" fill="#c9a84a"/><text x="660" y="64">7 phases</text>
+      <rect x="770" y="30" width="140" height="60" rx="8" fill="#f39b54"/><text x="840" y="64">/gsd:goal</text>
+      <rect x="940" y="30" width="130" height="60" rx="8" fill="#5ea882"/><text x="1005" y="64">eval</text>
+    </g>
+    <g stroke="#666" stroke-width="2">
+      <path d="M170,60 L198,60" marker-end="url(#t)"/>
+      <path d="M360,60 L388,60" marker-end="url(#t)"/>
+      <path d="M550,60 L578,60" marker-end="url(#t)"/>
+      <path d="M740,60 L768,60" marker-end="url(#t)"/>
+      <path d="M910,60 L938,60" marker-end="url(#t)"/>
+    </g>
+  </svg>
   <ol class="steps phase">
-    <li><b>Session starts.</b><span class="phase-pill">setup</span> <span class="detail">If the user manually wired <code>ParallelDispatchContext.hook.sh</code> into their own <code>~/.claude/settings.json</code> (it is not auto-registered), it checks <code>.planning/</code> in the current project. Say this project has one, with 2 active workstreams and a <code>config.json</code> setting <code>model_profile: "quality"</code> &mdash; the hook injects a <code>&lt;system-reminder&gt;</code> noting all three (read-only) and pointing at <code>pai-flow.md</code> (the Execute row + doctrine, not the retired <code>docs/parallel-dispatch.md</code>). It never reads PAI's steering rules or writes anything back to <code>config.json</code> &mdash; Temperance Engine's own preference store stays <code>ISA.md</code> alone. Separately, the enrichment core emits a <code>&lt;temperance-context&gt;</code> block on every prompt regardless &mdash; the only always-on layer in this trace.</span></li>
-    <li><b>Observe.</b><span class="phase-pill">observe</span> <span class="detail">Agent reads live state. If it emits "Entering the Observe phase." and Pulse is running, <code>compat-server.ts</code> matches <code>phase=observe</code> &rarr; spawns <code>peon.sh --pack glados --category task.acknowledge</code>.</span></li>
-    <li><b>Think.</b><span class="phase-pill">think</span> <span class="detail">Same pattern &rarr; pack <code>hal_2001</code>.</span></li>
-    <li><b>Plan.</b><span class="phase-pill">plan</span> <span class="detail">Pack <code>jarvis-mk2</code>. gsd-core is present (confirmed at install time), so the agent invokes <code>/gsd-plan-phase</code> here (hyphen form &mdash; Claude Code / gsd-core spelling; Gemini CLI would spell it <code>/gsd:plan-phase</code>, Codex <code>$gsd-plan-phase</code>). The command names the skill it needs; the skill-cluster resolver (<code>~/.agents/skill-clusters/skill-index.json</code>) resolves it &mdash; active-spoke skills are already symlinked and load immediately, a deferred cluster is activated on demand, an archived one is read from its indexed path, and a not-found name is a hard error. This lazy-load layer is what keeps context small while <code>/gsd-*</code> and superpowers skills alike stay reachable.</span></li>
-    <li><b>Build.</b><span class="phase-pill">build</span> <span class="detail">Pack <code>peon</code>. gsd-core has no separate Build phase &mdash; this folds into Execute. Artifacts get created/edited via <code>subagent-driven-development</code> / <code>test-driven-development</code>.</span></li>
-    <li><b>Execute &mdash; the decision point.</b><span class="phase-pill">execute</span> <span class="detail">Pack <code>nier-2b</code>. Before running the work, the agent consults <code>pai-flow.md</code>'s Execute row + doctrine (the authoritative decision doc &mdash; <code>docs/parallel-dispatch.md</code> is now a retired redirect stub). Because gsd-core is present, the agent runs <code>/gsd-execute-phase</code> (wave-based, worktree-isolated) as the default path. If 2+ independent tasks in that execution would benefit from external backends (command-code/grok/kimi), the agent additionally fires <code>temperance-parallel-dispatch</code> via <code>temperance-batch</code> &mdash; a specialist tool layered on top of, not a replacement for, <code>superpowers:dispatching-parallel-agents</code> (the Claude-subagent primitive). If any task shares files/branch with another, everything runs sequentially regardless. See the table in Part C for what happens when gsd-core is absent instead.</span></li>
-    <li><b>Verify.</b><span class="phase-pill">verify</span> <span class="detail">Pack <code>cortana</code>. If this session were working on Temperance Engine itself, <code>./verify.sh</code> would run here as the fresh-evidence check the Completion Rule requires.</span></li>
-    <li><b>Learn.</b><span class="phase-pill">learn</span> <span class="detail">Pack <code>sc_kerrigan</code>. If this is an ISA-tracked project, decisions and verification evidence get appended to its <code>ISA.md</code> &mdash; exactly the pattern used for ISC-28..31 in this repo's own <code>ISA.md</code>.</span></li>
+    <li><b>Picker, not a browser.</b><span class="phase-pill">setup</span> <span class="detail">If the session has no PAI mode, show native Codex/OpenCode tiles. Do not open Chrome or Safari.</span></li>
+    <li><b>IAB after the pick.</b><span class="phase-pill">setup</span> <span class="detail">ChatGPT in-app browser to <code>http://127.0.0.1:5173/?mode=…&amp;view=…</code>. Manifest Zone title. STATE / ROADMAP / GOAL cards.</span></li>
+    <li><b>UPS compose.</b><span class="phase-pill">observe</span> <span class="detail">Only PromptProcessing emits additionalContext: classifier + temperance-rail + gsd-rail + pai-mode-offer + hook.receipt. SessionStartTe may hint <code>/gsd:progress</code> and ranker age.</span></li>
+    <li><b>Observe / Think / Plan.</b><span class="phase-pill">plan</span> <span class="detail">Pulse peon packs fire on phase announces. Plan with <code>/gsd:plan-phase</code> or <code>writing-plans</code> if swarm-architect is missing. <code>active_planner</code> decides whether Goal text comes from ISA or STATE.</span></li>
+    <li><b>Execute under lock.</b><span class="phase-pill">execute</span> <span class="detail">Next-wave approval required. Fleet uses <code>te-dispatch-paid</code>. <code>temperance-next-wave.mjs</code> writes the dual-fleet lock. A second <code>gsd-executor</code> swarm on the same <code>[P]</code> ids is forbidden for &lt;2h.</span></li>
+    <li><b>/gsd:goal.</b><span class="phase-pill">verify</span> <span class="detail">Writes <code>.temperance/goal.json</code>. Evaluator runs doctor / ISA probes. Fail → continue the same <code>/gsd:*</code>. Pass → stop. Not a new planner.</span></li>
+    <li><b>Learn.</b><span class="phase-pill">learn</span> <span class="detail">Decisions stay in the project or task ISA. Manifest GOAL card updates from the bridge. Pulse learn pack plays if announced.</span></li>
   </ol>
 </div>
 
 <div class="section">
-  <h2>Part C &mdash; Failure Modes, Traced</h2>
+  <h2>Part C — Failure modes</h2>
   <table>
     <tr><th>Missing piece</th><th>What actually happens</th></tr>
-    <tr><td><b>gsd-core absent</b> (degrade-gracefully path)</td><td>At install time, <code>install-gsd.sh</code> finds no <code>gsd-core</code> (and no legacy <code>~/.claude/get-shit-done</code> either) &rarr; prints the not-found branch; still detect-only, nothing is vendored. At runtime, <code>pai-flow.md</code>'s Execute row degrades to the superpowers column, which <em>is</em> the flow: <code>brainstorming</code> &rarr; <code>writing-plans</code> &rarr; <code>subagent-driven-development</code> &rarr; <code>verification-before-completion</code> &rarr; <code>finishing-a-development-branch</code>. No <code>/gsd-*</code> commands are available anywhere in Part B's trace; every phase pill still fires (Pulse doesn't care which backbone is active), but Plan/Execute/Verify/Learn route through the superpowers skills instead of <code>/gsd-plan-phase</code> / <code>/gsd-execute-phase</code> / <code>/gsd-verify-work</code> / <code>/gsd-ship</code>. <code>temperance-parallel-dispatch</code> can still fire in Execute on its own trigger (2+ independent tasks, external backends) &mdash; it doesn't depend on gsd-core.</td></tr>
-    <tr><td><code>bun</code> not installed</td><td>Pulse server files are copied but never started; any <code>/notify</code> POST simply has nowhere to land (connection refused). Session continues normally with no voice.</td></tr>
-    <tr><td><code>peon.sh</code> missing or not executable</td><td><code>compat-server.ts</code> still responds <code>200</code> to <code>/notify</code> with <code>{played: false, reason: "bun-runtime-required"}</code>-style fields; no sound, no error surfaced to the agent.</td></tr>
-    <tr><td>Skill-cluster resolver can't find a named skill</td><td>Active-spoke and deferred lookups both fail against <code>~/.agents/skill-clusters/skill-index.json</code> &rarr; hard error, by design; there is no silent fallback for a genuinely unknown skill name (only gsd-core-vs-superpowers is a documented degrade path).</td></tr>
-    <tr><td><code>codegraph</code> CLI not installed</td><td>Structural search guidance in <code>docs/codegraph-routing.md</code> is simply unusable; no fallback is installed automatically (the doc says to use direct file reads/grep instead).</td></tr>
+    <tr><td>GSD core absent</td><td>Wrappers still install. Plan/Execute degrade to writing-plans → subagent-driven-development → verification-before-completion. <code>/gsd:doctor</code> and <code>/gsd:goal</code> still run because they are Temperance-owned.</td></tr>
+    <tr><td>Manifest Zone opened in Chrome</td><td>Wrong. Operator path is ChatGPT IAB only. External browsers are out of contract.</td></tr>
+    <tr><td>Hourly reconcile <code>--apply</code></td><td>Would revert the ranked <code>te-dispatch-paid</code> stack. Leave the timer dry-run.</td></tr>
+    <tr><td>Voice <code>:8888</code> 502</td><td>Pulse still 200. <code>lastForward.forwardError = tts-auth</code>. Phase peon still plays.</td></tr>
+    <tr><td>Second swarm while lock live</td><td>Forbidden. Wait or clear the lock file under <code>~/.temperance_engine/state/fleet-locks/</code> after the 2h window.</td></tr>
+    <tr><td><code>/goal</code> with high_gaps</td><td>Evaluator says continue. That is success of the loop, not a doctor regression.</td></tr>
+    <tr><td>LaunchAgent pointed at repo tree without node_modules</td><td>Vite missing. Point WorkingDirectory at the installed Manifest Zone that has dependencies.</td></tr>
   </table>
 </div>
 
-<div class="section">
-  <h2>Part D &mdash; An Automatic Chat Request (OmniRoute Relay)</h2>
-  <p><b>A separate, request-time trace</b> &mdash; not a phase of Parts A&ndash;C above. This is what happens when the user is chatting in OpenCode or Kimi with the automatic model selected, independent of whether a session is inside the 7-phase loop at all.</p>
-  <ol style="font-size:13.5px;color:var(--muted);">
-    <li><b>Model resolves to <code>temperance/temperance-auto</code>.</b> OpenCode: the user selected it, or it's the configured default. Kimi: the user pinned one of the five <code>omniroute/*</code> picker aliases, or left <code>temperance-auto</code> selected directly &mdash; either way kimi always sends tools.</li>
-    <li><b>Enrichment.</b> OpenCode's flow plugin already added <code>&lt;temperance-context&gt;</code> client-side before the request left the editor &mdash; the relay sees <code>X-Temperance-Surface</code> absent and skips its own enrichment. Kimi sent no such header value that the OpenCode plugin would have set; instead its <code>UserPromptSubmit.hook.sh</code> already wrote <code>~/.temperance_engine/kimi/session-context.json</code> (cwd + session id) on the last prompt, and the request carries <code>X-Temperance-Surface: kimi</code> &mdash; the relay reads that sidecar (TTL 120s) and runs the shared <code>enrich()</code> itself, prepending <code>&lt;temperance-context&gt;</code> to only the latest user message.</li>
-    <li><b>Classification.</b> The relay calls <code>multi-backend-router.sh --plan-json</code> with <code>TEMPERANCE_BACKENDS=omniroute</code>, producing a frozen route: <code>task_type</code>, the resolved portfolio, and <code>selected_order</code>.</li>
-    <li><b>Model rewrite.</b> OpenCode requests without tools: the frozen portfolio's model is substituted directly. Kimi (and any OpenCode request carrying tools): pinned to <code>temperance-coding</code> regardless of the resolved portfolio &mdash; the <code>X-Temperance-Portfolio</code> response header still reports what the classifier picked, but it's advisory only on a tool-sending surface.</li>
-    <li><b>Forward to OmniRoute.</b> Tools, tool_choice, messages, and the stream flag pass through unchanged; the gateway key comes from <code>OMNIROUTE_API_KEY</code>, then <code>OMNIROUTE_API_KEY_FILE</code>, then Keychain. OmniRoute (<code>:20128</code>) resolves the named combo to a live provider/model and streams the response back (SSE, even for short completions).</li>
-    <li><b>Reconciler runs independently.</b> Every 900s (or on demand via <code>--apply</code>), <code>omniroute-temperance-reconcile.sh</code> has already checked this combo's provider health/quota and substituted any guarded slot that fell below threshold or went manually-disabled &mdash; step 5 always dispatches to whatever the combo currently points at, never to a specific provider the relay itself chose.</li>
-  </ol>
-  <p style="font-size:13px;color:var(--muted);"><b>Failure modes:</b> classifier failure &rarr; relay degrades visibly to <code>temperance-coding</code>, request still completes. Resolved combo has no usable target &rarr; OmniRoute's own <code>[502]: All accounts exhausted</code> passes through unchanged; the relay never silently swaps to a different governed portfolio. Full mechanics: <code>system-internals.html</code> &sect;7. Full combo/provider reference: <a href="omniroute-routing.html">omniroute-routing.html</a>.</p>
-</div>
-
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Companion docs: <code>architecture.html</code> (overview) &middot; <code>system-internals.html</code> (mechanics) &middot; <code>integration-map.html</code> (seams) &middot; <code>omniroute-routing.html</code> (routing reference).</p>
-
+<p style="color:#6f7d7e; font-size:12px; margin-top:40px;">Generated 2026-08-17 via architecture-diagram-creator. Companion: docs/gsd-manifest-spine.md.</p>
 </body>
 </html>

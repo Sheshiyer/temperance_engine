@@ -96,35 +96,39 @@ const PARKAREA_FORBIDDEN_EFFECTS = ['booking', 'payment', 'ledger', 'notificatio
 const PARKAREA_PROOF_FILE = 'server/__tests__/postgres/guide-claim-evidence.pg.test.ts';
 const PARKAREA_COVERAGE_ROWS = [
   {
-    evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
-    requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
-    claim: { de: 'Authentifizierte Suchergebnisse zeigen nicht leere Parkmöglichkeiten im freigegebenen Demo-Szenario.', en: 'Authenticated discovery shows nonempty parking results in the approved demo scenario.' },
-    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-suchen"]', '[data-testid="text-result-count"]', '[data-testid^="card-result-"]', '[data-testid^="text-result-name-"]'],
-    sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' }, claimClassification: 'isolated', claimRoute: '/api/v1/search', claimAllowed: ['search_analytics:+1'],
-    claimTestName: 'authenticated seeker search returns nonempty tenant-scoped PostGIS ordered active results',
-  },
-  {
-    evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 400,
+    evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker_read_only', minimumBodyTextChars: 400,
     requirementIds: ['CAP-04', 'CAP-06', 'CAP-07', 'DATA-03', 'DATA-05'],
     claim: { de: 'Ein aktives Inserat zeigt Verfügbarkeit, Preisangebot, Gesamtpreis und Buchungsbereitschaft ohne Buchung.', en: 'An active listing shows availability, quote, total, and booking readiness without creating a booking.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
-    sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }, claimClassification: 'isolated', claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimAllowed: ['listing_view_events:view:+1'],
+    sideEffect: { kind: 'listing_view_telemetry', status: 'isolated_verified' }, claimClassification: 'isolated', claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimAllowed: ['listing_view_events:view:+1'],
+    claimProofKind: 'postgres_postgis',
     claimTestName: 'active listing detail, calendar, and quote are tenant-scoped and do not create a booking',
   },
   {
-    evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
+    evidenceId: 'private-provider-listing-analytics', route: '/provider/listings/__W1A_APPROVED_LISTING_ID__/analytics', persona: 'private_provider', checkpointKind: 'private_provider_read_only', minimumBodyTextChars: 300,
+    requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
+    claim: { de: 'Die Analyseansicht zeigt persistierte Leistungs- und Umsatzkennzahlen des privaten Anbieters ohne Änderung.', en: 'The analytics view shows the private provider’s persisted performance and revenue metrics without changing them.' },
+    selectors: ['[data-testid="listing-analytics-page"]', '[data-testid="listing-analytics-export-csv"]', '[data-testid="listing-analytics-total-views"]', '[data-testid="listing-analytics-total-impressions"]', '[data-testid="listing-analytics-conversion-rate"]', '[data-testid="listing-analytics-chart"]'],
+    sideEffect: { kind: 'provider_analytics_read', status: 'read_only_verified' }, claimClassification: 'read-only', claimRoute: '/api/v1/provider/listings/:id/analytics | /api/v1/provider/listings/:id/revenue | /api/v1/provider/listings/revenue', claimAllowed: [],
+    claimProofKind: 'postgres',
+    claimTestName: 'private provider listing analytics reads persisted tenant-owned metrics without mutation',
+  },
+  {
+    evidenceId: 'enterprise-provider-qr-fleet', route: '/provider/qr/fleet', persona: 'enterprise_provider', checkpointKind: 'enterprise_provider_read_only', minimumBodyTextChars: 300,
     requirementIds: ['CAP-08', 'DATA-02'],
-    claim: { de: 'Die Buchungsansicht zeigt eine vorhandene mandantensichere Buchung des Suchenden.', en: 'The bookings view shows an existing tenant-safe Seeker booking.' },
-    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="dashboard-sidebar"]', '[data-testid="button-nav-bookings"]', '[data-testid="bookings-view"]', '[data-testid="input-search-bookings"]', '[data-testid^="button-booking-details-"]', '[data-recurring-bookings-state="settled"]'],
-    sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' }, claimClassification: 'read-only', claimRoute: '/api/v1/me/bookings', claimAllowed: [],
-    claimTestName: 'seeker booking history reads persisted tenant-owned bookings and excludes another tenant',
+    claim: { de: 'Die QR-Flottenansicht zeigt mandantensichere Inserate und Scan-Kennzahlen des Unternehmensanbieters ohne Regenerierung.', en: 'The QR fleet view shows the enterprise provider’s tenant-safe listings and scan metrics without regeneration.' },
+    selectors: ['[data-testid="qr-fleet-page"]', '[data-testid="qr-fleet-search"]', '[data-testid="qr-fleet-selected-count"]', '[data-testid="qr-fleet-bulk-regenerate"]', '[data-testid="qr-fleet-bulk-pdf"]', '[data-testid="qr-fleet-export-csv"]', '[data-testid^="qr-fleet-row-"]'],
+    sideEffect: { kind: 'enterprise_qr_fleet_read', status: 'read_only_verified' }, claimClassification: 'read-only', claimRoute: '/api/v1/admin/tenants/:tenantId/qr/fleet', claimAllowed: [],
+    claimProofKind: 'postgres',
+    claimTestName: 'enterprise provider QR fleet reads persisted tenant listings and scan metrics without regeneration',
   },
   {
     evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300,
     requirementIds: ['SCOPE-03', 'CAP-09'],
     claim: { de: 'Der Moderationsverlauf zeigt die Freigabe desselben aktiven Inserats ohne Änderung.', en: 'Moderation history shows approval of the same active listing without changing it.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
-    sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' }, claimClassification: 'read-only', claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimAllowed: [],
+    sideEffect: { kind: 'admin_audit_read', status: 'read_only_verified' }, claimClassification: 'read-only', claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimAllowed: [],
+    claimProofKind: 'postgres_postgis',
     claimTestName: 'admin listing readiness and persisted approval audit are readable for the same tenant without mutation',
   },
 ] as const;
@@ -139,7 +143,7 @@ export function validateParkAreaCoverageContract(input: unknown, trusted: { capt
   const claimMap = record(trusted?.claimMap);
   if (!value || !exactKeys(value, ['schemaVersion', 'edition', 'metadata', 'requirements', 'steps']) || value.schemaVersion !== 1) return false;
   if (!capture || capture.schemaVersion !== 1 || capture.project !== 'parkarea-aleph' || !Array.isArray(capture.shots) || capture.shots.length !== PARKAREA_COVERAGE_ROWS.length) return false;
-  if (!claimMap || claimMap.schema !== 'parkarea.guide.claim-evidence-map.v1' || !Array.isArray(claimMap.claims) || claimMap.claims.length !== PARKAREA_COVERAGE_ROWS.length) return false;
+  if (!claimMap || claimMap.schema !== 'parkarea.guide.claim-evidence-map.v2' || !Array.isArray(claimMap.claims) || claimMap.claims.length !== PARKAREA_COVERAGE_ROWS.length) return false;
   const edition = record(value.edition);
   if (!edition || !exactKeys(edition, ['audience', 'primaryPersona', 'primaryLocale', 'secondaryLocale', 'media', 'publication', 'requirementIds'])
     || edition.audience !== 'internal_qa_operators' || edition.primaryPersona !== 'seeker' || edition.primaryLocale !== 'de' || edition.secondaryLocale !== 'en'
@@ -147,6 +151,12 @@ export function validateParkAreaCoverageContract(input: unknown, trusted: { capt
   const metadata = record(value.metadata);
   if (!metadata || !exactKeys(metadata, ['freshContextPerShot', 'runnerContract']) || metadata.freshContextPerShot !== true || metadata.runnerContract !== 'canonical_shared_runner_new_browser_context_per_shot') return false;
   if (!sameStrings(value.requirements, PARKAREA_REQUIREMENTS) || !Array.isArray(value.steps) || value.steps.length !== PARKAREA_COVERAGE_ROWS.length) return false;
+  const firstShot = record(capture.shots[0]);
+  const listingMatch = typeof firstShot?.route === 'string'
+    ? firstShot.route.match(/^\/parkplatz\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i)
+    : null;
+  if (!listingMatch) return false;
+  const listingId = listingMatch[1];
 
   return value.steps.every((candidate, index) => {
     const step = record(candidate);
@@ -161,22 +171,24 @@ export function validateParkAreaCoverageContract(input: unknown, trusted: { capt
     const claimSideEffects = record(claimRow.sideEffects);
     const effects = Array.isArray(step.sideEffects) ? step.sideEffects : [];
     const effect = effects.length === 1 ? record(effects[0]) : null;
+    const expectedRoute = expected.route.replace('__W1A_APPROVED_LISTING_ID__', listingId);
+    const expectedSelectors = expected.selectors.map((selector) => selector.replaceAll('__W1A_APPROVED_LISTING_ID__', listingId));
     if (!exactKeys(claimRow, ['order', 'evidenceId', 'proof', 'correlation', 'sideEffects'])
-      || !claimProof || !exactKeys(claimProof, ['kind', 'file', 'testName'])
+      || !claimProof || !exactKeys(claimProof, ['kind', 'status', 'file', 'testName'])
       || !correlation || !exactKeys(correlation, ['route', 'persona', 'tenantAuthority'])
       || !claimSideEffects || !exactKeys(claimSideEffects, ['classification', 'allowed', 'forbidden'])) return false;
     return step.order === index + 1 && step.stepId === expected.evidenceId && step.evidenceId === expected.evidenceId
-      && step.checkpointKind === expected.checkpointKind && step.route === expected.route && step.persona === expected.persona
+      && step.checkpointKind === expected.checkpointKind && step.route === expectedRoute && step.persona === expected.persona
       && step.minimumBodyTextChars === expected.minimumBodyTextChars && step.tenantAuthority === 'authenticated_session'
-      && step.scenarioClass === 'synthetic_or_approved_demo' && step.admission === 'blocked'
-      && sameStrings(step.requirementIds, expected.requirementIds) && sameStrings(step.requiredSelectors, expected.selectors)
+      && step.scenarioClass === 'synthetic_or_approved_demo' && step.admission === 'approved'
+      && sameStrings(step.requirementIds, expected.requirementIds) && sameStrings(step.requiredSelectors, expectedSelectors)
       && Array.isArray(step.locales) && step.locales.length === 2 && step.locales[0] === 'de' && step.locales[1] === 'en'
       && Boolean(claim) && exactKeys(claim!, ['de', 'en']) && claim!.de === expected.claim.de && claim!.en === expected.claim.en
-      && Boolean(proof) && exactKeys(proof!, ['kind', 'status']) && proof!.kind === 'w1a_postgres_or_read_only_probe' && proof!.status === 'pending'
+      && Boolean(proof) && exactKeys(proof!, ['kind', 'status']) && proof!.kind === 'w1a_postgres_or_read_only_probe' && proof!.status === 'verified'
       && Boolean(effect) && exactKeys(effect!, ['kind', 'status']) && effect!.kind === expected.sideEffect.kind && effect!.status === expected.sideEffect.status
-      && shot.id === expected.evidenceId && shot.route === expected.route && shot.persona === expected.persona && shot.minimumBodyTextChars === expected.minimumBodyTextChars && sameStrings(shot.requiredSelectors, expected.selectors)
+      && shot.id === expected.evidenceId && shot.route === expectedRoute && shot.persona === expected.persona && shot.minimumBodyTextChars === expected.minimumBodyTextChars && sameStrings(shot.requiredSelectors, expectedSelectors)
       && claimRow.order === index + 1 && claimRow.evidenceId === expected.evidenceId
-      && claimProof.kind === 'postgres_postgis' && claimProof.file === PARKAREA_PROOF_FILE && claimProof.testName === expected.claimTestName
+      && claimProof.kind === expected.claimProofKind && claimProof.status === 'passed' && claimProof.file === PARKAREA_PROOF_FILE && claimProof.testName === expected.claimTestName
       && correlation.route === expected.claimRoute && correlation.persona === expected.persona && correlation.tenantAuthority === 'authenticated_session'
       && claimSideEffects.classification === expected.claimClassification && sameStrings(claimSideEffects.allowed, expected.claimAllowed) && sameStrings(claimSideEffects.forbidden, PARKAREA_FORBIDDEN_EFFECTS);
   });
@@ -348,18 +360,18 @@ export async function projectCapabilities(project: ProjectSummary, route?: Recor
   };
   const guideBlockers = [!artifacts.capture.validated && 'capture_not_validated', !artifacts.coverage.validated && 'coverage_not_validated', !tools.playwright && 'playwright_unavailable'].filter(Boolean) as string[];
   const parkArea = project.name.toLowerCase().includes('parkarea');
-  const videoBlockers = parkArea ? ['video_out_of_scope'] : [!artifacts.capture.validated && 'capture_not_validated', !artifacts.guide_manifest.validated && 'guide_manifest_not_validated', !artifacts.film_spec.validated && 'film_spec_not_validated', !tools.ffmpeg && 'ffmpeg_unavailable'].filter(Boolean) as string[];
+  const videoBlockers = parkArea ? ['hero_film_waiting_for_guide_evidence_approval'] : [!artifacts.capture.validated && 'capture_not_validated', !artifacts.guide_manifest.validated && 'guide_manifest_not_validated', !artifacts.film_spec.validated && 'film_spec_not_validated', !tools.ffmpeg && 'ffmpeg_unavailable'].filter(Boolean) as string[];
   const guideReady = guideBlockers.length === 0;
   const videoReady = videoBlockers.length === 0;
   const capabilities: CapabilityRecord[] = [
     { id: 'build-product-user-guides', label: 'BUILD PRODUCT USER GUIDES', cluster: 'product-guides', tier: 'active', state: guideReady ? 'ready' : 'gated', summary: 'Validated guide contract and deterministic still evidence.', requirements: [requirement('capture-config', 'Validated capture configuration', artifacts.capture.validated, VALIDATOR_IDS.capture), requirement('coverage-matrix', 'Validated coverage matrix', artifacts.coverage.validated, VALIDATOR_IDS.coverage), requirement('playwright', 'Playwright project dependency', tools.playwright, 'project package manifest')], execution: 'explicit-approval' },
-    { id: 'guide-to-product-video', label: 'GUIDE TO PRODUCT VIDEO', cluster: 'product-guides', tier: 'active', state: videoReady ? 'ready' : 'gated', summary: parkArea ? 'Video is outside the approved ParkArea guide scope.' : 'Validated guide inventory and FilmSpec for bounded video.', requirements: [requirement('guide-inventory', 'Validated guide inventory', artifacts.guide_manifest.validated, VALIDATOR_IDS.guide), requirement('film-spec', 'Validated FilmSpec', artifacts.film_spec.validated, VALIDATOR_IDS.film), requirement('ffmpeg', 'FFmpeg', tools.ffmpeg, 'bridge host runtime')], execution: 'explicit-approval' },
+    { id: 'guide-to-product-video', label: 'GUIDE TO PRODUCT VIDEO', cluster: 'product-guides', tier: 'active', state: videoReady ? 'ready' : 'gated', summary: parkArea ? 'The approved ParkArea cross-role hero film remains deferred until guide evidence is approved.' : 'Validated guide inventory and FilmSpec for bounded video.', requirements: [requirement('guide-inventory', 'Validated guide inventory', artifacts.guide_manifest.validated, VALIDATOR_IDS.guide), requirement('film-spec', 'Validated FilmSpec', artifacts.film_spec.validated, VALIDATOR_IDS.film), requirement('ffmpeg', 'FFmpeg', tools.ffmpeg, 'bridge host runtime')], execution: 'explicit-approval' },
   ];
   return {
     schema: CAPABILITIES_SCHEMA, generated_at: new Date().toISOString(), project_id: project.project_id, project_name: project.name, source: 'canonical-project-cwd', authority: 'unchecked_at_request', artifacts,
     run_kinds: {
       guide: { requestable: guideReady, state: guideReady ? 'ready' : 'gated', authority: 'unchecked_at_request', blockers: guideBlockers },
-      video: { requestable: videoReady, state: parkArea ? 'out_of_scope' : videoReady ? 'ready' : 'gated', authority: 'unchecked_at_request', blockers: videoBlockers },
+      video: { requestable: videoReady, state: videoReady ? 'ready' : 'gated', authority: 'unchecked_at_request', blockers: videoBlockers },
     },
     capabilities,
     providers: [

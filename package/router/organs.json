@@ -1,0 +1,27 @@
+{
+  "schema": "temperance.organs.v1",
+  "note": "Display names + portless hostnames. Processes still bind loopback. Speculum is glass, not a planner.",
+  "tld": "localhost",
+  "console": {
+    "name": "speculum",
+    "url": "https://speculum.localhost:1355",
+    "clean": "https://speculum.localhost",
+    "iab": "http://127.0.0.1:5173",
+    "note": "443 drops :1355 — sudo portless proxy start"
+  },
+  "http": [
+    { "name": "speculum", "port": 5173, "bind": "127.0.0.1:5173", "job": "glass" },
+    { "name": "vas", "port": 8766, "bind": "127.0.0.1:8766", "job": "events" },
+    { "name": "athanor", "port": 31337, "bind": "127.0.0.1:31337", "job": "notify" },
+    { "name": "mercurius", "port": 20128, "bind": "127.0.0.1:20128", "job": "models" },
+    { "name": "mercurius-auto", "port": 20129, "bind": "127.0.0.1:20129", "job": "openai-proxy" },
+    { "name": "vox", "port": 8888, "bind": "127.0.0.1:8888", "job": "tts" }
+  ],
+  "files": [
+    { "name": "opus", "job": "GSD .planning / repo work" },
+    { "name": "isa", "job": "acceptance ledger" },
+    { "name": "liber", "job": "live MEMORY notes (not Atlas)" },
+    { "name": "arcanum", "job": "skill-index hubs" },
+    { "name": "noesis", "job": "seven-stage doctrine", "path": "~/.claude/PAI/Algorithm/LATEST", "display": "noesis", "file_version": "v6.3.0", "note": "Display name noesis. Do not rename the Algorithm directory." }
+  ]
+}

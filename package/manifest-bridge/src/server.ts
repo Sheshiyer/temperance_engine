@@ -15,7 +15,29 @@ import { PRODUCT_GUIDE_WORKFLOW_ID, projectSkillWorkflow } from './workflow-proj
 import type { ManifestEvent, ManifestState } from './types';
 
 const MAX_BODY = 1_000_000;
+const ATHANOR_URL = process.env.TEMPERANCE_ATHANOR_URL || 'http://127.0.0.1:31337/health';
+
+async function probeAthanor(): Promise<{ ok: boolean; label: string; service?: string }> {
+  try {
+    const response = await fetch(ATHANOR_URL, { signal: AbortSignal.timeout(250) });
+    if (!response.ok) return { ok: false, label: 'ATHANOR' };
+    const body = await response.json() as { service?: string };
+    return { ok: true, label: 'ATHANOR', service: body.service };
+  } catch {
+    return { ok: false, label: 'ATHANOR' };
+  }
+}
 const DEFAULT_CONSOLE_URL = 'http://127.0.0.1:5173';
+function isSpeculumOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    if (url.hostname !== 'speculum.localhost' && url.hostname !== '127.0.0.1' && url.hostname !== 'localhost') return false;
+    return url.port === '' || url.port === '5173' || url.port === '1355';
+  } catch {
+    return false;
+  }
+}
+let requestOrigin = DEFAULT_CONSOLE_URL;
 const WORKFLOW_REQUEST_SCHEMA = 'temperance.manifest.workflow-request.v2';
 const WORKFLOW_REQUEST_KEYS = ['approval_id', 'git_head', 'option_id', 'plan_id', 'policy_hash', 'request_id', 'run_kind', 'schema', 'scope_hash', 'source_fingerprint', 'task_fingerprint'] as const;
 const BOUNDED_ID = /^[A-Za-z0-9._:-]{1,120}$/;
@@ -27,7 +49,7 @@ type DiagnosticSink = Pick<ManifestDiagnostics, 'request'> & Partial<Pick<Manife
 interface ManifestServerDependencies { controlLedger?: ControlLedger | null; capabilityOptions?: CapabilityOptions; diagnostics?: DiagnosticSink }
 
 function headers(contentType: string): Record<string, string> {
-  return { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': 'http://127.0.0.1:5173', 'Access-Control-Allow-Headers': 'Content-Type' };
+  return { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': requestOrigin, 'Access-Control-Allow-Headers': 'Content-Type' };
 }
 
 function json(res: ServerResponse, status: number, body: unknown): void {
@@ -46,6 +68,44 @@ function stableJson(value: unknown): string {
 function closedRequestHash(request: Record<string, unknown>): string {
   const closed = Object.fromEntries(WORKFLOW_REQUEST_KEYS.map((key) => [key, request[key]]));
   return createHash('sha256').update(stableJson(closed), 'utf8').digest('hex');
+}
+
+function boundPlanState(
+  projectCwd: string,
+  planId: string,
+  optionId: string,
+  approvalId: string,
+  projectedPlan: Record<string, unknown>,
+  projectedOption: Record<string, unknown>,
+): { policyHash: string; sourceFingerprints: unknown[]; option: Record<string, unknown> } {
+  const orchestrationPath = join(projectCwd, '.planning', 'ORCHESTRATION.json');
+  if (!existsSync(orchestrationPath)) {
+    return {
+      policyHash: projectedPlan.mapping && typeof projectedPlan.mapping === 'object'
+        ? String((projectedPlan.mapping as Record<string, unknown>).policy_hash || '')
+        : '',
+      sourceFingerprints: Array.isArray(projectedPlan.source_fingerprints) ? projectedPlan.source_fingerprints : [],
+      option: projectedOption,
+    };
+  }
+  const size = statSync(orchestrationPath).size;
+  if (size <= 0 || size > MAX_BODY) throw new Error('orchestration_invalid');
+  const current = JSON.parse(readFileSync(orchestrationPath, 'utf8')) as Record<string, unknown>;
+  const mapping = current.mapping as Record<string, unknown> | undefined;
+  const approval = current.approval as Record<string, unknown> | undefined;
+  const options = Array.isArray(current.options) ? current.options.filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value)) : [];
+  const option = options.find((value) => value.option_id === optionId);
+  if (
+    current.schema !== 'temperance.orchestration.v1'
+    || current.plan_id !== planId
+    || approval?.approval_id !== approvalId
+    || !mapping
+    || !LOWER_SHA256.test(String(mapping.policy_hash || ''))
+    || !Array.isArray(current.source_fingerprints)
+    || !option
+    || !Array.isArray(option.tasks)
+  ) throw new Error('orchestration_invalid');
+  return { policyHash: String(mapping.policy_hash), sourceFingerprints: current.source_fingerprints, option };
 }
 
 function diagnosticRoute(pathname: string): string {
@@ -119,6 +179,8 @@ export class ManifestServer {
   }
 
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
+    requestOrigin = isSpeculumOrigin(origin) ? origin : DEFAULT_CONSOLE_URL;
     const url = new URL(req.url || '/', 'http://127.0.0.1');
     if (req.method === 'OPTIONS') { res.writeHead(204, headers('text/plain')); res.end(); return; }
     if ((req.method === 'GET' || req.method === 'HEAD') && url.pathname === '/') {
@@ -130,7 +192,14 @@ export class ManifestServer {
     }
     if (req.method === 'GET' && url.pathname === '/health') {
       const snapshot = this.store.state;
-      json(res, 200, { ok: true, service: 'temperance-manifest-bridge', ...snapshot.freshness, event_count: snapshot.event_count });
+      json(res, 200, {
+        ok: true,
+        service: 'temperance-manifest-bridge',
+        vas: 'VAS',
+        ...snapshot.freshness,
+        event_count: snapshot.event_count,
+        athanor: await probeAthanor(),
+      });
       return;
     }
     if (req.method === 'GET' && url.pathname === '/projects') {
@@ -205,7 +274,8 @@ export class ManifestServer {
         const options = plan?.options as Record<string, Record<string, unknown>> | undefined;
         const option = options?.[optionId];
         if (!plan || !option || !project.cwd) { json(res, 409, { accepted: false, code: 'binding_mismatch' }); return; }
-        const policyHash = plan.mapping && typeof plan.mapping === 'object' ? String((plan.mapping as Record<string, unknown>).policy_hash || '') : '';
+        const bound = boundPlanState(project.cwd, planId, optionId, approvalId, plan, option);
+        const policyHash = bound.policyHash;
         let gitHead: string;
         try { gitHead = execFileSync('git', ['-C', project.cwd, 'rev-parse', 'HEAD'], { encoding: 'utf8', timeout: 5000, maxBuffer: 8192, stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
         catch { json(res, 409, { accepted: false, code: 'request_failed' }); return; }
@@ -221,8 +291,8 @@ export class ManifestServer {
           option_id: optionId,
           policy_hash: policyHash,
           git_head: gitHead,
-          source_fingerprint: fingerprint(plan.source_fingerprints || []),
-          task_fingerprint: fingerprint(option.tasks || []),
+          source_fingerprint: fingerprint(bound.sourceFingerprints),
+          task_fingerprint: fingerprint(bound.option.tasks || []),
           scope_hash: scopeHash,
         } satisfies ApprovalAttestationRequestV1;
         for (const key of ['plan_id', 'option_id', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'scope_hash'] as const) {
@@ -350,10 +420,12 @@ export class ManifestServer {
         const approval = Object.values(snapshot.approvals).find((candidate) => candidate.approval_id === approvalId);
         const expiresAt = typeof approval?.expires_at === 'string' ? approval.expires_at : '';
         if (!project?.cwd || !plan || !options?.[optionId] || !approval || !['required', 'granted'].includes(String(approval.status)) || (expiresAt && Date.parse(expiresAt) <= Date.now())) throw new Error('approval is invalid, expired, or no longer matches the current proposal');
-        const option = options[optionId];
-        const policyHash = plan.mapping && typeof plan.mapping === 'object' ? String((plan.mapping as Record<string, unknown>).policy_hash || '') : '';
+        const projectedOption = options[optionId];
+        const bound = boundPlanState(project.cwd, planId, optionId, approvalId, plan, projectedOption);
+        const option = bound.option;
+        const policyHash = bound.policyHash;
         const gitHead = this.controlLedger ? execFileSync('git', ['-C', project.cwd, 'rev-parse', 'HEAD'], { encoding: 'utf8', timeout: 5000, maxBuffer: 8192, stdio: ['ignore', 'pipe', 'ignore'] }).trim() : '';
-        const sourceFingerprint = fingerprint(plan.source_fingerprints || []);
+        const sourceFingerprint = fingerprint(bound.sourceFingerprints);
         const taskFingerprint = fingerprint(option.tasks || []);
         const receipt = { approval_id: approvalId, plan_id: planId, option_id: optionId, policy_hash: policyHash, expires_at: expiresAt, approved_at: new Date().toISOString(), actor: 'local-operator' };
         let scopeHash = '';

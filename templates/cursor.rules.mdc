@@ -11,5 +11,6 @@ alwaysApply: true
 - If a Claude-only advisor or model-gated check is unavailable, do not block completion solely on that absence. Replace it with available empirical verification: shell checks, tests, build output, browser/runtime probes, logs, or a human review note.
 - Resolve skill-cluster needs through `$HOME/.agents/skill-clusters/skill-index.json`; do not scan `$HOME/.agents/skill-clusters/skills` wholesale.
 - Use CodeGraph with `projectPath: "$HOME/.agents"` for `.agents` structural search when available. Use direct file reads or literal search only for exact strings and known files.
+- `/gsd:*` already binds a PAI mode. Do not write a NOESIS quiz of MINIMAL / NATIVE / ALGORITHM. A real picker is only on a bare first prompt with no saved mode. After `/gsd:goal` or a session pick, go straight to the work.
 
 Install in a project by copying this file to `.cursor/rules/temperance-engine.mdc`.

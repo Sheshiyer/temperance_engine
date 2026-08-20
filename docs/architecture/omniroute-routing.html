@@ -4,107 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Temperance Engine - OmniRoute Routing</title>
-<style>
-  :root {
-    --data: #4299e1;
-    --processing: #ed8936;
-    --ai: #9f7aea;
-    --success: #48bb78;
-    --private: #718096;
-    --fusion: #d53f8c;
-    --ink: #1a202c;
-    --muted: #4a5568;
-    --line: #e2e8f0;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    color: var(--ink);
-    line-height: 1.5;
-    background: #ffffff;
-  }
-  h1 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 30px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-  }
-  h1 small {
-    display: block;
-    font-weight: 400;
-    font-size: 15px;
-    opacity: 0.9;
-    margin-top: 8px;
-  }
-  h2 {
-    border-bottom: 3px solid var(--line);
-    padding-bottom: 8px;
-    color: var(--ink);
-  }
-  h3 { color: var(--ink); }
-  .section { margin: 36px 0; }
-  .callout {
-    background: #fffaf0;
-    border: 1px solid #fbd38d;
-    border-left: 5px solid var(--processing);
-    border-radius: 8px;
-    padding: 18px 22px;
-    margin: 18px 0;
-  }
-  .callout strong { color: #9c4221; }
-  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-  .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px;
-  }
-  .card {
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 16px 18px;
-    background: #fafafa;
-  }
-  .card h3 { margin-top: 0; font-size: 15px; color: var(--ink); }
-  .card p { margin: 4px 0; font-size: 13.5px; color: var(--muted); }
-  .layer {
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    color: white;
-    font-size: 14px;
-  }
-  .layer b { display: block; font-size: 15px; margin-bottom: 4px; }
-  code {
-    background: #edf2f7;
-    padding: 1px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
-  }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
-  th { background: #f7fafc; }
-  .pill {
-    display: inline-block;
-    border-radius: 999px;
-    padding: 2px 10px;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: white;
-  }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
 </head>
 <body>
 
 <h1>OmniRoute Routing
   <small>The live multi-model gateway, governed portfolios, provider lanes, and availability reconciler behind Temperance's automatic routing</small>
 </h1>
+
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="architecture.html">Overview</a>
+  <a href="spine-and-goal.html">Spine + /goal</a>
+  <a href="session-trace.html">Session trace</a>
+  <a href="integration-map.html">Integration map</a>
+  <a href="system-internals.html">Internals</a>
+  <a class="here" href="omniroute-routing.html">OmniRoute</a>
+</nav>
 
 <div class="section">
   <div class="callout">
@@ -121,16 +40,16 @@
       </marker>
     </defs>
 
-    <rect x="10" y="30" width="200" height="130" rx="10" fill="#718096"/>
+    <rect x="10" y="30" width="200" height="130" rx="10" fill="#394951"/>
     <text x="110" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Client surfaces</text>
     <text x="110" y="78" text-anchor="middle" fill="white" font-size="11">OpenCode temperance-auto</text>
     <text x="110" y="94" text-anchor="middle" fill="white" font-size="11">Kimi CLI / desktop</text>
     <text x="110" y="110" text-anchor="middle" fill="white" font-size="11">Claude Code / Codex</text>
     <text x="110" y="126" text-anchor="middle" fill="white" font-size="11">(direct picker overrides)</text>
-    <text x="110" y="146" text-anchor="middle" fill="#e2e8f0" font-size="10" font-style="italic">explicit models bypass the relay</text>
+    <text x="110" y="146" text-anchor="middle" fill="#c9d4d3" font-size="10" font-style="italic">explicit models bypass the relay</text>
 
     <path d="M212,80 L268,80" stroke="#666" stroke-width="2" marker-end="url(#arrowA)"/>
-    <text x="240" y="72" text-anchor="middle" font-size="9.5" fill="#4a5568">automatic only</text>
+    <text x="240" y="72" text-anchor="middle" font-size="9.5" fill="#8d9a9c">automatic only</text>
 
     <rect x="270" y="30" width="220" height="130" rx="10" fill="var(--processing)"/>
     <text x="380" y="55" text-anchor="middle" fill="white" font-size="13" font-weight="bold">temperance-openai-proxy</text>
@@ -138,7 +57,7 @@
     <text x="380" y="94" text-anchor="middle" fill="white" font-size="10.5">enrich() -&gt; classify -&gt; frozen plan</text>
     <text x="380" y="110" text-anchor="middle" fill="white" font-size="10.5">rewrite model -&gt; forward tools/stream</text>
     <text x="380" y="126" text-anchor="middle" fill="white" font-size="10.5">X-Temperance-Surface: kimi|opencode</text>
-    <text x="380" y="146" text-anchor="middle" fill="#fffaf0" font-size="9.5" font-style="italic">fails open -&gt; temperance-coding</text>
+    <text x="380" y="146" text-anchor="middle" fill="#1a140e" font-size="9.5" font-style="italic">fails open -&gt; temperance-coding</text>
 
     <path d="M492,80 L548,80" stroke="#666" stroke-width="2" marker-end="url(#arrowA)"/>
 
@@ -160,15 +79,15 @@
     <text x="950" y="126" text-anchor="middle" fill="white" font-size="11">Research: Brave, Exa, Firecrawl, Jina</text>
     <text x="950" y="144" text-anchor="middle" fill="white" font-size="11">Media: ElevenLabs, RunwayML</text>
 
-    <rect x="270" y="200" width="500" height="90" rx="10" fill="#f7fafc" stroke="var(--line)"/>
+    <rect x="270" y="200" width="500" height="90" rx="10" fill="#141c21" stroke="var(--line)"/>
     <text x="520" y="222" text-anchor="middle" font-size="12" fill="var(--ink)" font-weight="bold">scripts/omniroute-temperance-reconcile.sh</text>
     <text x="520" y="242" text-anchor="middle" font-size="10.5" fill="var(--muted)">policy-driven, every 900s (com.temperance.engine.reconcile)</text>
     <text x="520" y="258" text-anchor="middle" font-size="10.5" fill="var(--muted)">reads live quota/health, PUTs substituted combo models</text>
     <text x="520" y="274" text-anchor="middle" font-size="10.5" fill="var(--muted)">snapshot-first -&gt; .omniroute-backups/*.json, rollbackable</text>
-    <path d="M520,200 L660,166" stroke="#9f7aea" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrowA)"/>
+    <path d="M520,200 L660,166" stroke="#c9a84a" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrowA)"/>
   </svg>
   <div class="legend">
-    <span><span class="swatch" style="background:#718096"></span>Client surface (host)</span>
+    <span><span class="swatch" style="background:#394951"></span>Client surface (host)</span>
     <span><span class="swatch" style="background:var(--processing)"></span>Local relay (optional)</span>
     <span><span class="swatch" style="background:var(--ai)"></span>OmniRoute gateway</span>
     <span><span class="swatch" style="background:var(--success)"></span>Upstream provider lanes</span>
@@ -315,7 +234,7 @@
   </div>
 </div>
 
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Generated for Temperance Engine via <code>architecture-diagram-creator</code>. Source of truth: <code>docs/omniroute-runtime.md</code>, <code>docs/omniroute-fleet.md</code>, <code>docs/omniroute-connections.md</code>, <code>docs/kimi-surface.md</code>, <code>package/router/omniroute-fallback-policy.json</code>, <code>package/router/omniroute-portfolios.json</code>, <code>ISA.md</code>.</p>
+<p style="color:#6f7d7e; font-size:12px; margin-top:40px;">Generated for Temperance Engine via <code>architecture-diagram-creator</code>. Source of truth: <code>docs/omniroute-runtime.md</code>, <code>docs/omniroute-fleet.md</code>, <code>docs/omniroute-connections.md</code>, <code>docs/kimi-surface.md</code>, <code>package/router/omniroute-fallback-policy.json</code>, <code>package/router/omniroute-portfolios.json</code>, <code>ISA.md</code>.</p>
 
 </body>
 </html>

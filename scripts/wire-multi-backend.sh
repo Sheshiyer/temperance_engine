@@ -303,6 +303,14 @@ check_status() {
   else
     echo "   [NOT INSTALLED] ~/.local/bin/temperance-batch"
   fi
+  if [[ -L "$HOME/.local/bin/temperance-manifest" ]]; then
+    target=$(readlink "$HOME/.local/bin/temperance-manifest")
+    echo "   [INSTALLED] ~/.local/bin/temperance-manifest → $target"
+  elif [[ -f "$HOME/.local/bin/temperance-manifest" ]]; then
+    echo "   [INSTALLED] ~/.local/bin/temperance-manifest (file, not symlink)"
+  else
+    echo "   [NOT INSTALLED] ~/.local/bin/temperance-manifest"
+  fi
   echo ""
 
   # Governed native launchers
@@ -446,6 +454,7 @@ revert() {
   [[ -L "$HOME/.local/bin/temperance-route" ]] && rm -f "$HOME/.local/bin/temperance-route" && log "Removed: ~/.local/bin/temperance-route"
   [[ -L "$HOME/.local/bin/temperance-dispatch" ]] && rm -f "$HOME/.local/bin/temperance-dispatch" && log "Removed: ~/.local/bin/temperance-dispatch"
   [[ -L "$HOME/.local/bin/temperance-batch" ]] && rm -f "$HOME/.local/bin/temperance-batch" && log "Removed: ~/.local/bin/temperance-batch"
+  [[ -L "$HOME/.local/bin/temperance-manifest" ]] && rm -f "$HOME/.local/bin/temperance-manifest" && log "Removed: ~/.local/bin/temperance-manifest"
   [[ -L "$HOME/.local/bin/temperance-opencode" ]] && rm -f "$HOME/.local/bin/temperance-opencode" && log "Removed: ~/.local/bin/temperance-opencode"
   [[ -L "$HOME/.local/bin/temperance-claude" ]] && rm -f "$HOME/.local/bin/temperance-claude" && log "Removed: ~/.local/bin/temperance-claude"
   for router_file in classify-task.sh omniroute-portfolios.ts omniroute-portfolios.json; do
@@ -487,6 +496,7 @@ install() {
   symlink "$REPO_ROOT/package/router/dispatch-tasklist.sh" "$HOME/.local/bin/temperance-batch"
   symlink "$REPO_ROOT/package/router/omniroute-opencode.sh" "$HOME/.local/bin/temperance-opencode"
   symlink "$REPO_ROOT/package/router/omniroute-claude.sh" "$HOME/.local/bin/temperance-claude"
+  symlink "$REPO_ROOT/package/router/temperance-manifest.mjs" "$HOME/.local/bin/temperance-manifest"
 
   # Co-locate the shared classifier at the PAI router path so the installed
   # enrichment hook (enrich/stages/routing.ts) resolves its
@@ -522,7 +532,17 @@ install() {
     log "Would ensure Claude prompt adapter: ~/.claude/hooks/PromptProcessing.hook.ts"
   else
     mkdir -p "$HOME/.claude/hooks"
-    ensure_prompt_hook "$REPO_ROOT/package/enrich/adapters/claude-prompthook.ts" "$HOME/.claude/hooks/PromptProcessing.hook.ts"
+    if [[ -f "$REPO_ROOT/package/hooks/claude/PromptProcessing.hook.ts" ]]; then
+      cp "$REPO_ROOT/package/hooks/claude/PromptProcessing.hook.ts" "$HOME/.claude/hooks/PromptProcessing.hook.ts"
+      chmod +x "$HOME/.claude/hooks/PromptProcessing.hook.ts"
+      for hook in GsdCommand.hook.ts TemperanceRailAnnounce.hook.ts ManifestModeCommit.hook.ts; do
+        [[ -f "$REPO_ROOT/package/hooks/codex/$hook" ]] || continue
+        cp "$REPO_ROOT/package/hooks/codex/$hook" "$HOME/.claude/hooks/$hook"
+        chmod +x "$HOME/.claude/hooks/$hook"
+      done
+    else
+      ensure_prompt_hook "$REPO_ROOT/package/enrich/adapters/claude-prompthook.ts" "$HOME/.claude/hooks/PromptProcessing.hook.ts"
+    fi
   fi
   if [[ -d "$HOME/.claude/PAI/enrich" ]]; then
     log "Claude Code enrichment core already installed at ~/.claude/PAI/enrich/"
@@ -537,7 +557,16 @@ install() {
     log "Would ensure Codex prompt adapter: ~/.codex/hooks/PromptProcessing.hook.ts"
   else
     mkdir -p "$HOME/.codex/hooks"
-    ensure_prompt_hook "$REPO_ROOT/package/enrich/adapters/codex-prompthook.ts" "$HOME/.codex/hooks/PromptProcessing.hook.ts"
+    if [[ -f "$REPO_ROOT/package/hooks/codex/PromptProcessing.hook.ts" ]]; then
+      mkdir -p "$HOME/.codex/hooks"
+      for hook in PromptProcessing.hook.ts GsdCommand.hook.ts TemperanceRailAnnounce.hook.ts ManifestModeCommit.hook.ts SessionStartTe.hook.ts; do
+        [[ -f "$REPO_ROOT/package/hooks/codex/$hook" ]] || continue
+        cp "$REPO_ROOT/package/hooks/codex/$hook" "$HOME/.codex/hooks/$hook"
+        chmod +x "$HOME/.codex/hooks/$hook"
+      done
+    else
+      ensure_prompt_hook "$REPO_ROOT/package/enrich/adapters/codex-prompthook.ts" "$HOME/.codex/hooks/PromptProcessing.hook.ts"
+    fi
   fi
   if [[ -f "$HOME/.codex/hooks/PromptProcessing.hook.ts" ]]; then
     if grep -q "TEMPERANCE_ENRICH_DIR\|PAI/enrich" "$HOME/.codex/hooks/PromptProcessing.hook.ts" 2>/dev/null; then

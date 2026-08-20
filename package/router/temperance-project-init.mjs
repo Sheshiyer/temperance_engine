@@ -101,6 +101,102 @@ function gitRemote(cwd) {
   }
 }
 
+function curlJson(url, timeoutMs = 800) {
+  try {
+    const r = spawnSync("curl", ["-sS", "-m", String(Math.max(1, timeoutMs / 1000)), url], {
+      encoding: "utf8",
+      timeout: timeoutMs + 200,
+    });
+    if (r.status !== 0) return { ok: false, status: r.status, body: (r.stderr || "").slice(0, 160) };
+    const text = (r.stdout || "").trim();
+    try {
+      return { ok: true, json: JSON.parse(text), text };
+    } catch {
+      return { ok: true, text: text.slice(0, 200) };
+    }
+  } catch (error) {
+    return { ok: false, error: String(error).slice(0, 160) };
+  }
+}
+
+function parseStateMd(cwd) {
+  const text = read(join(cwd, ".planning", "STATE.md")) || "";
+  const status = (text.match(/^\s*(?:\*\*)?Status(?:\*\*)?\s*:\s*(.+)$/im) || [])[1]?.trim() || null;
+  const complete = /status[:\s*]*complete/i.test(text);
+  return { present: Boolean(text), status, complete, next: complete ? "/gsd:complete-milestone" : "/gsd:progress" };
+}
+
+function liveProbes(cwd) {
+  const pulse = curlJson("http://127.0.0.1:31337/health");
+  const voice = curlJson("http://127.0.0.1:8888/health");
+  const bridge = curlJson("http://127.0.0.1:8766/health");
+  const omni = curlJson("http://127.0.0.1:20128/api/status");
+  const iab = (() => {
+    const toml = read(join(HOME, ".codex", "config.toml")) || "";
+    return (toml.match(/open-local-url-in-target-preference\s*=\s*"([^"]+)"/) || [])[1] || "unset";
+  })();
+  const bind = (() => {
+    try {
+      const r = spawnSync("lsof", ["-nP", "-iTCP:20128", "-sTCP:LISTEN"], { encoding: "utf8", timeout: 1500 });
+      const line = (r.stdout || "").split("\n").find((l) => l.includes("20128")) || "";
+      return /TCP \*:20128/.test(line) ? "*:20128" : /127\.0\.0\.1:20128/.test(line) ? "127.0.0.1:20128" : (line.trim() || "not-listening");
+    } catch {
+      return "unread";
+    }
+  })();
+  const product = (() => {
+    try {
+      return spawnSync("readlink", [join(TE_HOME, "product")], { encoding: "utf8", timeout: 800 }).stdout.trim();
+    } catch {
+      return null;
+    }
+  })();
+  const ranking = (() => {
+    try {
+      const raw = JSON.parse(read(join(TE_HOME, "state", "paid-fleet-ranking.json")) || "{}");
+      const ageH = raw.generated_at ? (Date.now() - Date.parse(raw.generated_at)) / 36e5 : null;
+      return { generated_at: raw.generated_at || null, age_h: ageH, stale: ageH !== null && ageH > 6 };
+    } catch {
+      return { generated_at: null, age_h: null, stale: true };
+    }
+  })();
+  const projectJson = (() => {
+    try {
+      return JSON.parse(read(join(cwd, ".temperance", "project.json")) || "null");
+    } catch {
+      return null;
+    }
+  })();
+  const state = parseStateMd(cwd);
+  const tomlHasMeshy = /MESHY_API_KEY\s*=\s*"[^"]+"/i.test(read(join(HOME, ".codex", "config.toml")) || "");
+  const adminPresent = existsSync("/etc/codex");
+  return {
+    pulse: { url: "http://127.0.0.1:31337", ok: Boolean(pulse.ok && (pulse.json?.ok || pulse.json?.service)), detail: pulse.json?.service || pulse.text || pulse.error },
+    voice: { url: "http://127.0.0.1:8888", ok: Boolean(voice.json?.status === "healthy"), tts_proven: false, detail: "TTS 502 is ElevenLabs auth — doctor does not claim speech" },
+    bridge: { url: "http://127.0.0.1:8766", ok: Boolean(bridge.json?.service), freshness: bridge.json?.status || bridge.json?.freshness || null },
+    omniroute: {
+      url: "http://127.0.0.1:20128",
+      bind,
+      edge: "local",
+      reachable: Boolean(omni.ok || omni.json || (omni.text || "").includes("401")),
+    },
+    iab,
+    product_symlink: product,
+    product_is_live: Boolean(product && (existsSync(join(product, "package/manifest-zone/src/GsdDeck.tsx")) || existsSync(join(product, "package/router/gsd-rail-map.json")))),
+    ranking,
+    active_planner: projectJson?.active_planner || null,
+    gsd_state: state,
+    config_layer: {
+      user: join(HOME, ".codex", "config.toml"),
+      project: existsSync(join(cwd, ".codex", "config.toml")) ? join(cwd, ".codex", "config.toml") : null,
+      admin_present: adminPresent,
+    },
+    secrets_in_user_toml: { meshy_plaintext: tomlHasMeshy },
+    mcp_note: "Grok MCP seats are not Codex MCP seats — skill-cluster names may not be connected here",
+    picker_before_iab: true,
+  };
+}
+
 function hostChecks() {
   const paths = {
     te_home: TE_HOME,
@@ -251,6 +347,14 @@ function classifyGaps(host, project) {
     message:
       "Host TE owns models/OmniRoute/credentials. Project rail owns planning/ISA/AGENTS/next-wave. Never put provider secrets in the repo.",
   });
+  notes.push({
+    id: "note:admin",
+    message: "/etc/codex is absent on this Mini. ChatGPT still shows an empty Admin dropdown — that is not a defect.",
+  });
+  notes.push({
+    id: "note:mcp",
+    message: "Grok MCP and Codex MCP are different seats. A skill-cluster tool name is not proof the current surface is connected.",
+  });
 
   return { gaps, notes };
 }
@@ -268,8 +372,11 @@ and \`~/.config/opencode\`; this repo owns planning and acceptance.
 | Models / failover / budgets | Host OmniRoute + temperance combos |
 | Planning spine | \`.planning/\` (GSD) + \`temperance-next-wave\` |
 | Acceptance | \`ISA.md\` when present |
+| Session loop | \`/gsd:goal\` → \`.temperance/goal.json\` (not a second planner) |
 | Handoff (if present) | \`.project/HANDOFF.md\` |
 | Parallel execute | \`te-dispatch-paid\` / \`temperance-batch\` |
+
+\`/gsd:*\` binds the mode. A card only on a bare first prompt with no saved session/cwd mode.
 
 ### Auto next-wave
 
@@ -529,7 +636,36 @@ function main() {
 
   const host = hostChecks();
   const project = projectChecks(cwd);
+  const live = liveProbes(cwd);
   const { gaps, notes } = classifyGaps(host, project);
+  if (live.gsd_state.complete) {
+    notes.push({
+      id: "note:gsd-complete",
+      message: `GSD STATE is Complete. Next command is /gsd:complete-milestone — do not /gsd:execute-phase.`,
+    });
+  }
+  if (live.ranking.stale) {
+    gaps.push({
+      id: "host:ranker-stale",
+      severity: "medium",
+      message: "Paid-fleet ranking is older than 6h or missing.",
+      fix: "python3 ~/.agents/skills/temperance-parallel-dispatch/scripts/rank-paid-fleet.py --refresh-codexbar --apply-combo",
+    });
+  }
+  if (!live.product_is_live) {
+    gaps.push({
+      id: "host:product-archive",
+      severity: "high",
+      message: `product symlink is not the live repo (${live.product_symlink})`,
+      fix: "ln -sfn <this-clone> ~/.temperance_engine/product  (or ./install.sh --with-spine)",
+    });
+  }
+  if (!live.active_planner) {
+    notes.push({
+      id: "note:active-planner",
+      message: "No active_planner in .temperance/project.json — set isa or gsd so Manifest/GSD do not fight.",
+    });
+  }
 
   let applyResult = null;
   if (!opts.check) {
@@ -549,11 +685,16 @@ function main() {
     notes,
     actions: applyResult?.actions || [],
     manifest: applyResult?.manifest || null,
+    live,
     summary: {
       host_ready: Object.values(host).every((v) => v.present),
       project_rail: (opts.check ? project : projectAfter).temperance_project.present,
       high_gaps: gapsAfter.filter((g) => g.severity === "high").length,
       medium_gaps: gapsAfter.filter((g) => g.severity === "medium").length,
+      omniroute_bind: live.omniroute.bind,
+      iab: live.iab,
+      active_planner: live.active_planner,
+      gsd_next: live.gsd_state.next,
     },
   };
 
@@ -596,6 +737,16 @@ function main() {
       console.log("NOTES");
       for (const n of notes) console.log(`  - ${n.message}`);
     }
+    console.log("");
+    console.log("LIVE");
+    console.log(`  Pulse     ${live.pulse.ok ? "OK" : "DOWN"} ${live.pulse.url}`);
+    console.log(`  Voice     ${live.voice.ok ? "UP" : "DOWN"} ${live.voice.url} (TTS not proven)`);
+    console.log(`  Bridge    ${live.bridge.ok ? "OK" : "DOWN"} ${live.bridge.url}`);
+    console.log(`  OmniRoute bind ${live.omniroute.bind} edge=${live.omniroute.edge}`);
+    console.log(`  IAB       ${live.iab}`);
+    console.log(`  Planner   ${live.active_planner || "unset"}`);
+    console.log(`  GSD       ${live.gsd_state.status || "unknown"} next=${live.gsd_state.next}`);
+    console.log(`  Ranker    ${live.ranking.stale ? "STALE" : "FRESH"} ${live.ranking.generated_at || "missing"}`);
   }
 
   const high = gapsAfter.filter((g) => g.severity === "high").length;

@@ -154,6 +154,11 @@ grep -q 'diegosouzapw/OmniRoute' "$DIR/THIRD_PARTY_NOTICES.md" 2>/dev/null \
 grep -q 'diegosouzapw/OmniRoute' "$DIR/UPSTREAM.md" \
   && echo "ok - UPSTREAM credits OmniRoute" \
   || { echo "FAIL - UPSTREAM.md missing OmniRoute"; fail=1; }
+grep -q 'vercel-labs/portless' "$DIR/THIRD_PARTY_NOTICES.md" \
+  && grep -q 'vercel-labs/portless' "$DIR/UPSTREAM.md" \
+  && grep -q 'portless alias' "$DIR/scripts/apply-portless-organs.sh" \
+  && echo "ok - portless third-party infra recorded" \
+  || { echo "FAIL - portless attribution or apply script missing"; fail=1; }
 grep -q 'failed, timeout, or unavailable task' \
   "$DIR/skills/temperance-parallel-dispatch/SKILL.md" \
   && grep -q 'before using an in-session subagent' \

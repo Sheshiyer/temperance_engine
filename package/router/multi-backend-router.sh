@@ -164,6 +164,8 @@ declare -A MODEL_CATALOG=(
   ["command-code:xiaomi/mimo-v2.5-pro"]="deep:long-horizon:256k"
   ["command-code:inclusionai/ling-3.0-flash-free"]="fast:speed:128k"
   ["command-code:poolside/laguna-s-2.1-free"]="balanced:general:128k"
+  ["command-code:MiniMaxAI/MiniMax-M3"]="balanced:creative:1M"
+  ["command-code:google/gemini-3.7-flash"]="fast:vision:1M"
   # Still-valid catalog member, no longer a classifier primary.
   ["command-code:MiniMaxAI/MiniMax-M2.7"]="balanced:general:256k"
 
@@ -189,6 +191,14 @@ declare -A ROUTING_FALLBACK_TAILS=(
   ["validation"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
   ["creative"]="grok:grok-composer-2.5-fast kimi:kimi-code/kimi-for-coding"
   ["balanced"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["ralph"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["optimize"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["dispatch"]="grok:grok-build kimi:kimi-code/kimi-for-coding"
+  ["research"]="grok:grok-build"
+  ["media"]=""
+  ["vision"]=""
+  ["plan"]="grok:grok-build"
+  ["plan-max"]="grok:grok-build"
 )
 routing_priority_for_type() {
   local task_type="$1" omni_model="${2:-}"

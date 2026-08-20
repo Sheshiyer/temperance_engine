@@ -55,11 +55,19 @@ cd temperance_engine
 ./install.sh --with-voice
 ./install.sh --with-claude
 ./install.sh --with-codex
+./install.sh --with-gsd
+./install.sh --with-manifest
+./install.sh --with-spine
 ./install.sh --skip-opencode
 ./install.sh --skip-cursor
 ```
 
+`--with-spine` is the Thoughtseed-member glove: Claude + Codex compose UPS, `/gsd:*` on Claude/Codex/OpenCode/Grok, Manifest LCARS + bridge, Pulse, and `~/.temperance_engine/product` → this clone. `/gsd:*` binds PAI mode; a card only on a bare first prompt with no saved mode. It does not vendor GSD core or copy secrets.
+
 Default install does not require Claude Code, Claude Pro/Max, Anthropic auth, Codex auth, or a specific model.
+
+
+Codex CLI limits (do not fight them): no async hooks, resolve bun via `package/hooks/codex/run-bun-hook.sh`, do not ship Refero OAuth. See `docs/codex-cli-limits.md`.
 
 ## Voice Behavior
 

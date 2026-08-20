@@ -2,6 +2,15 @@
 
 Use `NOESIS` as the first visible line for PAI-formatted responses.
 
+## GSD slash remote
+
+- If this repo has `.planning/`, prefer `/gsd:progress` then the next `/gsd:*` named in STATE.
+- `/gsd:doctor` (or `temperance-project-init --cwd . --check`) is the daily truth probe.
+- `/gsd:*` already binds a PAI mode (goal/plan/execute = ALGORITHM; doctor/fast = NATIVE; help = MINIMAL). Do not write a NOESIS quiz. A real picker (`ask_user_question` on Grok, `AskUserQuestion` on Codex/Claude) is only for a bare first prompt with no mode yet. After a mode exists, Codex/Claude open ChatGPT IAB to `http://127.0.0.1:5173`; Grok prints that URL. Never Chrome/Safari for Manifest.
+- All modes keep the seven alchemical steps. Skill clusters and workflows differ by mode.
+- Do not fork GSD core. Wrappers read `~/.claude/get-shit-done/workflows/`.
+- `active_planner` in `.temperance/project.json` is `isa` or `gsd` — not both as authority.
+
 ## PAI Runtime
 
 - Prefer a current-state to ideal-state loop.

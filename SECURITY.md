@@ -1,5 +1,7 @@
 # Security
 
+Themed page: [docs/site/security.html](docs/site/security.html) · library: [docs/index.html](docs/index.html)
+
 Temperance Engine modifies local AI-agent configuration files. Treat it like developer tooling with access to your home-directory config surface.
 
 ## Review Before Running

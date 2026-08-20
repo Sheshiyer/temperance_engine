@@ -1,0 +1,10 @@
+:root { color-scheme: dark; font-synthesis: none; text-rendering: optimizeLegibility; }
+
+html, body, #root { width: 100%; min-height: 100%; }
+
+::selection { color: #07090b; background: #65d9e8; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #090c0f; }
+::-webkit-scrollbar-thumb { background: #263138; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #394951; }

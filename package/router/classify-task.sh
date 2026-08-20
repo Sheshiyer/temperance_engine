@@ -18,10 +18,35 @@ _kw() {
 }
 
 # classify_task_type "<task>" -> one of:
-#   long-horizon | reasoning | validation | creative | fast | inline | balanced
-# Ordered, first-match-wins. This is the ONLY copy of these keyword lists.
+#   ralph | optimize | dispatch | media | vision | research | plan-max | plan
+#   | long-horizon | reasoning | validation | creative | fast | inline | balanced
+# Ordered, first-match-wins. Availability/session gating lives in classify-route.
 classify_task_type() {
   lower_desc=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+  if _kw "$lower_desc" 'ralph|maestro|ephemeral feature|isolated context|feature loop'; then
+    echo "ralph"; return
+  fi
+  if _kw "$lower_desc" 'autoresearch|hill-?climb|optimize loop|eval mode|keep/discard|karpathy'; then
+    echo "optimize"; return
+  fi
+  if _kw "$lower_desc" 'dispatch|parallel workers|paid fleet|te-dispatch|swarm fan-?out'; then
+    echo "dispatch"; return
+  fi
+  if _kw "$lower_desc" 'elevenlabs|runway|text-to-speech|tts|image-to-video|meshy|voiceover|voice over'; then
+    echo "media"; return
+  fi
+  if _kw "$lower_desc" 'screenshot|vision bridge|te-vision|image audit'; then
+    echo "vision"; return
+  fi
+  if _kw "$lower_desc" 'literature|cite sources|web search|search evidence|te-write-research'; then
+    echo "research"; return
+  fi
+  if _kw "$lower_desc" 'plan-max|te-plan-max|architecture decision|system design|multi-?milestone|deep pass|task graph'; then
+    echo "plan-max"; return
+  fi
+  if _kw "$lower_desc" 'roadmap|spec|architecture|implementation plan'; then
+    echo "plan"; return
+  fi
   if _kw "$lower_desc" 'refactor|rewrite|migrate|redesign|overhaul|restructure|entire|all files|across.*files'; then
     echo "long-horizon"; return
   fi
@@ -50,30 +75,28 @@ classify_task_type() {
 # catalog: MBR derives ROUTING_PRIORITY's command-code column from this, and
 # routing.ts renders `preferred=` from it.
 #
-# The 2026-07-21 command-code deals for Hy3 and MiniMax-M3 expired. On
-# 2026-07-28 new bounded FREE deals were recorded in ISA.md for the two
-# vacated high-volume slots, restoring the 2026-07-18 decision's
-# free/credit-deal intent. Every pin below was re-verified against the live
-# command-code catalog: `command-code --list-models` (CLI v1.4.3, 2026-07-28).
+# Command Code primaries = live deals only (2026-08-19 pricing-limits + Studio).
+# Keep: laguna-s-2.1-free, xiaomi/mimo-v2.5-pro (~5x), MiniMax-M3 (~2x),
+# google/gemini-3.7-flash (~2x through 2026-12-31).
+# Do not pin full-price CC (deepseek-v4-pro/flash, terra, Step flash).
+# Combo stacks still come from lane-templates + rank-paid-fleet — this file
+# only names the CC classifier primary per task type.
 model_for_type() {
   case "$1" in
-    # 2026-07-28: FREE "fast lightweight-MoE coding & agentic work"; succeeds
-    # the expired tencent/Hy3 FREE deal. Src: command-code --list-models v1.4.3.
-    fast)         echo "command-code:inclusionai/ling-3.0-flash-free" ;;
-    # 2026-07-28: 5x permanent credit deal (ISA 2026-07-18); still listed.
-    # Src: command-code --list-models v1.4.3, 2026-07-28.
+    ralph)        echo "combo:te-build" ;;
+    optimize)     echo "combo:te-reason" ;;
+    dispatch)     echo "combo:te-dispatch-paid" ;;
+    media)        echo "combo:te-write-media" ;;
+    vision)       echo "combo:te-vision" ;;
+    research)     echo "combo:te-write-research" ;;
+    plan-max)     echo "combo:te-plan-max" ;;
+    plan)         echo "combo:te-plan" ;;
+    fast)         echo "command-code:poolside/laguna-s-2.1-free" ;;
     long-horizon) echo "command-code:xiaomi/mimo-v2.5-pro" ;;
-    # 2026-07-28: 4x permanent credit deal (ISA 2026-07-18); still listed.
-    # Src: command-code --list-models v1.4.3, 2026-07-28.
-    reasoning)    echo "command-code:deepseek/deepseek-v4-pro" ;;
-    # 2026-07-28: same FREE deal as fast (high-volume slot).
-    validation)   echo "command-code:inclusionai/ling-3.0-flash-free" ;;
-    # 2026-07-28: FREE "open-weight agentic coding and long-horizon work";
-    # succeeds the expired MiniMaxAI/MiniMax-M3 2.67x deal.
-    # Src: command-code --list-models v1.4.3, 2026-07-28.
-    creative)     echo "command-code:poolside/laguna-s-2.1-free" ;;
+    reasoning)    echo "command-code:xiaomi/mimo-v2.5-pro" ;;
+    validation)   echo "command-code:google/gemini-3.7-flash" ;;
+    creative)     echo "command-code:MiniMaxAI/MiniMax-M3" ;;
     inline)       echo "inline:current-session" ;;
-    # balanced default: same FREE deal as creative.
     *)            echo "command-code:poolside/laguna-s-2.1-free" ;;
   esac
 }

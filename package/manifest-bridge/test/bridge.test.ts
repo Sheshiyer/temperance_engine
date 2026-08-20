@@ -45,37 +45,42 @@ const PARKAREA_REQUIREMENTS = ['SCOPE-01', 'SCOPE-02', 'SCOPE-03', 'SCOPE-04', '
 const PARKAREA_EDITION_REQUIREMENTS = ['SCOPE-01', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'GUIDE-01'];
 const PARKAREA_FORBIDDEN_EFFECTS = ['booking', 'payment', 'ledger', 'notification', 'audit', 'request_log', 'payout', 'transactional_email', 'external_provider'];
 const PARKAREA_PROOF_FILE = 'server/__tests__/postgres/guide-claim-evidence.pg.test.ts';
+const PARKAREA_LISTING_ID = '63b79635-7369-488a-b6ce-a07d62ef1cc3';
 const PARKAREA_COVERAGE_FIXTURE = [
   {
-    evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
-    requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
-    claim: { de: 'Authentifizierte Suchergebnisse zeigen nicht leere Parkmöglichkeiten im freigegebenen Demo-Szenario.', en: 'Authenticated discovery shows nonempty parking results in the approved demo scenario.' },
-    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-suchen"]', '[data-testid="text-result-count"]', '[data-testid^="card-result-"]', '[data-testid^="text-result-name-"]'],
-    sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' }, claimRoute: '/api/v1/search', claimClassification: 'isolated', claimAllowed: ['search_analytics:+1'],
-    claimTestName: 'authenticated seeker search returns nonempty tenant-scoped PostGIS ordered active results',
-  },
-  {
-    evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 400,
+    evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker_read_only', minimumBodyTextChars: 400,
     requirementIds: ['CAP-04', 'CAP-06', 'CAP-07', 'DATA-03', 'DATA-05'],
     claim: { de: 'Ein aktives Inserat zeigt Verfügbarkeit, Preisangebot, Gesamtpreis und Buchungsbereitschaft ohne Buchung.', en: 'An active listing shows availability, quote, total, and booking readiness without creating a booking.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
-    sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }, claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimClassification: 'isolated', claimAllowed: ['listing_view_events:view:+1'],
+    sideEffect: { kind: 'listing_view_telemetry', status: 'isolated_verified' }, claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimClassification: 'isolated', claimAllowed: ['listing_view_events:view:+1'],
+    claimProofKind: 'postgres_postgis',
     claimTestName: 'active listing detail, calendar, and quote are tenant-scoped and do not create a booking',
   },
   {
-    evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
+    evidenceId: 'private-provider-listing-analytics', route: '/provider/listings/__W1A_APPROVED_LISTING_ID__/analytics', persona: 'private_provider', checkpointKind: 'private_provider_read_only', minimumBodyTextChars: 300,
+    requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
+    claim: { de: 'Die Analyseansicht zeigt persistierte Leistungs- und Umsatzkennzahlen des privaten Anbieters ohne Änderung.', en: 'The analytics view shows the private provider’s persisted performance and revenue metrics without changing them.' },
+    selectors: ['[data-testid="listing-analytics-page"]', '[data-testid="listing-analytics-export-csv"]', '[data-testid="listing-analytics-total-views"]', '[data-testid="listing-analytics-total-impressions"]', '[data-testid="listing-analytics-conversion-rate"]', '[data-testid="listing-analytics-chart"]'],
+    sideEffect: { kind: 'provider_analytics_read', status: 'read_only_verified' }, claimRoute: '/api/v1/provider/listings/:id/analytics | /api/v1/provider/listings/:id/revenue | /api/v1/provider/listings/revenue', claimClassification: 'read-only', claimAllowed: [],
+    claimProofKind: 'postgres',
+    claimTestName: 'private provider listing analytics reads persisted tenant-owned metrics without mutation',
+  },
+  {
+    evidenceId: 'enterprise-provider-qr-fleet', route: '/provider/qr/fleet', persona: 'enterprise_provider', checkpointKind: 'enterprise_provider_read_only', minimumBodyTextChars: 300,
     requirementIds: ['CAP-08', 'DATA-02'],
-    claim: { de: 'Die Buchungsansicht zeigt eine vorhandene mandantensichere Buchung des Suchenden.', en: 'The bookings view shows an existing tenant-safe Seeker booking.' },
-    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="dashboard-sidebar"]', '[data-testid="button-nav-bookings"]', '[data-testid="bookings-view"]', '[data-testid="input-search-bookings"]', '[data-testid^="button-booking-details-"]', '[data-recurring-bookings-state="settled"]'],
-    sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' }, claimRoute: '/api/v1/me/bookings', claimClassification: 'read-only', claimAllowed: [],
-    claimTestName: 'seeker booking history reads persisted tenant-owned bookings and excludes another tenant',
+    claim: { de: 'Die QR-Flottenansicht zeigt mandantensichere Inserate und Scan-Kennzahlen des Unternehmensanbieters ohne Regenerierung.', en: 'The QR fleet view shows the enterprise provider’s tenant-safe listings and scan metrics without regeneration.' },
+    selectors: ['[data-testid="qr-fleet-page"]', '[data-testid="qr-fleet-search"]', '[data-testid="qr-fleet-selected-count"]', '[data-testid="qr-fleet-bulk-regenerate"]', '[data-testid="qr-fleet-bulk-pdf"]', '[data-testid="qr-fleet-export-csv"]', '[data-testid^="qr-fleet-row-"]'],
+    sideEffect: { kind: 'enterprise_qr_fleet_read', status: 'read_only_verified' }, claimRoute: '/api/v1/admin/tenants/:tenantId/qr/fleet', claimClassification: 'read-only', claimAllowed: [],
+    claimProofKind: 'postgres',
+    claimTestName: 'enterprise provider QR fleet reads persisted tenant listings and scan metrics without regeneration',
   },
   {
     evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300,
     requirementIds: ['SCOPE-03', 'CAP-09'],
     claim: { de: 'Der Moderationsverlauf zeigt die Freigabe desselben aktiven Inserats ohne Änderung.', en: 'Moderation history shows approval of the same active listing without changing it.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
-    sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' }, claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimClassification: 'read-only', claimAllowed: [],
+    sideEffect: { kind: 'admin_audit_read', status: 'read_only_verified' }, claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimClassification: 'read-only', claimAllowed: [],
+    claimProofKind: 'postgres_postgis',
     claimTestName: 'admin listing readiness and persisted approval audit are readable for the same tenant without mutation',
   },
 ] as const;
@@ -99,8 +104,8 @@ function validCapture(sourceVersion = 'source-fixture-v1'): Record<string, unkno
     viewport: { width: 1440, height: 900 },
     forbiddenSelectors: ['[data-testid="cookie-banner"]'],
     seed: { strategy: 'none' },
-    personas: { seeker: 'seeker', admin: 'admin' },
-    shots: PARKAREA_COVERAGE_FIXTURE.map((row) => ({ id: row.evidenceId, file: `${row.evidenceId}.png`, route: row.route, persona: row.persona, requiredSelectors: [...row.selectors], minimumBodyTextChars: row.minimumBodyTextChars })),
+    personas: { seeker: 'seeker', private_provider: 'private', enterprise_provider: 'enterprise', admin: 'admin' },
+    shots: PARKAREA_COVERAGE_FIXTURE.map((row) => ({ id: row.evidenceId, file: `${row.evidenceId}.png`, route: row.route.replace('__W1A_APPROVED_LISTING_ID__', PARKAREA_LISTING_ID), persona: row.persona, requiredSelectors: row.selectors.map((selector) => selector.replaceAll('__W1A_APPROVED_LISTING_ID__', PARKAREA_LISTING_ID)), minimumBodyTextChars: row.minimumBodyTextChars })),
   };
 }
 
@@ -116,25 +121,25 @@ function validCoverage(): Record<string, unknown> {
       checkpointKind: row.checkpointKind,
       requirementIds: [...row.requirementIds],
       claim: { ...row.claim },
-      route: row.route,
+      route: row.route.replace('__W1A_APPROVED_LISTING_ID__', PARKAREA_LISTING_ID),
       persona: row.persona,
       locales: ['de', 'en'],
       tenantAuthority: 'authenticated_session',
       scenarioClass: 'synthetic_or_approved_demo',
       evidenceId: row.evidenceId,
-      requiredSelectors: [...row.selectors],
+      requiredSelectors: row.selectors.map((selector) => selector.replaceAll('__W1A_APPROVED_LISTING_ID__', PARKAREA_LISTING_ID)),
       minimumBodyTextChars: row.minimumBodyTextChars,
-      semanticProof: { kind: 'w1a_postgres_or_read_only_probe', status: 'pending' },
+      semanticProof: { kind: 'w1a_postgres_or_read_only_probe', status: 'verified' },
       sideEffects: [{ ...row.sideEffect }],
-      admission: 'blocked',
+      admission: 'approved',
     })),
   };
 }
 
 function validClaimMap(): Record<string, unknown> {
   return {
-    schema: 'parkarea.guide.claim-evidence-map.v1',
-    claims: PARKAREA_COVERAGE_FIXTURE.map((row, index) => ({ order: index + 1, evidenceId: row.evidenceId, proof: { kind: 'postgres_postgis', file: PARKAREA_PROOF_FILE, testName: row.claimTestName }, correlation: { route: row.claimRoute, persona: row.persona, tenantAuthority: 'authenticated_session' }, sideEffects: { classification: row.claimClassification, allowed: [...row.claimAllowed], forbidden: [...PARKAREA_FORBIDDEN_EFFECTS] } })),
+    schema: 'parkarea.guide.claim-evidence-map.v2',
+    claims: PARKAREA_COVERAGE_FIXTURE.map((row, index) => ({ order: index + 1, evidenceId: row.evidenceId, proof: { kind: row.claimProofKind, status: 'passed', file: PARKAREA_PROOF_FILE, testName: row.claimTestName }, correlation: { route: row.claimRoute, persona: row.persona, tenantAuthority: 'authenticated_session' }, sideEffects: { classification: row.claimClassification, allowed: [...row.claimAllowed], forbidden: [...PARKAREA_FORBIDDEN_EFFECTS] } })),
   };
 }
 
@@ -853,6 +858,12 @@ describe('capability and workflow request v2', () => {
     const trusted = { capture: validCapture(), claimMap: validClaimMap() };
     expect(typeof validate).toBe('function');
     expect(validate!(validCoverage(), trusted)).toBe(true);
+    expect((validCoverage().steps as Array<Record<string, unknown>>).map((step) => [step.evidenceId, step.route, step.persona])).toEqual([
+      ['seeker-listing-readiness', `/parkplatz/${PARKAREA_LISTING_ID}`, 'seeker'],
+      ['private-provider-listing-analytics', `/provider/listings/${PARKAREA_LISTING_ID}/analytics`, 'private_provider'],
+      ['enterprise-provider-qr-fleet', '/provider/qr/fleet', 'enterprise_provider'],
+      ['admin-listing-readiness', '/admin/listings', 'admin'],
+    ]);
 
     const mutations: Array<[string, (value: Record<string, any>) => void]> = [
       ['extra top-level field', (value) => { value.extra = true; }],
@@ -888,7 +899,7 @@ describe('capability and workflow request v2', () => {
     broadCapture.shots[0].requiredSelectors = ['html'];
     expect(validate!(validCoverage(), { capture: broadCapture, claimMap: validClaimMap() }), 'capture selector drift').toBe(false);
     const claimVersionDrift = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
-    claimVersionDrift.schema = 'parkarea.guide.claim-evidence-map.v2';
+    claimVersionDrift.schema = 'parkarea.guide.claim-evidence-map.v1';
     expect(validate!(validCoverage(), { capture: validCapture(), claimMap: claimVersionDrift }), 'claim registry version drift').toBe(false);
     const claimPersonaDrift = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
     claimPersonaDrift.claims[3].correlation.persona = 'seeker';
@@ -899,8 +910,9 @@ describe('capability and workflow request v2', () => {
       ['claim proof file drift', (value) => { value.claims[2].proof.file = 'server/__tests__/fake.test.ts'; }],
       ['claim proof test name drift', (value) => { value.claims[3].proof.testName = 'fabricated passing test'; }],
       ['claim proof kind drift', (value) => { value.claims[0].proof.kind = 'memory_mock'; }],
+      ['claim proof status drift', (value) => { value.claims[2].proof.status = 'pending'; }],
       ['claim classification drift', (value) => { value.claims[0].sideEffects.classification = 'read-only'; }],
-      ['claim allowed envelope drift', (value) => { value.claims[1].sideEffects.allowed = []; }],
+      ['claim allowed envelope drift', (value) => { value.claims[1].sideEffects.allowed = ['provider_mutation:+1']; }],
       ['claim forbidden envelope empty', (value) => { value.claims[0].sideEffects.forbidden = []; }],
       ['claim forbidden envelope drift', (value) => { value.claims[2].sideEffects.forbidden[0] = 'unknown'; }],
       ['claim registry extra field', (value) => { value.claims[0].trusted = true; }],
@@ -1018,13 +1030,19 @@ describe('capability and workflow request v2', () => {
     expect(existsSync(join(root, 'executed'))).toBe(false);
   });
 
-  test('keeps ParkArea video out of scope while generic video uses distinct validated inventory and FilmSpec', async () => {
+  test('keeps the approved later ParkArea hero film deferred while generic video can become ready', async () => {
     const parkRoot = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-park-video-')); dirs.push(parkRoot);
     writeGuideScope(join(parkRoot, 'parkarea-aleph'));
     fixtureWrite(join(parkRoot, 'parkarea-aleph'), '.temperance/guide/guide.manifest.json', { schema: 'product-guide.manifest.v1' });
     fixtureWrite(join(parkRoot, 'parkarea-aleph'), '.temperance/guide/film.json', { schema: 'product-guide.film-spec.v1' });
     const park = await capabilitiesFor(parkRoot);
-    expect(park.run_kinds.video).toMatchObject({ requestable: false, state: 'out_of_scope' });
+    expect(park.run_kinds.video).toEqual({
+      requestable: false,
+      state: 'gated',
+      authority: 'unchecked_at_request',
+      blockers: ['hero_film_waiting_for_guide_evidence_approval'],
+    });
+    expect(park.capabilities.find((item: Record<string, unknown>) => item.id === 'guide-to-product-video').summary).toBe('The approved ParkArea cross-role hero film remains deferred until guide evidence is approved.');
 
     const genericRoot = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-generic-video-')); dirs.push(genericRoot);
     const genericProject = join(genericRoot, 'generic-product');
@@ -1046,6 +1064,15 @@ describe('capability and workflow request v2', () => {
     Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
     Bun.spawnSync(['git', '-C', projectRoot, 'add', ...GUIDE_SCOPE_PATHS]);
     Bun.spawnSync(['git', '-C', projectRoot, 'commit', '--quiet', '-m', 'fixture']);
+    const fullSourceFingerprints = Array.from({ length: 69 }, (_, index) => ({ path: `source-${index}`, fingerprint: String(index).padStart(64, '0') }));
+    fixtureWrite(projectRoot, '.planning/ORCHESTRATION.json', {
+      schema: 'temperance.orchestration.v1',
+      plan_id: 'guide-plan',
+      mapping: { policy_hash: 'a'.repeat(64) },
+      source_fingerprints: fullSourceFingerprints,
+      options: [{ option_id: 'guide-option', combo: 'te-dispatch-paid', concurrency: 1, worktree_required: true, tasks: [{ id: 'guide' }] }],
+      approval: { approval_id: 'apr-guide' },
+    });
     const catalog = new ManifestCatalog(join(root, 'state'));
     const project = initProject(projectRoot).identity;
     catalog.ensureProject(project);
@@ -1059,6 +1086,7 @@ describe('capability and workflow request v2', () => {
     expect(response.status).toBe(201);
     expect(recorded).toHaveLength(1);
     expect(recorded[0].scope_hash).toBe(scopeBindingFor(projectRoot, project.project_id, 'source-fixture-v1').scope_hash);
+    expect(recorded[0].source_fingerprint).toBe(fingerprint(fullSourceFingerprints));
     await server.close();
   });
 
@@ -1226,7 +1254,7 @@ describe('capability and workflow request v2', () => {
     expect(JSON.stringify(paths)).not.toContain('apr-secret-value');
   });
 
-  test('denies missing or unknown run kinds without calling authority or recording a request', async () => {
+  test('denies unknown run kinds and keeps the deferred ParkArea hero film gated before authority', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-request-v2-kind-')); dirs.push(root);
     const projectRoot = join(root, 'parkarea-aleph');
     writeGuideScope(projectRoot);
@@ -1240,11 +1268,19 @@ describe('capability and workflow request v2', () => {
     const server = new Server(catalog, { controlLedger: ledger, capabilityOptions: { validatorRegistry: validatorRegistry() } });
     const address = await server.listen(0);
     const endpoint = `http://${address.host}:${address.port}/projects/${project.project_id}/workflows/product-guide-production/requests`;
-    for (const runKind of [undefined, 'other', 'video']) {
+    for (const runKind of [undefined, 'other']) {
       const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ schema: 'temperance.manifest.workflow-request.v2', request_id: `deny-${String(runKind)}`, approval_id: 'apr-guide', ...(runKind === undefined ? {} : { run_kind: runKind }) }) });
       expect(response.status).toBe(409);
-      expect((await response.json() as Record<string, unknown>).code).toBe(runKind === 'video' ? 'run_kind_out_of_scope' : 'invalid_run_kind');
+      expect((await response.json() as Record<string, unknown>).code).toBe('invalid_run_kind');
     }
+    const deferredHeroRequest = {
+      schema: 'temperance.manifest.workflow-request.v2', request_id: 'deny-deferred-hero', approval_id: 'apr-guide', run_kind: 'video',
+      plan_id: 'guide-plan', option_id: 'guide-option', policy_hash: 'a'.repeat(64), git_head: 'b'.repeat(40),
+      source_fingerprint: 'c'.repeat(64), task_fingerprint: 'd'.repeat(64), scope_hash: 'e'.repeat(64),
+    };
+    const deferred = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(deferredHeroRequest) });
+    expect(deferred.status).toBe(409);
+    expect((await deferred.json() as Record<string, unknown>).code).toBe('workflow_trigger_gated');
     expect(attestations).toBe(0);
     expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(0);
     await server.close();

@@ -1,14 +1,14 @@
 ---
 project: temperance_engine
-task: Build and test the vault relocation subsystem (Tasks 2A/3/4/6/7/8/9)
+task: Repair GSD stalls and execute glove Phase 1
 effort: E4
 effort_source: classifier
 phase: build
-iteration: 2026-08-04-vault-relocation-build-out
-progress: 681/788
+iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
+progress: 708/830
 mode: interactive
 started: 2026-06-12
-updated: 2026-08-04T23:15:00Z
+updated: 2026-08-20T17:18:00Z
 ---
 
 ## Problem
@@ -1058,6 +1058,26 @@ untouched.
 - [x] ISC-786: The workflow defines one no-voice or non-macOS compatibility probe.
 - [x] ISC-787: The workflow defines one uninstall or rollback restoration probe.
 - [x] ISC-788: The workflow defines one installed-file provenance or checksum probe.
+- [ ] ISC-789: `gsd-sdk` resolves from the operator shell `PATH`.
+- [ ] ISC-790: `gsd-sdk query init.plan-phase 1` reports the glove phase exists.
+- [ ] ISC-791: `gsd-sdk query init.phase-op 1` reports the glove phase exists.
+- [ ] ISC-792: Generated Temperance GSD wrappers block before workflow reads when `gsd-sdk` is unavailable.
+- [ ] ISC-793: The optional GSD installer distinguishes workflow presence from query-CLI readiness.
+- [ ] ISC-794: A regression test proves incomplete GSD installs receive one fail-fast remediation path.
+- [ ] ISC-795: Phase 1 retains exactly the three approved PLAN.md files.
+- [ ] ISC-796: Anti: no Phase 2–7 PLAN.md file is created during this iteration.
+- [ ] ISC-797: Plan 01-01 produces its GSD SUMMARY.md after verified execution.
+- [ ] ISC-798: Plan 01-02 produces its GSD SUMMARY.md after verified execution.
+- [ ] ISC-799: Plan 01-03 produces its GSD SUMMARY.md after verified execution.
+- [ ] ISC-800: The glove product version remains exactly `0.1.0`.
+- [ ] ISC-801: The Phase 1 package locks Ajv at exactly `8.20.0`.
+- [ ] ISC-802: Every Phase 1 provenance schema validates its positive fixture.
+- [ ] ISC-803: Every Phase 1 provenance schema rejects its adversarial fixture.
+- [ ] ISC-804: The provenance compiler produces deterministic lockfile bytes for identical inputs.
+- [ ] ISC-805: The provenance compiler rejects unstable or duplicate ISA criterion identities.
+- [ ] ISC-806: Doctor human and JSON modes observe identical manifest truth without mutation.
+- [ ] ISC-807: Phase 1 verification commands exit zero with captured output.
+- [ ] ISC-808: Anti: Phase 1 commits exclude unrelated pre-existing host-spine changes.
 
 ## Test Strategy
 
@@ -1814,7 +1834,7 @@ untouched.
 | ISC-763 | path equality | product symlink resolves to repository root | exact canonical equality | `readlink` plus `git rev-parse --show-toplevel` |
 | ISC-764 | text | router-only drift recorded | `temperance-search-evidence.sh` | `rg` |
 | ISC-765 | text | manifest bridge drift direction recorded | source-newer statement | `rg` |
-| ISC-766 | text | enrich drift recorded | private overlay plus direction | `rg` |
+| ISC-766 | text | enrich drift recorded | private overlay plus `atlasRecall.ts` plus direction | `rg` |
 | ISC-767 | text | installed hook parity recorded | four hooks | `rg` |
 | ISC-768 | text | skill support-file gap recorded | workflows, references, scripts | `rg` |
 | ISC-769 | text | COPY classification exists | heading present | `rg` |
@@ -1837,6 +1857,26 @@ untouched.
 | ISC-786 | portability | no-voice/non-macOS probe defined | command present | `rg` |
 | ISC-787 | rollback | restoration probe defined | command present | `rg` |
 | ISC-788 | provenance | installed checksum probe defined | command present | `rg` |
+| ISC-789 | executable | SDK command resolution | absolute executable path | `command -v gsd-sdk` |
+| ISC-790 | SDK query | plan-phase initialization | `true` | `gsd-sdk query init.plan-phase 1 --pick phase_found` |
+| ISC-791 | SDK query | phase-operation initialization | `true` | `gsd-sdk query init.phase-op 1 --pick phase_found` |
+| ISC-792 | generated wrapper | missing SDK guard precedes workflow instruction | ordered text match | wrapper fixture readback |
+| ISC-793 | installer text | workflow and SDK readiness reported separately | two distinct branches | shell fixture output |
+| ISC-794 | regression | missing SDK fixture exits before workflow execution | exit nonzero plus one remediation | test script |
+| ISC-795 | planning inventory | approved Phase 1 plans only | exact 3 | `find` plus basename comparison |
+| ISC-796 | anti-scope | later-phase PLAN.md files | zero | `find` |
+| ISC-797 | GSD artifact | 01-01 summary exists | present | `test -f` |
+| ISC-798 | GSD artifact | 01-02 summary exists | present | `test -f` |
+| ISC-799 | GSD artifact | 01-03 summary exists | present | `test -f` |
+| ISC-800 | release | glove version | exact `0.1.0` | `cat VERSION` |
+| ISC-801 | dependency | Ajv resolved version | exact `8.20.0` | package-lock query |
+| ISC-802 | schemas | positive fixtures | all pass | package test command |
+| ISC-803 | schemas | adversarial fixtures | all reject | package test command |
+| ISC-804 | compiler | repeated output digest | exact equality | deterministic fixture test |
+| ISC-805 | compiler safety | unstable or duplicate ISA IDs | fail closed | adversarial compiler test |
+| ISC-806 | doctor safety | human/JSON semantic parity and filesystem stability | equal model plus zero writes | doctor integration test |
+| ISC-807 | verification | Phase 1 commands | every exit zero | plan verification commands |
+| ISC-808 | commit boundary | unrelated dirty spine paths in Phase 1 commits | zero | `git show --name-only` audit |
 
 ## Features
 
@@ -1925,26 +1965,34 @@ untouched.
 | Portfolio-first vault project relocation and portable pickup | ISC-613..ISC-749, ISC-642.1 | exact two-portfolio allowlist, ratified registry roots, owner-evidenced portfolio mapping, read-only inventory, bounded old-path consumer audit, isolated single-writer portfolio registries, Thoughtseed outcome projection plus append-only content-addressed evidence, pre-existing client-neutral project packet, scoped routing profiles, single-canary transaction, six-file capsule, resolver plus live-client pickup, rollback, zero session/Paseo dependency | no |
 | Read-only portfolio inventory and Workbench reconciliation | ISC-750..ISC-757 | approved roots, existing Workbench implementation, authenticated read-only route | yes |
 | Repository identity and folder-organization ratification interview | ISC-758, ISC-759, ISC-760, ISC-760.1, ISC-760.2, ISC-760.3, ISC-760.4, ISC-760.5, ISC-760.6, ISC-760.7, ISC-760.8, ISC-760.9, ISC-760.10, ISC-760.11, ISC-760.12, ISC-760.13, ISC-760.14, ISC-760.15, ISC-760.16, ISC-760.17, ISC-760.18, ISC-760.19 | owner answers recorded sequentially before the next ballot | no |
+| Mac mini evidence audit | ISC-761..ISC-768 | live runtime, dirty repository, read-only probes | no |
+| Product/runtime publication boundary | ISC-769..ISC-773 | evidence audit | no |
+| GSD public-glove workflow | ISC-774..ISC-780 | publication boundary, current planning spine | no |
+| Public release verification map | ISC-781..ISC-788 | GSD workflow, installer and docs surfaces | yes |
+| GSD query-runtime readiness and fail-fast wrappers | ISC-789..ISC-794 | external GSD 1.42.3 CLI plus Temperance wrapper generation | no |
+| Phase 1 provenance contract execution | ISC-795..ISC-805 | approved 01-01 and 01-02 plans | no |
+| Phase 1 read-only control plane verification | ISC-806..ISC-808 | approved 01-03 plan, dirty-tree commit boundary | no |
 
 ## Architecture
 
 <!-- arch-assets:start -->
 
 _Auto-maintained by `ArchitectureAssetsSync.hook.ts` on release events._  
-_Last refreshed: 2026-07-27T13:28:31.000Z_
+_Last refreshed: 2026-08-17T00:00:00.000Z_
 
 | Asset | Status | How it's generated |
 |---|---|---|
-| [`docs/architecture/SERVICES.md`](docs/architecture/SERVICES.md) | ✅ current | auto (file scan) |
-| [`docs/architecture/DEPENDENCY-GRAPH.md`](docs/architecture/DEPENDENCY-GRAPH.md) | ✅ current | auto (file scan) |
-| [`docs/architecture/architecture.html`](docs/architecture/architecture.html) | ✅ current (updated 2026-07-27: OmniRoute layer + deep-dive link) | manual (LLM skill) |
-| [`docs/architecture/system-internals.html`](docs/architecture/system-internals.html) | ✅ current (updated 2026-07-27: relay/reconciler/headless mechanics) | manual (LLM skill) |
-| [`docs/architecture/integration-map.html`](docs/architecture/integration-map.html) | ✅ current (updated 2026-07-27: OmniRoute relay + reconciler WIRED seam) | manual (LLM skill) |
-| [`docs/architecture/session-trace.html`](docs/architecture/session-trace.html) | ✅ current (updated 2026-07-27: automatic chat request trace) | manual (LLM skill) |
-| [`docs/architecture/omniroute-routing.html`](docs/architecture/omniroute-routing.html) | ✅ current (new 2026-07-27) | manual (LLM skill) |
+| [`docs/architecture/SERVICES.md`](docs/architecture/SERVICES.md) | ✅ current (2026-08-17: live ports + UPS hooks) | manual (file scan stale) |
+| [`docs/architecture/DEPENDENCY-GRAPH.md`](docs/architecture/DEPENDENCY-GRAPH.md) | ✅ current (2026-08-17: package + runtime edges) | manual (file scan stale) |
+| [`docs/architecture/architecture.html`](docs/architecture/architecture.html) | ✅ current (2026-08-17: --with-spine, Manifest Zone, /goal) | manual (LLM skill) |
+| [`docs/architecture/spine-and-goal.html`](docs/architecture/spine-and-goal.html) | ✅ current (new 2026-08-17) | manual (LLM skill) |
+| [`docs/architecture/system-internals.html`](docs/architecture/system-internals.html) | ✅ current (2026-08-17: spine flags, PromptProcessing, temperance-goal.mjs) | manual (LLM skill) |
+| [`docs/architecture/integration-map.html`](docs/architecture/integration-map.html) | ✅ current (2026-08-17: UPS / Manifest / /goal / fleet lock WIRED) | manual (LLM skill) |
+| [`docs/architecture/session-trace.html`](docs/architecture/session-trace.html) | ✅ current (2026-08-17: --with-spine walkthrough) | manual (LLM skill) |
+| [`docs/architecture/omniroute-routing.html`](docs/architecture/omniroute-routing.html) | ✅ current (2026-07-27; still valid) | manual (LLM skill) |
 | [`docs/architecture/brand-connectors.html`](docs/architecture/brand-connectors.html) | ✅ current (new 2026-07-28) | manual (LLM skill) |
-| [`docs/architecture.md`](docs/architecture.md) | ✅ current (updated 2026-07-27: OmniRoute component + data-flow step) | manual (LLM skill) |
-| [`docs/architecture/notebooklm-prompt.md`](docs/architecture/notebooklm-prompt.md) | ⬜ not yet generated | manual (LLM skill) |
+| [`docs/architecture.md`](docs/architecture.md) | ✅ current (2026-08-17: spine + /goal data flow) | manual (LLM skill) |
+| [`docs/architecture/notebooklm-prompt.md`](docs/architecture/notebooklm-prompt.md) | ✅ current (new 2026-08-17) | manual (LLM skill) |
 
 **To refresh LLM-generated assets:** invoke `/refresh-architecture` in any Claude Code session.
 
@@ -1953,6 +2001,16 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
 ## Decisions
 
 - 2026-08-20: The operator approved the first public v1.1 install-surface semantic-ID set before any lockfile write: `boundary.native-sessions`, `boundary.operator-evidence`, `boundary.personal-substrate`, `boundary.provider-authority`, `boundary.runtime-datastores`, `configuration.codex-managed-block`, `enrichment.public-pipeline`, `hooks.claude.prompt-processing`, `hooks.codex.gsd-command`, `hooks.codex.prompt-processing`, `hooks.codex.session-start`, `manifest.bridge-runtime`, `manifest.zone-project-state`, `router.governed-runtime`, `skills.temperance-algorithm`, `skills.temperance-engine`, `skills.temperance-native`, and `skills.temperance-parallel-dispatch`. These immutable IDs define the first reviewed glove inventory; later identity changes require explicit migrations. Private-boundary IDs remain symbolic and expose no host path, provider, binding, or private filename.
+
+- 2026-08-20 22:38 IST: refined: This iteration has two reviewable deliverables: repair external GSD runtime readiness at the Temperance integration boundary, then execute the already-approved Phase 1 plans inline. `gsd-sdk` 1.42.3 is restored without forking GSD; generated wrappers must fail before any workflow read or agent dispatch when the query CLI is unavailable. Codex worktree isolation is unavailable and the user did not authorize subagents, so the GSD adapter's sequential inline fallback is binding. Existing dirty host-spine changes remain owner work and are excluded from Phase 1 commit pathspecs.
+
+- 2026-08-20 22:48 IST: Root-cause-at-ingestion checkpoint: the bad state enters when Temperance accepts an upstream workflow directory as GSD readiness even though `gsd-sdk query` is unavailable. A planner/checker-only prompt patch would leave all other workflows exposed, while a wrapper-generator preflight protects every command before reads or dispatch. The correction therefore belongs in `scripts/install-gsd.sh` diagnostics and `package/router/gsd-command-install.mjs` generated wrappers. The Algorithm Advisor returned no verdict because OAuth refresh failed; that unavailability is not counted as approval.
+
+- 2026-08-19 12:20 IST: refined: The operator request ratifies a read-only Mac mini parity audit and a structured GSD workflow proposal for making the hand-in-glove system downloadable. It does not authorize blind copying of runtime state, provider credentials, native databases, logs, receipts, backups, or activation of a replacement milestone. Config, STATE, and ROADMAP currently disagree about active milestone authority; the GSD intake must reconcile them before mutation, and the audit artifact is written so it can become the PRD input without creating a second planner.
+
+- 2026-08-19 13:08 IST: refined: ISC-763 now tests canonical equality between the product symlink and repository root instead of requiring a private mounted-volume path in a public audit. The first formulation conflicted with the repository's own path-hygiene guard; the portable relation is both stronger and distributable.
+
+- 2026-08-19 12:31 IST: refined: Independent adversarial review found that the first workflow hard-coded GSD phase numbers, treated config-only milestone state as holistic authority, omitted the existing red public-path verifier from baseline findings, inverted ISC-773 wording, combined mutually exclusive discuss/PRD planning paths, and retained stale numeric evidence. The repaired workflow uses Intake/A-F logical stages, assigns actual phase numbers during reconciled intake, preserves `CONTEXT.md` on the discuss path, names `verify.sh` portability debt as a source-convergence release blocker, and received a final PASS with no Critical/P0/P1 finding. The named Cato role was unavailable in this runtime, so the substitute verdict is recorded accurately as independent audit, not Cato approval.
 
 - 2026-08-02 08:16: refined: Direct Command Code alignment preserves the live Bash renderer's existing ISA and memory semantics and delegates only pointer projection to a small Bun helper over the canonical metadata-only resolver and pure serializer. Any missing runtime, helper failure, malformed output, reserved-line spoof, or exact-one failure aborts before Command Code launch; same-model dispatches use distinct private workspaces. Absolute pointers remain ephemeral runtime material and are never committed or treated as authorization.
 
@@ -2587,6 +2645,11 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
   learned: canary selection, packet preparation, manifest approval, and live apply are independent gates; a missing packet must stop before any mutation
   criterion now: canary selection is owner-approved, the dry-run is held with a packet-missing reason, and no live transaction is authorized
 
+- 2026-08-19 | conjectured: a public audit should record the exact workstation target and preassign phase numbers so implementation can start immediately.
+  refuted by: the repository path-hygiene guard rejected private absolute paths, while independent review proved that GSD continues phase numbering and that config, STATE, and ROADMAP presently disagree about milestone authority.
+  learned: distributable installation truth is a portable source-to-destination relation governed by a versioned provenance manifest; milestone identity and concrete phase numbers must be reconciled and assigned by intake.
+  criterion now: ISC-763 proves the product symlink equals the repository root, and ISC-774..ISC-780 require Intake/A-F logical stages, alternative-safe planning commands, authority reconciliation, and held activation.
+
 ## Verification
 
 - ISC-750: directory enumeration — The report classifies all 70 Thoughtseed immediate children: 68 directories and 2 files.
@@ -2972,3 +3035,35 @@ _Last refreshed: 2026-07-27T13:28:31.000Z_
 - 2026-08-02 Hermes v3 final invariants: live rollback receipt `~/.temperance_engine/receipts/omniroute-local-rollback/20260802T042713Z-73598/receipt.json` binds the exact proposal digest and proves byte-exact LaunchAgent rollback/reapply without restarting OmniRoute. The local Hermes path and every historical session-cookie path remain absent; OmniRoute and the proxy remain loopback-only; `cloudflared` remains stopped. No Apply, EC2, Cloudflare, MCP, A2A, provider, routing-promotion, or Sol-family mutation occurred. Reread closes this bounded iteration at 550/578 with 28 external or separately gated criteria open; the persistent integration goal remains active.
 - 2026-08-04 vault relocation build-out, Tasks 2A/3/4/6/7/8/9: this entry records direct construction plus executable verification — TDD with a real red-before-green cycle for nearly every new function, plus real read-only CLI runs against the actual vault — not the Advisor/Cato governed-review ritual used elsewhere in this ledger; no Advisor or Cato pass occurred today. `package/relocation/project-path-consumers.ts` (Task 2A, 35 tests) bounds the old-path consumer audit to checked-in text via `git ls-files` and an explicit caller-supplied host-config-surface file list, proven with a fixture that content outside those two bounds never surfaces. `project-packet-schema.ts` + `project-packet.ts` (Task 3, 52 tests) close the `.project/project.yaml` schema and validate the already-committed `thoughtseed-brand-atlas` packet by reading it straight from its Git HEAD, not a copy. `project-registry.ts` + `project-capsule.ts` (Task 4, 42 tests) implement the append-only Thoughtseed reconciliation log and the six-file capsule renderer; every I/O function was exercised only against temp fixture directories, never `thoughtseed-labs` or `_System/10865xseed`. `project-relocation-transaction.ts` (Task 6, 22 tests) is the receipt-bound rename core — `performGuardedRename()`'s device/inode revalidation immediately before and after the POSIX rename catches both mandatory attack scenarios (source-replacement, parent/path-swap) in fixture tests. `project-pickup.ts` (Task 7, 7 tests) is a pure resolver proven bounded (an out-of-band fixture file never influences its output, digest included) and regression-tested directly against the real `thoughtseed-brand-atlas` packet, read-only. `project-relocation-rollback.ts` (Task 8, 21 tests) reuses `performGuardedRename()` in reverse for the rename-back and proved every fail-closed gate (capsule drift, missing receipt, destination drift) removes zero bytes. Task 9 added `project-relocation-source-guards.test.ts` (9 tests, comments stripped before scanning so the guard's own safety-documentation prose can't trip its own checks) proving by direct inspection of production source — not documentation claims — that every Git subcommand invoked across the relocation subsystem is read-only (`ls-files`, `grep`, `status`, `rev-parse`, `branch`, `remote`, `show`, `worktree`) and that no file references `homedir()`, Paseo, `.ssh/`, `id_rsa`, `credentials.json`, embedded PEM keys, or session transcripts; `tests/vault-project-relocation.test.ts` (9 tests) exercises the CLI's `inventory` and `plan --dry-run` commands for real against the actual vault (both are contractually read-only) plus argument-validation failure modes that never touch the filesystem; and `docs/vault-project-relocation.md` consolidates the whole subsystem into one reference document. Total: 203 tests across 11 files, all passing, wired into `scripts/verify-all.sh` (the broader non-relocation suite was not re-run today). 64 previously-open relocation ISC criteria (ISC-613/614/616/618/621/624-627/629/637/654-656/659-663/666-669/671-678/680-681/685-686/689-690/692/697-698/700-705/707-708/711-713/727-729/733/737-741/743/745/747/749) are now checked because the underlying code exists and is directly, currently verifiable — not because a live apply happened. Deliberately left open: every criterion that names a live apply, a live fresh-client canary, or the Thoughtseed "canonical main project-management record" (ISC-638-651, 679/682-684/687-688 depending on exact HANDOFF.md field, 693-696, 699, 706, 709-710, 715/717/718-726 partially, 732/734-736/742/744/746/748, 752-753) — those require either the not-yet-built end-to-end transaction assembly, a real human at a real client, or a file format that has no real example to build against yet. Two interpretive deviations from the abstract spec, made against the one real committed packet rather than invented: `resolvePickupBootstrap()` sources `objective` from `PROJECT.md`'s "Purpose and boundaries" paragraph rather than `.project/HANDOFF.md` (the real file has no HANDOFF.md objective field), and `blocker` defaults to the literal string `"none"` when no "## Blockers" heading exists (the real file has none today). No repository moved; verified after each task that `thoughtseed-brand-atlas` remained at its original path with a clean Git status and that `/Volumes/madara/2026/Projects/` remained empty.
 - 2026-08-05 correction: ISC-686 was checked in the previous entry on the reasoning that `resolvePickupBootstrap()`'s "none" default for an absent `## Blockers` section satisfied "records blockers or an explicit none value." On review, both ISC-679's and ISC-686's own criteria-table rows (`handoff shape`, verified by `handoff fixture`) require the *file* to record the value, not the resolver to infer it on read. A resolver-side default when a section is silently missing is not the same claim as the packet author explicitly writing "None." — the two are indistinguishable in the resolver's current output, which is itself the actual gap: a future packet that simply omits Blockers by oversight would be indistinguishable from one that explicitly verified there are none. ISC-686 is uncorrected back to unchecked. `objective` sourced from `PROJECT.md` remains a deliberate, reviewed choice (ISC-679 was already correctly left unchecked) — distinct from `blocker`'s issue, since `objective` is not claimed to satisfy a HANDOFF.md-shape criterion at all.
+- ISC-761: file probe — `test -f docs/plans/2026-08-19-mac-mini-to-public-temperance-glove-audit.md` passed.
+- ISC-762: text probe — audit readback contains `58 tracked modified/deleted files`.
+- ISC-763: path-equality probe — `readlink ~/.temperance_engine/product` equals `git rev-parse --show-toplevel`; the public artifact records the relation without embedding the host path.
+- ISC-764: text probe — audit readback names live-only `temperance-search-evidence.sh`.
+- ISC-765: text probe — audit readback states repository Manifest Bridge is newer than installed runtime.
+- ISC-766: text probe — audit readback records enrichment drift and live-only `stages/atlasRecall.ts`.
+- ISC-767: byte-parity probe — audit records four installed Codex/Claude hooks as byte-identical to repository sources.
+- ISC-768: directory probe — audit records installed parallel-dispatch `Workflows/`, `references/`, and `scripts/` missing from source package.
+- ISC-769: heading probe — `### COPY` exists.
+- ISC-770: heading probe — `### TRANSFORM` exists.
+- ISC-771: heading probe — `### REGENERATE` exists.
+- ISC-772: heading probe — `### NEVER-SHIP` exists.
+- ISC-773: credential-pattern probe — high-confidence token, access-key, and bearer-value scan returned zero matches.
+- ISC-774: structure probe — workflow-table readback returned exactly seven logical stages: Intake and A through F, with no assumed GSD phase numbers.
+- ISC-775: table-shape probe — all seven workflow-stage rows contain a GSD entry command; Stage A records discuss/context and PRD express as alternatives.
+- ISC-776: table-shape probe — all seven workflow-stage rows contain a durable output.
+- ISC-777: table-shape probe — all seven workflow-stage rows contain a binary exit gate.
+- ISC-778: table-shape probe — all seven workflow-stage rows contain an immediate dependency.
+- ISC-779: policy probe — artifact status says milestone activation held and names interactive intake.
+- ISC-780: authority readback — config, STATE, and ROADMAP disagreement is explicit; activation stays held until intake reconciles all three, while `auto_advance=false` remains unchanged.
+- ISC-781: documentation-map probe — README, Quickstart, architecture, rollback, security, and contributing families are present.
+- ISC-782: lifecycle-map probe — installer, hooks/skills, services, mutable state, and update/uninstall rows total five.
+- ISC-783: verification-map probe — source parity, empty-home sandbox, secret boundary, and runtime smoke gates are present.
+- ISC-784: release-map probe — exactly five reviewable commit slices are enumerated.
+- ISC-785: command probe — empty-home matrix names `bash tests/sandbox-install.sh`.
+- ISC-786: portability probe — matrix contains a no-voice/non-macOS qualification row.
+- ISC-787: rollback probe — verification matrix contains a rollback restoration gate.
+- ISC-788: provenance probe — verification matrix contains an installed-file provenance gate.
+- 2026-08-19 planning-slice gates: 28/28 ISC-761..ISC-788 pass; targeted portability/structure probes, `git diff --check`, and `tests/docs-continuity.sh` pass.
+- 2026-08-19 canonical boundary: `./verify.sh` exits 1 at its public-path guard because existing relocation/runtime sources contain private workstation prefixes. This is an explicitly mapped Stage B release blocker; the new public audit contains no private home or mounted-volume prefix.
+- 2026-08-19 runtime/project check: `temperance-project-init --check` completed with running services healthy and only known optional project gaps plus a stale ranker; no service, milestone, provider, or private runtime state was mutated.
+- 2026-08-19 governed review: both Advisor attempts failed expired OAuth and returned no verdict; `te-validate` stalled and was cancelled; the named Cato role was unavailable. A separate read-only adversarial agent found six P1 documentation/workflow issues across two repair rounds, then returned PASS with no Critical/P0/P1 finding. None of the unavailable gates is counted as approval.

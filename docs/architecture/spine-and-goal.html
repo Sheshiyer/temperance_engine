@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperance Engine - Spine and /goal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+
+<h1>Spine and /goal
+  <small>The 2026-08 member loop: picker, Manifest Zone, GSD remotes, next-wave lock, /goal evaluator</small>
+</h1>
+
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="architecture.html">Overview</a>
+  <a class="here" href="spine-and-goal.html">Spine + /goal</a>
+  <a href="session-trace.html">Session trace</a>
+  <a href="integration-map.html">Integration map</a>
+  <a href="system-internals.html">Internals</a>
+  <a href="omniroute-routing.html">OmniRoute</a>
+</nav>
+
+<div class="callout">
+  <strong>What changed.</strong> <code>/goal</code> is a session completion loop, not a planner. One <code>.temperance/goal.json</code> binds ISA or GSD STATE to the same probes VERIFY already uses. Manifest Zone shows the GOAL card. It cannot approve next-wave or launch <code>te-dispatch-paid</code>.
+</div>
+
+<div class="section">
+  <h2>Business Context</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Objective</h3>
+      <p>Finish the existing spine instead of inventing a fifth planner.</p>
+    </div>
+    <div class="card">
+      <h3>Users</h3>
+      <p>Members on Codex, OpenCode, Grok (<code>/gsd:goal</code>) and Claude Code (native <code>/goal</code> plus the same file).</p>
+    </div>
+    <div class="card">
+      <h3>Value</h3>
+      <p>One done-authority. No second judge. No second swarm.</p>
+    </div>
+    <div class="card">
+      <h3>Metrics</h3>
+      <p><code>temperance-goal --eval</code> pass/fail. Doctor <code>high_gaps</code> means continue, not invent a new plan.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Data Flow</h2>
+  <svg viewBox="0 0 1120 420" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker>
+    </defs>
+
+    <rect x="20" y="20" width="160" height="70" rx="8" fill="#3d8ea8"/>
+    <text x="100" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="bold">1 Native picker</text>
+    <text x="100" y="68" text-anchor="middle" fill="white" font-size="10">MINIMAL NATIVE ALG</text>
+
+    <rect x="220" y="20" width="160" height="70" rx="8" fill="#c9a84a"/>
+    <text x="300" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="bold">2 Manifest Zone</text>
+    <text x="300" y="68" text-anchor="middle" fill="white" font-size="10">IAB :5173 ?mode=&amp;view=</text>
+
+    <rect x="420" y="20" width="160" height="70" rx="8" fill="#f39b54"/>
+    <text x="500" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="bold">3 Plan</text>
+    <text x="500" y="68" text-anchor="middle" fill="white" font-size="10">/gsd:plan-phase</text>
+
+    <rect x="620" y="20" width="160" height="70" rx="8" fill="#f39b54"/>
+    <text x="700" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="bold">4 Next-wave</text>
+    <text x="700" y="68" text-anchor="middle" fill="white" font-size="10">human approval</text>
+
+    <rect x="820" y="20" width="160" height="70" rx="8" fill="#c9a84a"/>
+    <text x="900" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="bold">5 te-dispatch-paid</text>
+    <text x="900" y="68" text-anchor="middle" fill="white" font-size="10">fleet lock &lt;2h</text>
+
+    <rect x="220" y="150" width="160" height="70" rx="8" fill="#5ea882"/>
+    <text x="300" y="178" text-anchor="middle" fill="white" font-size="12" font-weight="bold">6 VERIFY</text>
+    <text x="300" y="198" text-anchor="middle" fill="white" font-size="10">/gsd:verify-phase + ISA</text>
+
+    <rect x="420" y="150" width="160" height="70" rx="8" fill="#5ea882"/>
+    <text x="500" y="178" text-anchor="middle" fill="white" font-size="12" font-weight="bold">7 /gsd:goal eval</text>
+    <text x="500" y="198" text-anchor="middle" fill="white" font-size="10">same probes</text>
+
+    <rect x="620" y="150" width="160" height="70" rx="8" fill="#3d8ea8"/>
+    <text x="700" y="178" text-anchor="middle" fill="white" font-size="12" font-weight="bold">goal.json</text>
+    <text x="700" y="198" text-anchor="middle" fill="white" font-size="10">temperance.goal.v1</text>
+
+    <rect x="820" y="150" width="160" height="70" rx="8" fill="#394951"/>
+    <text x="900" y="178" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Stop or continue</text>
+    <text x="900" y="198" text-anchor="middle" fill="white" font-size="10">fail → same /gsd:*</text>
+
+    <path d="M180,55 L218,55" stroke="#666" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M380,55 L418,55" stroke="#666" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M580,55 L618,55" stroke="#666" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M780,55 L818,55" stroke="#666" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M900,90 L900,148" stroke="#666" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M820,185 L782,185" stroke="#666" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M620,185 L582,185" stroke="#666" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M420,185 L382,185" stroke="#666" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M300,220 L300,280 L500,280 L500,222" stroke="#666" stroke-width="2" fill="none" marker-end="url(#a)"/>
+
+    <rect x="80" y="300" width="960" height="90" rx="10" fill="#141c21" stroke="#cbd5e0"/>
+    <text x="560" y="330" text-anchor="middle" fill="#2d3748" font-size="13" font-weight="bold">Authority wall — Manifest Zone never crosses this line</text>
+    <text x="560" y="354" text-anchor="middle" fill="#8d9a9c" font-size="12">No approve · no launch · no second gsd-executor swarm · no auto temperance-batch</text>
+    <text x="560" y="374" text-anchor="middle" fill="#8d9a9c" font-size="12">writing-plans or /gsd:plan-phase write the plan. /goal only loops execute until the evaluator passes.</text>
+  </svg>
+  <div class="legend">
+    <span><span class="swatch" style="background:#3d8ea8"></span>Operator / contract</span>
+    <span><span class="swatch" style="background:#f39b54"></span>Plan / approval</span>
+    <span><span class="swatch" style="background:#c9a84a"></span>Projection / fleet</span>
+    <span><span class="swatch" style="background:#5ea882"></span>Verify / evaluate</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Processing Pipeline</h2>
+  <svg viewBox="0 0 1100 180" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#666"/></marker>
+    </defs>
+    <g font-size="11" fill="white" text-anchor="middle">
+      <rect x="20" y="50" width="190" height="70" rx="8" fill="#f39b54"/>
+      <text x="115" y="80">/gsd:goal or /goal</text>
+      <text x="115" y="98" font-size="10">te_only like doctor</text>
+      <rect x="240" y="50" width="190" height="70" rx="8" fill="#f39b54"/>
+      <text x="335" y="80">temperance-goal</text>
+      <text x="335" y="98" font-size="10">--ensure from ISA or STATE</text>
+      <rect x="460" y="50" width="190" height="70" rx="8" fill="#3d8ea8"/>
+      <text x="555" y="80">.temperance/goal.json</text>
+      <text x="555" y="98" font-size="10">text · evaluator · gsd_command</text>
+      <rect x="680" y="50" width="190" height="70" rx="8" fill="#c9a84a"/>
+      <text x="775" y="80">POST goal.set / tick</text>
+      <text x="775" y="98" font-size="10">bridge + Manifest GOAL</text>
+      <rect x="900" y="50" width="180" height="70" rx="8" fill="#5ea882"/>
+      <text x="990" y="80">--eval</text>
+      <text x="990" y="98" font-size="10">doctor / isa-goal probes</text>
+    </g>
+    <g stroke="#666" stroke-width="2">
+      <path d="M210,85 L238,85" marker-end="url(#b)"/>
+      <path d="M430,85 L458,85" marker-end="url(#b)"/>
+      <path d="M650,85 L678,85" marker-end="url(#b)"/>
+      <path d="M870,85 L898,85" marker-end="url(#b)"/>
+    </g>
+  </svg>
+</div>
+
+<div class="section">
+  <h2>System Architecture</h2>
+  <table>
+    <tr><th>Layer</th><th>Owns</th><th>Does not own</th></tr>
+    <tr><td>PAI Algorithm</td><td>Mode, 7 phases, ISA</td><td>GSD internals</td></tr>
+    <tr><td>GSD 1.30.0</td><td>Discuss / plan / execute / verify / ship workflows</td><td>Temperance remotes</td></tr>
+    <tr><td><code>/gsd:goal</code></td><td>Session loop + <code>goal.json</code></td><td>Planning, approval, dispatch</td></tr>
+    <tr><td>next-wave</td><td>Task list + approval gate + fleet lock</td><td>Evaluator</td></tr>
+    <tr><td>Manifest Zone</td><td>Projection of STATE / ROADMAP / GOAL</td><td>Approve / launch</td></tr>
+    <tr><td><code>te-dispatch-paid</code></td><td>Paid fleet after lock</td><td>Sol-lead stack</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Features</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Functional</h3>
+      <p>Parse <code>/goal</code> and <code>/gsd:goal</code></p>
+      <p>Quote ISA Goal when <code>active_planner=isa</code></p>
+      <p>Quote GSD STATE otherwise</p>
+      <p>Evaluator = doctor / ISA probes</p>
+    </div>
+    <div class="card">
+      <h3>Non-Functional</h3>
+      <p>No GSD fork</p>
+      <p>No auto-dispatch</p>
+      <p>No second swarm on the same lock</p>
+      <p><code>goal.json</code> is project-local and gitignored in this repo</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Deployment</h2>
+  <div class="callout warn">
+    <strong>Surfaces.</strong> Codex / OpenCode / Grok: <code>/gsd:goal</code> or <code>/goal</code>. Claude Code: native <code>/goal</code> plus the same <code>.temperance/goal.json</code>. CLI: <code>node ~/.temperance_engine/router/temperance-goal.mjs --cwd . --ensure|--eval</code>.
+  </div>
+  <p>If swarm-architect is not installed, use <code>writing-plans</code> or <code>/gsd:plan-phase</code>. Those write the plan. <code>/goal</code> only loops execute until the evaluator passes. Full contract: <code>docs/gsd-goal-handoff.md</code>.</p>
+</div>
+
+<p style="color:#6f7d7e; font-size:12px; margin-top:40px;">Generated 2026-08-17 via architecture-diagram-creator. Companion: docs/gsd-goal-handoff.md.</p>
+</body>
+</html>

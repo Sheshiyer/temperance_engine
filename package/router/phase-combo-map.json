@@ -3,9 +3,16 @@
   "updated": "2026-08-12",
   "native_orchestrator": {
     "profile": "temperance-orchestrator",
-    "model": "gpt-5.6",
+    "model": "gpt-5.6-sol",
     "provider": "native-chatgpt",
-    "role": "babysit-only: classify, plan slices, dispatch, integrate, verify receipts \u2014 no bulk coding"
+    "role": "babysit-only: classify, plan slices, dispatch, integrate, verify receipts \u2014 no bulk coding",
+    "babysit_only": true,
+    "never_fleet_head": true
+  },
+  "model_migrations": {
+    "gpt-5.6-sol": "babysit-only",
+    "gpt-5.6-sol-max": "babysit-only",
+    "note": "Sol stays the native Codex default. Algorithm fleet work uses te-plan/te-build/te-dispatch-paid — never rewrite Sol into a combo head."
   },
   "announce": {
     "style": "sigil \u00b7 STAGE \u00b7 PHASE \u00b7 n/7",
@@ -32,7 +39,30 @@
     "evidence": "te-write-research",
     "web-search": "te-write-research",
     "investigate": "te-reason",
-    "plan-max": "te-plan-max"
+    "plan-max": "te-plan-max",
+    "ralph": "te-build",
+    "optimize": "te-reason",
+    "media": "te-write-media",
+    "vision": "te-vision"
+  },
+  "loop_contracts": {
+    "ralph": {
+      "pattern": "isolated feature loop (Maestro / ephemeral ISA)",
+      "combo": "te-build",
+      "swarm": "te-swarm-s",
+      "paid": "te-dispatch-paid",
+      "learn": "ISA reconcile ephemeral → master",
+      "anti": "Do not hand-edit combo stacks per Ralph iteration"
+    },
+    "optimize": {
+      "pattern": "Karpathy/pi-autoresearch keep-discard",
+      "combo": "te-reason",
+      "verify": "te-validate",
+      "measure": "routing-observations + usage_history error rates",
+      "keep_discard": "~/.temperance_engine/state/routing-suggestions.json",
+      "anti": "One variable per experiment; no full-DB backups"
+    },
+    "classify_route": "~/.temperance_engine/router/classify-route.py"
   },
   "algorithm_phases": {
     "Observe": "te-reason",
@@ -65,11 +95,29 @@
     }
   },
   "session_limits": {
-    "source": "codexbar CLI + OmniRoute quota_snapshots",
+    "source": "codexbar CLI/GUI first; OmniRoute quota_snapshots only as labeled fallback",
     "snapshot": "~/.temperance_engine/state/codexbar-session-limits.json",
+    "live_overlay": "~/.temperance_engine/state/codexbar-live-session-limits.json",
     "ranking": "~/.temperance_engine/state/paid-fleet-ranking.json",
     "rubric": "~/.agents/skills/temperance-parallel-dispatch/references/paid-fleet-rubric.md",
     "refresh": "python3 ~/.agents/skills/temperance-parallel-dispatch/scripts/rank-paid-fleet.py --refresh-codexbar --apply-combo",
+    "session_review": {
+      "do_not": [
+        "Copy ~/.omniroute/storage.sqlite as a combo backup",
+        "Hand-edit every te-* stack for one quota event",
+        "Put Sol/Fable as default heads on te-fast/te-build/te-reason/te-swarm-s"
+      ],
+      "do": [
+        "Read CodexBar GUI or `codexbar usage --provider codex --source auto` (Claude CLI often times out ~100-160s; use GUI)",
+        "Write numbers into state/codexbar-live-session-limits.json",
+        "Update classify-task.sh model_for_type if Command Code deals changed",
+        "Update lane-templates-from-live.json CC promo seats only",
+        "Capacity lanes: python3 sync-provider-fleet.py --apply",
+        "Paid leftover: python3 rank-paid-fleet.py --apply-combo (add --include-sol only when Codex weekly remaining >=20% and reset <24h)",
+        "Or one command: ~/.temperance_engine/bin/temperance-session-rebalance --apply  (timer: --install-timer)",
+        "Keep one combos-before.json per apply, never another full DB copy"
+      ]
+    },
     "rules": [
       "Before Execute fleet fan-out, prefer a fresh paid-fleet ranking if snapshot is >6h stale.",
       "Seats with remaining_pct < 5 or is_exhausted are hard-ineligible for te-dispatch-paid.",

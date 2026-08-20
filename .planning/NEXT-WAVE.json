@@ -1,0 +1,260 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-08-16T19:34:55.830Z",
+  "cwd": "/Volumes/madara/2026/Projects/thoughtseed/temperance_engine",
+  "github": "Sheshiyer/temperance_engine",
+  "gsd": {
+    "phase": "learn",
+    "status": "offline-native-cli-readiness-verified",
+    "resume": null,
+    "focus": null,
+    "complete": false
+  },
+  "sources": [
+    {
+      "kind": "gsd",
+      "path": ".planning/STATE.md",
+      "weight": 100
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/superpowers/plans/2026-08-14-manifest-algorithm-activation-hardening.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/superpowers/plans/2026-07-01-temperance-identity-port.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/superpowers/plans/2026-07-04-routed-parallel-dispatch-bridge.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/superpowers/plans/2026-07-05-unify-orchestrators-A-F.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/superpowers/plans/2026-07-05-unify-routing-brains.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/superpowers/plans/2026-07-06-gsd-hook-wiring-and-ratandevelopers-conversion.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/plans/README.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/plans/2026-06-12-temperance-engine.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/plans/2026-07-21-omniroute-shadow-routing.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/plans/2026-07-22-omniroute-governed-portfolios.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/plans/2026-08-03-vault-project-relocation-design.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "docs/plans/2026-08-03-vault-project-relocation.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "tasks/todo.md",
+      "weight": 45
+    },
+    {
+      "kind": "plan-doc",
+      "path": "tasks/lessons.md",
+      "weight": 45
+    },
+    {
+      "kind": "gsd",
+      "path": ".planning/ROADMAP.md",
+      "weight": 40
+    },
+    {
+      "kind": "gsd",
+      "path": ".planning/PROJECT.md",
+      "weight": 40
+    },
+    {
+      "kind": "gsd",
+      "path": ".planning/REQUIREMENTS.md",
+      "weight": 40
+    }
+  ],
+  "progress": {
+    "open": 18,
+    "done": 0,
+    "source": "/Volumes/madara/2026/Projects/thoughtseed/temperance_engine/docs/superpowers/plans/2026-08-14-manifest-algorithm-activation-hardening.md",
+    "orphan_open_ignored": 0
+  },
+  "wave": {
+    "action": "execute_next",
+    "reason": "phase \"Task 1: Test activation and project identity boundaries\" has 18 open tasks; take next batch",
+    "mode": "sequential-batch",
+    "phase": "Task 1: Test activation and project identity boundaries",
+    "combo": "te-build",
+    "tasks": [
+      {
+        "id": "L1",
+        "parallel": false,
+        "desc": "Write failing tests for Algorithm-only acceptance, Git-root normalization, rejected roots, unenrolled candidates, active-run persistence, and closed-run rejection.",
+        "phase": "Task 1: Test activation and project identity boundaries",
+        "source": "docs/superpowers/plans/2026-08-14-manifest-algorithm-activation-hardening.md"
+      }
+    ]
+  },
+  "orchestration": {
+    "schema": "temperance.orchestration.v1",
+    "plan_id": "plan_7d352c5be7f9fd51db08",
+    "state": "awaiting_approval",
+    "mapping": {
+      "policy_hash": "f41f6873f99821c46610410fd977e0b454cbc60fd898ef6e8d06c4333bc32605",
+      "phase_combo_map": "temperance.phase-combo-map.v2",
+      "planner": "temperance-next-wave"
+    },
+    "source_fingerprints": [
+      {
+        "path": ".planning/STATE.md",
+        "fingerprint": "0cacfc97ce10f2d5c56dd7dab09583d4a2a724aa20c8199eaf766c3e731b1cd3"
+      },
+      {
+        "path": "docs/superpowers/plans/2026-08-14-manifest-algorithm-activation-hardening.md",
+        "fingerprint": "e6b8bce0abd49416abbc4c8a6cf03116d71d65906caae6e9196c89c98f123f35"
+      },
+      {
+        "path": "docs/superpowers/plans/2026-07-01-temperance-identity-port.md",
+        "fingerprint": "2d0cafb476c5aa6c4877553fddee90761e126b1126fd4fb874b90b67f25b3fbb"
+      },
+      {
+        "path": "docs/superpowers/plans/2026-07-04-routed-parallel-dispatch-bridge.md",
+        "fingerprint": "a39d253f4383c6ef9c8ba79baff8e8b3dd62993ccef94468c958afe844230fd1"
+      },
+      {
+        "path": "docs/superpowers/plans/2026-07-05-unify-orchestrators-A-F.md",
+        "fingerprint": "222680bd0dc8451e312e23a0ef783606d2162a0a3b0236fbeba4874e8e6d9029"
+      },
+      {
+        "path": "docs/superpowers/plans/2026-07-05-unify-routing-brains.md",
+        "fingerprint": "cc329cc01eef08105b2cfd678bd9f961c6eae453c984c037b9e7e114647d8ce5"
+      },
+      {
+        "path": "docs/superpowers/plans/2026-07-06-gsd-hook-wiring-and-ratandevelopers-conversion.md",
+        "fingerprint": "ee909c7b5ab079c0f22d33665d0ac2aa8bd7b6fd98f88c97b35ad78b81a759aa"
+      },
+      {
+        "path": "docs/plans/README.md",
+        "fingerprint": "f8b62d6cf55e54e7ca0ecae1c638df0e0a2fa4ecdf531af8371607f1297cbe02"
+      },
+      {
+        "path": "docs/plans/2026-06-12-temperance-engine.md",
+        "fingerprint": "2606ddae92b7cfed42c92e65b24b25644cb2004087c1617d345853385571d1b1"
+      },
+      {
+        "path": "docs/plans/2026-07-21-omniroute-shadow-routing.md",
+        "fingerprint": "ca9a5927b7a6a036a7b227b9d8d703a60b83edf9e1b1c8520f52647e52b2805f"
+      },
+      {
+        "path": "docs/plans/2026-07-22-omniroute-governed-portfolios.md",
+        "fingerprint": "5c7135494a0019e0588643e6c63c74e6cfe8c8225e321a95b19f0eacf4229fc5"
+      },
+      {
+        "path": "docs/plans/2026-08-03-vault-project-relocation-design.md",
+        "fingerprint": "e8ad1ec3e61d0a3efa963a2f9aa157ded98beaa3d3914b7dac9177c2217dbfca"
+      },
+      {
+        "path": "docs/plans/2026-08-03-vault-project-relocation.md",
+        "fingerprint": "7670d1071fd169edf8839a67ef115d5e494eecddec68766697e48a73aa6440cd"
+      },
+      {
+        "path": "tasks/todo.md",
+        "fingerprint": "9e22d59e5bbadfcaa224a4ec6dd13d26ef78a05ec2ec3530171a8ab4e57196b6"
+      },
+      {
+        "path": "tasks/lessons.md",
+        "fingerprint": "0a546c9883515202aed21786cad3bfac09856fdb86775dc0d03f70c7b44f63b4"
+      },
+      {
+        "path": ".planning/ROADMAP.md",
+        "fingerprint": "f4c6a7bc505a532521378fe580f674edc405415fce45cf3720a2e82e73222ef0"
+      },
+      {
+        "path": ".planning/PROJECT.md",
+        "fingerprint": "3995ec0d892d411b2dcb6fcf8ad8366117d9c2f3f94413d671400e7d2f4751ba"
+      },
+      {
+        "path": ".planning/REQUIREMENTS.md",
+        "fingerprint": "905b0be2441e14e888172f8a7a2aff1c33db43aae3387e5e4b1cb8476be43786"
+      }
+    ],
+    "research": [],
+    "options": [
+      {
+        "option_id": "opt_a81fb51f1e5efc5a81d9",
+        "label": "Execute the proposed next task",
+        "recommendation": true,
+        "rationale": "phase \"Task 1: Test activation and project identity boundaries\" has 18 open tasks; take next batch",
+        "tasks": [
+          {
+            "id": "L1",
+            "parallel": false,
+            "desc": "Write failing tests for Algorithm-only acceptance, Git-root normalization, rejected roots, unenrolled candidates, active-run persistence, and closed-run rejection.",
+            "phase": "Task 1: Test activation and project identity boundaries",
+            "source": "docs/superpowers/plans/2026-08-14-manifest-algorithm-activation-hardening.md"
+          }
+        ],
+        "combo": "te-build",
+        "concurrency": 1,
+        "worktree_required": false
+      }
+    ],
+    "approval": {
+      "approval_id": "apr_1f747f22cecd7de98d07",
+      "status": "required",
+      "expires_at": "2026-08-16T19:44:55.829Z",
+      "selected_option_id": null
+    },
+    "readiness": {
+      "status": "blocked",
+      "checks": [
+        "human_approval",
+        "source_freshness",
+        "quota_snapshot",
+        "dispatch_receipt"
+      ]
+    },
+    "execution": {
+      "status": "blocked",
+      "reason": "human approval is required before any swarm dispatch"
+    },
+    "reporting": {
+      "status": "pending",
+      "required_receipts": [
+        "dispatch",
+        "task",
+        "verification"
+      ]
+    }
+  },
+  "agent_instruction": "NEXT-WAVE (proposal only — human approval required before dispatch):\n  action=execute_next · phase \"Task 1: Test activation and project identity boundaries\" has 18 open tasks; take next batch\n  gsd_phase=learn status=offline-native-cli-readiness-verified\n  github=Sheshiyer/temperance_engine\n  wave_mode=sequential-batch phase=\"Task 1: Test activation and project identity boundaries\" open_total=18\n  - [ ] L1: Write failing tests for Algorithm-only acceptance, Git-root normalization, rejected roots, unenrolled candidates, active-run persistence, and closed-run rejection.\n  DO: present the proposed option and wait for an explicit approval receipt before executing it.\n  SYNC: plan-issue-sync LaunchAgent promotes open plan docs → Sheshiyer/thoughtseed-vault issues hourly; run temperance-next-wave --sync to force."
+}

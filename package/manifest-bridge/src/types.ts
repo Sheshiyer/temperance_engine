@@ -2,7 +2,7 @@ export const EVENT_SCHEMA = 'temperance.manifest.event.v1' as const;
 export const STATE_SCHEMA = 'temperance.manifest.state.v1' as const;
 
 export type EventStatus = 'observed' | 'derived' | 'synthetic' | 'stale' | 'failed';
-export type EventSource = 'pai-hook' | 'temperance-router' | 'omniroute' | 'project-artifact' | 'manifest';
+export type EventSource = 'pai-hook' | 'temperance-router' | 'omniroute' | 'project-artifact' | 'codegraph' | 'manifest';
 export type AlgorithmPhase = 'OBSERVE' | 'THINK' | 'PLAN' | 'BUILD' | 'EXECUTE' | 'VERIFY' | 'LEARN';
 
 export interface EvidencePointer {
@@ -53,6 +53,8 @@ export interface ManifestState {
   dispatches: Record<string, Record<string, unknown>>;
   reports: Record<string, Record<string, unknown>>;
   routes: Record<string, Record<string, unknown>>;
+  codegraph: Record<string, Record<string, unknown>>;
+  workflows: Record<string, Record<string, unknown>>;
   evidence: Record<string, Record<string, unknown>>;
   alerts: Array<Record<string, unknown>>;
   recent_events: ManifestEvent[];

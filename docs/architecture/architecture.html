@@ -4,259 +4,201 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Temperance Engine - Architecture Overview</title>
-<style>
-  :root {
-    --data: #4299e1;
-    --processing: #ed8936;
-    --ai: #9f7aea;
-    --success: #48bb78;
-    --private: #718096;
-    --ink: #1a202c;
-    --muted: #4a5568;
-    --line: #e2e8f0;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    color: var(--ink);
-    line-height: 1.5;
-    background: #ffffff;
-  }
-  h1 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 30px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-  }
-  h1 small {
-    display: block;
-    font-weight: 400;
-    font-size: 15px;
-    opacity: 0.9;
-    margin-top: 8px;
-  }
-  h2 {
-    border-bottom: 3px solid var(--line);
-    padding-bottom: 8px;
-    color: var(--ink);
-  }
-  .section { margin: 36px 0; }
-  .callout {
-    background: #fffaf0;
-    border: 1px solid #fbd38d;
-    border-left: 5px solid var(--processing);
-    border-radius: 8px;
-    padding: 18px 22px;
-    margin: 18px 0;
-  }
-  .callout strong { color: #9c4221; }
-  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-  .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px;
-  }
-  .card {
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 16px 18px;
-    background: #fafafa;
-  }
-  .card h3 { margin-top: 0; font-size: 15px; color: var(--ink); }
-  .card p { margin: 4px 0; font-size: 13.5px; color: var(--muted); }
-  .layer {
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 8px 0;
-    color: white;
-    font-size: 14px;
-  }
-  .layer b { display: block; font-size: 15px; margin-bottom: 4px; }
-  code {
-    background: #edf2f7;
-    padding: 1px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
-  }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
-  th { background: #f7fafc; }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
 </head>
 <body>
 
 <h1>Temperance Engine
-  <small>A public, backup-first installer for the author's live PAI + GSD + superpowers + CodeGraph + voice runtime &mdash; now paired with a live OmniRoute multi-model routing runtime</small>
+  <small>Public OpenCode/Cursor installer plus the Thoughtseed-member spine: Manifest Zone, GSD remotes, /goal, and te-dispatch-paid</small>
 </h1>
+
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a class="here" href="architecture.html">Overview</a>
+  <a href="spine-and-goal.html">Spine + /goal</a>
+  <a href="session-trace.html">Session trace</a>
+  <a href="integration-map.html">Integration map</a>
+  <a href="system-internals.html">Internals</a>
+  <a href="omniroute-routing.html">OmniRoute</a>
+</nav>
 
 <div class="section">
   <h2>Business Context</h2>
-  <div class="callout">
-    <strong>This is a productization, not a fresh design.</strong> Temperance Engine did not start from a blank architecture. It is a generalized, path-agnostic, backup-first extraction of the author's own daily-driver Personal AI Infrastructure (PAI) workflow: the 7-phase Observe&rarr;Think&rarr;Plan&rarr;Build&rarr;Execute&rarr;Verify&rarr;Learn loop, GSD's phase-planning/execution lifecycle, superpowers' skill/dispatch patterns, CodeGraph's structural index, skill-cluster routing, and peon-ping voice packs &mdash; all of which run live on the author's machine every day. Every install surface here mirrors a corresponding private, machine-specific piece that stays <em>referenced, never vendored</em> (see <code>UPSTREAM.md</code>).
+  <div class="callout fresh">
+    <strong>Updated 2026-08-17.</strong> Public <code>./install.sh</code> is still OpenCode/Cursor-first. Members run <code>./install.sh --with-spine</code> for Codex UPS compose, <code>/gsd:*</code> remotes (no GSD fork), Manifest Zone on <code>:5173</code>, Manifest bridge on <code>:8766</code>, Pulse <code>:31337</code>, and the product symlink. Native picker fires before ChatGPT in-app browser. Manifest is projection only.
   </div>
   <div class="grid">
     <div class="card">
       <h3>Objective</h3>
-      <p>Give another operator a readable, reviewable installer for the same disciplined work loop, without requiring the author's private memory, credentials, or voice packs.</p>
+      <p>Give another operator the same disciplined loop the Mini already runs, without private memory, keys, or audio packs.</p>
     </div>
     <div class="card">
       <h3>Users</h3>
-      <p>Developers who want an ISA-driven (Ideal State Artifact) PAI-style loop in OpenCode, Cursor, or optionally Claude Code / Codex, with or without GSD/superpowers already installed.</p>
+      <p>Public: OpenCode/Cursor operators. Members: Codex + GSD remotes + Manifest Zone via <code>--with-spine</code>.</p>
     </div>
     <div class="card">
       <h3>Value</h3>
-      <p>Safe, dry-runnable, backup-first install; optional surfaces stay opt-in; no forced subscription, auth, or specific model.</p>
+      <p>Backup-first install. One rail envelope. One goal file. One fleet lock. Pictures that match the live glove.</p>
     </div>
     <div class="card">
       <h3>Metrics</h3>
-      <p>ISA-tracked: 31/31 Ideal State Criteria currently satisfied and verified by <code>./verify.sh</code>.</p>
+      <p><code>./verify.sh</code> green. <code>/gsd:doctor</code> host+project probes. <code>temperance-goal --eval</code> reuses those probes.</p>
     </div>
   </div>
 </div>
 
 <div class="section">
-  <h2>Data Flow: Personal Runtime &rarr; Public Product</h2>
-  <svg viewBox="0 0 1080 300" xmlns="http://www.w3.org/2000/svg">
+  <h2>Data Flow</h2>
+  <svg viewBox="0 0 1100 340" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
       </marker>
     </defs>
+    <rect x="16" y="40" width="190" height="100" rx="10" fill="#3d8ea8"/>
+    <text x="111" y="78" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Operator</text>
+    <text x="111" y="100" text-anchor="middle" fill="white" font-size="11">native picker first</text>
+    <text x="111" y="118" text-anchor="middle" fill="white" font-size="11">MINIMAL / NATIVE / ALG</text>
 
-    <rect x="10" y="90" width="220" height="120" rx="10" fill="#718096"/>
-    <text x="120" y="120" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Author's Live Runtime</text>
-    <text x="120" y="142" text-anchor="middle" fill="white" font-size="11">CLAUDE.md, PAI/, MEMORY/</text>
-    <text x="120" y="158" text-anchor="middle" fill="white" font-size="11">hooks/*.hook.ts</text>
-    <text x="120" y="174" text-anchor="middle" fill="white" font-size="11">GSD, superpowers, CodeGraph</text>
-    <text x="120" y="190" text-anchor="middle" fill="white" font-size="11">skill-clusters, peon-ping</text>
-    <text x="120" y="225" text-anchor="middle" fill="#4a5568" font-size="11" font-style="italic">(private, not shipped)</text>
+    <rect x="236" y="40" width="190" height="100" rx="10" fill="#f39b54"/>
+    <text x="331" y="78" text-anchor="middle" fill="white" font-size="13" font-weight="bold">UPS compose</text>
+    <text x="331" y="100" text-anchor="middle" fill="white" font-size="11">PromptProcessing</text>
+    <text x="331" y="118" text-anchor="middle" fill="white" font-size="11">rail + gsd + mode offer</text>
 
-    <path d="M232,150 L288,150" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="456" y="40" width="190" height="100" rx="10" fill="#c9a84a"/>
+    <text x="551" y="78" text-anchor="middle" fill="white" font-size="13" font-weight="bold">PAI + GSD rail</text>
+    <text x="551" y="100" text-anchor="middle" fill="white" font-size="11">7 phases / /gsd:*</text>
+    <text x="551" y="118" text-anchor="middle" fill="white" font-size="11">active_planner isa|gsd</text>
 
-    <rect x="290" y="90" width="220" height="120" rx="10" fill="#ed8936"/>
-    <text x="400" y="125" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Productization</text>
-    <text x="400" y="150" text-anchor="middle" fill="white" font-size="11">Generalize $HOME paths</text>
-    <text x="400" y="166" text-anchor="middle" fill="white" font-size="11">Strip private/local state</text>
-    <text x="400" y="182" text-anchor="middle" fill="white" font-size="11">Reference-not-vendor rule</text>
-    <text x="400" y="198" text-anchor="middle" fill="white" font-size="11">Backup-first install scripts</text>
+    <rect x="676" y="40" width="190" height="100" rx="10" fill="#f39b54"/>
+    <text x="771" y="78" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Execute fleet</text>
+    <text x="771" y="100" text-anchor="middle" fill="white" font-size="11">next-wave approval</text>
+    <text x="771" y="118" text-anchor="middle" fill="white" font-size="11">te-dispatch-paid + lock</text>
 
-    <path d="M512,150 L568,150" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="896" y="40" width="188" height="100" rx="10" fill="#5ea882"/>
+    <text x="990" y="78" text-anchor="middle" fill="white" font-size="13" font-weight="bold">/goal evaluator</text>
+    <text x="990" y="100" text-anchor="middle" fill="white" font-size="11">goal.json probes</text>
+    <text x="990" y="118" text-anchor="middle" fill="white" font-size="11">same as VERIFY</text>
 
-    <rect x="570" y="90" width="220" height="120" rx="10" fill="#48bb78"/>
-    <text x="680" y="125" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Temperance Engine</text>
-    <text x="680" y="150" text-anchor="middle" fill="white" font-size="11">install.sh + scripts/install-*.sh</text>
-    <text x="680" y="166" text-anchor="middle" fill="white" font-size="11">docs/, templates/, ISA.md</text>
-    <text x="680" y="182" text-anchor="middle" fill="white" font-size="11">public, reviewable repo</text>
-    <text x="680" y="207" text-anchor="middle" fill="#f0fff4" font-size="11" font-style="italic">(this repo)</text>
+    <path d="M206,90 L234,90" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M426,90 L454,90" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M646,90 L674,90" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M866,90 L894,90" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
 
-    <path d="M792,150 L848,150" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="126" y="200" width="220" height="88" rx="10" fill="#c9a84a"/>
+    <text x="236" y="232" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Manifest Zone :5173</text>
+    <text x="236" y="252" text-anchor="middle" fill="white" font-size="11">IAB after pick · projection</text>
+    <text x="236" y="270" text-anchor="middle" fill="white" font-size="11">STATE / ROADMAP / GOAL</text>
 
-    <rect x="850" y="90" width="220" height="120" rx="10" fill="#4299e1"/>
-    <text x="960" y="120" text-anchor="middle" fill="white" font-size="14" font-weight="bold">User's Machine</text>
-    <text x="960" y="145" text-anchor="middle" fill="white" font-size="11">OpenCode / Cursor-first runtime</text>
-    <text x="960" y="161" text-anchor="middle" fill="white" font-size="11">optional Claude / Codex / voice</text>
-    <text x="960" y="177" text-anchor="middle" fill="white" font-size="11">recommended gsd-core backbone (detect-only)</text>
-    <text x="960" y="193" text-anchor="middle" fill="white" font-size="11">7-phase PAI-shell + docs/pai-flow.md unified flow</text>
+    <rect x="396" y="200" width="220" height="88" rx="10" fill="#3d8ea8"/>
+    <text x="506" y="232" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Bridge :8766</text>
+    <text x="506" y="252" text-anchor="middle" fill="white" font-size="11">SSE + JSONL read model</text>
+    <text x="506" y="270" text-anchor="middle" fill="white" font-size="11">180s stale window</text>
+
+    <rect x="666" y="200" width="220" height="88" rx="10" fill="#394951"/>
+    <text x="776" y="232" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Pulse :31337</text>
+    <text x="776" y="252" text-anchor="middle" fill="white" font-size="11">phase → peon</text>
+    <text x="776" y="270" text-anchor="middle" fill="white" font-size="11">else Voice :8888</text>
+
+    <path d="M331,140 L236,200" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M236,288 L396,244" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M551,140 L776,200" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
   </svg>
   <div class="legend">
-    <span><span class="swatch" style="background:#718096"></span>Private source (not shipped)</span>
-    <span><span class="swatch" style="background:#ed8936"></span>Generalization step</span>
-    <span><span class="swatch" style="background:#48bb78"></span>Public artifact (this repo)</span>
-    <span><span class="swatch" style="background:#4299e1"></span>Installed result</span>
+    <span><span class="swatch" style="background:#3d8ea8"></span>Data / operator surfaces</span>
+    <span><span class="swatch" style="background:#f39b54"></span>Processing</span>
+    <span><span class="swatch" style="background:#c9a84a"></span>AI / projection</span>
+    <span><span class="swatch" style="background:#5ea882"></span>Done authority</span>
+    <span><span class="swatch" style="background:#394951"></span>Optional voice</span>
   </div>
 </div>
 
 <div class="section">
-  <h2>Processing Pipeline: <code>install.sh</code> Orchestration</h2>
-  <svg viewBox="0 0 1160 220" xmlns="http://www.w3.org/2000/svg">
+  <h2>Processing Pipeline</h2>
+  <svg viewBox="0 0 1160 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
       </marker>
     </defs>
-    <!-- 7 stages -->
-    <g font-size="10.5" fill="white" text-anchor="middle">
-      <rect x="10"  y="70" width="140" height="70" rx="8" fill="#ed8936"/>
-      <text x="80" y="100">install-pai.sh</text>
-      <text x="80" y="116" font-size="9">$PAI_HOME + hooks/</text>
+    <g font-size="11" fill="white" text-anchor="middle">
+      <rect x="10" y="60" width="150" height="78" rx="8" fill="#f39b54"/>
+      <text x="85" y="92">install.sh</text>
+      <text x="85" y="110" font-size="10">public or --with-spine</text>
 
-      <rect x="175" y="70" width="140" height="70" rx="8" fill="#ed8936"/>
-      <text x="245" y="100">install-skill-</text>
-      <text x="245" y="112">clusters.sh</text>
+      <rect x="180" y="60" width="150" height="78" rx="8" fill="#f39b54"/>
+      <text x="255" y="88">install-spine.sh</text>
+      <text x="255" y="106" font-size="10">hooks + remotes</text>
+      <text x="255" y="122" font-size="10">product symlink</text>
 
-      <rect x="340" y="70" width="140" height="70" rx="8" fill="#ed8936"/>
-      <text x="410" y="100">install-peon-</text>
-      <text x="410" y="112">ping.sh</text>
+      <rect x="350" y="60" width="150" height="78" rx="8" fill="#c9a84a"/>
+      <text x="425" y="88">GSD remotes</text>
+      <text x="425" y="106" font-size="10">/gsd:* wrappers</text>
+      <text x="425" y="122" font-size="10">no GSD fork</text>
 
-      <rect x="505" y="70" width="140" height="70" rx="8" fill="#ed8936"/>
-      <text x="575" y="100">install-</text>
-      <text x="575" y="112">codegraph.sh</text>
+      <rect x="520" y="60" width="150" height="78" rx="8" fill="#c9a84a"/>
+      <text x="595" y="88">Manifest Zone</text>
+      <text x="595" y="106" font-size="10">:5173 + :8766</text>
+      <text x="595" y="122" font-size="10">projection only</text>
 
-      <rect x="670" y="70" width="140" height="70" rx="8" fill="#9f7aea"/>
-      <text x="740" y="100">install-gsd.sh</text>
-      <text x="740" y="116" font-size="9">new: thin ref</text>
+      <rect x="690" y="60" width="150" height="78" rx="8" fill="#3d8ea8"/>
+      <text x="765" y="88">Pulse + OmniRoute</text>
+      <text x="765" y="106" font-size="10">:31337 / :20128</text>
+      <text x="765" y="122" font-size="10">:20129 relay</text>
 
-      <rect x="835" y="70" width="140" height="70" rx="8" fill="#4299e1"/>
-      <text x="905" y="94">configure-</text>
-      <text x="905" y="106">opencode.sh</text>
+      <rect x="860" y="60" width="140" height="78" rx="8" fill="#f39b54"/>
+      <text x="930" y="92">doctor / goal</text>
+      <text x="930" y="110" font-size="10">project-init + eval</text>
 
-      <rect x="1000" y="70" width="140" height="70" rx="8" fill="#48bb78"/>
-      <text x="1070" y="100">verify-</text>
-      <text x="1070" y="112">install.sh</text>
+      <rect x="1020" y="60" width="130" height="78" rx="8" fill="#5ea882"/>
+      <text x="1085" y="92">verify.sh</text>
+      <text x="1085" y="110" font-size="10">fails the install</text>
     </g>
     <g stroke="#666" stroke-width="2">
-      <path d="M150,105 L173,105" marker-end="url(#arrow2)"/>
-      <path d="M315,105 L338,105" marker-end="url(#arrow2)"/>
-      <path d="M480,105 L503,105" marker-end="url(#arrow2)"/>
-      <path d="M645,105 L668,105" marker-end="url(#arrow2)"/>
-      <path d="M810,105 L833,105" marker-end="url(#arrow2)"/>
-      <path d="M975,105 L998,105" marker-end="url(#arrow2)"/>
+      <path d="M160,99 L178,99" marker-end="url(#arrow2)"/>
+      <path d="M330,99 L348,99" marker-end="url(#arrow2)"/>
+      <path d="M500,99 L518,99" marker-end="url(#arrow2)"/>
+      <path d="M670,99 L688,99" marker-end="url(#arrow2)"/>
+      <path d="M840,99 L858,99" marker-end="url(#arrow2)"/>
+      <path d="M1000,99 L1018,99" marker-end="url(#arrow2)"/>
     </g>
-    <text x="580" y="30" text-anchor="middle" font-size="13" fill="#4a5568">Every stage reads flags exported by <tspan font-family="monospace">install.sh</tspan>; all writes go through <tspan font-family="monospace">backup_file</tspan> / <tspan font-family="monospace">ensure_dir</tspan> in <tspan font-family="monospace">scripts/lib.sh</tspan></text>
-    <text x="740" y="180" text-anchor="middle" font-size="11" fill="#4a5568">install-gsd.sh performs zero writes &mdash; detect + print only</text>
+    <text x="580" y="28" text-anchor="middle" font-size="13" fill="#8d9a9c">--with-spine = Codex + GSD remotes + Manifest + Claude/Pulse. It does not vendor GSD core or copy secrets.</text>
+    <text x="580" y="178" text-anchor="middle" font-size="12" fill="#8d9a9c">Hourly OmniRoute reconcile stays dry-run. --apply would undo the ranked te-dispatch-paid stack.</text>
   </svg>
 </div>
 
 <div class="section">
-  <h2>System Architecture (Layered)</h2>
-  <div class="layer" style="background:#4299e1;">
-    <b>Templates &amp; Docs (data layer)</b>
-    templates/AGENTS.md, templates/cursor.*, templates/codex.AGENTS.md, templates/CLAUDE.md.template &middot; docs/pai-flow.md (unified-flow source of truth), docs/skill-clusters.md, docs/peon-ping-packs.md, docs/codegraph-routing.md &middot; docs/parallel-dispatch.md and docs/multi-surface-architecture.md are retired redirect stubs pointing at docs/pai-flow.md
+  <h2>System Architecture</h2>
+  <div class="layer cyan">
+    <b>Templates &amp; docs (data)</b>
+    templates/AGENTS.md + OpenCode/Cursor/Codex/CLAUDE · docs/pai-flow.md · docs/gsd-manifest-spine.md · docs/gsd-goal-handoff.md · this visual set
   </div>
-  <div class="layer" style="background:#ed8936;">
-    <b>Install Orchestration (processing layer)</b>
-    install.sh (flag parsing, env export) &middot; scripts/install-*.sh (one script per surface) &middot; scripts/lib.sh (say / ensure_dir / backup_file / install_file)
+  <div class="layer orange">
+    <b>Install orchestration (processing)</b>
+    install.sh flag parser · --with-spine alias · scripts/install-*.sh · scripts/install-spine.sh · backup_file / install_file in scripts/lib.sh
   </div>
-  <div class="layer" style="background:#9f7aea;">
-    <b>PAI-shell (always-on outer layer)</b>
-    The 7-phase Observe&rarr;Think&rarr;Plan&rarr;Build&rarr;Execute&rarr;Verify&rarr;Learn loop is always active as documented convention; enforcement is a future sub-project (B). The &lt;temperance-context&gt; block is the one always-on enrichment layer, emitted every prompt.
+  <div class="layer gold">
+    <b>PAI shell + UPS compose (always-on)</b>
+    Observe→Learn · PromptProcessing one additionalContext · native picker before IAB · &lt;pai-mode-offer&gt; then Manifest Zone
   </div>
-  <div class="layer" style="background:#38a169;">
-    <b>gsd-core-backbone (recommended-default workflow layer, still detect-only)</b>
-    gsd-core (<code>open-gsd/gsd-core</code>, <code>npx @opengsd/gsd-core@latest</code>) is the recommended default backbone: Discuss &rarr; Plan &rarr; Execute &rarr; Verify &rarr; Ship, commands in canonical <code>/gsd-*</code> hyphen form. It is recommended, not required &mdash; <code>install-gsd.sh</code> and <code>--with-gsd</code> remain detect-only and never vendor gsd-core. When gsd-core is absent, the flow degrades to the superpowers chain: brainstorming &rarr; writing-plans &rarr; subagent-driven-development &rarr; verification-before-completion &rarr; finishing-a-development-branch. The old <code>~/.claude/get-shit-done</code> path (danielmiessler lineage) is deprecated/legacy; install-gsd.sh now recognizes gsd-core and points at the npx install.
+  <div class="layer mint">
+    <b>GSD rail (recommended backbone, never vendored)</b>
+    /gsd:* remotes read GSD 1.30.0 · /gsd:doctor and /gsd:goal are Temperance-owned · active_planner isa|gsd · degrade to writing-plans when GSD is absent
   </div>
-  <div class="layer" style="background:#9f7aea;">
-    <b>skill-cluster-resolver (discovery / lazy-load layer)</b>
-    <code>~/.agents/skill-clusters/skill-index.json</code> sits between "backbone names a skill" and "tool runs" &mdash; the context-economy mechanism. active-spoke skills are symlinked and loaded; deferred clusters are resolved on demand; archived skills are read from their indexed path; not-found is a hard error.
+  <div class="layer gold">
+    <b>Manifest Zone + bridge (projection)</b>
+    :5173 LCARS · :8766 event plane · STATE / ROADMAP / GOAL cards · cannot approve, launch, or dispatch
   </div>
-  <div class="layer" style="background:#4299e1;">
-    <b>tool-inventory (services layer)</b>
-    superpowers skills (brainstorming, writing-plans, subagent-driven-development, dispatching-parallel-agents, verification-before-completion, finishing-a-development-branch) &middot; temperance-parallel-dispatch (external backends command-code/grok/kimi via <code>temperance-batch</code>) &middot; Pulse compatibility server (voice, --with-voice) &middot; CodeGraph CLI (structural index)
+  <div class="layer cyan">
+    <b>Routing + fleet (services)</b>
+    OmniRoute :20128 · relay :20129 · te-plan / te-build / te-reason / te-validate / te-dispatch-paid · Sol babysit only · dual-fleet lock
   </div>
-  <div class="layer" style="background:#9f7aea;">
-    <b>OmniRoute routing (request-time model layer, optional)</b>
-    Local gateway on <code>:20128</code> owns provider/model failover for 12 named combos (5 governed task portfolios, planner/dispatch role combos, 4 writing combos). Automatic chat requests (OpenCode <code>temperance/temperance-auto</code>, Kimi CLI/desktop) reach it through <code>temperance-openai-proxy</code> (<code>:20129</code>), which enriches, classifies, and freezes a plan before rewriting the model. A policy-driven reconciler (<code>scripts/omniroute-temperance-reconcile.sh</code>, every 900s) substitutes below-quota or manually-disabled providers with hysteresis and fails closed on fusion combos. See <a href="omniroute-routing.html">omniroute-routing.html</a>.
-  </div>
-  <div class="layer" style="background:#48bb78;">
-    <b>Runtime Loop (output layer)</b>
-    Observe &rarr; Think &rarr; Plan &rarr; Build &rarr; <b style="text-decoration:underline;">Execute</b> &rarr; Verify &rarr; Learn. The Execute phase invokes <code>temperance-parallel-dispatch</code> only when 2+ independent tasks would benefit from external backends; the full decision doctrine now lives in <code>docs/pai-flow.md</code>'s Execute row (superpowers dispatch vs gsd-core execute-phase/workstreams), not <code>docs/parallel-dispatch.md</code>.
+  <div class="layer mint">
+    <b>Done authorities (output)</b>
+    ISA probes · GSD verify-phase · /goal evaluator on the same probes · ./verify.sh for the installer itself
   </div>
 </div>
 
@@ -266,17 +208,19 @@
     <div class="card">
       <h3>Functional</h3>
       <p>Backup-first, dry-runnable install</p>
-      <p>Opt-in surfaces (Claude, Codex, voice, GSD)</p>
-      <p>ISA-driven verification (31 ISC)</p>
-      <p>Execute-phase dispatch doctrine (docs/pai-flow.md) with skill-cluster-resolved tool inventory</p>
-      <p>Optional OmniRoute runtime: 12 governed combos, provider-lane inventory, policy-driven availability reconciler</p>
+      <p><code>--with-spine</code> member glove</p>
+      <p>Native picker, then ChatGPT IAB to Manifest Zone</p>
+      <p><code>/gsd:goal</code> session loop + <code>temperance.goal.v1</code></p>
+      <p>Dual-fleet lock around next-wave + <code>te-dispatch-paid</code></p>
+      <p>Pulse peon vs Voice <code>:8888</code> with <code>tts-auth</code> class</p>
     </div>
     <div class="card">
       <h3>Non-Functional</h3>
-      <p>No private local paths in any public/install surface (enforced by grep denylist in <code>verify-install.sh</code>)</p>
-      <p>Portable across <code>$HOME</code> and override env vars</p>
-      <p>Works without Claude Code, Claude Pro/Max, or Anthropic auth</p>
-      <p>macOS-friendly, not macOS-required</p>
+      <p>No private local paths in public/install surfaces</p>
+      <p>GSD core never vendored</p>
+      <p>Manifest cannot authorize work</p>
+      <p>Sol never a fleet head</p>
+      <p>Works without Claude Code or Anthropic auth</p>
     </div>
   </div>
 </div>
@@ -284,12 +228,13 @@
 <div class="section">
   <h2>Deployment</h2>
   <table>
-    <tr><th>Model</th><td>One-time local shell installer, run directly from a cloned repo</td></tr>
-    <tr><th>Prerequisites</th><td><code>sh</code> (required); <code>bun</code>, <code>node</code>, <code>codegraph</code> CLI (optional, feature-gated)</td></tr>
-    <tr><th>Workflow</th><td><code>git clone</code> &rarr; <code>./install.sh [--with-claude] [--with-codex] [--with-gsd] [--skip-voice]</code> &rarr; <code>./verify.sh</code></td></tr>
-    <tr><th>Rollback</th><td>Timestamped backups under <code>$TEMPERANCE_BACKUP_DIR</code>; see <code>docs/rollback.md</code></td></tr>
-    <tr><th>OmniRoute runtime (optional)</th><td>Boot-persistent macOS LaunchAgents: <code>scripts/omniroute-autostart-launchd.sh install</code> (gateway) and <code>scripts/temperance-proxy-launchd.sh install</code> (relay). Reconciler timer: <code>scripts/omniroute-temperance-reconcile.sh --install-timer</code>.</td></tr>
-    <tr><th>Headless deployment (optional)</th><td>Route-only shadow runtime beside Hermes on EC2/systemd &mdash; <code>package/headless</code>, built via <code>scripts/build-headless-shadow.sh</code>; see <code>docs/runbooks/ec2-headless-shadow.md</code>.</td></tr>
+    <tr><th>Model</th><td>One-time local shell installer from a cloned repo</td></tr>
+    <tr><th>Public workflow</th><td><code>git clone</code> → <code>./install.sh</code> → <code>./verify.sh</code></td></tr>
+    <tr><th>Member glove</th><td><code>./install.sh --with-spine</code> → <code>./verify.sh</code> → <code>temperance-project-init --cwd . --check</code></td></tr>
+    <tr><th>Prerequisites</th><td><code>sh</code> required; <code>bun</code>, <code>node</code>, <code>codegraph</code>, GSD 1.30.0, OmniRoute optional</td></tr>
+    <tr><th>Live ports</th><td>Pulse <code>:31337</code> · Voice <code>:8888</code> · OmniRoute <code>:20128</code> · relay <code>:20129</code> · bridge <code>:8766</code> · Manifest Zone <code>:5173</code></td></tr>
+    <tr><th>Rollback</th><td>Timestamped backups under <code>$TEMPERANCE_BACKUP_DIR</code> · <code>docs/rollback.md</code></td></tr>
+    <tr><th>Never</th><td>Vendor GSD · copy secrets · <code>--apply</code> every combo · Sol-lead fleet · Manifest approve/launch · Chrome/Safari for Manifest</td></tr>
   </table>
 </div>
 
@@ -297,29 +242,33 @@
   <h2>Deep Dives</h2>
   <div class="grid">
     <div class="card">
+      <h3><a href="spine-and-goal.html">spine-and-goal.html</a></h3>
+      <p>Picker, Manifest Zone, GSD rail, next-wave, fleet lock, and the /goal evaluator as one picture.</p>
+    </div>
+    <div class="card">
       <h3><a href="system-internals.html">system-internals.html</a></h3>
-      <p>Component-by-component mechanics: exact flags, env vars, file writes, endpoints, and fallback behavior for every script and service.</p>
+      <p>Flags, UPS compose, Pulse/Voice, temperance-goal.mjs, and install-spine.</p>
     </div>
     <div class="card">
       <h3><a href="integration-map.html">integration-map.html</a></h3>
-      <p>Which seams are real code paths versus documentation-only references, including the three parallel (non-integrated) preference layers.</p>
+      <p>WIRED versus reference-only seams, including the August spine.</p>
     </div>
     <div class="card">
       <h3><a href="session-trace.html">session-trace.html</a></h3>
-      <p>A concrete install-to-session walkthrough, phase by phase, with failure modes traced.</p>
+      <p>One concrete <code>--with-spine</code> install-to-/goal walkthrough.</p>
     </div>
     <div class="card">
       <h3><a href="omniroute-routing.html">omniroute-routing.html</a></h3>
-      <p>OmniRoute gateway topology, the full combo roster, provider lanes, and the availability reconciler.</p>
+      <p>Combo roster, provider lanes, availability reconciler (keep dry-run).</p>
     </div>
     <div class="card">
       <h3><a href="brand-connectors.html">brand-connectors.html</a></h3>
-      <p>What Temperance Engine names as its own (the Athanor, the Caduceus, the Vigil) versus what it only neighbors.</p>
+      <p>What Temperance names as its own versus what it only neighbors.</p>
     </div>
   </div>
 </div>
 
-<p style="color:#a0aec0; font-size:12px; margin-top:40px;">Generated for Temperance Engine via <code>architecture-diagram-creator</code>. Source of truth: <code>ISA.md</code>, <code>docs/pai-flow.md</code>, <code>UPSTREAM.md</code>. (<code>docs/parallel-dispatch.md</code> is a retired redirect stub &mdash; see <code>docs/pai-flow.md</code>.)</p>
+<p style="color:#6f7d7e; font-size:12px; margin-top:40px;">Generated 2026-08-17 via architecture-diagram-creator. Companions: docs/architecture.md · docs/gsd-manifest-spine.md · docs/gsd-goal-handoff.md · docs/pai-flow.md.</p>
 
 </body>
 </html>

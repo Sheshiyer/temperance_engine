@@ -1,5 +1,7 @@
 # Credits
 
+Themed page: [docs/site/credits.html](docs/site/credits.html) · library: [docs/index.html](docs/index.html)
+
 Temperance Engine packages integration patterns around several tools and ideas. This repository does not claim ownership of those upstream projects.
 
 ## Runtime Surfaces
@@ -46,6 +48,7 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 | OpenAI Codex CLI | https://github.com/openai/codex | Optional Codex local instruction surface. |
 | GitHub CLI | https://github.com/cli/cli | Public repo creation and publishing workflow. |
 | Bun | https://github.com/oven-sh/bun | Runtime for the optional Pulse compatibility server. |
+| portless | https://github.com/vercel-labs/portless | Named `.localhost` URLs for Speculum/Vas/Athanor/Mercurius. Referenced, not vendored. |
 | ripgrep | https://github.com/BurntSushi/ripgrep | Fast literal file and content search model. |
 
 ## Local Session Work

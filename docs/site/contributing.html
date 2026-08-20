@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contributing — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Root · safety boundary</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>Contributing</h1>
+<p>Temperance Engine is a public packaging repo for local AI-operator runtime setup. Contributions should preserve the safety boundary: no private memory, no credentials, no bundled voice packs, and no hard-coded personal paths.</p>
+<h2>Local Checks</h2>
+<pre><code>./verify.sh
+./install.sh --dry-run --skip-voice</code></pre>
+<h2>Guidelines</h2>
+<ul>
+<li>Keep installer scripts POSIX-shell compatible unless there is a documented reason not to.</li>
+<li>Back up before writing to user config paths.</li>
+<li>Use <code>$HOME</code> and documented override variables instead of hard-coded usernames.</li>
+<li>Reference optional dependencies; do not vendor unclear-license binaries or audio.</li>
+<li>Update <code>CREDITS.md</code> and <code>UPSTREAM.md</code> when adding a new integration surface.</li>
+</ul>
+<h2>Pull Requests</h2>
+<p>Include:</p>
+<ul>
+<li>What changed.</li>
+<li>Which install surface it touches.</li>
+<li>Verification command output.</li>
+<li>Any rollback implications.</li>
+</ul>
+<h2>README Continuity (Required)</h2>
+<p>README is treated as a generated, versioned artifact, not a one-shot document.</p>
+<p>Before opening or updating a PR to <code>main</code>, run:</p>
+<pre><code>bash scripts/readme-continuity-check.sh</code></pre>
+<p>When version-significant files change (<code>CHANGELOG.md</code>, docs, scripts, skills, etc.), PRs are required to include updated README sections:</p>
+<ul>
+<li><code>## 🚀 Project Intelligence Snapshot</code></li>
+<li><code>## 🧠 Concept Map</code></li>
+<li><code>## 📊 Repository Signals Table</code></li>
+<li><code>## 🔍 Asset Trail</code></li>
+</ul>
+<p>README continuity is validated on every PR to <code>main</code> via <code>.github/workflows/readme-continuity.yml</code>.</p>
+<p>A companion workflow (<code>.github/workflows/readme-auto-refresh.yml</code>) runs after merges on <code>main</code> and opens/updates a follow-up branch PR (<code>readme-continuity-refresh</code>) when NotebookLM sections need refresh.</p>
+<p>For release/version updates, PRs are still expected to keep README blocks current; the auto-refresh workflow can also backfill missed updates in a separate follow-up commit/PR.</p>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

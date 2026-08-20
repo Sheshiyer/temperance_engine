@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture prose — Temperance Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/te-docs.css">
+</head>
+<body>
+<p class="kicker">Spine · runtime model</p>
+<nav class="nav">
+  <a href="../index.html">Library</a>
+  <a href="../architecture/architecture.html">Architecture</a>
+  <a href="quickstart.html">Quickstart</a>
+  <a href="pai-flow.html">PAI flow</a>
+  <a href="planning.html">Planning</a>
+  <a href="../../README.md">README</a>
+</nav>
+<h1>Architecture</h1>
+<p>Temperance Engine is a local runtime integration package for OpenCode/Cursor-first operator workflows. It does not require Claude Code, Claude Pro/Max, Anthropic auth, Codex auth, or a specific model; Claude and Codex instruction surfaces are optional compatibility targets.</p>
+<p>An optional second layer — a local OmniRoute gateway with governed model portfolios — sits on top once installed; see <a href="architecture/omniroute-routing.html">OmniRoute Routing</a>.</p>
+<p>The Thoughtseed-member glove is <code>./install.sh --with-spine</code>. Public <code>./install.sh</code> stays OpenCode/Cursor-first. See <a href="gsd-manifest-spine.md">GSD + Manifest spine</a> and the visual set under <a href="architecture/README.md">docs/architecture/</a>.</p>
+<h2>Components</h2>
+<ul>
+<li>Instruction surfaces: <code>AGENTS.md</code>, OpenCode guidance, Cursor guidance, and optional Claude/Codex guidance.</li>
+<li>Pulse compatibility: optional local HTTP server on <code>:31337</code>. Algorithm phase messages play peon-ping. Non-phase messages may forward to Voice <code>:8888</code> (ElevenLabs). Forward 4xx/5xx are classified <code>tts-auth</code> or <code>tts-failed</code>.</li>
+<li>Voice adapter: optional peon-ping invocation by phase. Distinct from Voice <code>:8888</code>.</li>
+<li>Skill-cluster routing: resolver guidance and health-check conventions.</li>
+<li>CodeGraph routing: structural search for <code>$HOME/.agents</code>.</li>
+<li>OmniRoute routing (optional): local gateway <code>:20128</code> plus relay <code>:20129</code> for <code>temperance/temperance-auto</code> and Kimi. Combos: <code>te-plan</code>, <code>te-build</code>, <code>te-reason</code>, <code>te-validate</code>, <code>te-dispatch-paid</code>. Sol is babysit-only, never a fleet head.</li>
+<li>GSD slash spine (optional <code>--with-gsd</code> / <code>--with-spine</code>): thin <code>/gsd:*</code> remotes on Codex, OpenCode, and Grok. They read GSD 1.30.0 workflows. They do not fork GSD. <code>/gsd:doctor</code> and <code>/gsd:goal</code> are Temperance-owned.</li>
+<li>UPS compose: <code>package/hooks/codex/PromptProcessing.hook.ts</code> emits one <code>additionalContext</code> envelope — classifier + <code>&lt;temperance-rail&gt;</code> + <code>&lt;gsd-rail&gt;</code> + <code>&lt;pai-mode-offer&gt;</code> + hook receipt. Other Codex hooks must not steal stdin.</li>
+<li>Manifest Zone (optional <code>--with-manifest</code> / <code>--with-spine</code>): Vite LCARS on <code>:5173</code>. Projection only. Live STATE / ROADMAP / GOAL cards. <code>?view=</code> history. Never Chrome/Safari.</li>
+<li>Manifest bridge: event plane on <code>:8766</code>. Heartbeat plus 180s stale window. Edge <code>local|clio</code>.</li>
+<li>Session goal loop: <code>.temperance/goal.json</code> (<code>temperance.goal.v1</code>). CLI <code>temperance-goal --ensure|--eval</code>. <code>/gsd:goal</code> (and Claude native <code>/goal</code>) loops execute until the same VERIFY probes pass. Not a planner.</li>
+<li>Dual-fleet lock: <code>/gsd:execute-phase</code> writes <code>~/.temperance_engine/state/fleet-locks/&lt;cwd-hash&gt;.json</code> when next-wave emits tasks. A second <code>gsd-executor</code> swarm on the same <code>[P]</code> ids is forbidden while the lock is active (&lt;2h).</li>
+<li>Product symlink: <code>~/.temperance_engine/product</code> always points at this clone.</li>
+</ul>
+<h2>Data Flow</h2>
+<p>1. Member install is <code>./install.sh</code> (public) or <code>./install.sh --with-spine</code> (glove).</p>
+<p>2. Session start: if the session has no PAI mode, show the native picker tiles (MINIMAL / NATIVE / ALGORITHM).</p>
+<p>3. After the pick, open ChatGPT IAB (in-app browser) only: <code>http://127.0.0.1:5173/?mode=…&amp;view=…</code>. Never Chrome/Safari.</p>
+<p>4. PromptProcessing classifies the prompt and composes one rail envelope. GSD wrappers name <code>/gsd:*</code> plus combo plus Manifest view.</p>
+<p>5. The agent follows the 7-phase PAI shell. <code>active_planner</code> is <code>isa</code> or <code>gsd</code>. Plan via <code>/gsd:plan-phase</code> or <code>writing-plans</code>.</p>
+<p>6. Execute needs next-wave approval. Fleet work uses <code>te-dispatch-paid</code> under the dual-fleet lock. Manifest cannot approve or launch.</p>
+<p>7. <code>/gsd:goal</code> binds ISA Goal or GSD STATE into <code>.temperance/goal.json</code>. The evaluator reuses doctor/ISA probes. Fail → continue the same <code>/gsd:*</code>. Pass → stop.</p>
+<p>8. If Pulse is enabled, phase notifications POST to <code>localhost:31337/notify</code> (peon). Non-phase may forward to Voice <code>:8888</code>.</p>
+<p>9. Code search for <code>.agents</code> uses CodeGraph instead of blocked semantic retrieval.</p>
+<p>10. If the OmniRoute relay is enabled and the automatic model is selected, a chat request is enriched, classified into a frozen route, and forwarded to the resolved combo.</p>
+<h2>Public Packaging Boundary</h2>
+<p>The repo ships templates and scripts. It does not ship private memories, live config backups, auth tokens, model credentials, Claude/Codex accounts, or audio packs. <code>--with-spine</code> does not vendor GSD core, copy API keys, <code>--apply</code> OmniRoute combos, bind OmniRoute to LAN, or make Sol a fleet head.</p>
+<h2>Visual map</h2>
+<table>
+<tr><th>Page</th><th>What it shows</th></tr>
+<tr><td><a href="architecture/architecture.html">architecture.html</a></td><td>Six-section overview: business, data flow, install pipeline, layers, features, deploy</td></tr>
+<tr><td><a href="architecture/spine-and-goal.html">spine-and-goal.html</a></td><td>Picker → Manifest Zone → GSD → next-wave → fleet lock → <code>/goal</code></td></tr>
+<tr><td><a href="architecture/session-trace.html">session-trace.html</a></td><td>One <code>--with-spine</code> walkthrough</td></tr>
+<tr><td><a href="architecture/integration-map.html">integration-map.html</a></td><td>WIRED vs reference-only seams</td></tr>
+<tr><td><a href="architecture/system-internals.html">system-internals.html</a></td><td>Flags, hooks, ports, CLIs</td></tr>
+<tr><td><a href="architecture/omniroute-routing.html">omniroute-routing.html</a></td><td>Combo roster and reconciler</td></tr>
+</table>
+<p class="foot">Themed from docs/assets/te-docs.css · markdown remains the source of truth</p>
+</body>
+</html>

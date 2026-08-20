@@ -51,6 +51,28 @@ check_file "$ROOT/templates/CLAUDE.md.template"
 check_file "$ROOT/assets/banner.png"
 check_file "$ROOT/assets/icon.png"
 check_file "$ROOT/package/enrich/adapters/codex-prompthook.ts"
+check_file "$ROOT/package/hooks/codex/PromptProcessing.hook.ts"
+check_file "$ROOT/package/hooks/codex/GsdCommand.hook.ts"
+check_file "$ROOT/package/hooks/codex/SessionStartTe.hook.ts"
+check_file "$ROOT/package/hooks/codex/run-bun-hook.sh"
+check_file "$ROOT/docs/codex-cli-limits.md"
+check_file "$ROOT/package/hooks/claude/PromptProcessing.hook.ts"
+check_file "$ROOT/package/router/gsd-rail-map.json"
+check_file "$ROOT/package/router/gsd-command-install.mjs"
+check_file "$ROOT/package/router/temperance-goal.mjs"
+check_file "$ROOT/docs/gsd-goal-handoff.md"
+check_file "$ROOT/package/manifest-zone/src/GsdDeck.tsx"
+check_file "$ROOT/docs/gsd-manifest-spine.md"
+check_file "$ROOT/scripts/install-spine.sh"
+
+if grep -R --include='*.ts' --include='*.mjs' --include='*.sh' -n '/Users/sheshnarayaniyer' \
+  "$ROOT/package/hooks" "$ROOT/package/router/gsd-command-install.mjs" "$ROOT/scripts/install-spine.sh" 2>/dev/null \
+  | grep -v node_modules; then
+  printf 'hardcoded home path in install sources\n' >&2
+  fail=1
+else
+  printf 'ok: no hardcoded /Users/sheshnarayaniyer in spine sources\n'
+fi
 
 check_shell_syntax() {
   script="$1"

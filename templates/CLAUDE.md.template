@@ -1,5 +1,10 @@
 # Temperance Engine Claude Template
 
+<!-- temperance:mode-bind:start -->
+`/gsd:*` already binds a PAI mode. Do not write a NOESIS quiz of MINIMAL / NATIVE / ALGORITHM.
+A real picker is only `AskUserQuestion` on a **bare first prompt with no saved mode**. After `/gsd:goal` or a session pick, go straight to the work. Open ChatGPT IAB only (never Chrome/Safari) to `http://127.0.0.1:5173`.
+<!-- temperance:mode-bind:end -->
+
 First visible line for PAI-formatted responses: `NOESIS`.
 
 ## Mode Model
