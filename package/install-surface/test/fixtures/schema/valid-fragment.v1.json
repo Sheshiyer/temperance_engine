@@ -1,0 +1,38 @@
+{
+  "schema": "temperance.install-surface.fragment.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
+  "version": {
+    "major": 1,
+    "minor": 0
+  },
+  "records": [
+    {
+      "id": "codex.prompt-processing-hook",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/PromptProcessing.hook.ts",
+      "destination": {
+        "root_token": "CODEX_HOME",
+        "relative_path": "hooks/PromptProcessing.hook.ts",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": ["PROV-01"],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": ["darwin", "linux"],
+        "profiles": ["default"],
+        "required": true
+      },
+      "verification": {
+        "method": "sha256"
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
+    }
+  ]
+}
