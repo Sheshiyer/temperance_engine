@@ -27,7 +27,7 @@ not a requirement that phase count equal commit count.
 
 ## Phases
 
-- [ ] **Phase 1: Provenance Contract and Read-Only Control Plane** - Users can inspect one safe, versioned inventory and read-only doctor model.
+- [x] **Phase 1: Provenance Contract and Read-Only Control Plane** - Users can inspect one safe, versioned inventory and read-only doctor model.
 - [ ] **Phase 2: Public Source Convergence** - The public repository contains the complete portable product payload and no private workstation state.
 - [ ] **Phase 3: Safe Profiles and Transactional Lifecycle** - Users can install, update, roll back, and uninstall selected profiles reversibly.
 - [ ] **Phase 4: Service and Platform Adapters** - Required macOS services participate safely in lifecycle transactions while Linux remains honest best-effort.

@@ -11,13 +11,13 @@ v1.1 turns the public repository into the source authority for a reproducible lo
 
 ### Authority and Inventory
 
-- [ ] **PROV-01** — A maintainer can validate the versioned installation-manifest schema before any lifecycle action runs.
-- [ ] **PROV-02** — Every included installed surface resolves to exactly one stable manifest record with an owner and classification.
-- [ ] **PROV-03** — Manifest validation rejects duplicate or overlapping destination ownership before mutation.
-- [ ] **PROV-04** — Manifest sources are repository-relative and destinations use allowlisted root tokens rather than workstation-specific absolute paths.
-- [ ] **PROV-05** — Semantic validation rejects path escapes, dependency cycles, contradictory classifications, and unsafe adapter combinations.
+- [x] **PROV-01** — A maintainer can validate the versioned installation-manifest schema before any lifecycle action runs.
+- [x] **PROV-02** — Every included installed surface resolves to exactly one stable manifest record with an owner and classification.
+- [x] **PROV-03** — Manifest validation rejects duplicate or overlapping destination ownership before mutation.
+- [x] **PROV-04** — Manifest sources are repository-relative and destinations use allowlisted root tokens rather than workstation-specific absolute paths.
+- [x] **PROV-05** — Semantic validation rejects path escapes, dependency cycles, contradictory classifications, and unsafe adapter combinations.
 - [ ] **PROV-06** — Install, update, doctor, verify, rollback, and uninstall consume the same resolved inventory.
-- [ ] **PROV-07** — Manifest entries cannot expand the public product beyond the explicitly ratified ISA and milestone scope.
+- [x] **PROV-07** — Manifest entries cannot expand the public product beyond the explicitly ratified ISA and milestone scope.
 
 ### Installation and Profiles
 
@@ -31,11 +31,11 @@ v1.1 turns the public repository into the source authority for a reproducible lo
 
 ### Doctor and Provenance
 
-- [ ] **DOCT-01** — Users can run a read-only doctor command that explains installation and health in human-readable form.
-- [ ] **DOCT-02** — Automation can request the same doctor observations as stable JSON without triggering repair.
-- [ ] **DOCT-03** — Each doctor entry reports source, destination, class, expected state, actual state, status, and remediation.
-- [ ] **DOCT-04** — Drift produces an explicit `DRIFT` result or non-zero exit without modifying the machine.
-- [ ] **DOCT-05** — Doctor distinguishes required failures from optional skips and unsupported platform capabilities.
+- [x] **DOCT-01** — Users can run a read-only doctor command that explains installation and health in human-readable form.
+- [x] **DOCT-02** — Automation can request the same doctor observations as stable JSON without triggering repair.
+- [x] **DOCT-03** — Each doctor entry reports source, destination, class, expected state, actual state, status, and remediation.
+- [x] **DOCT-04** — Drift produces an explicit `DRIFT` result or non-zero exit without modifying the machine.
+- [x] **DOCT-05** — Doctor distinguishes required failures from optional skips and unsupported platform capabilities.
 
 ### Transactional Lifecycle
 
@@ -61,10 +61,10 @@ v1.1 turns the public repository into the source authority for a reproducible lo
 - [ ] **SAFE-01** — Release packaging starts from a positive repository allowlist that can be printed and reviewed as an exact candidate inventory.
 - [ ] **SAFE-02** — Release artifacts exclude credentials, private databases, logs, histories, receipts, backups, personal memory, private atlases, and `atlasRecall.ts`.
 - [ ] **SAFE-03** — Lifecycle commands never recursively traverse provider caches, private state roots, or personal memory roots.
-- [ ] **SAFE-04** — Path resolution rejects absolute manifest sources, traversal, and destinations outside allowlisted roots.
+- [x] **SAFE-04** — Path resolution rejects absolute manifest sources, traversal, and destinations outside allowlisted roots.
 - [ ] **SAFE-05** — Symlink, hardlink, parent-swap, and unexpected path-type hazards fail closed before mutation.
 - [ ] **SAFE-06** — Recursive deletion is prohibited; removal targets are explicitly enumerated from verified ownership records.
-- [ ] **SAFE-07** — Verification applies classification-aware checksum rules to copied, transformed, generated, and private-overlay surfaces.
+- [x] **SAFE-07** — Verification applies classification-aware checksum rules to copied, transformed, generated, and private-overlay surfaces.
 
 ### Documentation and Release Qualification
 
@@ -100,13 +100,13 @@ v1.1 turns the public repository into the source authority for a reproducible lo
 
 | Requirement | Phase | Status |
 |---|---|---|
-| PROV-01 | Phase 1 | Pending |
-| PROV-02 | Phase 1 | Pending |
-| PROV-03 | Phase 1 | Pending |
-| PROV-04 | Phase 1 | Pending |
-| PROV-05 | Phase 1 | Pending |
+| PROV-01 | Phase 1 | Complete |
+| PROV-02 | Phase 1 | Complete |
+| PROV-03 | Phase 1 | Complete |
+| PROV-04 | Phase 1 | Complete |
+| PROV-05 | Phase 1 | Complete |
 | PROV-06 | Phase 3 | Pending |
-| PROV-07 | Phase 1 | Pending |
+| PROV-07 | Phase 1 | Complete |
 | INST-01 | Phase 3 | Pending |
 | INST-02 | Phase 6 | Pending |
 | INST-03 | Phase 3 | Pending |
@@ -114,11 +114,11 @@ v1.1 turns the public repository into the source authority for a reproducible lo
 | INST-05 | Phase 3 | Pending |
 | INST-06 | Phase 4 | Pending |
 | INST-07 | Phase 3 | Pending |
-| DOCT-01 | Phase 1 | Pending |
-| DOCT-02 | Phase 1 | Pending |
-| DOCT-03 | Phase 1 | Pending |
-| DOCT-04 | Phase 1 | Pending |
-| DOCT-05 | Phase 1 | Pending |
+| DOCT-01 | Phase 1 | Complete |
+| DOCT-02 | Phase 1 | Complete |
+| DOCT-03 | Phase 1 | Complete |
+| DOCT-04 | Phase 1 | Complete |
+| DOCT-05 | Phase 1 | Complete |
 | LIFE-01 | Phase 3 | Pending |
 | LIFE-02 | Phase 3 | Pending |
 | LIFE-03 | Phase 3 | Pending |
@@ -135,10 +135,10 @@ v1.1 turns the public repository into the source authority for a reproducible lo
 | SAFE-01 | Phase 2 | Pending |
 | SAFE-02 | Phase 2 | Pending |
 | SAFE-03 | Phase 3 | Pending |
-| SAFE-04 | Phase 1 | Pending |
+| SAFE-04 | Phase 1 | Complete |
 | SAFE-05 | Phase 3 | Pending |
 | SAFE-06 | Phase 3 | Pending |
-| SAFE-07 | Phase 1 | Pending |
+| SAFE-07 | Phase 1 | Complete |
 | RELS-01 | Phase 5 | Pending |
 | RELS-02 | Phase 5 | Pending |
 | RELS-03 | Phase 5 | Pending |

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Public Temperance Glove
-status: executing
-stopped_at: Phase 1 Plan 02 complete — executing Plan 03
-last_updated: "2026-08-20T17:37:01.000Z"
-last_activity: 2026-08-20 — deterministic provenance compiler and ratified 18-record lock complete
+status: complete
+stopped_at: Phase 1 execution complete — next command /gsd 2
+last_updated: "2026-08-20T17:48:28.000Z"
+last_activity: 2026-08-20 — Phase 1 provenance compiler and permanently read-only doctor shipped on isolated branch
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 100
 ---
 
 # Planning State
@@ -26,23 +26,23 @@ See: `.planning/PROJECT.md` (updated 2026-08-19)
 ## Current Position
 
 Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
-Plan: 01-03 of 01-03
-Status: Plans 01-01 and 01-02 complete; executing read-only doctor plan
-Last activity: 2026-08-20 — ratified deterministic lockfile and compiler invariant tests complete
+Plan: 3 of 3 complete
+Status: Phase 1 complete; Phase 2 requires discuss/plan before execution
+Last activity: 2026-08-20 — 38 focused tests pass; canonical private-path baseline remains visible for Phase 2
 
-Progress: [███████░░░] 67%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 2
-- Average duration: 24 min
-- Total execution time: 48 min
+- Total plans completed: 3
+- Average duration: 20 min
+- Total execution time: 60 min
 
 | Phase | Plans | Status |
 |---|---:|---|
-| 1 | 3 | In progress (2/3) |
+| 1 | 3 | Complete (3/3) |
 | 2–7 | TBD | Not started |
 
 ## Accumulated Context
@@ -75,9 +75,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-20T17:37:01.000Z
-Stopped at: Phase 1 Plan 02 complete — executing Plan 03
-Resume file: .planning/phases/01-provenance-contract-and-read-only-control-plane/01-03-PLAN.md
+Last session: 2026-08-20T17:48:28.000Z
+Stopped at: Phase 1 execution complete — next command `/gsd 2`
+Resume file: .planning/phases/01-provenance-contract-and-read-only-control-plane/01-03-SUMMARY.md
 
 ## Historical state snapshot (preserved from 2026-08-17)
 
