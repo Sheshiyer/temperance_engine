@@ -1,0 +1,16 @@
+{
+  "schema": "temperance.install-surface.deny-policy.v1",
+  "version": {
+    "major": 1,
+    "minor": 0
+  },
+  "rules": [
+    { "id": "secret-material", "pattern": "(^|/)(secrets?|credentials?|tokens?)(/|$)", "disclosure": "rule-only" },
+    { "id": "database-state", "pattern": "(^|/)(data|db|database|postgres|sqlite)(/|$)|\\.(db|sqlite|sqlite3)$", "disclosure": "safe-relative-path" },
+    { "id": "runtime-logs", "pattern": "(^|/)(logs?)(/|$)|\\.log$", "disclosure": "safe-relative-path" },
+    { "id": "history-state", "pattern": "(^|/)(history|histories)(/|$)", "disclosure": "rule-only" },
+    { "id": "memory-state", "pattern": "(^|/)(memory|memories|recall)(/|$)", "disclosure": "rule-only" },
+    { "id": "backup-state", "pattern": "(^|/)(backups?|snapshots?)(/|$)|\\.(bak|backup)$", "disclosure": "safe-relative-path" },
+    { "id": "private-root", "pattern": "(^|/)(private|private-roots?|host-state)(/|$)", "disclosure": "rule-only" }
+  ]
+}
