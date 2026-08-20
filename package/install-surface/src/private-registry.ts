@@ -8,7 +8,7 @@ import {
   readFileSync,
   realpathSync,
 } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { MAX_PRIVATE_REGISTRY_BYTES, validatePrivateRegistry } from "./schema.ts";
 import type { DoctorCondition } from "./types.ts";
@@ -87,11 +87,11 @@ export function observePrivateRegistry(stateRoot: string): PrivateRegistryObserv
     const uid = currentUid();
     const parent = dirname(registryPath);
     const parentStat = lstatSync(parent);
-    if (!parentStat.isDirectory() || parentStat.isSymbolicLink() || parentStat.uid !== uid || (parentStat.mode & 0o777) !== 0o700 || realpathSync(parent) !== resolve(parent)) {
+    if (!parentStat.isDirectory() || parentStat.isSymbolicLink() || parentStat.uid !== uid || (parentStat.mode & 0o777) !== 0o700) {
       throw new Error("PRIVATE_REGISTRY_PARENT_INSECURE");
     }
     const before = lstatSync(registryPath);
-    if (!before.isFile() || before.isSymbolicLink() || before.uid !== uid || (before.mode & 0o777) !== 0o600 || before.nlink !== 1 || realpathSync(registryPath) !== resolve(registryPath)) {
+    if (!before.isFile() || before.isSymbolicLink() || before.uid !== uid || (before.mode & 0o777) !== 0o600 || before.nlink !== 1 || realpathSync(registryPath) !== join(realpathSync(parent), basename(registryPath))) {
       throw new Error("PRIVATE_REGISTRY_FILE_INSECURE");
     }
     descriptor = openSync(registryPath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
