@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Public Temperance Glove
 status: executing
-stopped_at: Phase 1 Plan 01 complete — executing Plan 02
-last_updated: "2026-08-20T17:20:45.000Z"
-last_activity: 2026-08-20 — Plan 01 strict provenance schemas and canonical JSON complete
+stopped_at: Phase 1 Plan 02 semantic-ID ratification checkpoint
+last_updated: "2026-08-20T17:42:00.000Z"
+last_activity: 2026-08-20 — compiler printed 18 semantic IDs without writing lock bytes; awaiting operator ratification
 progress:
   total_phases: 7
   completed_phases: 0
@@ -27,8 +27,8 @@ See: `.planning/PROJECT.md` (updated 2026-08-19)
 
 Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
 Plan: 01-02 of 01-03
-Status: Plan 01-01 complete; executing deterministic compiler plan
-Last activity: 2026-08-20 — strict v1 schema validation and canonical JSON complete
+Status: Plan 01-01 complete; Plan 01-02 paused at blocking semantic-ID ratification checkpoint
+Last activity: 2026-08-20 — compiler digest and 18 semantic IDs printed; lockfile remains absent
 
 Progress: [███░░░░░░░] 33%
 
@@ -75,8 +75,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-20T17:20:45.000Z
-Stopped at: Phase 1 Plan 01 complete — executing Plan 02
+Last session: 2026-08-20T17:42:00.000Z
+Stopped at: Phase 1 Plan 02 semantic-ID ratification checkpoint
 Resume file: .planning/phases/01-provenance-contract-and-read-only-control-plane/01-02-PLAN.md
 
 ## Historical state snapshot (preserved from 2026-08-17)
