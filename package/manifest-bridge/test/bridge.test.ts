@@ -43,34 +43,40 @@ const VALIDATOR_IDS = {
 
 const PARKAREA_REQUIREMENTS = ['SCOPE-01', 'SCOPE-02', 'SCOPE-03', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-01', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'CAP-03', 'CAP-04', 'CAP-05', 'CAP-06', 'CAP-07', 'CAP-08', 'CAP-09', 'DATA-02', 'DATA-03', 'DATA-04', 'DATA-05', 'GUIDE-01'];
 const PARKAREA_EDITION_REQUIREMENTS = ['SCOPE-01', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'GUIDE-01'];
+const PARKAREA_FORBIDDEN_EFFECTS = ['booking', 'payment', 'ledger', 'notification', 'audit', 'request_log', 'payout', 'transactional_email', 'external_provider'];
+const PARKAREA_PROOF_FILE = 'server/__tests__/postgres/guide-claim-evidence.pg.test.ts';
 const PARKAREA_COVERAGE_FIXTURE = [
   {
     evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
     requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
     claim: { de: 'Authentifizierte Suchergebnisse zeigen nicht leere Parkmöglichkeiten im freigegebenen Demo-Szenario.', en: 'Authenticated discovery shows nonempty parking results in the approved demo scenario.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-suchen"]', '[data-testid="text-result-count"]', '[data-testid^="card-result-"]', '[data-testid^="text-result-name-"]'],
-    sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' }, claimRoute: '/api/v1/search', claimClassification: 'isolated',
+    sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' }, claimRoute: '/api/v1/search', claimClassification: 'isolated', claimAllowed: ['search_analytics:+1'],
+    claimTestName: 'authenticated seeker search returns nonempty tenant-scoped PostGIS ordered active results',
   },
   {
     evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 400,
     requirementIds: ['CAP-04', 'CAP-06', 'CAP-07', 'DATA-03', 'DATA-05'],
     claim: { de: 'Ein aktives Inserat zeigt Verfügbarkeit, Preisangebot, Gesamtpreis und Buchungsbereitschaft ohne Buchung.', en: 'An active listing shows availability, quote, total, and booking readiness without creating a booking.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
-    sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }, claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimClassification: 'isolated',
+    sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }, claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimClassification: 'isolated', claimAllowed: ['listing_view_events:view:+1'],
+    claimTestName: 'active listing detail, calendar, and quote are tenant-scoped and do not create a booking',
   },
   {
     evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
     requirementIds: ['CAP-08', 'DATA-02'],
     claim: { de: 'Die Buchungsansicht zeigt eine vorhandene mandantensichere Buchung des Suchenden.', en: 'The bookings view shows an existing tenant-safe Seeker booking.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="dashboard-sidebar"]', '[data-testid="button-nav-bookings"]', '[data-testid="bookings-view"]', '[data-testid="input-search-bookings"]', '[data-testid^="button-booking-details-"]', '[data-recurring-bookings-state="settled"]'],
-    sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' }, claimRoute: '/api/v1/me/bookings', claimClassification: 'read-only',
+    sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' }, claimRoute: '/api/v1/me/bookings', claimClassification: 'read-only', claimAllowed: [],
+    claimTestName: 'seeker booking history reads persisted tenant-owned bookings and excludes another tenant',
   },
   {
     evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300,
     requirementIds: ['SCOPE-03', 'CAP-09'],
     claim: { de: 'Der Moderationsverlauf zeigt die Freigabe desselben aktiven Inserats ohne Änderung.', en: 'Moderation history shows approval of the same active listing without changing it.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
-    sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' }, claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimClassification: 'read-only',
+    sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' }, claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimClassification: 'read-only', claimAllowed: [],
+    claimTestName: 'admin listing readiness and persisted approval audit are readable for the same tenant without mutation',
   },
 ] as const;
 
@@ -128,7 +134,7 @@ function validCoverage(): Record<string, unknown> {
 function validClaimMap(): Record<string, unknown> {
   return {
     schema: 'parkarea.guide.claim-evidence-map.v1',
-    claims: PARKAREA_COVERAGE_FIXTURE.map((row, index) => ({ order: index + 1, evidenceId: row.evidenceId, proof: { kind: 'postgres_postgis' }, correlation: { route: row.claimRoute, persona: row.persona, tenantAuthority: 'authenticated_session' }, sideEffects: { classification: row.claimClassification, allowed: [], forbidden: [] } })),
+    claims: PARKAREA_COVERAGE_FIXTURE.map((row, index) => ({ order: index + 1, evidenceId: row.evidenceId, proof: { kind: 'postgres_postgis', file: PARKAREA_PROOF_FILE, testName: row.claimTestName }, correlation: { route: row.claimRoute, persona: row.persona, tenantAuthority: 'authenticated_session' }, sideEffects: { classification: row.claimClassification, allowed: [...row.claimAllowed], forbidden: [...PARKAREA_FORBIDDEN_EFFECTS] } })),
   };
 }
 
@@ -897,6 +903,23 @@ describe('capability and workflow request v2', () => {
     const claimPersonaDrift = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
     claimPersonaDrift.claims[3].correlation.persona = 'seeker';
     expect(validate!(validCoverage(), { capture: validCapture(), claimMap: claimPersonaDrift }), 'claim registry persona drift').toBe(false);
+    const claimMutations: Array<[string, (value: Record<string, any>) => void]> = [
+      ['claim route drift', (value) => { value.claims[0].correlation.route = '/api/v1/fabricated'; }],
+      ['claim tenant authority drift', (value) => { value.claims[1].correlation.tenantAuthority = 'caller_supplied'; }],
+      ['claim proof file drift', (value) => { value.claims[2].proof.file = 'server/__tests__/fake.test.ts'; }],
+      ['claim proof test name drift', (value) => { value.claims[3].proof.testName = 'fabricated passing test'; }],
+      ['claim proof kind drift', (value) => { value.claims[0].proof.kind = 'memory_mock'; }],
+      ['claim classification drift', (value) => { value.claims[0].sideEffects.classification = 'read-only'; }],
+      ['claim allowed envelope drift', (value) => { value.claims[1].sideEffects.allowed = []; }],
+      ['claim forbidden envelope empty', (value) => { value.claims[0].sideEffects.forbidden = []; }],
+      ['claim forbidden envelope drift', (value) => { value.claims[2].sideEffects.forbidden[0] = 'unknown'; }],
+      ['claim registry extra field', (value) => { value.claims[0].trusted = true; }],
+    ];
+    for (const [name, mutate] of claimMutations) {
+      const claimMap = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
+      mutate(claimMap);
+      expect(validate!(validCoverage(), { capture: validCapture(), claimMap }), name).toBe(false);
+    }
   });
 
   test('confines every ScopeBindingV1 component before reading artifact bytes', () => {
