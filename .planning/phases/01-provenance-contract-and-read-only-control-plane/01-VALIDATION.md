@@ -32,23 +32,23 @@ created: 2026-08-20
 
 ## Per-Task Verification Map
 
-Task IDs are provisional until the planner assigns final plan/task numbers. Every row must be bound to an executable plan task before plan verification passes.
+Task IDs are bound to Phase 1 PLAN.md files (`01-01`, `01-02`, `01-03`). Execution has not started (`wave_0_complete: false`).
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD-PROV-01 | TBD | 0 | PROV-01 | T-01 | Unsupported versions and unknown fields fail before semantic or lifecycle work | unit | `cd package/install-surface && bun test test/schema.test.ts` | no — W0 | pending |
-| TBD-PROV-02 | TBD | 0 | PROV-02 | T-02 | Each surface has exactly one stable ID, owner, and class | unit + golden | `cd package/install-surface && bun test test/semantics.test.ts -t stable` | no — W0 | pending |
-| TBD-PROV-03 | TBD | 0 | PROV-03 | T-02 | Exact and ancestor/descendant ownership conflicts fail closed | unit + property | `cd package/install-surface && bun test test/semantics.test.ts -t ownership` | no — W0 | pending |
-| TBD-PROV-04 | TBD | 0 | PROV-04 | T-03 | Sources remain relative and destinations use allowlisted root tokens | adversarial unit | `cd package/install-surface && bun test test/semantics.test.ts -t path` | no — W0 | pending |
-| TBD-PROV-05 | TBD | 0 | PROV-05 | Escapes, cycles, contradictions, and unsafe adapters fail closed | adversarial unit | `cd package/install-surface && bun test test/semantics.test.ts -t semantic` | no — W0 | pending |
-| TBD-PROV-07 | TBD | 0 | PROV-07 | Manifest records cannot self-ratify or exceed ISA/milestone authority | integration | `cd package/install-surface && bun test test/authority.test.ts` | no — W0 | pending |
-| TBD-DOCT-01 | TBD | 0 | DOCT-01 | Human doctor output is ordered, drift-first, and read-only | CLI golden | `cd package/install-surface && bun test test/cli.test.ts -t human` | no — W0 | pending |
-| TBD-DOCT-02 | TBD | 0 | DOCT-02 | JSON and human renderings share observations and expose no repair path | invariant | `cd package/install-surface && bun test test/doctor.test.ts -t read-only` | no — W0 | pending |
-| TBD-DOCT-03 | TBD | 0 | DOCT-03 | Every public check record contains the complete common field contract | schema + golden | `cd package/install-surface && bun test test/doctor.test.ts -t record-contract` | no — W0 | pending |
-| TBD-DOCT-04 | TBD | 0 | DOCT-04 | Drift returns `DRIFT` and exit 1 without changing fixture bytes or metadata | CLI integration | `cd package/install-surface && bun test test/cli.test.ts -t drift` | no — W0 | pending |
-| TBD-DOCT-05 | TBD | 0 | DOCT-05 | Required, optional, unsupported, private, and unavailable states remain distinct | table-driven unit | `cd package/install-surface && bun test test/doctor.test.ts -t eligibility` | no — W0 | pending |
-| TBD-SAFE-04 | TBD | 0 | SAFE-04 | Absolute, traversal, unknown-root, and symlink escape inputs fail closed | adversarial unit | `cd package/install-surface && bun test test/semantics.test.ts -t unsafe-paths` | no — W0 | pending |
-| TBD-SAFE-07 | TBD | 0 | SAFE-07 | COPY, TRANSFORM, REGENERATE, and NEVER-SHIP use distinct verification rules | table-driven integration | `cd package/install-surface && bun test test/doctor.test.ts -t class-aware` | no — W0 | pending |
+| 01-01-T05 | 01-01 | 1 | PROV-01 | T-01 | Unsupported versions and unknown fields fail before semantic or lifecycle work | unit | `cd package/install-surface && bun test test/schema.test.ts` | no — W0 | pending |
+| 01-02-T08 | 01-02 | 2 | PROV-02 | T-02 | Each surface has exactly one stable ID, owner, and class | unit + golden | `cd package/install-surface && bun test test/semantics.test.ts -t stable` | no — W0 | pending |
+| 01-02-T08 | 01-02 | 2 | PROV-03 | T-02 | Exact and ancestor/descendant ownership conflicts fail closed | unit + property | `cd package/install-surface && bun test test/semantics.test.ts -t ownership` | no — W0 | pending |
+| 01-02-T08 | 01-02 | 2 | PROV-04 | T-03 | Sources remain relative and destinations use allowlisted root tokens | adversarial unit | `cd package/install-surface && bun test test/semantics.test.ts -t path` | no — W0 | pending |
+| 01-02-T08 | 01-02 | 2 | PROV-05 | T-04 | Escapes, cycles, contradictions, and unsafe adapters fail closed | adversarial unit | `cd package/install-surface && bun test test/semantics.test.ts -t semantic` | no — W0 | pending |
+| 01-02-T08 | 01-02 | 2 | PROV-07 | T-08 | Manifest records cannot self-ratify or exceed ISA/milestone authority | integration | `cd package/install-surface && bun test test/authority.test.ts` | no — W0 | pending |
+| 01-03-T05 | 01-03 | 3 | DOCT-01 | T-06 | Human doctor output is ordered, drift-first, and read-only | CLI golden | `cd package/install-surface && bun test test/cli.test.ts -t human` | no — W0 | pending |
+| 01-03-T05 | 01-03 | 3 | DOCT-02 | T-08 | JSON and human renderings share observations and expose no repair path | invariant | `cd package/install-surface && bun test test/doctor.test.ts -t read-only` | no — W0 | pending |
+| 01-03-T05 | 01-03 | 3 | DOCT-03 | T-06 | Every public check record contains the complete common field contract | schema + golden | `cd package/install-surface && bun test test/doctor.test.ts -t record-contract` | no — W0 | pending |
+| 01-03-T05 | 01-03 | 3 | DOCT-04 | T-08 | Drift returns `DRIFT` and exit 1 without changing fixture bytes or metadata | CLI integration | `cd package/install-surface && bun test test/cli.test.ts -t drift` | no — W0 | pending |
+| 01-03-T05 | 01-03 | 3 | DOCT-05 | T-08 | Required, optional, unsupported, private, and unavailable states remain distinct | table-driven unit | `cd package/install-surface && bun test test/doctor.test.ts -t eligibility` | no — W0 | pending |
+| 01-02-T08 | 01-02 | 2 | SAFE-04 | T-03 | Absolute, traversal, unknown-root, and symlink escape inputs fail closed | adversarial unit | `cd package/install-surface && bun test test/semantics.test.ts -t unsafe-paths` | no — W0 | pending |
+| 01-03-T05 | 01-03 | 3 | SAFE-07 | T-03 | COPY, TRANSFORM, REGENERATE, and NEVER-SHIP use distinct verification rules | table-driven integration | `cd package/install-surface && bun test test/doctor.test.ts -t class-aware` | no — W0 | pending |
 
 ## Required Test Layers
 
@@ -71,7 +71,7 @@ Task IDs are provisional until the planner assigns final plan/task numbers. Ever
 - [ ] `package/install-surface/test/semantics.test.ts` for ownership, graph, path, class, and adapter behavior.
 - [ ] `package/install-surface/test/authority.test.ts` for PROV-07 canonical-authority enforcement.
 - [ ] `package/install-surface/test/determinism.test.ts` for exact-byte permutations.
-- [ ] `package/install-surface/test/privacy.test.ts` for registry permissions and honeytoken non-disclosure.
+- [ ] `package/install-surface/test/privacy.test.ts` for compile-time honeytoken non-disclosure (01-02); registry mode/symlink/nlink plus doctor-output honeytokens live in `test/doctor.test.ts` (01-03).
 - [ ] `package/install-surface/test/doctor.test.ts` for condition, timeout, aggregation, and read-only invariants.
 - [ ] `package/install-surface/test/cli.test.ts` for human/JSON/exit compatibility.
 - [ ] Extend `tests/temperance-doctor.sh` and `scripts/verify-all.sh` with the public entrypoint and lock-drift gate.
@@ -82,9 +82,9 @@ All Phase 1 requirement behavior is automatable. Human review remains required f
 
 ## Validation Sign-Off
 
-- [ ] Final plan task IDs replace every provisional `TBD-*` row.
-- [ ] Every task has an `<automated>` verification or an explicit Wave 0 dependency.
-- [ ] Sampling continuity has no three consecutive tasks without automated verification.
+- [x] Final plan task IDs replace every provisional `TBD-*` row.
+- [x] Every task has an `<automated>` verification or an explicit Wave 0 dependency.
+- [x] Sampling continuity has no three consecutive tasks without automated verification.
 - [x] Wave 0 enumerates every missing test reference.
 - [x] No watch-mode flags appear in verification commands.
 - [x] Focused feedback target is under 30 seconds.

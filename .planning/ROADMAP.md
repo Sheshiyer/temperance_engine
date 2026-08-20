@@ -46,7 +46,7 @@ not a requirement that phase count equal commit count.
   2. Every included installed surface appears exactly once with a stable ID, owner, lifecycle class, source, destination rule, platform/profile eligibility, verification method, and rollback policy.
   3. A user can run doctor in human or stable JSON form and receive the same source, destination, class, expected state, actual state, status, and remediation observations without repair or mutation.
   4. Drift, required failure, optional skip, unsupported capability, and class-aware checksum semantics remain distinguishable, while unsafe destination resolution fails closed.
-**Plans**: TBD
+**Plans**: 01-01, 01-02, 01-03
 
 ### Phase 2: Public Source Convergence
 **Goal**: Downloaders receive a complete, portable repository payload rather than a copy of the reference Mac or its private overlays.
@@ -122,7 +122,7 @@ not a requirement that phase count equal commit count.
 
 | Phase | Plans Complete | Status | Completed |
 |---|---:|---|---|
-| 1. Provenance Contract and Read-Only Control Plane | 0/TBD | Not started | - |
+| 1. Provenance Contract and Read-Only Control Plane | 0/3 | Planned | - |
 | 2. Public Source Convergence | 0/TBD | Not started | - |
 | 3. Safe Profiles and Transactional Lifecycle | 0/TBD | Not started | - |
 | 4. Service and Platform Adapters | 0/TBD | Not started | - |

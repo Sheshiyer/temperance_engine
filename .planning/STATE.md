@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Public Temperance Glove
 status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-08-20T08:11:52.794Z"
-last_activity: 2026-08-19 — Operator approved the seven-phase, 46-requirement roadmap
+stopped_at: Phase 1 planned — ready for execute-phase
+last_updated: "2026-08-20T16:45:00.000Z"
+last_activity: 2026-08-20 — Phase 1 PLAN.md files written with --skip-ui; ecosystem version control added
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
@@ -26,9 +26,9 @@ See: `.planning/PROJECT.md` (updated 2026-08-19)
 ## Current Position
 
 Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
-Plan: — (phase planning not started)
-Status: Roadmap approved — ready for Phase 1 planning
-Last activity: 2026-08-19 — Operator approved the seven-phase, 46-requirement roadmap
+Plan: 01-01, 01-02, 01-03
+Status: Phase 1 planned (CLI --skip-ui) — ready for `/gsd:execute-phase 1`
+Last activity: 2026-08-20 — Phase 1 plans + ecosystem VERSION/CHANGELOG control
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -42,13 +42,15 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Status |
 |---|---:|---|
-| 1–7 | TBD | Not started |
+| 1 | 3 | Planned |
+| 2–7 | TBD | Not started |
 
 ## Accumulated Context
 
 ### Decisions
 
 - v1.1 Public Temperance Glove is the sole active milestone; earlier authorities remain historical or held.
+- 2026-08-20: Phase 1 planned with `/gsd:plan-phase 1 --skip-ui` (CLI doctor, no UI-SPEC). Plans 01-01/01-02/01-03. Ecosystem version planes: glove `VERSION` 0.1.0, OmniRoute pin 3.8.48, host `~/.temperance_engine/VERSION`. Phases 2–7 still require discuss-phase before PLAN.md.
 - macOS Apple Silicon and Intel qualification blocks release; Linux remains visible best-effort evidence.
 - `atlasRecall.ts` remains a private overlay and is excluded from public source, artifacts, inventories, and generated documentation.
 - The manifest owns provenance mechanics only; `ISA.md` remains the acceptance judge.
@@ -74,8 +76,8 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-08-20T08:11:52.790Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-provenance-contract-and-read-only-control-plane/01-CONTEXT.md
+Stopped at: Phase 1 planned — ready for `/gsd:execute-phase 1`
+Resume file: .planning/phases/01-provenance-contract-and-read-only-control-plane/01-01-PLAN.md
 
 ## Historical state snapshot (preserved from 2026-08-17)
 
