@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { normalizeEvent } from '../src/contract';
 import { ManifestCatalog } from '../src/catalog';
 import { canonicalCwd, initProject, projectIdForCwd, projectManifestPath } from '../src/project';
@@ -10,9 +11,12 @@ import { ManifestStore } from '../src/store';
 import { RuntimeWatcher } from '../src/watcher';
 import { hookInputToEvent } from '../src/hook-adapter';
 import { activateAlgorithmRun, activeRunFor, classificationFromContext, closeAlgorithmRun, loadActivationPolicy, publishActivationEvent, resolveAlgorithmActivation } from '../src/activation';
-import { formatManifestRuntimeContext, manifestRuntimeReceipt } from '../src/runtime-status';
+import { formatManifestRuntimeContext, formatPaiModeOffer, manifestRuntimeReceipt } from '../src/runtime-status';
 import { formatDoctorReport, repairDuplicateEvents, runManifestDoctor } from '../src/doctor';
 import { ManifestDiagnostics } from '../src/diagnostics';
+import { readCodeGraphStatus } from '../src/codegraph';
+import * as capabilityModule from '../src/capabilities';
+import { fingerprint } from '../src/control-ledger';
 
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
@@ -23,7 +27,149 @@ function fixtureStore(): ManifestStore {
   return new ManifestStore(join(dir, 'events.jsonl'));
 }
 
+const GUIDE_SCOPE_PATHS = [
+  '.temperance/guide/capture.config.json',
+  '.temperance/guide/capture.scope.json',
+  '.temperance/guide/coverage-matrix.json',
+  'scripts/product-guides/claim-evidence-map.json',
+] as const;
+
+const VALIDATOR_IDS = {
+  capture: 'product-guides.capture-contract@1.0.0',
+  coverage: 'parkarea.coverage-contract@1.0.0',
+  guide: 'product-guides.validate-guide-py@1.0.0',
+  film: 'product-guides.film-spec-closed@1.0.0',
+} as const;
+
+function fixtureWrite(root: string, relativePath: string, value: string | Record<string, unknown>): void {
+  const target = join(root, relativePath);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, typeof value === 'string' ? value : `${JSON.stringify(value)}\n`);
+}
+
+function validCapture(sourceVersion = 'source-fixture-v1'): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    project: 'parkarea-aleph',
+    sourceVersion,
+    locale: 'de',
+    tenant: 'authenticated_session',
+    scenario: 'approved-guide-fixture',
+    baseUrl: 'http://127.0.0.1:4173',
+    outDir: 'evidence',
+    viewport: { width: 1440, height: 900 },
+    forbiddenSelectors: ['[data-testid="cookie-banner"]'],
+    seed: { strategy: 'none' },
+    personas: { seeker: 'seeker' },
+    shots: [{ id: 'seeker-search-results', file: 'seeker-search-results.png', route: '/search', persona: 'seeker', requiredSelectors: ['main'] }],
+  };
+}
+
+function validCoverage(): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    edition: { audience: 'internal_qa_operators', media: 'deterministic_stills', publication: 'private_only' },
+    steps: ['seeker-search-results', 'seeker-listing-readiness', 'seeker-existing-bookings', 'admin-listing-readiness']
+      .map((evidenceId, index) => ({ order: index + 1, evidenceId })),
+  };
+}
+
+function validClaimMap(): Record<string, unknown> {
+  return {
+    schema: 'parkarea.guide.claim-evidence-map.v1',
+    claims: ['seeker-search-results', 'seeker-listing-readiness', 'seeker-existing-bookings', 'admin-listing-readiness']
+      .map((evidenceId, index) => ({ order: index + 1, evidenceId, proof: { kind: 'postgres_postgis' } })),
+  };
+}
+
+function writeGuideScope(root: string, sourceVersion = 'source-fixture-v1'): void {
+  fixtureWrite(root, GUIDE_SCOPE_PATHS[0], validCapture(sourceVersion));
+  fixtureWrite(root, GUIDE_SCOPE_PATHS[1], { schemaVersion: 1, authority: false, sourceVersion });
+  fixtureWrite(root, GUIDE_SCOPE_PATHS[2], validCoverage());
+  fixtureWrite(root, GUIDE_SCOPE_PATHS[3], validClaimMap());
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${stableJson((value as Record<string, unknown>)[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function scopeBindingFor(root: string, projectId: string, sourceVersion: string): { binding: Record<string, unknown>; scope_hash: string } {
+  const artifacts = Object.fromEntries(GUIDE_SCOPE_PATHS.map((path) => [path, createHash('sha256').update(readFileSync(join(root, path))).digest('hex')]));
+  const binding = { schema: 'parkarea.guide.scope-binding.v1', project_id: projectId, source_version: sourceVersion, artifacts };
+  return { binding, scope_hash: createHash('sha256').update(stableJson(binding), 'utf8').digest('hex') };
+}
+
+type ValidatorOutcome = { ok: boolean; identity: string; code?: string; stdout?: string; stderr?: string };
+type ValidatorRegistry = Record<string, (input: { path: string; project_root: string }) => ValidatorOutcome | Promise<ValidatorOutcome>>;
+
+function validatorRegistry(overrides: Partial<ValidatorRegistry> = {}): ValidatorRegistry {
+  return {
+    [VALIDATOR_IDS.capture]: () => ({ ok: true, identity: VALIDATOR_IDS.capture }),
+    [VALIDATOR_IDS.coverage]: () => ({ ok: true, identity: VALIDATOR_IDS.coverage }),
+    [VALIDATOR_IDS.guide]: () => ({ ok: true, identity: VALIDATOR_IDS.guide }),
+    [VALIDATOR_IDS.film]: () => ({ ok: true, identity: VALIDATOR_IDS.film }),
+    ...overrides,
+  };
+}
+
+async function capabilitiesFor(root: string, options: Record<string, unknown> = {}, projectName = 'parkarea-aleph'): Promise<Record<string, any>> {
+  const projectRoot = join(root, projectName);
+  mkdirSync(projectRoot, { recursive: true });
+  const project = initProject(projectRoot).identity;
+  const projectCapabilities = capabilityModule.projectCapabilities as unknown as (
+    project: ReturnType<typeof initProject>['identity'],
+    route: Record<string, unknown> | undefined,
+    options: Record<string, unknown>,
+  ) => Record<string, any> | Promise<Record<string, any>>;
+  return await projectCapabilities(project as any, undefined, {
+    validatorRegistry: validatorRegistry(),
+    toolAvailability: { node: true, python: true, playwright: true, ffmpeg: true },
+    ...options,
+  });
+}
+
+function seedGuidePlan(catalog: ManifestCatalog, projectId: string): void {
+  catalog.ingest({ source: 'project-artifact', kind: 'plan.updated', status: 'observed', project_id: projectId, correlation_id: 'guide-plan', payload: { plan_id: 'guide-plan', mapping: { policy_hash: 'a'.repeat(64) }, source_fingerprints: [{ path: 'scope' }] } });
+  catalog.ingest({ source: 'project-artifact', kind: 'plan.option.proposed', status: 'observed', project_id: projectId, correlation_id: 'guide-plan', payload: { plan_id: 'guide-plan', option_id: 'guide-option', combo: 'te-dispatch-paid', concurrency: 1, worktree_required: true, tasks: [{ id: 'guide' }] } });
+  catalog.ingest({ source: 'project-artifact', kind: 'approval.requested', status: 'observed', project_id: projectId, correlation_id: 'guide-plan', payload: { plan_id: 'guide-plan', approval_id: 'apr-guide', status: 'required', expires_at: new Date(Date.now() + 60_000).toISOString() } });
+  catalog.ingest({ source: 'manifest', kind: 'approval.granted', status: 'observed', project_id: projectId, correlation_id: 'guide-plan', payload: { plan_id: 'guide-plan', option_id: 'guide-option', approval_id: 'apr-guide', status: 'granted' } });
+}
+
 describe('manifest event plane', () => {
+  test('reads CodeGraph status without reindexing or exposing command output', () => {
+    const result = readCodeGraphStatus('/repo', {
+      runner: () => JSON.stringify({ initialized: true, fileCount: 1394, nodeCount: 14845, edgeCount: 32764, dbSizeBytes: 35890000 }),
+    });
+
+    expect(result.available).toBe(true);
+    expect(result.indexed_files).toBe(1394);
+    expect(result.nodes).toBe(14845);
+    expect(result.edges).toBe(32764);
+    expect(result.sync_requested).toBe(false);
+    expect(result).not.toHaveProperty('stdout');
+  });
+
+  test('fails open when CodeGraph is unavailable', () => {
+    const result = readCodeGraphStatus('/repo', { runner: () => { throw new Error('missing codegraph'); } });
+
+    expect(result.available).toBe(false);
+    expect(result.status).toBe('unavailable');
+    expect(result.sync_requested).toBe(false);
+  });
+
+  test('projects CodeGraph status as derived read-only evidence', () => {
+    const store = fixtureStore();
+    expect(store.ingest({
+      id: 'evt-codegraph', source: 'manifest', kind: 'codegraph.status', status: 'derived', project_id: 'demo',
+      payload: { project_path: '/repo', available: true, indexed_files: 10, nodes: 20, edges: 30, sync_requested: false },
+    }).accepted).toBe(true);
+    expect(store.state.codegraph.demo.available).toBe(true);
+    expect(store.state.codegraph.demo.sync_requested).toBe(false);
+  });
   test('accepts only an allowlisted Algorithm run at its Git worktree root', () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-activation-root-'));
     dirs.push(root);
@@ -268,6 +414,110 @@ describe('manifest event plane', () => {
     await server.close();
   });
 
+  test('exposes source-safe project lifecycle actions', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-project-actions-'));
+    dirs.push(root);
+    const projectRoot = join(root, 'cambium');
+    mkdirSync(projectRoot, { recursive: true });
+    const catalog = new ManifestCatalog(join(root, 'state'));
+    const server = new ManifestServer(catalog);
+    const address = await server.listen(0);
+    const base = `http://${address.host}:${address.port}`;
+
+    const registered = await fetch(`${base}/projects`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cwd: projectRoot }) });
+    expect(registered.status).toBe(201);
+    const registeredBody = await registered.json() as { project: { project_id: string; visibility: string } };
+    expect(registeredBody.project.visibility).toBe('active');
+    const projectId = registeredBody.project.project_id;
+
+    const actions = await fetch(`${base}/projects/${projectId}/actions`);
+    expect(actions.status).toBe(200);
+    expect((await actions.json() as { actions: Array<{ id: string }> }).actions.map((action) => action.id)).toContain('delete-manifest');
+
+    const sync = await fetch(`${base}/projects/${projectId}/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ codegraph: false, gsd: false, skill_clusters: false }) });
+    expect(sync.status).toBe(200);
+    expect((await sync.json() as { after: { event_count: number } }).after.event_count).toBeGreaterThanOrEqual(1);
+
+    const unregister = await fetch(`${base}/projects/${projectId}/unregister`, { method: 'POST' });
+    expect(unregister.status).toBe(200);
+    expect((await (await fetch(`${base}/projects`)).json() as { projects: Array<{ project_id: string }> }).projects.some((project) => project.project_id === projectId)).toBe(false);
+    expect((await (await fetch(`${base}/projects?include_hidden=true`)).json() as { projects: Array<{ visibility: string }> }).projects[0].visibility).toBe('unregistered');
+
+    const rejectedDelete = await fetch(`${base}/projects/${projectId}`, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ delete_mode: 'manifest-history', confirm_project_id: 'wrong' }) });
+    expect(rejectedDelete.status).toBe(409);
+    const deleted = await fetch(`${base}/projects/${projectId}`, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ delete_mode: 'manifest-history', confirm_project_id: projectId }) });
+    expect(deleted.status).toBe(200);
+    const deletedBody = await deleted.json() as { deleted_path: string; source_preserved: boolean };
+    expect(deletedBody.deleted_path).toContain('/retention/');
+    expect(deletedBody.source_preserved).toBe(true);
+    expect(existsSync(join(projectRoot, '.temperance', 'manifest.json'))).toBe(true);
+    const resurrection = await fetch(`${base}/events`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project_id: projectId, source: 'manifest', kind: 'should.not.resurrect', status: 'observed', payload: {} }) });
+    expect(resurrection.status).toBe(400);
+    const traversal = await fetch(`${base}/events`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project_id: '../escape', source: 'manifest', kind: 'unsafe', status: 'observed', payload: {} }) });
+    expect(traversal.status).toBe(400);
+    await server.close();
+  });
+
+  test('exposes project-scoped Moosh capability readiness without secrets or mutation', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-capabilities-'));
+    dirs.push(root);
+    const projectRoot = join(root, 'cambium');
+    mkdirSync(projectRoot, { recursive: true });
+    writeFileSync(join(projectRoot, 'package.json'), JSON.stringify({ devDependencies: { playwright: '^1.0.0' } }));
+    const catalog = new ManifestCatalog(join(root, 'state'));
+    const project = initProject(projectRoot).identity;
+    catalog.ensureProject(project);
+    catalog.ingest({ source: 'omniroute', kind: 'route.health', status: 'observed', project_id: project.project_id, payload: { state: 'ready', route_id: `${project.project_id}:latest` } });
+    const server = new ManifestServer(catalog);
+    const address = await server.listen(0);
+    const response = await fetch(`http://${address.host}:${address.port}/projects/${project.project_id}/capabilities`);
+    expect(response.status).toBe(200);
+    const value = await response.json() as { schema: string; project_id: string; capabilities: Array<{ id: string }>; providers: Array<Record<string, unknown>> };
+    expect(value.schema).toBe('temperance.manifest.capabilities.v1');
+    expect(value.project_id).toBe(project.project_id);
+    expect(value.capabilities.map((item) => item.id)).toEqual(['build-product-user-guides', 'guide-to-product-video']);
+    expect(value.providers.some((provider) => provider.id === 'elevenlabs')).toBe(true);
+    expect(JSON.stringify(value)).not.toContain('ELEVENLABS_API_KEY');
+    expect(JSON.stringify(value)).not.toContain('OMNIROUTE_API_KEY');
+    expect(readFileSafe(join(projectRoot, 'package.json'))).toContain('playwright');
+    await server.close();
+  });
+
+  test('projects skill clusters and workflow stages, then accepts only an approved request', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-skill-workflow-'));
+    dirs.push(root);
+    const projectRoot = join(root, 'cambium');
+    mkdirSync(projectRoot, { recursive: true });
+    writeFileSync(join(projectRoot, 'package.json'), JSON.stringify({ devDependencies: { playwright: '^1.0.0' } }));
+    writeFileSync(join(projectRoot, 'capture.config.json'), JSON.stringify({ schema: 'moosh.capture.v1' }));
+    writeFileSync(join(projectRoot, 'film.json'), JSON.stringify({ schema: 'moosh.film.v1' }));
+    const catalog = new ManifestCatalog(join(root, 'state'));
+    const project = initProject(projectRoot).identity;
+    catalog.ensureProject(project);
+    catalog.ingest({ source: 'omniroute', kind: 'route.health', status: 'observed', project_id: project.project_id, correlation_id: `${project.project_id}:latest`, payload: { state: 'ready', route_id: `${project.project_id}:latest` } });
+    const server = new ManifestServer(catalog);
+    const address = await server.listen(0);
+    const base = `http://${address.host}:${address.port}`;
+    const initial = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`);
+    expect(initial.status).toBe(200);
+    const projection = await initial.json() as { clusters: Array<{ id: string; usage: string; skills: Array<{ id: string }> }>; workflow: { stages: Array<{ id: string }> }; trigger: { eligible: boolean; blockers: string[] } };
+    const resolved = projection.clusters.find((cluster) => cluster.id === 'product-guides');
+    expect(resolved?.usage).toBe('resolved');
+    expect(resolved?.skills.map((skill) => skill.id)).toEqual(['product-guides-orchestrator', 'product-guides-core', 'build-product-user-guides', 'guide-to-product-video']);
+    expect(projection.workflow.stages.map((stage) => stage.id)).toEqual(['observe-project', 'resolve-cluster', 'prepare-guide', 'capture-evidence', 'compose-video', 'validate-report']);
+    expect(projection.trigger.eligible).toBe(false);
+    expect(projection.trigger.blockers.some((blocker) => blocker.includes('approval'))).toBe(true);
+    const unsafe = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ request_id: 'unsafe', approval_id: 'approval-a', command: 'rm -rf .' }) });
+    expect(unsafe.status).toBe(409);
+    catalog.ingest({ source: 'project-artifact', kind: 'approval.granted', status: 'observed', project_id: project.project_id, payload: { approval_id: 'approval-a', plan_id: 'guide-plan', option_id: 'guide-option', status: 'granted' } });
+    const request = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ request_id: 'guide-run-1', approval_id: 'approval-a' }) });
+    expect(request.status).toBe(201);
+    const repeated = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ request_id: 'guide-run-1', approval_id: 'approval-a' }) });
+    expect(repeated.status).toBe(200);
+    expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(1);
+    await server.close();
+  });
+
   test('replays external project-log sync into a live catalog and SSE stream', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-external-sync-'));
     const project = initProject(join(root, 'cambium')).identity;
@@ -327,6 +577,67 @@ describe('manifest event plane', () => {
     const wave = Object.values(secondState.waves)[0];
     expect(wave.phase).toBeNull();
     expect(wave.phase_label).toBe('2 of 2 (Telegram Operator Intake)');
+  });
+
+  test('projects GitHub planning bind and session goal into the local showcase', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-watcher-planning-'));
+    dirs.push(root);
+    const cwd = join(root, 'project');
+    mkdirSync(join(cwd, '.temperance'), { recursive: true });
+    mkdirSync(join(cwd, '.planning'), { recursive: true });
+    writeFileSync(join(cwd, '.temperance', 'project.json'), JSON.stringify({
+      github: 'Sheshiyer/cambium',
+      planning: {
+        github_project: { owner: 'Sheshiyer', repo: 'cambium', number: 14, url: 'https://github.com/users/Sheshiyer/projects/14' },
+        horizons: { short: 'phase 01', long: 'milestone' },
+      },
+    }));
+    writeFileSync(join(cwd, '.temperance', 'goal.json'), JSON.stringify({ text: 'Ship the bind', status: 'active', planner: 'isa' }));
+    writeFileSync(join(cwd, '.planning', 'ROADMAP.md'), '- [x] **Phase 1: Bind** - showcase\n');
+    const store = new ManifestStore(join(root, 'events.jsonl'));
+    await new RuntimeWatcher(store, { home: root, cwd, intervalMs: 1, gsd: true }).sync();
+    const kinds = store.state.recent_events.map((event) => event.kind);
+    expect(kinds).toContain('planning.bound');
+    expect(kinds).toContain('goal.updated');
+    expect(kinds).toContain('workflow.gsd.artifact');
+    const planning = store.state.workflows[`${Object.keys(store.state.projects)[0]}:planning`];
+    expect(planning.github_project_url).toBe('https://github.com/users/Sheshiyer/projects/14');
+    expect(planning.enrolled).toBe(true);
+  });
+
+  test('optionally projects read-only CodeGraph health during explicit sync', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-watcher-codegraph-'));
+    dirs.push(root);
+    const cwd = join(root, 'project');
+    mkdirSync(cwd, { recursive: true });
+    const project = initProject(cwd).identity;
+    const store = new ManifestStore(join(root, 'events.jsonl'));
+    const watcher = new RuntimeWatcher(store, {
+      home: root, cwd, intervalMs: 1, codegraph: true,
+      codegraphRunner: () => JSON.stringify({ initialized: true, fileCount: 4, nodeCount: 8, edgeCount: 12, dbSizeBytes: 1000 }),
+    });
+    await watcher.sync();
+    expect(store.state.codegraph[project.project_id].indexed_files).toBe(4);
+    expect(store.state.codegraph[project.project_id].sync_requested).toBe(false);
+  });
+
+  test('observes GSD artifacts and skill-cluster health without activating either registry', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-watcher-workflows-'));
+    dirs.push(root);
+    const cwd = join(root, 'project');
+    mkdirSync(join(cwd, '.planning'), { recursive: true });
+    const project = initProject(cwd).identity;
+    writeFileSync(join(cwd, '.planning', 'STATE.md'), '# GSD state\nprivate details stay out of telemetry\n');
+    writeFileSync(join(cwd, '.planning', 'ROADMAP.md'), '# Roadmap\n');
+    const skillIndexPath = join(root, 'skill-index.json');
+    writeFileSync(skillIndexPath, JSON.stringify({ total: 804, clusters: 43, skills: { active: 517, deferred: 208, archived: 79 } }));
+    const store = new ManifestStore(join(root, 'events.jsonl'));
+    const watcher = new RuntimeWatcher(store, { home: root, cwd, intervalMs: 1, gsd: true, skillIndexPath });
+    await watcher.sync();
+    expect(store.state.workflows[project.project_id].workflow).toBe('gsd');
+    expect(store.state.workflows[project.project_id].artifact_count).toBe(2);
+    expect(store.state.skills[`${project.project_id}:skill-cluster-registry`].clusters).toBe(43);
+    expect(readFileSafe(join(cwd, '.planning', 'STATE.md'))).toContain('private details');
   });
 
   test('isolates two initialized projects in one catalog and aggregate view', () => {
@@ -454,6 +765,303 @@ describe('manifest event plane', () => {
     expect(readFileSafe(join(cwd, '.planning', 'APPROVALS.json'))).toContain('apr-a');
     expect(catalog.snapshot(project.project_id).approvals['apr-a'].status).toBe('granted');
     await server.close();
+  });
+});
+
+describe('capability and workflow request v2', () => {
+  test('matches the shared fixed ScopeBindingV1 vector', () => {
+    const derive = (capabilityModule as Record<string, unknown>).deriveScopeBindingV1 as undefined | ((input: Record<string, unknown>) => { binding: Record<string, unknown>; scope_hash: string });
+    expect(typeof derive).toBe('function');
+    const artifactBytes = {
+      '.temperance/guide/capture.config.json': Buffer.from('{"capture":1}\n'),
+      '.temperance/guide/capture.scope.json': Buffer.from('{"scope":1}\n'),
+      '.temperance/guide/coverage-matrix.json': Buffer.from('{"coverage":1}\n'),
+      'scripts/product-guides/claim-evidence-map.json': Buffer.from('{"claims":1}\n'),
+    };
+    const result = derive!({ projectId: 'parkarea-aleph', sourceVersion: 'source-fixture-v1', artifactBytes });
+    expect(result.scope_hash).toBe('e9ba11a5c46fd8a68e5db67350cc2df7e0213a581d342744bee66d0963ed47eb');
+    expect(result.binding.artifacts).toEqual({
+      '.temperance/guide/capture.config.json': '2a30d575c6d6cadd037e7581c166c7acd048365d7207ae6c17755ee0f79b6b0b',
+      '.temperance/guide/capture.scope.json': 'c2d806d3ce7dcdc41707e796f4a8a9bfcbf265ec881a7ed802a99a0535779c1f',
+      '.temperance/guide/coverage-matrix.json': '08ceaff54fd6382aa91bf19a928db493ba1e616a9937cae1ff99b92f69011bdd',
+      'scripts/product-guides/claim-evidence-map.json': '80550b6fdd8a3059bdfd8effb699bff5a869df5805cf7a12e18d45f6491aae0d',
+    });
+  });
+
+  test('reports validated guide readiness without FilmSpec, video, or voice gates', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-guide-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    writeGuideScope(projectRoot);
+    const value = await capabilitiesFor(root);
+    expect(value.schema).toBe('temperance.manifest.capabilities.v2');
+    expect(value.authority).toBe('unchecked_at_request');
+    expect(value.artifacts.capture).toMatchObject({ present: true, validated: true, candidate_count: 1, state: 'validated', selected_path: '.temperance/guide/capture.config.json', validator: VALIDATOR_IDS.capture });
+    expect(value.artifacts.coverage).toMatchObject({ present: true, validated: true, validator: VALIDATOR_IDS.coverage });
+    expect(value.run_kinds.guide).toMatchObject({ requestable: true, state: 'ready', authority: 'unchecked_at_request' });
+    expect(JSON.stringify(value.run_kinds.guide)).not.toMatch(/film|ffmpeg|voice|eleven/i);
+  });
+
+  test('fails ambiguous capture candidates before selecting a preferred path', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-ambiguous-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    writeGuideScope(projectRoot);
+    fixtureWrite(projectRoot, 'capture.config.json', validCapture());
+    const value = await capabilitiesFor(root);
+    expect(value.artifacts.capture).toMatchObject({ present: true, validated: false, candidate_count: 2, state: 'ambiguous', reason: 'artifact_ambiguous' });
+    expect(value.artifacts.capture).not.toHaveProperty('selected_path');
+    expect(value.run_kinds.guide.requestable).toBe(false);
+  });
+
+  test('rejects malformed capture content with the exact trusted validator identity', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-malformed-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    writeGuideScope(projectRoot);
+    const value = await capabilitiesFor(root, { validatorRegistry: validatorRegistry({
+      [VALIDATOR_IDS.capture]: () => ({ ok: false, identity: VALIDATOR_IDS.capture, code: 'invalid_content' }),
+    }) });
+    expect(value.artifacts.capture).toMatchObject({ present: true, validated: false, state: 'invalid', reason: 'invalid_content', validator: VALIDATOR_IDS.capture });
+  });
+
+  test('rejects symlinked and project-root-escaping candidates', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-symlink-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    mkdirSync(projectRoot, { recursive: true });
+    fixtureWrite(projectRoot, GUIDE_SCOPE_PATHS[1], { schemaVersion: 1, authority: false, sourceVersion: 'source-fixture-v1' });
+    fixtureWrite(projectRoot, GUIDE_SCOPE_PATHS[2], validCoverage());
+    fixtureWrite(projectRoot, GUIDE_SCOPE_PATHS[3], validClaimMap());
+    const outside = join(root, 'outside-capture.json');
+    fixtureWrite(root, 'outside-capture.json', validCapture());
+    symlinkSync(outside, join(projectRoot, 'capture.config.json'));
+    const symlinked = await capabilitiesFor(root);
+    expect(symlinked.artifacts.capture).toMatchObject({ validated: false, state: 'unsafe', reason: 'artifact_symlink' });
+
+    rmSync(join(projectRoot, 'capture.config.json'));
+    const outsideGuide = join(root, 'outside-guide');
+    fixtureWrite(outsideGuide, 'capture.config.json', validCapture());
+    mkdirSync(join(projectRoot, '.temperance'), { recursive: true });
+    rmSync(join(projectRoot, '.temperance', 'guide'), { recursive: true, force: true });
+    symlinkSync(outsideGuide, join(projectRoot, '.temperance', 'guide'));
+    const escaped = await capabilitiesFor(root);
+    expect(escaped.artifacts.capture).toMatchObject({ validated: false, state: 'unsafe', reason: 'artifact_root_escape' });
+  });
+
+  test('rejects validator identity drift, nonzero, overflow, and mutation', async () => {
+    const cases: Array<[string, (input: { path: string }) => ValidatorOutcome, string]> = [
+      ['identity', () => ({ ok: true, identity: 'project-local@9.9.9' }), 'validator_identity_mismatch'],
+      ['nonzero', () => ({ ok: false, identity: VALIDATOR_IDS.capture, code: 'validator_nonzero' }), 'validator_nonzero'],
+      ['overflow', () => ({ ok: false, identity: VALIDATOR_IDS.capture, code: 'validator_output_overflow', stdout: 'x'.repeat(9000) }), 'validator_output_overflow'],
+      ['mutation', ({ path }) => { writeFileSync(path, '{}'); return { ok: true, identity: VALIDATOR_IDS.capture }; }, 'validator_mutated'],
+    ];
+    for (const [name, validate, expected] of cases) {
+      const root = mkdtempSync(join(tmpdir(), `temperance-cap-v2-${name}-`)); dirs.push(root);
+      const projectRoot = join(root, 'parkarea-aleph');
+      writeGuideScope(projectRoot);
+      const value = await capabilitiesFor(root, { validatorRegistry: validatorRegistry({ [VALIDATOR_IDS.capture]: validate as ValidatorRegistry[string] }) });
+      expect(value.artifacts.capture.reason).toBe(expected);
+      expect(value.artifacts.capture.validated).toBe(false);
+    }
+  });
+
+  test('never executes a project-local validator command during capability GET', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-no-project-exec-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    writeGuideScope(projectRoot);
+    fixtureWrite(projectRoot, '.temperance/guide/validate.js', `require('fs').writeFileSync(${JSON.stringify(join(root, 'executed'))}, 'bad')`);
+    const value = await capabilitiesFor(root);
+    expect(value.run_kinds.guide.requestable).toBe(true);
+    expect(existsSync(join(root, 'executed'))).toBe(false);
+  });
+
+  test('keeps ParkArea video out of scope while generic video uses distinct validated inventory and FilmSpec', async () => {
+    const parkRoot = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-park-video-')); dirs.push(parkRoot);
+    writeGuideScope(join(parkRoot, 'parkarea-aleph'));
+    fixtureWrite(join(parkRoot, 'parkarea-aleph'), '.temperance/guide/guide.manifest.json', { schema: 'product-guide.manifest.v1' });
+    fixtureWrite(join(parkRoot, 'parkarea-aleph'), '.temperance/guide/film.json', { schema: 'product-guide.film-spec.v1' });
+    const park = await capabilitiesFor(parkRoot);
+    expect(park.run_kinds.video).toMatchObject({ requestable: false, state: 'out_of_scope' });
+
+    const genericRoot = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-generic-video-')); dirs.push(genericRoot);
+    const genericProject = join(genericRoot, 'generic-product');
+    writeGuideScope(genericProject);
+    fixtureWrite(genericProject, '.temperance/guide/guide.manifest.json', { schema: 'product-guide.manifest.v1' });
+    fixtureWrite(genericProject, '.temperance/guide/film.json', { schema: 'product-guide.film-spec.v1' });
+    const generic = await capabilitiesFor(genericRoot, {}, 'generic-product');
+    expect(generic.artifacts.guide_manifest.validator).toBe(VALIDATOR_IDS.guide);
+    expect(generic.artifacts.film_spec.validator).toBe(VALIDATOR_IDS.film);
+    expect(generic.run_kinds.video).toMatchObject({ requestable: true, state: 'ready', authority: 'unchecked_at_request' });
+  });
+
+  test('derives the grant scope from exact bytes before recording canonical approval', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-grant-v2-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    writeGuideScope(projectRoot);
+    Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
+    Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'add', ...GUIDE_SCOPE_PATHS]);
+    Bun.spawnSync(['git', '-C', projectRoot, 'commit', '--quiet', '-m', 'fixture']);
+    const catalog = new ManifestCatalog(join(root, 'state'));
+    const project = initProject(projectRoot).identity;
+    catalog.ensureProject(project);
+    seedGuidePlan(catalog, project.project_id);
+    const recorded: Record<string, unknown>[] = [];
+    const ledger = { migrate: async () => {}, close: async () => {}, recordApproval: async (value: Record<string, unknown>) => { recorded.push(value); }, attest: async () => ({ schema: 'temperance.approval-attestation.response.v1', ok: true, code: 'attested' }) };
+    const Server = ManifestServer as unknown as new (store: ManifestCatalog, dependencies: Record<string, unknown>) => ManifestServer;
+    const server = new Server(catalog, { controlLedger: ledger, capabilityOptions: { validatorRegistry: validatorRegistry() } });
+    const address = await server.listen(0);
+    const response = await fetch(`http://${address.host}:${address.port}/approvals`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project_id: project.project_id, plan_id: 'guide-plan', option_id: 'guide-option', approval_id: 'apr-guide' }) });
+    expect(response.status).toBe(201);
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0].scope_hash).toBe(scopeBindingFor(projectRoot, project.project_id, 'source-fixture-v1').scope_hash);
+    await server.close();
+  });
+
+  test('serves bounded non-mutating attestation through the injected ledger', async () => {
+    const store = fixtureStore();
+    const calls: unknown[] = [];
+    const ledger = { migrate: async () => {}, close: async () => {}, attest: async (value: unknown, approvalId: string) => { calls.push([value, approvalId]); return { schema: 'temperance.approval-attestation.response.v1', ok: true, code: 'attested', approval_id: approvalId, attested_at: '2026-08-20T00:00:00.000Z', attestation_id: 'att_fixture' }; } };
+    const Server = ManifestServer as unknown as new (store: ManifestStore, dependencies: Record<string, unknown>) => ManifestServer;
+    const server = new Server(store, { controlLedger: ledger });
+    const address = await server.listen(0);
+    const request = { schema: 'temperance.approval-attestation.request.v1', approval_id: 'apr-guide', project_id: 'parkarea', project_cwd: '/fixture', plan_id: 'plan', option_id: 'guide', policy_hash: 'a'.repeat(64), git_head: 'b'.repeat(64), source_fingerprint: 'c'.repeat(64), task_fingerprint: 'd'.repeat(64), scope_hash: 'e'.repeat(64) };
+    const response = await fetch(`http://${address.host}:${address.port}/control/approvals/apr-guide/attestation`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+    const result = await response.json() as Record<string, unknown>;
+    expect(response.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(result.code).toBe('attested');
+    expect(result).not.toHaveProperty('canonical');
+    await server.close();
+  });
+
+  test('reattests current bindings last and appends one sanitized request-only receipt', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-request-v2-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    writeGuideScope(projectRoot);
+    fixtureWrite(projectRoot, 'package.json', { devDependencies: { playwright: '^1.0.0' } });
+    Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
+    Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'add', ...GUIDE_SCOPE_PATHS, 'package.json']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'commit', '--quiet', '-m', 'fixture']);
+    const gitHead = Bun.spawnSync(['git', '-C', projectRoot, 'rev-parse', 'HEAD']).stdout.toString().trim();
+    const catalog = new ManifestCatalog(join(root, 'state'));
+    const project = initProject(projectRoot).identity;
+    catalog.ensureProject(project);
+    seedGuidePlan(catalog, project.project_id);
+    const scope = scopeBindingFor(projectRoot, project.project_id, 'source-fixture-v1');
+    const calls: Array<Record<string, unknown>> = [];
+    const ledger = {
+      migrate: async () => {}, close: async () => {},
+      attest: async (value: Record<string, unknown>) => {
+        expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(0);
+        calls.push(value);
+        return { schema: 'temperance.approval-attestation.response.v1', ok: true, code: 'attested', approval_id: 'apr-guide', attested_at: '2026-08-20T00:00:00.000Z', attestation_id: 'att_fixture' };
+      },
+    };
+    const Server = ManifestServer as unknown as new (store: ManifestCatalog, dependencies: Record<string, unknown>) => ManifestServer;
+    const server = new Server(catalog, { controlLedger: ledger, capabilityOptions: { validatorRegistry: validatorRegistry(), toolAvailability: { node: true, python: true, playwright: true, ffmpeg: false } } });
+    const address = await server.listen(0);
+    const base = `http://${address.host}:${address.port}`;
+    const request = {
+      schema: 'temperance.manifest.workflow-request.v2', request_id: 'guide-run-1', approval_id: 'apr-guide', run_kind: 'guide',
+      plan_id: 'guide-plan', option_id: 'guide-option', policy_hash: 'a'.repeat(64), git_head: gitHead,
+      source_fingerprint: fingerprint([{ path: 'scope' }]), task_fingerprint: fingerprint([{ id: 'guide' }]), scope_hash: scope.scope_hash,
+    };
+    const response = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+    expect(response.status).toBe(201);
+    const repeated = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+    expect(repeated.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    const events = catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested');
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toMatchObject({ schema: 'temperance.manifest.workflow-request.receipt.v2', run_kind: 'guide', request_only: true, executed: false });
+    for (const forbidden of ['project_cwd', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'approval_id']) expect(events[0].payload).not.toHaveProperty(forbidden);
+    await server.close();
+  });
+
+  test('denies missing or unknown run kinds without calling authority or recording a request', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-request-v2-kind-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    writeGuideScope(projectRoot);
+    const catalog = new ManifestCatalog(join(root, 'state'));
+    const project = initProject(projectRoot).identity;
+    catalog.ensureProject(project);
+    seedGuidePlan(catalog, project.project_id);
+    let attestations = 0;
+    const ledger = { migrate: async () => {}, close: async () => {}, attest: async () => { attestations += 1; return { schema: 'temperance.approval-attestation.response.v1', ok: true, code: 'attested' }; } };
+    const Server = ManifestServer as unknown as new (store: ManifestCatalog, dependencies: Record<string, unknown>) => ManifestServer;
+    const server = new Server(catalog, { controlLedger: ledger, capabilityOptions: { validatorRegistry: validatorRegistry() } });
+    const address = await server.listen(0);
+    const endpoint = `http://${address.host}:${address.port}/projects/${project.project_id}/workflows/product-guide-production/requests`;
+    for (const runKind of [undefined, 'other', 'video']) {
+      const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ schema: 'temperance.manifest.workflow-request.v2', request_id: `deny-${String(runKind)}`, approval_id: 'apr-guide', ...(runKind === undefined ? {} : { run_kind: runKind }) }) });
+      expect(response.status).toBe(409);
+      expect((await response.json() as Record<string, unknown>).code).toBe(runKind === 'video' ? 'run_kind_out_of_scope' : 'invalid_run_kind');
+    }
+    expect(attestations).toBe(0);
+    expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(0);
+    await server.close();
+  });
+
+  test('records no request when canonical attestation denies drift, expiry, or revocation', async () => {
+    for (const code of ['binding_mismatch', 'approval_expired', 'approval_revoked']) {
+      const root = mkdtempSync(join(tmpdir(), `temperance-request-v2-${code}-`)); dirs.push(root);
+      const projectRoot = join(root, 'parkarea-aleph');
+      writeGuideScope(projectRoot);
+      fixtureWrite(projectRoot, 'package.json', { devDependencies: { playwright: '^1.0.0' } });
+      Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
+      Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
+      Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
+      Bun.spawnSync(['git', '-C', projectRoot, 'add', ...GUIDE_SCOPE_PATHS, 'package.json']);
+      Bun.spawnSync(['git', '-C', projectRoot, 'commit', '--quiet', '-m', 'fixture']);
+      const gitHead = Bun.spawnSync(['git', '-C', projectRoot, 'rev-parse', 'HEAD']).stdout.toString().trim();
+      const catalog = new ManifestCatalog(join(root, 'state'));
+      const project = initProject(projectRoot).identity;
+      catalog.ensureProject(project); seedGuidePlan(catalog, project.project_id);
+      const scope = scopeBindingFor(projectRoot, project.project_id, 'source-fixture-v1');
+      let attestations = 0;
+      const ledger = { migrate: async () => {}, close: async () => {}, attest: async () => { attestations += 1; return { schema: 'temperance.approval-attestation.response.v1', ok: false, code }; } };
+      const Server = ManifestServer as unknown as new (store: ManifestCatalog, dependencies: Record<string, unknown>) => ManifestServer;
+      const server = new Server(catalog, { controlLedger: ledger, capabilityOptions: { validatorRegistry: validatorRegistry(), toolAvailability: { node: true, python: true, playwright: true, ffmpeg: false } } });
+      const address = await server.listen(0);
+      const request = { schema: 'temperance.manifest.workflow-request.v2', request_id: `deny-${code}`, approval_id: 'apr-guide', run_kind: 'guide', plan_id: 'guide-plan', option_id: 'guide-option', policy_hash: 'a'.repeat(64), git_head: gitHead, source_fingerprint: fingerprint([{ path: 'scope' }]), task_fingerprint: fingerprint([{ id: 'guide' }]), scope_hash: scope.scope_hash };
+      const response = await fetch(`http://${address.host}:${address.port}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+      expect(response.status).toBe(409);
+      expect(attestations).toBe(1);
+      expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(0);
+      await server.close();
+    }
+  });
+});
+
+describe('pai mode offer', () => {
+  test('skips the picker when a /gsd command already bound a mode', () => {
+    const text = formatPaiModeOffer({ bound: 'ALGORITHM', surface: 'grok' });
+    expect(text).toContain('already bound');
+    expect(text).toContain('/gsd:* map');
+    expect(text).not.toContain('call the native tool');
+    expect(text).toContain('Grok has no ChatGPT in-app browser');
+  });
+
+  test('skips the picker when the classifier already chose ALGORITHM', () => {
+    const text = formatPaiModeOffer({ classifier: 'ALGORITHM', surface: 'codex' });
+    expect(text).toContain('classifier auto');
+    expect(text).toContain('in-app browser');
+    expect(text).not.toContain('Which PAI path');
+  });
+
+  test('on Grok names ask_user_question and forbids a chat-reply quiz', () => {
+    const text = formatPaiModeOffer({ surface: 'grok' });
+    expect(text).toContain('ask_user_question');
+    expect(text).toContain('not a NOESIS bullet list');
+    expect(text).toContain('A reply is not a picker');
+  });
+
+  test('session pick wins over a later classifier and still skips the card', () => {
+    const text = formatPaiModeOffer({ chosen: 'NATIVE', classifier: 'ALGORITHM', surface: 'grok' });
+    expect(text).toContain('session pick');
+    expect(text).toContain('NATIVE');
+    expect(text).not.toContain('call the native tool');
   });
 });
 
