@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Public Temperance Glove
 status: executing
-stopped_at: Phase 1 Plan 02 semantic-ID ratification checkpoint
-last_updated: "2026-08-20T17:42:00.000Z"
-last_activity: 2026-08-20 — compiler printed 18 semantic IDs without writing lock bytes; awaiting operator ratification
+stopped_at: Phase 1 Plan 02 complete — executing Plan 03
+last_updated: "2026-08-20T17:37:01.000Z"
+last_activity: 2026-08-20 — deterministic provenance compiler and ratified 18-record lock complete
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Planning State
@@ -26,23 +26,23 @@ See: `.planning/PROJECT.md` (updated 2026-08-19)
 ## Current Position
 
 Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
-Plan: 01-02 of 01-03
-Status: Plan 01-01 complete; Plan 01-02 paused at blocking semantic-ID ratification checkpoint
-Last activity: 2026-08-20 — compiler digest and 18 semantic IDs printed; lockfile remains absent
+Plan: 01-03 of 01-03
+Status: Plans 01-01 and 01-02 complete; executing read-only doctor plan
+Last activity: 2026-08-20 — ratified deterministic lockfile and compiler invariant tests complete
 
-Progress: [███░░░░░░░] 33%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
-- Average duration: 18 min
-- Total execution time: 18 min
+- Total plans completed: 2
+- Average duration: 24 min
+- Total execution time: 48 min
 
 | Phase | Plans | Status |
 |---|---:|---|
-| 1 | 3 | In progress (1/3) |
+| 1 | 3 | In progress (2/3) |
 | 2–7 | TBD | Not started |
 
 ## Accumulated Context
@@ -75,9 +75,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-20T17:42:00.000Z
-Stopped at: Phase 1 Plan 02 semantic-ID ratification checkpoint
-Resume file: .planning/phases/01-provenance-contract-and-read-only-control-plane/01-02-PLAN.md
+Last session: 2026-08-20T17:37:01.000Z
+Stopped at: Phase 1 Plan 02 complete — executing Plan 03
+Resume file: .planning/phases/01-provenance-contract-and-read-only-control-plane/01-03-PLAN.md
 
 ## Historical state snapshot (preserved from 2026-08-17)
 
