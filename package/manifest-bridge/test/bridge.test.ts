@@ -66,11 +66,47 @@ function validCapture(sourceVersion = 'source-fixture-v1'): Record<string, unkno
 }
 
 function validCoverage(): Record<string, unknown> {
+  const evidence = [
+    {
+      evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker',
+      sideEffects: [{ kind: 'search_analytics', status: 'blocked_pending_w1a' }],
+    },
+    {
+      evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker',
+      sideEffects: [{ kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }],
+    },
+    {
+      evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker',
+      sideEffects: [{ kind: 'bookings_read', status: 'read_only_pending_w1a' }],
+    },
+    {
+      evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only',
+      sideEffects: [{ kind: 'admin_audit_read', status: 'read_only_pending_w1a' }],
+    },
+  ];
   return {
     schemaVersion: 1,
-    edition: { audience: 'internal_qa_operators', media: 'deterministic_stills', publication: 'private_only' },
-    steps: ['seeker-search-results', 'seeker-listing-readiness', 'seeker-existing-bookings', 'admin-listing-readiness']
-      .map((evidenceId, index) => ({ order: index + 1, evidenceId })),
+    edition: { audience: 'internal_qa_operators', primaryPersona: 'seeker', primaryLocale: 'de', secondaryLocale: 'en', media: 'deterministic_stills', publication: 'private_only', requirementIds: [] },
+    metadata: { freshContextPerShot: true, runnerContract: 'canonical_shared_runner_new_browser_context_per_shot' },
+    requirements: [],
+    steps: evidence.map((row, index) => ({
+      order: index + 1,
+      stepId: row.evidenceId,
+      checkpointKind: row.checkpointKind,
+      requirementIds: [],
+      claim: { de: `DE ${row.evidenceId}`, en: `EN ${row.evidenceId}` },
+      route: row.route,
+      persona: row.persona,
+      locales: ['de', 'en'],
+      tenantAuthority: 'authenticated_session',
+      scenarioClass: 'synthetic_or_approved_demo',
+      evidenceId: row.evidenceId,
+      requiredSelectors: ['[data-testid="parkarea-app-shell"]'],
+      minimumBodyTextChars: 250,
+      semanticProof: { kind: 'w1a_postgres_or_read_only_probe', status: 'pending' },
+      sideEffects: row.sideEffects,
+      admission: 'blocked',
+    })),
   };
 }
 
@@ -802,6 +838,68 @@ describe('capability and workflow request v2', () => {
     expect(JSON.stringify(value.run_kinds.guide)).not.toMatch(/film|ffmpeg|voice|eleven/i);
   });
 
+  test('validates the exact closed ParkArea semantic coverage inventory', () => {
+    const validate = (capabilityModule as Record<string, unknown>).validateParkAreaCoverageContract as undefined | ((value: unknown) => boolean);
+    expect(typeof validate).toBe('function');
+    expect(validate!(validCoverage())).toBe(true);
+
+    const mutations: Array<[string, (value: Record<string, any>) => void]> = [
+      ['extra top-level field', (value) => { value.extra = true; }],
+      ['wrong audience', (value) => { value.edition.audience = 'customer'; }],
+      ['wrong media', (value) => { value.edition.media = 'video'; }],
+      ['wrong publication', (value) => { value.edition.publication = 'public'; }],
+      ['unordered evidence', (value) => { value.steps.reverse(); }],
+      ['mismatched step ID', (value) => { value.steps[0].stepId = 'other'; }],
+      ['wrong route', (value) => { value.steps[2].route = '/other'; }],
+      ['missing route sentinel', (value) => { value.steps[1].route = '/parkplatz/fixture'; }],
+      ['wrong persona', (value) => { value.steps[3].persona = 'seeker'; }],
+      ['wrong checkpoint', (value) => { value.steps[3].checkpointKind = 'admin'; }],
+      ['missing side effect', (value) => { value.steps[0].sideEffects = []; }],
+      ['wrong side-effect status', (value) => { value.steps[2].sideEffects[0].status = 'read_only'; }],
+      ['extra step field', (value) => { value.steps[0].command = 'project-local'; }],
+    ];
+    for (const [name, mutate] of mutations) {
+      const candidate = JSON.parse(JSON.stringify(validCoverage())) as Record<string, any>;
+      mutate(candidate);
+      expect(validate!(candidate), name).toBe(false);
+    }
+  });
+
+  test('confines every ScopeBindingV1 component before reading artifact bytes', () => {
+    const derive = (capabilityModule as Record<string, unknown>).scopeBindingFromProject as undefined | ((project: ReturnType<typeof initProject>['identity']) => unknown);
+    expect(typeof derive).toBe('function');
+
+    const outsideRoot = mkdtempSync(join(tmpdir(), 'temperance-scope-outside-')); dirs.push(outsideRoot);
+    const outsideProject = join(outsideRoot, 'parkarea-aleph');
+    writeGuideScope(outsideProject);
+    fixtureWrite(outsideRoot, 'outside-claims.json', validClaimMap());
+    rmSync(join(outsideProject, GUIDE_SCOPE_PATHS[3]));
+    symlinkSync(join(outsideRoot, 'outside-claims.json'), join(outsideProject, GUIDE_SCOPE_PATHS[3]));
+    const outsideIdentity = initProject(outsideProject).identity;
+    expect(() => derive!(outsideIdentity)).toThrow('scope_artifact_unsafe');
+
+    const componentRoot = mkdtempSync(join(tmpdir(), 'temperance-scope-component-')); dirs.push(componentRoot);
+    const componentProject = join(componentRoot, 'parkarea-aleph');
+    writeGuideScope(componentProject);
+    fixtureWrite(componentProject, 'actual-product-guides/claim-evidence-map.json', validClaimMap());
+    rmSync(join(componentProject, 'scripts', 'product-guides'), { recursive: true, force: true });
+    symlinkSync(join(componentProject, 'actual-product-guides'), join(componentProject, 'scripts', 'product-guides'));
+    const componentIdentity = initProject(componentProject).identity;
+    expect(() => derive!(componentIdentity)).toThrow('scope_artifact_unsafe');
+  });
+
+  test('fails closed when an asynchronous trusted validator exceeds its hard deadline', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-timeout-')); dirs.push(root);
+    writeGuideScope(join(root, 'parkarea-aleph'));
+    const stalled = capabilitiesFor(root, {
+      validatorDeadlineMs: 25,
+      validatorRegistry: validatorRegistry({ [VALIDATOR_IDS.capture]: async () => await new Promise<ValidatorOutcome>(() => {}) }),
+    });
+    const result = await Promise.race([stalled, new Promise<null>((resolve) => setTimeout(() => resolve(null), 150))]);
+    expect(result).not.toBeNull();
+    expect(result?.artifacts.capture).toMatchObject({ validated: false, state: 'invalid', reason: 'validator_timeout' });
+  });
+
   test('fails ambiguous capture candidates before selecting a preferred path', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-ambiguous-')); dirs.push(root);
     const projectRoot = join(root, 'parkarea-aleph');
@@ -975,12 +1073,55 @@ describe('capability and workflow request v2', () => {
     expect(response.status).toBe(201);
     const repeated = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
     expect(repeated.status).toBe(200);
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
+    const conflict = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...request, approval_id: 'apr-conflict' }) });
+    expect(conflict.status).toBe(409);
+    expect((await conflict.json() as Record<string, unknown>).code).toBe('request_id_conflict');
+    expect(calls).toHaveLength(2);
     const events = catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested');
     expect(events).toHaveLength(1);
     expect(events[0].payload).toMatchObject({ schema: 'temperance.manifest.workflow-request.receipt.v2', run_kind: 'guide', request_only: true, executed: false });
+    expect(events[0].payload.request_hash).toMatch(/^[a-f0-9]{64}$/);
     for (const forbidden of ['project_cwd', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'approval_id']) expect(events[0].payload).not.toHaveProperty(forbidden);
     await server.close();
+  });
+
+  test('returns stable workflow errors and templates diagnostic routes without identifiers', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'temperance-request-v2-redaction-')); dirs.push(root);
+    const projectRoot = join(root, 'parkarea-aleph');
+    writeGuideScope(projectRoot);
+    fixtureWrite(projectRoot, 'package.json', { devDependencies: { playwright: '^1.0.0' } });
+    Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
+    Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'add', ...GUIDE_SCOPE_PATHS, 'package.json']);
+    Bun.spawnSync(['git', '-C', projectRoot, 'commit', '--quiet', '-m', 'fixture']);
+    const gitHead = Bun.spawnSync(['git', '-C', projectRoot, 'rev-parse', 'HEAD']).stdout.toString().trim();
+    const catalog = new ManifestCatalog(join(root, 'state'));
+    const project = initProject(projectRoot).identity;
+    catalog.ensureProject(project); seedGuidePlan(catalog, project.project_id);
+    const scope = scopeBindingFor(projectRoot, project.project_id, 'source-fixture-v1');
+    rmSync(join(projectRoot, GUIDE_SCOPE_PATHS[3]));
+    const paths: string[] = [];
+    const diagnostics = { request: (input: { path?: string }) => { if (input.path) paths.push(input.path); } };
+    const ledger = { migrate: async () => {}, close: async () => {}, attest: async () => ({ schema: 'temperance.approval-attestation.response.v1', ok: false, code: 'approval_not_found' }) };
+    const Server = ManifestServer as unknown as new (store: ManifestCatalog, dependencies: Record<string, unknown>) => ManifestServer;
+    const server = new Server(catalog, { controlLedger: ledger, diagnostics, capabilityOptions: { validatorRegistry: validatorRegistry(), toolAvailability: { node: true, python: true, playwright: true, ffmpeg: false } } });
+    const address = await server.listen(0);
+    const base = `http://${address.host}:${address.port}`;
+    const request = { schema: 'temperance.manifest.workflow-request.v2', request_id: 'redacted-run', approval_id: 'apr-secret-value', run_kind: 'guide', plan_id: 'guide-plan', option_id: 'guide-option', policy_hash: 'a'.repeat(64), git_head: gitHead, source_fingerprint: fingerprint([{ path: 'scope' }]), task_fingerprint: fingerprint([{ id: 'guide' }]), scope_hash: scope.scope_hash };
+    const response = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+    const resultText = await response.text();
+    await fetch(`${base}/control/approvals/apr-secret-value/attestation`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    await server.close();
+    expect(response.status).toBe(409);
+    expect(JSON.parse(resultText).code).toBe('scope_binding_unavailable');
+    expect(resultText).not.toContain(projectRoot);
+    expect(resultText).not.toContain('apr-secret-value');
+    expect(paths).toContain('/projects/:project_id/workflows/:workflow_id/requests');
+    expect(paths).toContain('/control/approvals/:approval_id/attestation');
+    expect(JSON.stringify(paths)).not.toContain(project.project_id);
+    expect(JSON.stringify(paths)).not.toContain('apr-secret-value');
   });
 
   test('denies missing or unknown run kinds without calling authority or recording a request', async () => {
