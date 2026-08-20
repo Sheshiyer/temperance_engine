@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -22,7 +23,8 @@ const LOWER_SHA256 = /^[a-f0-9]{64}$/;
 const GIT_OBJECT_ID = /^[a-f0-9]{40,64}$/;
 
 type ControlLedger = Pick<SwarmControlLedger, 'migrate' | 'close' | 'attest'> & Partial<Pick<SwarmControlLedger, 'recordApproval' | 'claim'>>;
-interface ManifestServerDependencies { controlLedger?: ControlLedger | null; capabilityOptions?: CapabilityOptions }
+type DiagnosticSink = Pick<ManifestDiagnostics, 'request'> & Partial<Pick<ManifestDiagnostics, 'event'>>;
+interface ManifestServerDependencies { controlLedger?: ControlLedger | null; capabilityOptions?: CapabilityOptions; diagnostics?: DiagnosticSink }
 
 function headers(contentType: string): Record<string, string> {
   return { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': 'http://127.0.0.1:5173', 'Access-Control-Allow-Headers': 'Content-Type' };
@@ -31,6 +33,29 @@ function headers(contentType: string): Record<string, string> {
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, headers('application/json; charset=utf-8'));
   res.end(JSON.stringify(body));
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${stableJson((value as Record<string, unknown>)[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function closedRequestHash(request: Record<string, unknown>): string {
+  const closed = Object.fromEntries(WORKFLOW_REQUEST_KEYS.map((key) => [key, request[key]]));
+  return createHash('sha256').update(stableJson(closed), 'utf8').digest('hex');
+}
+
+function diagnosticRoute(pathname: string): string {
+  if (/^\/control\/approvals\/[^/]+\/attestation$/.test(pathname)) return '/control/approvals/:approval_id/attestation';
+  if (/^\/projects\/[^/]+\/workflows\/[^/]+\/requests$/.test(pathname)) return '/projects/:project_id/workflows/:workflow_id/requests';
+  if (/^\/projects\/[^/]+\/capabilities$/.test(pathname)) return '/projects/:project_id/capabilities';
+  if (/^\/projects\/[^/]+\/actions$/.test(pathname)) return '/projects/:project_id/actions';
+  if (/^\/projects\/[^/]+\/(sync|archive|unregister)$/.test(pathname)) return '/projects/:project_id/:action';
+  if (/^\/projects\/[^/]+$/.test(pathname)) return '/projects/:project_id';
+  return pathname;
 }
 
 async function body(req: IncomingMessage): Promise<string> {
@@ -46,11 +71,11 @@ async function body(req: IncomingMessage): Promise<string> {
 }
 
 export class ManifestServer {
-  private readonly diagnostics = new ManifestDiagnostics();
+  private readonly diagnostics: DiagnosticSink;
   private server = createServer((req, res) => {
     const started = Date.now();
     const url = new URL(req.url || '/', 'http://127.0.0.1');
-    res.once('finish', () => this.diagnostics.request({ method: req.method, path: url.pathname, status: res.statusCode, duration_ms: Date.now() - started }));
+    res.once('finish', () => this.diagnostics.request({ method: req.method, path: diagnosticRoute(url.pathname), status: res.statusCode, duration_ms: Date.now() - started }));
     void this.handle(req, res);
   });
   private clients = new Map<ServerResponse, string | undefined>();
@@ -59,6 +84,7 @@ export class ManifestServer {
   private readonly capabilityOptions: CapabilityOptions;
 
   constructor(private readonly store: ManifestStore | ManifestCatalog, dependencies: ManifestServerDependencies = {}) {
+    this.diagnostics = dependencies.diagnostics || new ManifestDiagnostics();
     this.controlLedger = Object.prototype.hasOwnProperty.call(dependencies, 'controlLedger')
       ? dependencies.controlLedger || null
       : process.env.TEMPERANCE_SWARM_CONTROL_ENABLED === '1' && process.env.TEMPERANCE_CONTROL_DATABASE_URL ? SwarmControlLedger.fromUrl() : null;
@@ -137,7 +163,7 @@ export class ManifestServer {
         const snapshot = this.snapshot(projectId);
         const route = Object.values(snapshot.routes).find((value) => value.project_id === projectId || value.route_id === `${projectId}:latest`);
         json(res, 200, await projectCapabilities(project, route, this.capabilityOptions));
-      } catch (error) { json(res, 400, { ok: false, error: error instanceof Error ? error.message : String(error) }); }
+      } catch { json(res, 400, { ok: false, code: 'capability_unavailable' }); }
       return;
     }
     const workflowMatch = /^\/projects\/([^/]+)\/workflows\/([^/]+)\/requests$/.exec(url.pathname);
@@ -159,7 +185,8 @@ export class ManifestServer {
         const approvalId = typeof request.approval_id === 'string' ? request.approval_id.trim() : '';
         const runKind = request.run_kind;
         if (request.schema !== WORKFLOW_REQUEST_SCHEMA || (runKind !== 'guide' && runKind !== 'video')) { json(res, 409, { accepted: false, code: 'invalid_run_kind' }); return; }
-        if (runKind === 'video' && capabilities.run_kinds.video.state === 'out_of_scope') { json(res, 409, { accepted: false, code: 'run_kind_out_of_scope' }); return; }
+        const existing = snapshot.recent_events.find((event) => event.kind === 'workflow.trigger.requested' && event.project_id === projectId && event.payload.request_id === requestId);
+        if (!existing && runKind === 'video' && capabilities.run_kinds.video.state === 'out_of_scope') { json(res, 409, { accepted: false, code: 'run_kind_out_of_scope' }); return; }
         const requestKeys = Object.keys(request).sort();
         const expectedKeys = [...WORKFLOW_REQUEST_KEYS].sort();
         if (requestKeys.length !== expectedKeys.length || requestKeys.some((key, index) => key !== expectedKeys[index]) || !BOUNDED_ID.test(requestId) || !BOUNDED_ID.test(approvalId)
@@ -168,8 +195,9 @@ export class ManifestServer {
           || !GIT_OBJECT_ID.test(String(request.git_head || ''))) {
           json(res, 409, { accepted: false, code: 'invalid_request' }); return;
         }
-        const existing = snapshot.recent_events.find((event) => event.kind === 'workflow.trigger.requested' && event.project_id === projectId && event.payload.request_id === requestId);
-        if (existing) { json(res, 200, { accepted: false, idempotent: true, request_id: requestId, workflow_id: workflowId }); return; }
+        const requestHash = closedRequestHash(request);
+        if (existing && existing.payload.request_hash !== requestHash) { json(res, 409, { accepted: false, code: 'request_id_conflict' }); return; }
+        if (runKind === 'video' && capabilities.run_kinds.video.state === 'out_of_scope') { json(res, 409, { accepted: false, code: 'run_kind_out_of_scope' }); return; }
         if (!capabilities.run_kinds[runKind].requestable || !this.controlLedger) { json(res, 409, { accepted: false, code: 'workflow_trigger_gated', trigger: projection.trigger }); return; }
         const planId = typeof request.plan_id === 'string' ? request.plan_id : '';
         const optionId = typeof request.option_id === 'string' ? request.option_id : '';
@@ -178,6 +206,12 @@ export class ManifestServer {
         const option = options?.[optionId];
         if (!plan || !option || !project.cwd) { json(res, 409, { accepted: false, code: 'binding_mismatch' }); return; }
         const policyHash = plan.mapping && typeof plan.mapping === 'object' ? String((plan.mapping as Record<string, unknown>).policy_hash || '') : '';
+        let gitHead: string;
+        try { gitHead = execFileSync('git', ['-C', project.cwd, 'rev-parse', 'HEAD'], { encoding: 'utf8', timeout: 5000, maxBuffer: 8192, stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+        catch { json(res, 409, { accepted: false, code: 'request_failed' }); return; }
+        let scopeHash: string;
+        try { scopeHash = scopeBindingFromProject(project).scope_hash; }
+        catch { json(res, 409, { accepted: false, code: 'scope_binding_unavailable' }); return; }
         const current = {
           schema: ATTESTATION_REQUEST_SCHEMA,
           approval_id: approvalId,
@@ -186,19 +220,20 @@ export class ManifestServer {
           plan_id: planId,
           option_id: optionId,
           policy_hash: policyHash,
-          git_head: execFileSync('git', ['-C', project.cwd, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+          git_head: gitHead,
           source_fingerprint: fingerprint(plan.source_fingerprints || []),
           task_fingerprint: fingerprint(option.tasks || []),
-          scope_hash: scopeBindingFromProject(project).scope_hash,
+          scope_hash: scopeHash,
         } satisfies ApprovalAttestationRequestV1;
         for (const key of ['plan_id', 'option_id', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'scope_hash'] as const) {
           if (request[key] !== current[key]) { json(res, 409, { accepted: false, code: 'binding_mismatch' }); return; }
         }
         const attestation = await this.controlLedger.attest(current, approvalId);
         if (!attestation.ok) { json(res, 409, { accepted: false, code: attestation.code }); return; }
-        const result = this.store.ingest({ id: `workflow.trigger.requested:${projectId}:${requestId}`, source: 'manifest', kind: 'workflow.trigger.requested', status: 'observed', actor: 'local-operator', project_id: projectId, correlation_id: requestId, payload: { schema: 'temperance.manifest.workflow-request.receipt.v2', workflow_id: workflowId, request_id: requestId, run_kind: runKind, request_only: true, executed: false, authority: 'attested', attestation_id: attestation.attestation_id }, evidence: [] });
+        if (existing) { json(res, 200, { accepted: false, idempotent: true, request_id: requestId, workflow_id: workflowId }); return; }
+        const result = this.store.ingest({ id: `workflow.trigger.requested:${projectId}:${requestId}`, source: 'manifest', kind: 'workflow.trigger.requested', status: 'observed', actor: 'local-operator', project_id: projectId, correlation_id: requestId, payload: { schema: 'temperance.manifest.workflow-request.receipt.v2', workflow_id: workflowId, request_id: requestId, request_hash: requestHash, run_kind: runKind, request_only: true, executed: false, authority: 'attested', attestation_id: attestation.attestation_id }, evidence: [] });
         json(res, result.error ? 409 : 201, { ...result, request_only: true, workflow_id: workflowId, request_id: requestId });
-      } catch (error) { json(res, 409, { ok: false, error: error instanceof Error ? error.message : String(error) }); }
+      } catch { json(res, 409, { accepted: false, code: 'request_failed' }); }
       return;
     }
     const attestationMatch = /^\/control\/approvals\/([^/]+)\/attestation$/.exec(url.pathname);
@@ -295,7 +330,7 @@ export class ManifestServer {
         // otherwise a long-lived server can write a second copy of its ID.
         if ('refresh' in this.store) this.store.refresh();
         const result = this.store.ingest(input);
-        this.diagnostics.event({ kind, project_id: typeof input.project_id === 'string' ? input.project_id : undefined, accepted: result.accepted, outcome: result.error ? 'rejected' : result.accepted ? 'accepted' : 'deduplicated', error: result.error });
+        this.diagnostics.event?.({ kind, project_id: typeof input.project_id === 'string' ? input.project_id : undefined, accepted: result.accepted, outcome: result.error ? 'rejected' : result.accepted ? 'accepted' : 'deduplicated', error: result.error });
         json(res, result.error ? 400 : result.accepted ? 201 : 200, result);
       } catch (error) { json(res, 400, { accepted: false, error: error instanceof Error ? error.message : String(error) }); }
       return;
@@ -317,7 +352,7 @@ export class ManifestServer {
         if (!project?.cwd || !plan || !options?.[optionId] || !approval || !['required', 'granted'].includes(String(approval.status)) || (expiresAt && Date.parse(expiresAt) <= Date.now())) throw new Error('approval is invalid, expired, or no longer matches the current proposal');
         const option = options[optionId];
         const policyHash = plan.mapping && typeof plan.mapping === 'object' ? String((plan.mapping as Record<string, unknown>).policy_hash || '') : '';
-        const gitHead = this.controlLedger ? execFileSync('git', ['-C', project.cwd, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() : '';
+        const gitHead = this.controlLedger ? execFileSync('git', ['-C', project.cwd, 'rev-parse', 'HEAD'], { encoding: 'utf8', timeout: 5000, maxBuffer: 8192, stdio: ['ignore', 'pipe', 'ignore'] }).trim() : '';
         const sourceFingerprint = fingerprint(plan.source_fingerprints || []);
         const taskFingerprint = fingerprint(option.tasks || []);
         const receipt = { approval_id: approvalId, plan_id: planId, option_id: optionId, policy_hash: policyHash, expires_at: expiresAt, approved_at: new Date().toISOString(), actor: 'local-operator' };

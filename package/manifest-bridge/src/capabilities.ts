@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { isAbsolute, join, relative, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { ProjectSummary } from './catalog';
 
@@ -27,6 +27,7 @@ export type Validator = (input: { path: string; project_root: string }) => Valid
 export type ValidatorRegistry = Record<string, Validator>;
 export interface CapabilityOptions {
   validatorRegistry?: ValidatorRegistry;
+  validatorDeadlineMs?: number;
   toolAvailability?: Partial<Record<'node' | 'python' | 'playwright' | 'ffmpeg', boolean>>;
 }
 
@@ -75,6 +76,58 @@ function stableJson(value: unknown): string {
 
 function sha(bytes: Uint8Array | string): string { return createHash('sha256').update(bytes).digest('hex'); }
 
+function exactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const received = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  return received.length === wanted.length && received.every((key, index) => key === wanted[index]);
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function boundedStrings(value: unknown, allowEmpty = false): value is string[] {
+  return Array.isArray(value) && (allowEmpty || value.length > 0) && value.every((item) => typeof item === 'string' && item.length > 0 && item.length <= 240);
+}
+
+const PARKAREA_COVERAGE_ROWS = [
+  { evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250, sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' } },
+  { evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 400, sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' } },
+  { evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250, sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' } },
+  { evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300, sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' } },
+] as const;
+
+export function validateParkAreaCoverageContract(input: unknown): boolean {
+  const value = record(input);
+  if (!value || !exactKeys(value, ['schemaVersion', 'edition', 'metadata', 'requirements', 'steps']) || value.schemaVersion !== 1) return false;
+  const edition = record(value.edition);
+  if (!edition || !exactKeys(edition, ['audience', 'primaryPersona', 'primaryLocale', 'secondaryLocale', 'media', 'publication', 'requirementIds'])
+    || edition.audience !== 'internal_qa_operators' || edition.primaryPersona !== 'seeker' || edition.primaryLocale !== 'de' || edition.secondaryLocale !== 'en'
+    || edition.media !== 'deterministic_stills' || edition.publication !== 'private_only' || !boundedStrings(edition.requirementIds, true)) return false;
+  const metadata = record(value.metadata);
+  if (!metadata || !exactKeys(metadata, ['freshContextPerShot', 'runnerContract']) || metadata.freshContextPerShot !== true || metadata.runnerContract !== 'canonical_shared_runner_new_browser_context_per_shot') return false;
+  if (!boundedStrings(value.requirements, true) || !Array.isArray(value.steps) || value.steps.length !== PARKAREA_COVERAGE_ROWS.length) return false;
+
+  return value.steps.every((candidate, index) => {
+    const step = record(candidate);
+    const expected = PARKAREA_COVERAGE_ROWS[index];
+    if (!step || !exactKeys(step, ['order', 'stepId', 'checkpointKind', 'requirementIds', 'claim', 'route', 'persona', 'locales', 'tenantAuthority', 'scenarioClass', 'evidenceId', 'requiredSelectors', 'minimumBodyTextChars', 'semanticProof', 'sideEffects', 'admission'])) return false;
+    const claim = record(step.claim);
+    const proof = record(step.semanticProof);
+    const effects = Array.isArray(step.sideEffects) ? step.sideEffects : [];
+    const effect = effects.length === 1 ? record(effects[0]) : null;
+    return step.order === index + 1 && step.stepId === expected.evidenceId && step.evidenceId === expected.evidenceId
+      && step.checkpointKind === expected.checkpointKind && step.route === expected.route && step.persona === expected.persona
+      && step.minimumBodyTextChars === expected.minimumBodyTextChars && step.tenantAuthority === 'authenticated_session'
+      && step.scenarioClass === 'synthetic_or_approved_demo' && step.admission === 'blocked'
+      && boundedStrings(step.requirementIds, true) && boundedStrings(step.requiredSelectors)
+      && Array.isArray(step.locales) && step.locales.length === 2 && step.locales[0] === 'de' && step.locales[1] === 'en'
+      && Boolean(claim) && exactKeys(claim!, ['de', 'en']) && typeof claim!.de === 'string' && claim!.de.length > 0 && typeof claim!.en === 'string' && claim!.en.length > 0
+      && Boolean(proof) && exactKeys(proof!, ['kind', 'status']) && proof!.kind === 'w1a_postgres_or_read_only_probe' && proof!.status === 'pending'
+      && Boolean(effect) && exactKeys(effect!, ['kind', 'status']) && effect!.kind === expected.sideEffect.kind && effect!.status === expected.sideEffect.status;
+  });
+}
+
 export function deriveScopeBindingV1(input: { projectId: string; sourceVersion: string; artifactBytes: Record<string, Uint8Array> }): { binding: ScopeBindingV1; scope_hash: string } {
   if (!input.projectId || !input.sourceVersion || Object.keys(input).sort().join(',') !== 'artifactBytes,projectId,sourceVersion') throw new Error('scope_binding_invalid');
   const receivedPaths = Object.keys(input.artifactBytes).sort();
@@ -91,10 +144,15 @@ export function deriveScopeBindingV1(input: { projectId: string; sourceVersion: 
 
 export function scopeBindingFromProject(project: ProjectSummary): { binding: ScopeBindingV1; scope_hash: string } {
   if (!project.cwd) throw new Error('scope_project_unregistered');
-  const capture = JSON.parse(readFileSync(join(project.cwd, GUIDE_SCOPE_PATHS[0]), 'utf8')) as Record<string, unknown>;
+  const confined = Object.fromEntries(GUIDE_SCOPE_PATHS.map((path) => {
+    const target = join(project.cwd!, path);
+    if (safeCandidate(project.cwd!, target) !== 'safe') throw new Error('scope_artifact_unsafe');
+    return [path, target];
+  })) as Record<(typeof GUIDE_SCOPE_PATHS)[number], string>;
+  const capture = JSON.parse(readFileSync(confined[GUIDE_SCOPE_PATHS[0]], 'utf8')) as Record<string, unknown>;
   const sourceVersion = typeof capture.sourceVersion === 'string' ? capture.sourceVersion : '';
   if (!sourceVersion) throw new Error('scope_source_version_missing');
-  const artifactBytes = Object.fromEntries(GUIDE_SCOPE_PATHS.map((path) => [path, readFileSync(join(project.cwd!, path))]));
+  const artifactBytes = Object.fromEntries(GUIDE_SCOPE_PATHS.map((path) => [path, readFileSync(confined[path])]));
   return deriveScopeBindingV1({ projectId: project.project_id, sourceVersion, artifactBytes });
 }
 
@@ -117,8 +175,8 @@ async function defaultRegistry(): Promise<ValidatorRegistry> {
   const guidePath = join(homedir(), '.agents', 'skill-clusters', 'skills', 'build-product-user-guides', 'scripts', 'validate_guide.py');
   const coverage: Validator = ({ path }) => {
     try {
-      const value = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
-      return { ok: value.schemaVersion === 1 && Array.isArray(value.steps) && value.steps.length > 0, identity: VALIDATOR_IDS.coverage, code: 'invalid_content' };
+      const value = JSON.parse(readFileSync(path, 'utf8')) as unknown;
+      return { ok: validateParkAreaCoverageContract(value), identity: VALIDATOR_IDS.coverage, code: 'invalid_content' };
     } catch { return { ok: false, identity: VALIDATOR_IDS.coverage, code: 'invalid_content' }; }
   };
   const film: Validator = ({ path }) => {
@@ -143,21 +201,42 @@ async function defaultRegistry(): Promise<ValidatorRegistry> {
 
 function safeCandidate(root: string, target: string): 'safe' | 'artifact_symlink' | 'artifact_root_escape' {
   try {
-    const rootReal = realpathSync(root);
-    if (lstatSync(target).isSymbolicLink()) return 'artifact_symlink';
-    const targetReal = realpathSync(target);
+    const rootAbsolute = resolve(root);
+    const targetAbsolute = resolve(target);
+    const lexical = relative(rootAbsolute, targetAbsolute);
+    if (lexical.startsWith('..') || lexical.startsWith(`..${sep}`) || isAbsolute(lexical)) return 'artifact_root_escape';
+    if (lstatSync(rootAbsolute).isSymbolicLink()) return 'artifact_symlink';
+    const rootReal = realpathSync(rootAbsolute);
+    let cursor = rootAbsolute;
+    for (const component of lexical.split(sep).filter(Boolean)) {
+      cursor = join(cursor, component);
+      if (lstatSync(cursor).isSymbolicLink()) {
+        if (cursor === targetAbsolute) return 'artifact_symlink';
+        const linked = realpathSync(cursor);
+        const linkedRelative = relative(rootReal, linked);
+        return linkedRelative.startsWith('..') || linkedRelative.startsWith(`..${sep}`) || isAbsolute(linkedRelative) ? 'artifact_root_escape' : 'artifact_symlink';
+      }
+    }
+    const targetReal = realpathSync(targetAbsolute);
     const rel = relative(rootReal, targetReal);
     if (rel.startsWith('..') || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return 'artifact_root_escape';
-    let cursor = target;
-    while (cursor !== root && relative(root, cursor) !== '') {
-      if (lstatSync(cursor).isSymbolicLink()) return realpathSync(cursor).startsWith(`${rootReal}${sep}`) ? 'artifact_symlink' : 'artifact_root_escape';
-      cursor = join(cursor, '..');
-    }
     return 'safe';
   } catch { return 'artifact_root_escape'; }
 }
 
-async function assessArtifact(root: string, candidates: string[], validatorId: string, registry: ValidatorRegistry): Promise<ArtifactAssessment> {
+async function withDeadline<T>(operation: () => T | Promise<T>, milliseconds: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(operation),
+      new Promise<T>((_, reject) => { timer = setTimeout(() => reject(new Error('validator_timeout')), milliseconds); }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function assessArtifact(root: string, candidates: string[], validatorId: string, registry: ValidatorRegistry, deadlineMs: number): Promise<ArtifactAssessment> {
   const found = candidates.filter((path) => existsSync(join(root, path)));
   const base = { present: found.length > 0, validated: false, candidate_count: found.length, validator: validatorId };
   if (!found.length) return { ...base, state: 'absent', reason: 'artifact_missing' };
@@ -171,8 +250,12 @@ async function assessArtifact(root: string, candidates: string[], validatorId: s
   if (!validator) return { ...base, state: 'invalid', reason: 'validator_unavailable', selected_path: selected };
   const before = sha(readFileSync(path));
   let outcome: ValidatorOutcome;
-  try { outcome = await validator({ path, project_root: root }); } catch { outcome = { ok: false, identity: validatorId, code: 'validator_nonzero' }; }
-  const outputBytes = Buffer.byteLength(`${outcome.stdout || ''}${outcome.stderr || ''}`, 'utf8');
+  try { outcome = await withDeadline(() => validator({ path, project_root: root }), deadlineMs); }
+  catch (error) { outcome = { ok: false, identity: validatorId, code: error instanceof Error && error.message === 'validator_timeout' ? 'validator_timeout' : 'validator_nonzero' }; }
+  if (!outcome || typeof outcome !== 'object') outcome = { ok: false, identity: validatorId, code: 'validator_nonzero' };
+  const stdout = typeof outcome.stdout === 'string' ? outcome.stdout : '';
+  const stderr = typeof outcome.stderr === 'string' ? outcome.stderr : '';
+  const outputBytes = Buffer.byteLength(stdout, 'utf8') + Buffer.byteLength(stderr, 'utf8');
   const after = existsSync(path) ? sha(readFileSync(path)) : '';
   if (outputBytes > 8192) return { ...base, state: 'invalid', reason: 'validator_output_overflow', selected_path: selected };
   if (after !== before) return { ...base, state: 'invalid', reason: 'validator_mutated', selected_path: selected };
@@ -188,11 +271,12 @@ function requirement(id: string, label: string, ready: boolean, provenance: stri
 export async function projectCapabilities(project: ProjectSummary, route?: Record<string, unknown>, options: CapabilityOptions = {}): Promise<ProjectCapabilities> {
   const cwd = project.cwd || '';
   const registry = options.validatorRegistry || await defaultRegistry();
+  const deadlineMs = Math.max(10, Math.min(5000, Math.trunc(options.validatorDeadlineMs ?? 5000)));
   const artifacts = {
-    capture: cwd ? await assessArtifact(cwd, ['capture.config.json', '.moosh/capture.config.json', '.temperance/guide/capture.config.json', 'docs/guide/capture.config.json'], VALIDATOR_IDS.capture, registry) : { present: false, validated: false, candidate_count: 0, state: 'absent', reason: 'project_unregistered', validator: VALIDATOR_IDS.capture } as ArtifactAssessment,
-    coverage: cwd ? await assessArtifact(cwd, ['.temperance/guide/coverage-matrix.json'], VALIDATOR_IDS.coverage, registry) : { present: false, validated: false, candidate_count: 0, state: 'absent', reason: 'project_unregistered', validator: VALIDATOR_IDS.coverage } as ArtifactAssessment,
-    guide_manifest: cwd ? await assessArtifact(cwd, ['.temperance/guide/guide.manifest.json', '.moosh/guide.manifest.json', 'docs/guide/guide.manifest.json'], VALIDATOR_IDS.guide, registry) : { present: false, validated: false, candidate_count: 0, state: 'absent', reason: 'project_unregistered', validator: VALIDATOR_IDS.guide } as ArtifactAssessment,
-    film_spec: cwd ? await assessArtifact(cwd, ['film.json', '.moosh/film.json', '.temperance/guide/film.json', 'docs/videos/film.json'], VALIDATOR_IDS.film, registry) : { present: false, validated: false, candidate_count: 0, state: 'absent', reason: 'project_unregistered', validator: VALIDATOR_IDS.film } as ArtifactAssessment,
+    capture: cwd ? await assessArtifact(cwd, ['capture.config.json', '.moosh/capture.config.json', '.temperance/guide/capture.config.json', 'docs/guide/capture.config.json'], VALIDATOR_IDS.capture, registry, deadlineMs) : { present: false, validated: false, candidate_count: 0, state: 'absent', reason: 'project_unregistered', validator: VALIDATOR_IDS.capture } as ArtifactAssessment,
+    coverage: cwd ? await assessArtifact(cwd, ['.temperance/guide/coverage-matrix.json'], VALIDATOR_IDS.coverage, registry, deadlineMs) : { present: false, validated: false, candidate_count: 0, state: 'absent', reason: 'project_unregistered', validator: VALIDATOR_IDS.coverage } as ArtifactAssessment,
+    guide_manifest: cwd ? await assessArtifact(cwd, ['.temperance/guide/guide.manifest.json', '.moosh/guide.manifest.json', 'docs/guide/guide.manifest.json'], VALIDATOR_IDS.guide, registry, deadlineMs) : { present: false, validated: false, candidate_count: 0, state: 'absent', reason: 'project_unregistered', validator: VALIDATOR_IDS.guide } as ArtifactAssessment,
+    film_spec: cwd ? await assessArtifact(cwd, ['film.json', '.moosh/film.json', '.temperance/guide/film.json', 'docs/videos/film.json'], VALIDATOR_IDS.film, registry, deadlineMs) : { present: false, validated: false, candidate_count: 0, state: 'absent', reason: 'project_unregistered', validator: VALIDATOR_IDS.film } as ArtifactAssessment,
   };
   const pkg = cwd ? projectPackage(cwd) : null;
   const tools = {

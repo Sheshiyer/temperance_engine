@@ -102,7 +102,7 @@ function validCoverage(): Record<string, unknown> {
       scenarioClass: 'synthetic_or_approved_demo',
       evidenceId: row.evidenceId,
       requiredSelectors: ['[data-testid="parkarea-app-shell"]'],
-      minimumBodyTextChars: 250,
+      minimumBodyTextChars: [250, 400, 250, 300][index],
       semanticProof: { kind: 'w1a_postgres_or_read_only_probe', status: 'pending' },
       sideEffects: row.sideEffects,
       admission: 'blocked',
@@ -1052,7 +1052,7 @@ describe('capability and workflow request v2', () => {
     const ledger = {
       migrate: async () => {}, close: async () => {},
       attest: async (value: Record<string, unknown>) => {
-        expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(0);
+        expect(catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested')).toHaveLength(calls.length === 0 ? 0 : 1);
         calls.push(value);
         return { schema: 'temperance.approval-attestation.response.v1', ok: true, code: 'attested', approval_id: 'apr-guide', attested_at: '2026-08-20T00:00:00.000Z', attestation_id: 'att_fixture' };
       },
@@ -1074,9 +1074,16 @@ describe('capability and workflow request v2', () => {
     const repeated = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
     expect(repeated.status).toBe(200);
     expect(calls).toHaveLength(2);
-    const conflict = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...request, approval_id: 'apr-conflict' }) });
-    expect(conflict.status).toBe(409);
-    expect((await conflict.json() as Record<string, unknown>).code).toBe('request_id_conflict');
+    const conflicts = [
+      { approval_id: 'apr-conflict' }, { run_kind: 'video' }, { plan_id: 'other-plan' }, { option_id: 'other-option' },
+      { policy_hash: 'b'.repeat(64) }, { git_head: 'b'.repeat(40) }, { source_fingerprint: 'b'.repeat(64) },
+      { task_fingerprint: 'b'.repeat(64) }, { scope_hash: 'b'.repeat(64) },
+    ];
+    for (const mutation of conflicts) {
+      const conflict = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...request, ...mutation }) });
+      expect(conflict.status).toBe(409);
+      expect((await conflict.json() as Record<string, unknown>).code).toBe('request_id_conflict');
+    }
     expect(calls).toHaveLength(2);
     const events = catalog.snapshot(project.project_id).recent_events.filter((event) => event.kind === 'workflow.trigger.requested');
     expect(events).toHaveLength(1);
