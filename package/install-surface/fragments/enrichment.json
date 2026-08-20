@@ -1,0 +1,18 @@
+{
+  "schema": "temperance.install-surface.fragment.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
+  "version": { "major": 1, "minor": 0 },
+  "records": [
+    {
+      "id": "enrichment.public-pipeline",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/enrich",
+      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "runtime/enrichment", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    }
+  ]
+}

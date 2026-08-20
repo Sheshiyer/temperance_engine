@@ -1,0 +1,51 @@
+{
+  "schema": "temperance.install-surface.fragment.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
+  "version": { "major": 1, "minor": 0 },
+  "records": [
+    {
+      "id": "hooks.codex.prompt-processing",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/PromptProcessing.hook.ts",
+      "destination": { "root_token": "CODEX_HOME", "relative_path": "hooks/PromptProcessing.hook.ts", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "hooks.codex.gsd-command",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/GSDCommand.hook.ts",
+      "destination": { "root_token": "CODEX_HOME", "relative_path": "hooks/GSDCommand.hook.ts", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "hooks.codex.session-start",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/SessionStart.hook.ts",
+      "destination": { "root_token": "CODEX_HOME", "relative_path": "hooks/SessionStart.hook.ts", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "hooks.claude.prompt-processing",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/claude/PromptProcessing.hook.ts",
+      "destination": { "root_token": "CLAUDE_CONFIG_DIR", "relative_path": "hooks/PromptProcessing.hook.ts", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
+      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    }
+  ]
+}

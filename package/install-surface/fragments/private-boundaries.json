@@ -1,0 +1,57 @@
+{
+  "schema": "temperance.install-surface.fragment.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
+  "version": { "major": 1, "minor": 0 },
+  "records": [
+    {
+      "id": "boundary.provider-authority",
+      "owner": "operator-private-boundary",
+      "class": "NEVER-SHIP",
+      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "exclusions/provider-authority", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-07"], "isa": "ISC-772" },
+      "eligibility": { "platforms": ["darwin", "linux", "win32"], "profiles": ["default"], "required": false },
+      "verification": { "method": "symbolic-exclusion" },
+      "rollback": { "policy": "none-private" }
+    },
+    {
+      "id": "boundary.runtime-datastores",
+      "owner": "operator-private-boundary",
+      "class": "NEVER-SHIP",
+      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "exclusions/runtime-datastores", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-07"], "isa": "ISC-772" },
+      "eligibility": { "platforms": ["darwin", "linux", "win32"], "profiles": ["default"], "required": false },
+      "verification": { "method": "symbolic-exclusion" },
+      "rollback": { "policy": "none-private" }
+    },
+    {
+      "id": "boundary.operator-evidence",
+      "owner": "operator-private-boundary",
+      "class": "NEVER-SHIP",
+      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "exclusions/operator-evidence", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-07"], "isa": "ISC-772" },
+      "eligibility": { "platforms": ["darwin", "linux", "win32"], "profiles": ["default"], "required": false },
+      "verification": { "method": "symbolic-exclusion" },
+      "rollback": { "policy": "none-private" }
+    },
+    {
+      "id": "boundary.native-sessions",
+      "owner": "operator-private-boundary",
+      "class": "NEVER-SHIP",
+      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "exclusions/native-sessions", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-07"], "isa": "ISC-772" },
+      "eligibility": { "platforms": ["darwin", "linux", "win32"], "profiles": ["default"], "required": false },
+      "verification": { "method": "symbolic-exclusion" },
+      "rollback": { "policy": "none-private" }
+    },
+    {
+      "id": "boundary.personal-substrate",
+      "owner": "operator-private-boundary",
+      "class": "NEVER-SHIP",
+      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "exclusions/personal-substrate", "ownership": { "kind": "exclusive-path" } },
+      "authority": { "requirement_ids": ["PROV-02", "PROV-07"], "isa": "ISC-772" },
+      "eligibility": { "platforms": ["darwin", "linux", "win32"], "profiles": ["default"], "required": false },
+      "verification": { "method": "symbolic-exclusion" },
+      "rollback": { "policy": "none-private" }
+    }
+  ]
+}
