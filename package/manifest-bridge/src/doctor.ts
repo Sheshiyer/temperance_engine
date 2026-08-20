@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { ManifestCatalog } from './catalog';
@@ -33,8 +33,6 @@ export interface DoctorOptions {
   omniroute_url?: string;
   home?: string;
   platform?: NodeJS.Platform;
-  record?: boolean;
-  repair_duplicates?: boolean;
 }
 
 function add(checks: DoctorCheck[], id: string, status: DoctorStatus, summary: string, detail?: Record<string, unknown>): void {
@@ -77,35 +75,6 @@ function scanEvents(root: string, checks: DoctorCheck[]): void {
   if (!files.length) add(checks, 'event-log', 'warn', 'No event logs exist yet.', { files: 0 });
   else if (malformed || mismatches || duplicates) add(checks, 'event-log', 'fail', 'Event logs contain malformed, duplicate, or cross-project records.', { files: files.length, events: count, malformed, mismatches, duplicates });
   else add(checks, 'event-log', 'pass', 'All persisted event records normalize and remain project-scoped.', { files: files.length, events: count });
-}
-
-/**
- * Explicit, backup-first repair for exact duplicate IDs. It never touches a
- * malformed file and keeps the first physical occurrence byte-for-byte.
- */
-export function repairDuplicateEvents(root: string): { files: number; removed: number; backups: string[] } {
-  let files = 0; let removed = 0; const backups: string[] = [];
-  for (const entry of eventFiles(root)) {
-    const source = readFileSync(entry.file, 'utf8');
-    const lines = source.split('\n'); const seen = new Set<string>(); const retained: string[] = [];
-    let fileRemoved = 0;
-    for (const line of lines) {
-      if (!line.trim()) { retained.push(line); continue; }
-      let parsed: Record<string, unknown>;
-      try { parsed = JSON.parse(line) as Record<string, unknown>; } catch { throw new Error(`refusing repair: malformed JSONL at ${entry.file}`); }
-      const id = typeof parsed.id === 'string' ? parsed.id : '';
-      if (!id) throw new Error(`refusing repair: event without id at ${entry.file}`);
-      if (seen.has(id)) { fileRemoved += 1; continue; }
-      seen.add(id); retained.push(line);
-    }
-    if (!fileRemoved) continue;
-    const backup = `${entry.file}.bak.doctor-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-    copyFileSync(entry.file, backup);
-    const temporary = `${entry.file}.${process.pid}.${Date.now()}.tmp`;
-    writeFileSync(temporary, retained.join('\n'), 'utf8'); renameSync(temporary, entry.file);
-    files += 1; removed += fileRemoved; backups.push(backup);
-  }
-  return { files, removed, backups };
 }
 
 function checkPolicy(root: string, checks: DoctorCheck[]): void {
@@ -181,12 +150,6 @@ export async function runManifestDoctor(options: DoctorOptions): Promise<DoctorR
   const bridgeUrl = options.bridge_url || process.env.TEMPERANCE_MANIFEST_BRIDGE_URL || 'http://127.0.0.1:8766';
   const consoleUrl = options.console_url || process.env.TEMPERANCE_MANIFEST_CONSOLE_URL || 'http://127.0.0.1:5173';
   const checks: DoctorCheck[] = [];
-  if (options.repair_duplicates) {
-    try {
-      const repaired = repairDuplicateEvents(root);
-      add(checks, 'duplicate-repair', repaired.removed ? 'pass' : 'warn', repaired.removed ? 'Removed exact duplicate event IDs with timestamped backups.' : 'No duplicate event IDs required repair.', { files: repaired.files, removed: repaired.removed, backups: repaired.backups.length });
-    } catch (error) { add(checks, 'duplicate-repair', 'fail', error instanceof Error ? error.message : String(error)); }
-  }
   if (!existsSync(root)) add(checks, 'state-root', 'fail', 'Manifest state root does not exist.', { path: root });
   else add(checks, 'state-root', 'pass', 'Manifest state root is readable.', { path: root });
   checkPolicy(root, checks); checkRegistry(root, checks); checkRuns(root, checks);
@@ -201,10 +164,6 @@ export async function runManifestDoctor(options: DoctorOptions): Promise<DoctorR
   checkHooks(options.home || homedir(), checks);
   const overall: DoctorStatus = checks.some((check) => check.status === 'fail') ? 'fail' : checks.some((check) => check.status === 'warn') ? 'warn' : 'pass';
   const report: DoctorReport = { schema: 'temperance.manifest.doctor.v1', generated_at: new Date().toISOString(), overall, exit_code: overall === 'fail' ? 2 : 0, state_dir: root, bridge_url: bridgeUrl.replace(/\/$/, ''), checks };
-  if (options.record) {
-    const directory = join(root, 'diagnostics'); mkdirSync(directory, { recursive: true });
-    writeFileSync(join(directory, `doctor-${report.generated_at.replace(/[:.]/g, '-')}.json`), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  }
   return report;
 }
 

@@ -12,7 +12,7 @@ import { RuntimeWatcher } from '../src/watcher';
 import { hookInputToEvent } from '../src/hook-adapter';
 import { activateAlgorithmRun, activeRunFor, classificationFromContext, closeAlgorithmRun, loadActivationPolicy, publishActivationEvent, resolveAlgorithmActivation } from '../src/activation';
 import { formatManifestRuntimeContext, formatPaiModeOffer, manifestRuntimeReceipt } from '../src/runtime-status';
-import { formatDoctorReport, repairDuplicateEvents, runManifestDoctor } from '../src/doctor';
+import { formatDoctorReport, runManifestDoctor } from '../src/doctor';
 import { ManifestDiagnostics } from '../src/diagnostics';
 import { readCodeGraphStatus } from '../src/codegraph';
 import * as capabilityModule from '../src/capabilities';
@@ -344,7 +344,7 @@ describe('manifest event plane', () => {
     expect(formatManifestRuntimeContext(receipt)).toContain('☿ MANIFEST · OFFLINE');
   });
 
-  test('doctor validates event integrity, runtime reachability, and safe persisted reports', async () => {
+  test('doctor validates event integrity and runtime reachability without persisting reports', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-doctor-'));
     dirs.push(root);
     writeFileSync(join(root, 'activation-policy.json'), JSON.stringify({ schema: 'temperance.manifest.activation-policy.v1', enabled: true, allowed_roots: ['/portfolio'] }));
@@ -353,12 +353,13 @@ describe('manifest event plane', () => {
     const server = new ManifestServer(catalog); const address = await server.listen(0);
     const gateway = Bun.serve({ port: 0, fetch: () => new Response('{}', { status: 401 }) });
     const console = Bun.serve({ port: 0, fetch: () => new Response('<html><div id="root"></div></html>') });
-    const report = await runManifestDoctor({ state_dir: root, bridge_url: `http://${address.host}:${address.port}`, omniroute_url: `http://127.0.0.1:${gateway.port}`, console_url: `http://127.0.0.1:${console.port}`, home: root, platform: 'linux', record: true });
+    const before = readdirSync(root).sort();
+    const report = await runManifestDoctor({ state_dir: root, bridge_url: `http://${address.host}:${address.port}`, omniroute_url: `http://127.0.0.1:${gateway.port}`, console_url: `http://127.0.0.1:${console.port}`, home: root, platform: 'linux' });
     expect(report.overall).toBe('warn');
     expect(report.checks.find((check) => check.id === 'event-log')?.status).toBe('pass');
     expect(report.checks.find((check) => check.id === 'console-health')?.status).toBe('pass');
     expect(formatDoctorReport(report, true)).toContain('MANIFEST DOCTOR · WARN');
-    expect(readdirSync(join(root, 'diagnostics')).some((name) => name.startsWith('doctor-'))).toBe(true);
+    expect(readdirSync(root).sort()).toEqual(before);
     gateway.stop(); console.stop(); await server.close();
   });
 
@@ -369,17 +370,6 @@ describe('manifest event plane', () => {
     expect(report.overall).toBe('fail');
     expect(report.exit_code).toBe(2);
     expect(report.checks.find((check) => check.id === 'event-log')?.status).toBe('fail');
-  });
-
-  test('repairs only exact duplicate event IDs after taking a recoverable backup', () => {
-    const root = mkdtempSync(join(tmpdir(), 'temperance-doctor-repair-'));
-    dirs.push(root); const file = join(root, 'events.jsonl');
-    writeFileSync(file, `${JSON.stringify({ id: 'same', source: 'manifest', kind: 'fixture', status: 'synthetic', payload: {} })}\n${JSON.stringify({ id: 'same', source: 'manifest', kind: 'fixture', status: 'synthetic', payload: {} })}\n`);
-    const repaired = repairDuplicateEvents(root);
-    expect(repaired.removed).toBe(1);
-    expect(repaired.backups).toHaveLength(1);
-    expect(readFileSync(file, 'utf8').match(/"same"/g)).toHaveLength(1);
-    expect(readFileSync(repaired.backups[0], 'utf8').match(/"same"/g)).toHaveLength(2);
   });
 
   test('writes only allowlisted metadata to opt-in rotating debug telemetry', () => {

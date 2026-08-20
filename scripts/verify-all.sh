@@ -15,6 +15,7 @@ if ! command -v bun >/dev/null 2>&1; then
 fi
 
 run ./verify.sh
+run bun test package/install-surface
 run bun test package/enrich
 run bun test package/adapters/command-code/context-sources-line.test.ts
 run bash tests/command-code-context-sources.sh

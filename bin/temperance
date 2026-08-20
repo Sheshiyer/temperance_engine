@@ -12,4 +12,4 @@ for argument in "$@"; do
   esac
 done
 
-exec "$ROOT_DIR/bin/temperance" doctor "$@"
+exec bun run "$ROOT_DIR/package/install-surface/src/cli.ts" "$@"

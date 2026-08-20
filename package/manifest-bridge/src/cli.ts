@@ -17,7 +17,7 @@ function arg(name: string, fallback: string): string {
 }
 
 function usage(): void {
-  console.log('Usage: bun run src/cli.ts <init|sync|serve|emit|hook|snapshot|projects|doctor|debug> [--cwd PATH] [--all] [--port PORT] [--no-watch] [--json] [--verbose] [--record] [--repair-duplicates]');
+  console.log('Usage: bun run src/cli.ts <init|sync|serve|emit|hook|snapshot|projects|doctor|debug> [--cwd PATH] [--all] [--port PORT] [--no-watch] [--json] [--verbose]');
 }
 
 async function main(): Promise<void> {
@@ -25,7 +25,12 @@ async function main(): Promise<void> {
   const catalog = new ManifestCatalog(stateDir);
   const cwd = resolve(arg('--cwd', process.cwd()));
   if (command === 'doctor') {
-    const report = await runManifestDoctor({ state_dir: stateDir, bridge_url: arg('--bridge-url', process.env.TEMPERANCE_MANIFEST_BRIDGE_URL || 'http://127.0.0.1:8766'), console_url: arg('--console-url', process.env.TEMPERANCE_MANIFEST_CONSOLE_URL || 'http://127.0.0.1:5173'), record: process.argv.includes('--record'), repair_duplicates: process.argv.includes('--repair-duplicates') });
+    if (process.argv.includes('--record') || process.argv.includes('--repair-duplicates')) {
+      console.error('Manifest doctor is permanently read-only; repair and recording move to separately governed Phase 3 lifecycle commands.');
+      process.exitCode = 2;
+      return;
+    }
+    const report = await runManifestDoctor({ state_dir: stateDir, bridge_url: arg('--bridge-url', process.env.TEMPERANCE_MANIFEST_BRIDGE_URL || 'http://127.0.0.1:8766'), console_url: arg('--console-url', process.env.TEMPERANCE_MANIFEST_CONSOLE_URL || 'http://127.0.0.1:5173') });
     console.log(process.argv.includes('--json') ? JSON.stringify(report, null, 2) : formatDoctorReport(report, process.argv.includes('--verbose')));
     process.exitCode = report.exit_code;
     return;
