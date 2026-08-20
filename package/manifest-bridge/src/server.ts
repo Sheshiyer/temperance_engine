@@ -356,7 +356,11 @@ export class ManifestServer {
         const sourceFingerprint = fingerprint(plan.source_fingerprints || []);
         const taskFingerprint = fingerprint(option.tasks || []);
         const receipt = { approval_id: approvalId, plan_id: planId, option_id: optionId, policy_hash: policyHash, expires_at: expiresAt, approved_at: new Date().toISOString(), actor: 'local-operator' };
-        const scopeHash = this.controlLedger ? scopeBindingFromProject(project).scope_hash : '';
+        let scopeHash = '';
+        if (this.controlLedger) {
+          try { scopeHash = scopeBindingFromProject(project).scope_hash; }
+          catch { json(res, 409, { accepted: false, code: 'approval_scope_unavailable' }); return; }
+        }
         if (this.controlLedger?.recordApproval) await this.controlLedger.recordApproval({ approval_id: approvalId, project_id: projectId, project_cwd: project.cwd, plan_id: planId, option_id: optionId, policy_hash: policyHash, git_head: gitHead, source_fingerprint: sourceFingerprint, task_fingerprint: taskFingerprint, scope_hash: scopeHash, combo: String(option.combo || ''), concurrency: Number(option.concurrency || 0), worktree_required: option.worktree_required === true, expires_at: expiresAt || new Date(Date.now() + 60_000).toISOString() });
         const path = join(project.cwd, '.planning', 'APPROVALS.json');
         let receipts: Record<string, unknown>[] = [];
@@ -366,7 +370,7 @@ export class ManifestServer {
         writeFileSync(path, `${JSON.stringify({ schema: 'temperance.approvals.v1', approvals: receipts }, null, 2)}\n`, 'utf8');
         const result = this.store.ingest({ source: 'manifest', kind: 'approval.granted', status: 'observed', project_id: projectId, correlation_id: planId, actor: 'local-operator', payload: receipt, evidence: [{ label: 'approval-receipt', path }] });
         json(res, result.error ? 400 : 201, { ...result, receipt });
-      } catch (error) { json(res, 409, { accepted: false, error: error instanceof Error ? error.message : String(error) }); }
+      } catch { json(res, 409, { accepted: false, code: 'approval_request_failed' }); }
       return;
     }
     if (req.method === 'POST' && url.pathname === '/dispatches') {

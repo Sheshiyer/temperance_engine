@@ -90,41 +90,83 @@ function boundedStrings(value: unknown, allowEmpty = false): value is string[] {
   return Array.isArray(value) && (allowEmpty || value.length > 0) && value.every((item) => typeof item === 'string' && item.length > 0 && item.length <= 240);
 }
 
+const PARKAREA_REQUIREMENTS = ['SCOPE-01', 'SCOPE-02', 'SCOPE-03', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-01', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'CAP-03', 'CAP-04', 'CAP-05', 'CAP-06', 'CAP-07', 'CAP-08', 'CAP-09', 'DATA-02', 'DATA-03', 'DATA-04', 'DATA-05', 'GUIDE-01'] as const;
+const PARKAREA_EDITION_REQUIREMENTS = ['SCOPE-01', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'GUIDE-01'] as const;
 const PARKAREA_COVERAGE_ROWS = [
-  { evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250, sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' } },
-  { evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 400, sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' } },
-  { evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250, sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' } },
-  { evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300, sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' } },
+  {
+    evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
+    requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
+    claim: { de: 'Authentifizierte Suchergebnisse zeigen nicht leere Parkmöglichkeiten im freigegebenen Demo-Szenario.', en: 'Authenticated discovery shows nonempty parking results in the approved demo scenario.' },
+    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-suchen"]', '[data-testid="text-result-count"]', '[data-testid^="card-result-"]', '[data-testid^="text-result-name-"]'],
+    sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' }, claimClassification: 'isolated',
+  },
+  {
+    evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 400,
+    requirementIds: ['CAP-04', 'CAP-06', 'CAP-07', 'DATA-03', 'DATA-05'],
+    claim: { de: 'Ein aktives Inserat zeigt Verfügbarkeit, Preisangebot, Gesamtpreis und Buchungsbereitschaft ohne Buchung.', en: 'An active listing shows availability, quote, total, and booking readiness without creating a booking.' },
+    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
+    sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }, claimClassification: 'isolated',
+  },
+  {
+    evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
+    requirementIds: ['CAP-08', 'DATA-02'],
+    claim: { de: 'Die Buchungsansicht zeigt eine vorhandene mandantensichere Buchung des Suchenden.', en: 'The bookings view shows an existing tenant-safe Seeker booking.' },
+    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="dashboard-sidebar"]', '[data-testid="button-nav-bookings"]', '[data-testid="bookings-view"]', '[data-testid="input-search-bookings"]', '[data-testid^="button-booking-details-"]', '[data-recurring-bookings-state="settled"]'],
+    sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' }, claimClassification: 'read-only',
+  },
+  {
+    evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300,
+    requirementIds: ['SCOPE-03', 'CAP-09'],
+    claim: { de: 'Der Moderationsverlauf zeigt die Freigabe desselben aktiven Inserats ohne Änderung.', en: 'Moderation history shows approval of the same active listing without changing it.' },
+    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
+    sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' }, claimClassification: 'read-only',
+  },
 ] as const;
 
-export function validateParkAreaCoverageContract(input: unknown): boolean {
+function sameStrings(value: unknown, expected: readonly string[]): boolean {
+  return Array.isArray(value) && value.length === expected.length && value.every((item, index) => item === expected[index]);
+}
+
+export function validateParkAreaCoverageContract(input: unknown, trusted: { capture: unknown; claimMap: unknown }): boolean {
   const value = record(input);
+  const capture = record(trusted?.capture);
+  const claimMap = record(trusted?.claimMap);
   if (!value || !exactKeys(value, ['schemaVersion', 'edition', 'metadata', 'requirements', 'steps']) || value.schemaVersion !== 1) return false;
+  if (!capture || capture.schemaVersion !== 1 || capture.project !== 'parkarea-aleph' || !Array.isArray(capture.shots) || capture.shots.length !== PARKAREA_COVERAGE_ROWS.length) return false;
+  if (!claimMap || claimMap.schema !== 'parkarea.guide.claim-evidence-map.v1' || !Array.isArray(claimMap.claims) || claimMap.claims.length !== PARKAREA_COVERAGE_ROWS.length) return false;
   const edition = record(value.edition);
   if (!edition || !exactKeys(edition, ['audience', 'primaryPersona', 'primaryLocale', 'secondaryLocale', 'media', 'publication', 'requirementIds'])
     || edition.audience !== 'internal_qa_operators' || edition.primaryPersona !== 'seeker' || edition.primaryLocale !== 'de' || edition.secondaryLocale !== 'en'
-    || edition.media !== 'deterministic_stills' || edition.publication !== 'private_only' || !boundedStrings(edition.requirementIds, true)) return false;
+    || edition.media !== 'deterministic_stills' || edition.publication !== 'private_only' || !sameStrings(edition.requirementIds, PARKAREA_EDITION_REQUIREMENTS)) return false;
   const metadata = record(value.metadata);
   if (!metadata || !exactKeys(metadata, ['freshContextPerShot', 'runnerContract']) || metadata.freshContextPerShot !== true || metadata.runnerContract !== 'canonical_shared_runner_new_browser_context_per_shot') return false;
-  if (!boundedStrings(value.requirements, true) || !Array.isArray(value.steps) || value.steps.length !== PARKAREA_COVERAGE_ROWS.length) return false;
+  if (!sameStrings(value.requirements, PARKAREA_REQUIREMENTS) || !Array.isArray(value.steps) || value.steps.length !== PARKAREA_COVERAGE_ROWS.length) return false;
 
   return value.steps.every((candidate, index) => {
     const step = record(candidate);
+    const shot = record(capture.shots[index]);
+    const claimRow = record(claimMap.claims[index]);
     const expected = PARKAREA_COVERAGE_ROWS[index];
-    if (!step || !exactKeys(step, ['order', 'stepId', 'checkpointKind', 'requirementIds', 'claim', 'route', 'persona', 'locales', 'tenantAuthority', 'scenarioClass', 'evidenceId', 'requiredSelectors', 'minimumBodyTextChars', 'semanticProof', 'sideEffects', 'admission'])) return false;
+    if (!step || !shot || !claimRow || !exactKeys(step, ['order', 'stepId', 'checkpointKind', 'requirementIds', 'claim', 'route', 'persona', 'locales', 'tenantAuthority', 'scenarioClass', 'evidenceId', 'requiredSelectors', 'minimumBodyTextChars', 'semanticProof', 'sideEffects', 'admission'])) return false;
     const claim = record(step.claim);
     const proof = record(step.semanticProof);
+    const correlation = record(claimRow.correlation);
+    const claimSideEffects = record(claimRow.sideEffects);
     const effects = Array.isArray(step.sideEffects) ? step.sideEffects : [];
     const effect = effects.length === 1 ? record(effects[0]) : null;
     return step.order === index + 1 && step.stepId === expected.evidenceId && step.evidenceId === expected.evidenceId
       && step.checkpointKind === expected.checkpointKind && step.route === expected.route && step.persona === expected.persona
       && step.minimumBodyTextChars === expected.minimumBodyTextChars && step.tenantAuthority === 'authenticated_session'
       && step.scenarioClass === 'synthetic_or_approved_demo' && step.admission === 'blocked'
-      && boundedStrings(step.requirementIds, true) && boundedStrings(step.requiredSelectors)
+      && sameStrings(step.requirementIds, expected.requirementIds) && sameStrings(step.requiredSelectors, expected.selectors)
       && Array.isArray(step.locales) && step.locales.length === 2 && step.locales[0] === 'de' && step.locales[1] === 'en'
-      && Boolean(claim) && exactKeys(claim!, ['de', 'en']) && typeof claim!.de === 'string' && claim!.de.length > 0 && typeof claim!.en === 'string' && claim!.en.length > 0
+      && Boolean(claim) && exactKeys(claim!, ['de', 'en']) && claim!.de === expected.claim.de && claim!.en === expected.claim.en
       && Boolean(proof) && exactKeys(proof!, ['kind', 'status']) && proof!.kind === 'w1a_postgres_or_read_only_probe' && proof!.status === 'pending'
-      && Boolean(effect) && exactKeys(effect!, ['kind', 'status']) && effect!.kind === expected.sideEffect.kind && effect!.status === expected.sideEffect.status;
+      && Boolean(effect) && exactKeys(effect!, ['kind', 'status']) && effect!.kind === expected.sideEffect.kind && effect!.status === expected.sideEffect.status
+      && shot.id === expected.evidenceId && shot.route === expected.route && shot.persona === expected.persona && shot.minimumBodyTextChars === expected.minimumBodyTextChars && sameStrings(shot.requiredSelectors, expected.selectors)
+      && claimRow.order === index + 1 && claimRow.evidenceId === expected.evidenceId && record(claimRow.proof)?.kind === 'postgres_postgis'
+      && Boolean(correlation) && correlation!.persona === expected.persona && correlation!.tenantAuthority === 'authenticated_session'
+      && Boolean(claimSideEffects) && claimSideEffects!.classification === expected.claimClassification;
   });
 }
 
@@ -170,13 +212,20 @@ function hasDependency(pkg: Record<string, unknown> | null, name: string): boole
   });
 }
 
+function readConfinedJson(root: string, relativePath: string): unknown {
+  const target = join(root, relativePath);
+  if (safeCandidate(root, target) !== 'safe' || lstatSync(target).size > 1_000_000) throw new Error('trusted_contract_unavailable');
+  return JSON.parse(readFileSync(target, 'utf8')) as unknown;
+}
+
 async function defaultRegistry(): Promise<ValidatorRegistry> {
   const capturePath = join(homedir(), '.agents', 'skill-clusters', 'skills', 'product-guides-core', 'scripts', 'capture-contract.mjs');
   const guidePath = join(homedir(), '.agents', 'skill-clusters', 'skills', 'build-product-user-guides', 'scripts', 'validate_guide.py');
-  const coverage: Validator = ({ path }) => {
+  const coverage: Validator = ({ path, project_root }) => {
     try {
       const value = JSON.parse(readFileSync(path, 'utf8')) as unknown;
-      return { ok: validateParkAreaCoverageContract(value), identity: VALIDATOR_IDS.coverage, code: 'invalid_content' };
+      const trusted = { capture: readConfinedJson(project_root, GUIDE_SCOPE_PATHS[0]), claimMap: readConfinedJson(project_root, GUIDE_SCOPE_PATHS[3]) };
+      return { ok: validateParkAreaCoverageContract(value, trusted), identity: VALIDATOR_IDS.coverage, code: 'invalid_content' };
     } catch { return { ok: false, identity: VALIDATOR_IDS.coverage, code: 'invalid_content' }; }
   };
   const film: Validator = ({ path }) => {
