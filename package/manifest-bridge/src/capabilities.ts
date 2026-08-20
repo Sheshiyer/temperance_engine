@@ -92,34 +92,40 @@ function boundedStrings(value: unknown, allowEmpty = false): value is string[] {
 
 const PARKAREA_REQUIREMENTS = ['SCOPE-01', 'SCOPE-02', 'SCOPE-03', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-01', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'CAP-03', 'CAP-04', 'CAP-05', 'CAP-06', 'CAP-07', 'CAP-08', 'CAP-09', 'DATA-02', 'DATA-03', 'DATA-04', 'DATA-05', 'GUIDE-01'] as const;
 const PARKAREA_EDITION_REQUIREMENTS = ['SCOPE-01', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'GUIDE-01'] as const;
+const PARKAREA_FORBIDDEN_EFFECTS = ['booking', 'payment', 'ledger', 'notification', 'audit', 'request_log', 'payout', 'transactional_email', 'external_provider'] as const;
+const PARKAREA_PROOF_FILE = 'server/__tests__/postgres/guide-claim-evidence.pg.test.ts';
 const PARKAREA_COVERAGE_ROWS = [
   {
     evidenceId: 'seeker-search-results', route: '/parkplatz-suchen?lat=__W1A_LAT__&lng=__W1A_LNG__&radius_km=__W1A_RADIUS_KM__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
     requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
     claim: { de: 'Authentifizierte Suchergebnisse zeigen nicht leere Parkmöglichkeiten im freigegebenen Demo-Szenario.', en: 'Authenticated discovery shows nonempty parking results in the approved demo scenario.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-suchen"]', '[data-testid="text-result-count"]', '[data-testid^="card-result-"]', '[data-testid^="text-result-name-"]'],
-    sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' }, claimClassification: 'isolated',
+    sideEffect: { kind: 'search_analytics', status: 'blocked_pending_w1a' }, claimClassification: 'isolated', claimRoute: '/api/v1/search', claimAllowed: ['search_analytics:+1'],
+    claimTestName: 'authenticated seeker search returns nonempty tenant-scoped PostGIS ordered active results',
   },
   {
     evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 400,
     requirementIds: ['CAP-04', 'CAP-06', 'CAP-07', 'DATA-03', 'DATA-05'],
     claim: { de: 'Ein aktives Inserat zeigt Verfügbarkeit, Preisangebot, Gesamtpreis und Buchungsbereitschaft ohne Buchung.', en: 'An active listing shows availability, quote, total, and booking readiness without creating a booking.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
-    sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }, claimClassification: 'isolated',
+    sideEffect: { kind: 'listing_view_telemetry', status: 'blocked_pending_w1a' }, claimClassification: 'isolated', claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimAllowed: ['listing_view_events:view:+1'],
+    claimTestName: 'active listing detail, calendar, and quote are tenant-scoped and do not create a booking',
   },
   {
     evidenceId: 'seeker-existing-bookings', route: '/dashboard?tab=bookings', persona: 'seeker', checkpointKind: 'seeker', minimumBodyTextChars: 250,
     requirementIds: ['CAP-08', 'DATA-02'],
     claim: { de: 'Die Buchungsansicht zeigt eine vorhandene mandantensichere Buchung des Suchenden.', en: 'The bookings view shows an existing tenant-safe Seeker booking.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="dashboard-sidebar"]', '[data-testid="button-nav-bookings"]', '[data-testid="bookings-view"]', '[data-testid="input-search-bookings"]', '[data-testid^="button-booking-details-"]', '[data-recurring-bookings-state="settled"]'],
-    sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' }, claimClassification: 'read-only',
+    sideEffect: { kind: 'bookings_read', status: 'read_only_pending_w1a' }, claimClassification: 'read-only', claimRoute: '/api/v1/me/bookings', claimAllowed: [],
+    claimTestName: 'seeker booking history reads persisted tenant-owned bookings and excludes another tenant',
   },
   {
     evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300,
     requirementIds: ['SCOPE-03', 'CAP-09'],
     claim: { de: 'Der Moderationsverlauf zeigt die Freigabe desselben aktiven Inserats ohne Änderung.', en: 'Moderation history shows approval of the same active listing without changing it.' },
     selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
-    sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' }, claimClassification: 'read-only',
+    sideEffect: { kind: 'admin_audit_read', status: 'read_only_pending_w1a' }, claimClassification: 'read-only', claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimAllowed: [],
+    claimTestName: 'admin listing readiness and persisted approval audit are readable for the same tenant without mutation',
   },
 ] as const;
 
@@ -150,10 +156,15 @@ export function validateParkAreaCoverageContract(input: unknown, trusted: { capt
     if (!step || !shot || !claimRow || !exactKeys(step, ['order', 'stepId', 'checkpointKind', 'requirementIds', 'claim', 'route', 'persona', 'locales', 'tenantAuthority', 'scenarioClass', 'evidenceId', 'requiredSelectors', 'minimumBodyTextChars', 'semanticProof', 'sideEffects', 'admission'])) return false;
     const claim = record(step.claim);
     const proof = record(step.semanticProof);
+    const claimProof = record(claimRow.proof);
     const correlation = record(claimRow.correlation);
     const claimSideEffects = record(claimRow.sideEffects);
     const effects = Array.isArray(step.sideEffects) ? step.sideEffects : [];
     const effect = effects.length === 1 ? record(effects[0]) : null;
+    if (!exactKeys(claimRow, ['order', 'evidenceId', 'proof', 'correlation', 'sideEffects'])
+      || !claimProof || !exactKeys(claimProof, ['kind', 'file', 'testName'])
+      || !correlation || !exactKeys(correlation, ['route', 'persona', 'tenantAuthority'])
+      || !claimSideEffects || !exactKeys(claimSideEffects, ['classification', 'allowed', 'forbidden'])) return false;
     return step.order === index + 1 && step.stepId === expected.evidenceId && step.evidenceId === expected.evidenceId
       && step.checkpointKind === expected.checkpointKind && step.route === expected.route && step.persona === expected.persona
       && step.minimumBodyTextChars === expected.minimumBodyTextChars && step.tenantAuthority === 'authenticated_session'
@@ -164,9 +175,10 @@ export function validateParkAreaCoverageContract(input: unknown, trusted: { capt
       && Boolean(proof) && exactKeys(proof!, ['kind', 'status']) && proof!.kind === 'w1a_postgres_or_read_only_probe' && proof!.status === 'pending'
       && Boolean(effect) && exactKeys(effect!, ['kind', 'status']) && effect!.kind === expected.sideEffect.kind && effect!.status === expected.sideEffect.status
       && shot.id === expected.evidenceId && shot.route === expected.route && shot.persona === expected.persona && shot.minimumBodyTextChars === expected.minimumBodyTextChars && sameStrings(shot.requiredSelectors, expected.selectors)
-      && claimRow.order === index + 1 && claimRow.evidenceId === expected.evidenceId && record(claimRow.proof)?.kind === 'postgres_postgis'
-      && Boolean(correlation) && correlation!.persona === expected.persona && correlation!.tenantAuthority === 'authenticated_session'
-      && Boolean(claimSideEffects) && claimSideEffects!.classification === expected.claimClassification;
+      && claimRow.order === index + 1 && claimRow.evidenceId === expected.evidenceId
+      && claimProof.kind === 'postgres_postgis' && claimProof.file === PARKAREA_PROOF_FILE && claimProof.testName === expected.claimTestName
+      && correlation.route === expected.claimRoute && correlation.persona === expected.persona && correlation.tenantAuthority === 'authenticated_session'
+      && claimSideEffects.classification === expected.claimClassification && sameStrings(claimSideEffects.allowed, expected.claimAllowed) && sameStrings(claimSideEffects.forbidden, PARKAREA_FORBIDDEN_EFFECTS);
   });
 }
 
