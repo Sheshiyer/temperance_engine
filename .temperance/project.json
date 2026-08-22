@@ -3,13 +3,14 @@
   "name": "temperance_engine",
   "cwd": ".",
   "github": "Sheshiyer/temperance_engine",
-  "generated_at": "2026-08-16T19:34:55.778Z",
+  "generated_at": "2026-08-22T01:15:59.062Z",
   "host_runtime": {
     "temperance_home": "/Users/sheshnarayaniyer/.temperance_engine",
     "opencode": "/Users/sheshnarayaniyer/.config/opencode",
     "omniroute": "http://127.0.0.1:20128",
     "proxy": "http://127.0.0.1:20129"
   },
+  "active_planner": "isa",
   "ownership": {
     "models_routing": "host",
     "credentials": "host",
@@ -25,12 +26,27 @@
     "fleet_combo": "te-dispatch-paid",
     "batch": "temperance-batch"
   },
+  "planning": {
+    "github_project": null,
+    "teamforge": {
+      "project_id": null,
+      "client_id": null
+    },
+    "horizons": {
+      "long": "",
+      "short": ""
+    }
+  },
   "checks": {
     "host_ready": true,
     "has_planning": true,
     "has_isa": true,
-    "has_codegraph": false
+    "has_codegraph": false,
+    "github_project": false
   },
-  "active_planner": "isa",
-  "docs_map": "docs/README.md"
+  "hands_init": {
+    "display": "temperance \u00b7 engine",
+    "cloudflare_profile": "personal",
+    "aws_profile": null
+  }
 }
