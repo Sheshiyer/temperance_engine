@@ -1,7 +1,7 @@
 {
   "schema": "temperance.orchestration.v1",
-  "plan_id": "plan_7d352c5be7f9fd51db08",
-  "state": "awaiting_approval",
+  "plan_id": "plan_7779dfa5d14f432ca1a3",
+  "state": "draft",
   "mapping": {
     "policy_hash": "f41f6873f99821c46610410fd977e0b454cbc60fd898ef6e8d06c4333bc32605",
     "phase_combo_map": "temperance.phase-combo-map.v2",
@@ -10,7 +10,47 @@
   "source_fingerprints": [
     {
       "path": ".planning/STATE.md",
-      "fingerprint": "0cacfc97ce10f2d5c56dd7dab09583d4a2a724aa20c8199eaf766c3e731b1cd3"
+      "fingerprint": "2ed1bb22dc14d3d7f761e515600c46f2ca8651985c4731839446bf46aa724735"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-01-PLAN.md",
+      "fingerprint": "c4b27687c3db6a807860c65a6cdaf10450505abb1faa25df9b31fb8b324207bf"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-02-PLAN.md",
+      "fingerprint": "a846a62fb3a3b7124510043e456234d1463bd38d72a6a0dab76f69c60791c537"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-03-PLAN.md",
+      "fingerprint": "dc290bf1bd377bae50c8a807e405aae72697d576e104996b8baa4d38a1dde748"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-CONTEXT.md",
+      "fingerprint": "1fbef3c0b4e0196f20a942918b1e79363139138cd592d96881d6f753f44ccc07"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-DISCUSSION-LOG.md",
+      "fingerprint": "05ca6c6cfa7c97ed1ff54ecf3a548451f02d227db5e13fd1c480ce11fc775ddf"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-PATTERNS.md",
+      "fingerprint": "6ab0703cc5d240c300883e2714d359d6cd7464ebd4d7db4502c537d978f8651e"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-PLAN-CHECK.md",
+      "fingerprint": "4ba4b261699ec3d5ec83bceed435d2e7ea490ae3d4c4f3f97778c779202369c4"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-RESEARCH.md",
+      "fingerprint": "e1a61ba2864c0ed6b9a46d4d4c7df95519aa04d0ce0e383725d1db2925815586"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-VALIDATION.md",
+      "fingerprint": "7382ad85c489c6baebd9140ecf90c0523d152e3e37b165bca7f06f85f9a9cd3a"
+    },
+    {
+      "path": ".planning/phases/01-provenance-contract-and-read-only-control-plane/01-VERIFICATION.md",
+      "fingerprint": "639167f3ce87900a3182676cc12e1d91d94191aede391169cd4f2e2aea7567d0"
     },
     {
       "path": "docs/superpowers/plans/2026-08-14-manifest-algorithm-activation-hardening.md",
@@ -37,8 +77,12 @@
       "fingerprint": "ee909c7b5ab079c0f22d33665d0ac2aa8bd7b6fd98f88c97b35ad78b81a759aa"
     },
     {
+      "path": "docs/plans/2026-08-19-mac-mini-to-public-temperance-glove-audit.md",
+      "fingerprint": "f77131fad98a8379ef79548a00e49abbf68227ded428fcee26be436dc21c602d"
+    },
+    {
       "path": "docs/plans/README.md",
-      "fingerprint": "f8b62d6cf55e54e7ca0ecae1c638df0e0a2fa4ecdf531af8371607f1297cbe02"
+      "fingerprint": "0e955a5430a3cf82ae337c1854463dc86f214b1b5e067a681395c19da86a4dd5"
     },
     {
       "path": "docs/plans/2026-06-12-temperance-engine.md",
@@ -57,10 +101,6 @@
       "fingerprint": "e8ad1ec3e61d0a3efa963a2f9aa157ded98beaa3d3914b7dac9177c2217dbfca"
     },
     {
-      "path": "docs/plans/2026-08-03-vault-project-relocation.md",
-      "fingerprint": "7670d1071fd169edf8839a67ef115d5e494eecddec68766697e48a73aa6440cd"
-    },
-    {
       "path": "tasks/todo.md",
       "fingerprint": "9e22d59e5bbadfcaa224a4ec6dd13d26ef78a05ec2ec3530171a8ab4e57196b6"
     },
@@ -70,44 +110,20 @@
     },
     {
       "path": ".planning/ROADMAP.md",
-      "fingerprint": "f4c6a7bc505a532521378fe580f674edc405415fce45cf3720a2e82e73222ef0"
+      "fingerprint": "74685892eb0b3264ff8f7361b26e503a90f6ddba00f535841b8f762746a9410d"
     },
     {
       "path": ".planning/PROJECT.md",
-      "fingerprint": "3995ec0d892d411b2dcb6fcf8ad8366117d9c2f3f94413d671400e7d2f4751ba"
+      "fingerprint": "96019865e5139f46a60688c891c7833f7793b93aa7cdc5c20a08ef87915a94ad"
     },
     {
       "path": ".planning/REQUIREMENTS.md",
-      "fingerprint": "905b0be2441e14e888172f8a7a2aff1c33db43aae3387e5e4b1cb8476be43786"
+      "fingerprint": "ec24da54cfe727a4fb489967a7243dc1819a0b981c0516a8e2238d0a74732554"
     }
   ],
   "research": [],
-  "options": [
-    {
-      "option_id": "opt_a81fb51f1e5efc5a81d9",
-      "label": "Execute the proposed next task",
-      "recommendation": true,
-      "rationale": "phase \"Task 1: Test activation and project identity boundaries\" has 18 open tasks; take next batch",
-      "tasks": [
-        {
-          "id": "L1",
-          "parallel": false,
-          "desc": "Write failing tests for Algorithm-only acceptance, Git-root normalization, rejected roots, unenrolled candidates, active-run persistence, and closed-run rejection.",
-          "phase": "Task 1: Test activation and project identity boundaries",
-          "source": "docs/superpowers/plans/2026-08-14-manifest-algorithm-activation-hardening.md"
-        }
-      ],
-      "combo": "te-build",
-      "concurrency": 1,
-      "worktree_required": false
-    }
-  ],
-  "approval": {
-    "approval_id": "apr_1f747f22cecd7de98d07",
-    "status": "required",
-    "expires_at": "2026-08-16T19:44:55.829Z",
-    "selected_option_id": null
-  },
+  "options": [],
+  "approval": null,
   "readiness": {
     "status": "blocked",
     "checks": [
@@ -119,7 +135,7 @@
   },
   "execution": {
     "status": "blocked",
-    "reason": "human approval is required before any swarm dispatch"
+    "reason": "no executable proposal"
   },
   "reporting": {
     "status": "pending",

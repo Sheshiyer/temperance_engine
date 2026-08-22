@@ -1,0 +1,36 @@
+{
+  "schema": "temperance.project.v1",
+  "name": "temperance_engine",
+  "cwd": ".",
+  "github": "Sheshiyer/temperance_engine",
+  "generated_at": "2026-08-16T19:34:55.778Z",
+  "host_runtime": {
+    "temperance_home": "/Users/sheshnarayaniyer/.temperance_engine",
+    "opencode": "/Users/sheshnarayaniyer/.config/opencode",
+    "omniroute": "http://127.0.0.1:20128",
+    "proxy": "http://127.0.0.1:20129"
+  },
+  "ownership": {
+    "models_routing": "host",
+    "credentials": "host",
+    "planning": "project",
+    "acceptance_isa": "project",
+    "handoff": "optional"
+  },
+  "surfaces": {
+    "planning": ".planning",
+    "isa": "ISA.md",
+    "agents": "AGENTS.md",
+    "next_wave_cli": "temperance-next-wave",
+    "fleet_combo": "te-dispatch-paid",
+    "batch": "temperance-batch"
+  },
+  "checks": {
+    "host_ready": true,
+    "has_planning": true,
+    "has_isa": true,
+    "has_codegraph": false
+  },
+  "active_planner": "isa",
+  "docs_map": "docs/README.md"
+}
