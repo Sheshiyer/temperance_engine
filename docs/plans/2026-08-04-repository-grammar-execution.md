@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Repository Grammar Execution Plan
 
 **Status:** Stage 1 pure grammar implementation is complete, Stage 2 has produced a read-only inventory probe, and Stage 3 has a six-file canary packet with the owner-supplied TeamForge slug, committed separately and bound into a clean held dry-run. The owner has closed ISC-760 and ISC-760.1–ISC-760.19 as policy. Exact manifest approval and live apply remain separate gates; no relocation, vault registry, session, Paseo, or filesystem move is authorized by this document.
@@ -8,8 +13,8 @@
 
 The implementation must enforce the following policy for a depth-one repository basename beneath exactly:
 
-- `/Volumes/madara/2026/Projects/thoughtseed/`
-- `/Volumes/madara/2026/Projects/tryambakam-noesis/`
+- `<PROJECT_VOLUME>/2026/Projects/thoughtseed/`
+- `<PROJECT_VOLUME>/2026/Projects/tryambakam-noesis/`
 
 The grammar is policy-only until the execution gates below pass:
 
@@ -38,7 +43,7 @@ This expression is a test oracle, not permission to mutate a checkout or create 
 ### Stage 0 — Freeze and baseline
 
 - Read the ISA and this addendum.
-- Confirm `/Volumes/madara/2026/Projects/` remains empty or record its exact approved baseline.
+- Confirm `<PROJECT_VOLUME>/2026/Projects/` remains empty or record its exact approved baseline.
 - Snapshot Git status, HEAD, canonical refs, worktree graph, submodules, LFS state, device/inode, and deterministic untracked/ignored inventories for only the two approved portfolio roots.
 - Preserve existing dirty files, especially `_PROJECT-STATUS.md` and the existing relocation plans.
 - Do not traverse provider homes, session stores, Paseo, dependency trees, caches, secrets, or remote Git state.

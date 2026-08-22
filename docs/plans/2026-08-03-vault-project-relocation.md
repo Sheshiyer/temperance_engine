@@ -1,8 +1,13 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Vault Project Relocation Implementation Plan
 
 > **Planning-only boundary:** Both registry locations are ratified. Do not execute this plan until the user reviews a real read-only inventory, selects one canary, and separately approves that canary's exact manifest digest.
 
-**Goal:** Relocate only approved `thoughtseed` and `tryambakam-noesis` working repositories into `/Volumes/madara/2026/Projects/<portfolio>/<repository>` while preserving Git bytes, durable knowledge links, portable project pickup, and deterministic rollback. Native sessions and Paseo are not migration dependencies.
+**Goal:** Relocate only approved `thoughtseed` and `tryambakam-noesis` working repositories into `<PROJECT_VOLUME>/2026/Projects/<portfolio>/<repository>` while preserving Git bytes, durable knowledge links, portable project pickup, and deterministic rollback. Native sessions and Paseo are not migration dependencies.
 
 **Architecture:** A pure TypeScript inventory and policy layer creates a closed-schema plan. Each repository carries one portable project packet for Codex, Claude, OpenCode, or Kimi. A receipt-bound transaction may rename exactly one same-device standalone repository after explicit digest approval, verify it, write the correct portfolio registry record, create a compact old-path capsule, and certify a fresh-client pickup without importing a transcript.
 
@@ -35,10 +40,10 @@ Prove that only these destinations resolve:
 
 ```ts
 expect(resolveDestination("thoughtseed", "temperance_engine")).toBe(
-  "/Volumes/madara/2026/Projects/thoughtseed/temperance_engine",
+  "<PROJECT_VOLUME>/2026/Projects/thoughtseed/temperance_engine",
 );
 expect(resolveDestination("tryambakam-noesis", "Selemene-engine")).toBe(
-  "/Volumes/madara/2026/Projects/tryambakam-noesis/Selemene-engine",
+  "<PROJECT_VOLUME>/2026/Projects/tryambakam-noesis/Selemene-engine",
 );
 expect(() => resolveDestination("other", "repo")).toThrow("portfolio_not_allowed");
 ```
@@ -131,7 +136,7 @@ Run: `bun test package/relocation/project-packet-schema.test.ts package/relocati
 Bind each portfolio to its ratified knowledge authority:
 
 - Thoughtseed → `thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed/<repository>/`
-- Tryambakam → `/Volumes/madara/2026/twc-vault/_System/10865xseed/projects/<repository>/`
+- Tryambakam → `<PROJECT_VOLUME>/2026/twc-vault/_System/10865xseed/projects/<repository>/`
 
 The transaction is the sole writer and selects exactly one registry from the packet's `portfolio`. A duplicate stable ID or GitHub identity in the other registry fails before mutation; no precedence or automatic merge exists.
 

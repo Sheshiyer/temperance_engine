@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Vault Project Relocation — Session-Map (Piece C) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -17,7 +22,7 @@
 - No matcher ever reads session/transcript file *content* — existence, `stat`, or specific whitelisted structural keys/columns only. Nothing in any of these files ever references a `.jsonl` file by name (Design §10, §11) — this is a mechanically-checked guard across the whole file set, not just a convention.
 - `symlinkSync` is called from exactly one place across the entire file set, inside `attemptClaudeCodeRelink` in `project-session-map.ts` — mechanically checked by a source guard (Design §8). No matcher file may ever call it.
 - The Claude Code relink is never-clobber: only runs when the old session folder exists **and** the new one does not (Design §8).
-- All real filesystem/DB *tests* use `mkdtempSync`-created temp fixtures — never the real `~/.claude`, `~/.codex`, `~/.copilot`, `~/.kimi`, `~/.craft-agent`, or `~/.local/share/opencode` directories.
+- All real filesystem/DB *tests* use `mkdtempSync`-created temp fixtures — never the real `~/.claude`, `~/.codex`, `~/.copilot`, `~/.kimi`, `~/<SESSION_STORE>`, or `~/.local/share/opencode` directories.
 - `session-map` is a standalone CLI subcommand, never folded into `apply` (Design §9, owner decision D5).
 - `--no-relink` is the only new flag; relink is default-on for Claude Code (owner decision D7).
 - **File boundaries are load-bearing, not stylistic.** Each of Tasks 1–6 touches only its own two files (one `.ts`, one `.test.ts`) plus, for Task 1 only, the shared `project-session-map.ts` types file it creates first. No task after Task 1 ever edits `project-session-map.ts` until Task 7 — this is what makes Tasks 2–6 parallel-dispatch-safe.
@@ -48,13 +53,13 @@ import { encodeClaudeCodeProjectPath, matchClaudeCode } from "./claude-code-matc
 
 describe("encodeClaudeCodeProjectPath", () => {
   test("encodes real, independently-verified paths (slash -> dash, dots preserved)", () => {
-    expect(encodeClaudeCodeProjectPath("/Users/sheshnarayaniyer")).toBe("-Users-sheshnarayaniyer");
-    expect(encodeClaudeCodeProjectPath("/Users/sheshnarayaniyer/.claude/projects/autoresearch")).toBe(
+    expect(encodeClaudeCodeProjectPath("<OPERATOR_HOME>")).toBe("-Users-sheshnarayaniyer");
+    expect(encodeClaudeCodeProjectPath("<OPERATOR_HOME>/.claude/projects/autoresearch")).toBe(
       "-Users-sheshnarayaniyer-.claude-projects-autoresearch",
     );
     expect(
       encodeClaudeCodeProjectPath(
-        "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine",
+        "<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/temperance_engine",
       ),
     ).toBe("-Volumes-madara-2026-twc-vault-01-Projects-thoughtseed-temperance-engine");
   });
@@ -162,7 +167,7 @@ export function encodeClaudeCodeProjectPath(path: string): string {
   return path.replace(/[^A-Za-z0-9.]/g, "-");
 }
 
-const CLAUDE_CODE_PROJECTS_ROOT = "/Users/sheshnarayaniyer/.claude/projects";
+const CLAUDE_CODE_PROJECTS_ROOT = "<OPERATOR_HOME>/.claude/projects";
 
 export function matchClaudeCode(
   path: string,
@@ -279,7 +284,7 @@ import { Database } from "bun:sqlite";
 
 import type { ToolMatchResult } from "../project-session-map";
 
-const OPENCODE_DB_PATH = "/Users/sheshnarayaniyer/.local/share/opencode/opencode.db";
+const OPENCODE_DB_PATH = "<OPERATOR_HOME>/.local/share/opencode/opencode.db";
 
 export function matchOpenCode(
   path: string,
@@ -418,7 +423,7 @@ import { Database } from "bun:sqlite";
 
 import type { ToolMatchResult } from "../project-session-map";
 
-const COPILOT_DB_PATH = "/Users/sheshnarayaniyer/.copilot/data.db";
+const COPILOT_DB_PATH = "<OPERATOR_HOME>/.copilot/data.db";
 
 export function matchCopilot(
   path: string,
@@ -557,7 +562,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import type { ToolMatchResult } from "../project-session-map";
 
-const CODEX_GLOBAL_STATE_PATH = "/Users/sheshnarayaniyer/.codex/.codex-global-state.json";
+const CODEX_GLOBAL_STATE_PATH = "<OPERATOR_HOME>/.codex/.codex-global-state.json";
 const CODEX_WORKSPACE_ROOT_KEYS = ["active-workspace-roots", "electron-saved-workspace-roots", "project-order"];
 
 export function matchCodex(
@@ -684,7 +689,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import type { ToolMatchResult } from "../project-session-map";
 
-const KIMI_JSON_PATH = "/Users/sheshnarayaniyer/.kimi/kimi.json";
+const KIMI_JSON_PATH = "<OPERATOR_HOME>/.kimi/kimi.json";
 
 export function matchKimi(
   path: string,
@@ -1033,7 +1038,7 @@ describe("applyClaudeCodeRelink", () => {
       portfolio: "thoughtseed",
       repository: "some-repo",
       oldPath: "/Volumes/fixture/thoughtseed/some-repo",
-      newPath: "/Volumes/fixture2/thoughtseed/some-repo",
+      newPath: "/Volumes/fixture/thoughtseed/some-repo",
       generatedAt: "2026-08-05T00:00:00.000Z",
       tools: [
         { tool: "claude-code", mechanism: "path-derived", matched: true, locator: "irrelevant", ...overrides },
@@ -1077,7 +1082,7 @@ import { symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { encodeClaudeCodeProjectPath } from "./session-store-matchers/claude-code-matcher";
 
-const CLAUDE_CODE_PROJECTS_ROOT = "/Users/sheshnarayaniyer/.claude/projects";
+const CLAUDE_CODE_PROJECTS_ROOT = "<OPERATOR_HOME>/.claude/projects";
 
 export function attemptClaudeCodeRelink(oldSessionDir: string, newSessionDir: string): ClaudeCodeRelinkAction {
   if (!existsSync(oldSessionDir)) return "skipped-source-missing";
@@ -1298,7 +1303,7 @@ Add a new branch to the existing `if (argv[0] === "plan") ... else if (...) ...`
   }
 
   const outputPath = join(
-    "/Users/sheshnarayaniyer/.temperance_engine",
+    "<OPERATOR_HOME>/.temperance_engine",
     "session-maps",
     portfolio,
     repositoryName,

@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Copilot Session Fix (Piece D, first slice) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -276,7 +281,7 @@ Expected: FAIL — module not found.
 import { existsSync, statSync } from "node:fs";
 import { Database } from "bun:sqlite";
 
-const COPILOT_DB_PATH = "/Users/sheshnarayaniyer/.copilot/data.db";
+const COPILOT_DB_PATH = "<OPERATOR_HOME>/.copilot/data.db";
 
 export type CopilotSessionFixChange =
   | { table: "projects"; column: "main_repo_path"; id: string; from: string; to: string }
@@ -809,7 +814,7 @@ export interface CopilotSessionFixReceipt {
 export function receiptPathFor(plan: CopilotSessionFixPlan): string {
   const timestamp = plan.generatedAt.replace(/[:.]/g, "-");
   return join(
-    "/Users/sheshnarayaniyer/.temperance_engine",
+    "<OPERATOR_HOME>/.temperance_engine",
     "session-maps",
     plan.portfolio,
     plan.repository,
@@ -994,7 +999,7 @@ git commit -m "feat(relocation): add applyCopilotSessionFix — transactional ap
   });
 
   test("session-fix with an unsupported --tool fails closed", () => {
-    const result = runCli(["session-fix", "--repository", "/Volumes/madara/2026/Projects/thoughtseed/some-repo", "--tool", "opencode"]);
+    const result = runCli(["session-fix", "--repository", "<PROJECT_VOLUME>/2026/Projects/thoughtseed/some-repo", "--tool", "opencode"]);
     expect(result.status).not.toBe(0);
   });
 
@@ -1123,8 +1128,8 @@ structure):
     const plan = planCopilotSessionFix({
       portfolio: "tryambakam-noesis",
       repository: "Selemene-engine",
-      oldPath: "/Users/sheshnarayaniyer/Selemene-engine",
-      newPath: "/Volumes/madara/2026/twc-vault/01-Projects/tryambakam-noesis/Selemene-engine",
+      oldPath: "<OPERATOR_HOME>/Selemene-engine",
+      newPath: "<PROJECT_VOLUME>/2026/twc-vault/01-Projects/tryambakam-noesis/Selemene-engine",
       generatedAt: new Date().toISOString(),
     });
 

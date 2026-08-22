@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Vault Relocation — Execution Handoff (2026-08-07)
 
 ## Purpose
@@ -18,7 +23,7 @@ the current status this doc continues from directly.
 - **The move pipeline works on real state, not just fixtures.**
   `thoughtseed-brand-atlas` was relocated for real on 2026-08-06 — the
   first live `apply` this subsystem ever ran. It now lives at
-  `/Volumes/madara/2026/Projects/thoughtseed/thoughtseed-brand-atlas`.
+  `<PROJECT_VOLUME>/2026/Projects/thoughtseed/thoughtseed-brand-atlas`.
 - **The packet-content gate is closed for every remaining Thoughtseed
   candidate.** All 23 candidates named in the earlier inventory scan, plus
   `cambium`, have their required six-file relocation packet drafted,
@@ -59,7 +64,7 @@ for `thoughtseed-brand-atlas`. Its real registry entry right now:
   "stableId": "thoughtseed-brand-atlas",
   "portfolio": "thoughtseed",
   "githubIdentity": "Sheshiyer/thoughtseed-brand-atlas",
-  "oldPath": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-brand-atlas",
+  "oldPath": "<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-brand-atlas",
   "packetDigest": "4d177cbd15dd3710c5ae2df8cb3789a221f7d4c1c879d3fcf743ed2d2bcaef43",
   "transitions": [
     { "type": "reconciling", "at": "2026-08-06T03:19:26.600Z", "actor": "vault-project-relocation-apply" }
@@ -155,7 +160,7 @@ for the current CLI surface:
    --manifest-digest <digest-from-step-3> --lock <path> --receipt-output
    <path> [--registry-baseline-digest <sha256-if-the-registry-host-is-dirty>]`.
 6. Independently verify the move: confirm the repo now exists at
-   `/Volumes/madara/2026/Projects/<portfolio>/<name>`, confirm a fresh
+   `<PROJECT_VOLUME>/2026/Projects/<portfolio>/<name>`, confirm a fresh
    `plan --dry-run` against the *old* path now reports
    `nested-repository`/`destination_exists` (proof it's genuinely gone from
    there, not just logged as moved).
@@ -167,7 +172,7 @@ for the current CLI surface:
 A note surfaced this session claiming `cambium`'s real implementation (a
 `portfolio-cartographer` app, a `portfolio-workbench.ts` Worker route, etc.)
 lives in an isolated worktree at
-`/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/.worktrees/cambium-portfolio-registry`,
+`<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/.worktrees/cambium-portfolio-registry`,
 separate from the primary `cambium` checkout. **Checked directly, could not
 confirm any of it:** that worktree doesn't exist (the real ones are
 `cambium-context-projections`, `cambium-operating-fabric`,

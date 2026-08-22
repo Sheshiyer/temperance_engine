@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Vault Project Relocation — Nested-Repo Discovery (Piece B) — Design
 
 **Issue:** The vault-relocation inventory scanner only enumerates immediate

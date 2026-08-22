@@ -1,13 +1,18 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Vault Project Relocation and Portable Pickup Design
 
 **Status:** Portfolio taxonomy and both knowledge-registry roots ratified on 2026-08-03. Thoughtseed post-reconciliation merge-back semantics are ratified. Architecture reflects the Thoughtseed Labs control plane, revived Tryambakam plan, Kimiclaw/Tauri study, and TN × Snow Gloves clean-scope synthesis. Implementation has not started.
 
 ## Ratified Target
 
-Keep `/Volumes/madara/2026/twc-vault/` as the PARA/Obsidian knowledge system. Keep Thoughtseed Labs at `/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/` as a nested knowledge vault. Relocate only approved working Git repositories into this portfolio-first code root:
+Keep `<PROJECT_VOLUME>/2026/twc-vault/` as the PARA/Obsidian knowledge system. Keep Thoughtseed Labs at `<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/` as a nested knowledge vault. Relocate only approved working Git repositories into this portfolio-first code root:
 
 ```text
-/Volumes/madara/2026/Projects/
+<PROJECT_VOLUME>/2026/Projects/
 ├── thoughtseed/
 │   └── <repository>/
 └── tryambakam-noesis/
@@ -186,7 +191,7 @@ The old path remains useful, but it is not the canonical record.
 Ratified registry locations:
 
 - **Thoughtseed:** `thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed/<repository>/`
-- **Tryambakam:** `/Volumes/madara/2026/twc-vault/_System/10865xseed/projects/<repository>/`
+- **Tryambakam:** `<PROJECT_VOLUME>/2026/twc-vault/_System/10865xseed/projects/<repository>/`
 
 The TN clean-pass identifies root `_System/10865xseed` as the current seed source and warns that it is dirty and still contains retired OpenClaw path assumptions. Ratifying its `projects/` registry does not authorize rewriting the seed, enabling its jobs, or moving it. Those are separate TN workstreams. No TN canary writes there while the seed has an unreviewed dirty baseline; the owner must first approve a clean or explicitly baselined exact-entry write.
 
@@ -245,7 +250,7 @@ The capsule points to the new checkout, GitHub repository, stable project ID, po
 - Do not emulate missing Kimi hooks.
 - Reuse Temperance routing concepts without copying a second classifier or preference store.
 - Tauri is an optional cockpit and cache, never scheduler, routing authority, durable memory, or secret store.
-- Tauri v1's vault-only file capability does not automatically extend to `/Volumes/madara/2026/Projects/`. It may launch an approved CLI in an external checkout; direct external-repo filesystem access needs its own capability review.
+- Tauri v1's vault-only file capability does not automatically extend to `<PROJECT_VOLUME>/2026/Projects/`. It may launch an approved CLI in an external checkout; direct external-repo filesystem access needs its own capability review.
 - A future Kimi/Claw controller should accept an immutable request envelope keyed by project ID and packet digest, enrich exactly once at dispatch, and return a digestible receipt. Its owner-only machine-local spool is transport state, not durable project memory; only the receipt pointer and next baton return to the handoff.
 
 ### Adopted from the TN × Snow Gloves clean pass
