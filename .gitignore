@@ -17,3 +17,7 @@ coverage/
 skills/temperance-*/temperance-*
 .temperance/goal.json
 .temperance/secrets/
+
+# research scratch (untracked working notes, not project history)
+.planning/react-bits-pro/
+.superset/
