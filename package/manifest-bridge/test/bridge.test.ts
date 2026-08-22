@@ -36,22 +36,22 @@ const GUIDE_SCOPE_PATHS = [
 
 const VALIDATOR_IDS = {
   capture: 'product-guides.capture-contract@1.0.0',
-  coverage: 'parkarea.coverage-contract@1.0.0',
+  coverage: 'temperance.coverage-contract@1.0.0',
   guide: 'product-guides.validate-guide-py@1.0.0',
   film: 'product-guides.film-spec-closed@1.0.0',
 } as const;
 
-const PARKAREA_REQUIREMENTS = ['SCOPE-01', 'SCOPE-02', 'SCOPE-03', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-01', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'CAP-03', 'CAP-04', 'CAP-05', 'CAP-06', 'CAP-07', 'CAP-08', 'CAP-09', 'DATA-02', 'DATA-03', 'DATA-04', 'DATA-05', 'GUIDE-01'];
-const PARKAREA_EDITION_REQUIREMENTS = ['SCOPE-01', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'GUIDE-01'];
-const PARKAREA_FORBIDDEN_EFFECTS = ['booking', 'payment', 'ledger', 'notification', 'audit', 'request_log', 'payout', 'transactional_email', 'external_provider'];
-const PARKAREA_PROOF_FILE = 'server/__tests__/postgres/guide-claim-evidence.pg.test.ts';
-const PARKAREA_LISTING_ID = '63b79635-7369-488a-b6ce-a07d62ef1cc3';
-const PARKAREA_COVERAGE_FIXTURE = [
+const SAMPLE_REQUIREMENTS = ['SCOPE-01', 'SCOPE-02', 'SCOPE-03', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-01', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'CAP-03', 'CAP-04', 'CAP-05', 'CAP-06', 'CAP-07', 'CAP-08', 'CAP-09', 'DATA-02', 'DATA-03', 'DATA-04', 'DATA-05', 'GUIDE-01'];
+const SAMPLE_EDITION_REQUIREMENTS = ['SCOPE-01', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'GUIDE-01'];
+const SAMPLE_FORBIDDEN_EFFECTS = ['booking', 'payment', 'ledger', 'notification', 'audit', 'request_log', 'payout', 'transactional_email', 'external_provider'];
+const SAMPLE_PROOF_FILE = 'server/__tests__/postgres/guide-claim-evidence.pg.test.ts';
+const SAMPLE_LISTING_ID = '63b79635-7369-488a-b6ce-a07d62ef1cc3';
+const SAMPLE_COVERAGE_FIXTURE = [
   {
     evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker_read_only', minimumBodyTextChars: 400,
     requirementIds: ['CAP-04', 'CAP-06', 'CAP-07', 'DATA-03', 'DATA-05'],
     claim: { de: 'Ein aktives Inserat zeigt Verfügbarkeit, Preisangebot, Gesamtpreis und Buchungsbereitschaft ohne Buchung.', en: 'An active listing shows availability, quote, total, and booking readiness without creating a booking.' },
-    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
+    selectors: ['[data-testid="sample-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
     sideEffect: { kind: 'listing_view_telemetry', status: 'isolated_verified' }, claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimClassification: 'isolated', claimAllowed: ['listing_view_events:view:+1'],
     claimProofKind: 'postgres_postgis',
     claimTestName: 'active listing detail, calendar, and quote are tenant-scoped and do not create a booking',
@@ -78,7 +78,7 @@ const PARKAREA_COVERAGE_FIXTURE = [
     evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300,
     requirementIds: ['SCOPE-03', 'CAP-09'],
     claim: { de: 'Der Moderationsverlauf zeigt die Freigabe desselben aktiven Inserats ohne Änderung.', en: 'Moderation history shows approval of the same active listing without changing it.' },
-    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
+    selectors: ['[data-testid="sample-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
     sideEffect: { kind: 'admin_audit_read', status: 'read_only_verified' }, claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimClassification: 'read-only', claimAllowed: [],
     claimProofKind: 'postgres_postgis',
     claimTestName: 'admin listing readiness and persisted approval audit are readable for the same tenant without mutation',
@@ -94,7 +94,7 @@ function fixtureWrite(root: string, relativePath: string, value: string | Record
 function validCapture(sourceVersion = 'source-fixture-v1'): Record<string, unknown> {
   return {
     schemaVersion: 1,
-    project: 'parkarea-aleph',
+    project: 'sample-product',
     sourceVersion,
     locale: 'de',
     tenant: 'authenticated_session',
@@ -105,29 +105,29 @@ function validCapture(sourceVersion = 'source-fixture-v1'): Record<string, unkno
     forbiddenSelectors: ['[data-testid="cookie-banner"]'],
     seed: { strategy: 'none' },
     personas: { seeker: 'seeker', private_provider: 'private', enterprise_provider: 'enterprise', admin: 'admin' },
-    shots: PARKAREA_COVERAGE_FIXTURE.map((row) => ({ id: row.evidenceId, file: `${row.evidenceId}.png`, route: row.route.replace('__W1A_APPROVED_LISTING_ID__', PARKAREA_LISTING_ID), persona: row.persona, requiredSelectors: row.selectors.map((selector) => selector.replaceAll('__W1A_APPROVED_LISTING_ID__', PARKAREA_LISTING_ID)), minimumBodyTextChars: row.minimumBodyTextChars })),
+    shots: SAMPLE_COVERAGE_FIXTURE.map((row) => ({ id: row.evidenceId, file: `${row.evidenceId}.png`, route: row.route.replace('__W1A_APPROVED_LISTING_ID__', SAMPLE_LISTING_ID), persona: row.persona, requiredSelectors: row.selectors.map((selector) => selector.replaceAll('__W1A_APPROVED_LISTING_ID__', SAMPLE_LISTING_ID)), minimumBodyTextChars: row.minimumBodyTextChars })),
   };
 }
 
 function validCoverage(): Record<string, unknown> {
   return {
     schemaVersion: 1,
-    edition: { audience: 'internal_qa_operators', primaryPersona: 'seeker', primaryLocale: 'de', secondaryLocale: 'en', media: 'deterministic_stills', publication: 'private_only', requirementIds: [...PARKAREA_EDITION_REQUIREMENTS] },
+    edition: { audience: 'internal_qa_operators', primaryPersona: 'seeker', primaryLocale: 'de', secondaryLocale: 'en', media: 'deterministic_stills', publication: 'private_only', requirementIds: [...SAMPLE_EDITION_REQUIREMENTS] },
     metadata: { freshContextPerShot: true, runnerContract: 'canonical_shared_runner_new_browser_context_per_shot' },
-    requirements: [...PARKAREA_REQUIREMENTS],
-    steps: PARKAREA_COVERAGE_FIXTURE.map((row, index) => ({
+    requirements: [...SAMPLE_REQUIREMENTS],
+    steps: SAMPLE_COVERAGE_FIXTURE.map((row, index) => ({
       order: index + 1,
       stepId: row.evidenceId,
       checkpointKind: row.checkpointKind,
       requirementIds: [...row.requirementIds],
       claim: { ...row.claim },
-      route: row.route.replace('__W1A_APPROVED_LISTING_ID__', PARKAREA_LISTING_ID),
+      route: row.route.replace('__W1A_APPROVED_LISTING_ID__', SAMPLE_LISTING_ID),
       persona: row.persona,
       locales: ['de', 'en'],
       tenantAuthority: 'authenticated_session',
       scenarioClass: 'synthetic_or_approved_demo',
       evidenceId: row.evidenceId,
-      requiredSelectors: row.selectors.map((selector) => selector.replaceAll('__W1A_APPROVED_LISTING_ID__', PARKAREA_LISTING_ID)),
+      requiredSelectors: row.selectors.map((selector) => selector.replaceAll('__W1A_APPROVED_LISTING_ID__', SAMPLE_LISTING_ID)),
       minimumBodyTextChars: row.minimumBodyTextChars,
       semanticProof: { kind: 'w1a_postgres_or_read_only_probe', status: 'verified' },
       sideEffects: [{ ...row.sideEffect }],
@@ -138,8 +138,8 @@ function validCoverage(): Record<string, unknown> {
 
 function validClaimMap(): Record<string, unknown> {
   return {
-    schema: 'parkarea.guide.claim-evidence-map.v2',
-    claims: PARKAREA_COVERAGE_FIXTURE.map((row, index) => ({ order: index + 1, evidenceId: row.evidenceId, proof: { kind: row.claimProofKind, status: 'passed', file: PARKAREA_PROOF_FILE, testName: row.claimTestName }, correlation: { route: row.claimRoute, persona: row.persona, tenantAuthority: 'authenticated_session' }, sideEffects: { classification: row.claimClassification, allowed: [...row.claimAllowed], forbidden: [...PARKAREA_FORBIDDEN_EFFECTS] } })),
+    schema: 'sample.guide.claim-evidence-map.v2',
+    claims: SAMPLE_COVERAGE_FIXTURE.map((row, index) => ({ order: index + 1, evidenceId: row.evidenceId, proof: { kind: row.claimProofKind, status: 'passed', file: SAMPLE_PROOF_FILE, testName: row.claimTestName }, correlation: { route: row.claimRoute, persona: row.persona, tenantAuthority: 'authenticated_session' }, sideEffects: { classification: row.claimClassification, allowed: [...row.claimAllowed], forbidden: [...SAMPLE_FORBIDDEN_EFFECTS] } })),
   };
 }
 
@@ -160,7 +160,7 @@ function stableJson(value: unknown): string {
 
 function scopeBindingFor(root: string, projectId: string, sourceVersion: string): { binding: Record<string, unknown>; scope_hash: string } {
   const artifacts = Object.fromEntries(GUIDE_SCOPE_PATHS.map((path) => [path, createHash('sha256').update(readFileSync(join(root, path))).digest('hex')]));
-  const binding = { schema: 'parkarea.guide.scope-binding.v1', project_id: projectId, source_version: sourceVersion, artifacts };
+  const binding = { schema: 'temperance.guide.scope-binding.v1', project_id: projectId, source_version: sourceVersion, artifacts };
   return { binding, scope_hash: createHash('sha256').update(stableJson(binding), 'utf8').digest('hex') };
 }
 
@@ -177,7 +177,7 @@ function validatorRegistry(overrides: Partial<ValidatorRegistry> = {}): Validato
   };
 }
 
-async function capabilitiesFor(root: string, options: Record<string, unknown> = {}, projectName = 'parkarea-aleph'): Promise<Record<string, any>> {
+async function capabilitiesFor(root: string, options: Record<string, unknown> = {}, projectName = 'sample-product'): Promise<Record<string, any>> {
   const projectRoot = join(root, projectName);
   mkdirSync(projectRoot, { recursive: true });
   const project = initProject(projectRoot).identity;
@@ -829,20 +829,20 @@ describe('capability and workflow request v2', () => {
       '.temperance/guide/coverage-matrix.json': Buffer.from('{"coverage":1}\n'),
       'scripts/product-guides/claim-evidence-map.json': Buffer.from('{"claims":1}\n'),
     };
-    const result = derive!({ projectId: 'parkarea-aleph', sourceVersion: 'source-fixture-v1', artifactBytes });
-    expect(result.scope_hash).toBe('e9ba11a5c46fd8a68e5db67350cc2df7e0213a581d342744bee66d0963ed47eb');
+    const result = derive!({ projectId: 'sample-product', sourceVersion: 'source-fixture-v1', artifactBytes });
+    expect(result.scope_hash).toBe('3865da806dff03df0e5ae6f8898ecba598e9c372683e06651d39595dbe576edc');
     expect(result.binding.artifacts).toEqual({
       '.temperance/guide/capture.config.json': '2a30d575c6d6cadd037e7581c166c7acd048365d7207ae6c17755ee0f79b6b0b',
       '.temperance/guide/capture.scope.json': 'c2d806d3ce7dcdc41707e796f4a8a9bfcbf265ec881a7ed802a99a0535779c1f',
       '.temperance/guide/coverage-matrix.json': '08ceaff54fd6382aa91bf19a928db493ba1e616a9937cae1ff99b92f69011bdd',
       'scripts/product-guides/claim-evidence-map.json': '80550b6fdd8a3059bdfd8effb699bff5a869df5805cf7a12e18d45f6491aae0d',
     });
-    expect(() => derive!({ projectId: 'parkarea-aleph', sourceVersion: 'source-fixture-v1', artifactBytes: { ...artifactBytes, 'extra.json': Buffer.from('{}') } })).toThrow('scope_binding_incomplete');
+    expect(() => derive!({ projectId: 'sample-product', sourceVersion: 'source-fixture-v1', artifactBytes: { ...artifactBytes, 'extra.json': Buffer.from('{}') } })).toThrow('scope_binding_incomplete');
   });
 
   test('reports validated guide readiness without FilmSpec, video, or voice gates', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-guide-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     writeGuideScope(projectRoot);
     const value = await capabilitiesFor(root);
     expect(value.schema).toBe('temperance.manifest.capabilities.v2');
@@ -853,74 +853,87 @@ describe('capability and workflow request v2', () => {
     expect(JSON.stringify(value.run_kinds.guide)).not.toMatch(/film|ffmpeg|voice|eleven/i);
   });
 
-  test('validates the exact closed ParkArea semantic coverage inventory', () => {
-    const validate = (capabilityModule as Record<string, unknown>).validateParkAreaCoverageContract as undefined | ((value: unknown, trusted: { capture: unknown; claimMap: unknown }) => boolean);
-    const trusted = { capture: validCapture(), claimMap: validClaimMap() };
+  test('structurally validates generic semantic coverage and pins the claim map to the project', () => {
+    const validate = (capabilityModule as Record<string, unknown>).validateCoverageContract as undefined | ((value: unknown, trusted: { capture: unknown; claimMap: unknown; project_name: string }) => boolean);
+    const trustedFor = () => ({ capture: validCapture(), claimMap: validClaimMap(), project_name: 'sample-product' });
     expect(typeof validate).toBe('function');
-    expect(validate!(validCoverage(), trusted)).toBe(true);
-    expect((validCoverage().steps as Array<Record<string, unknown>>).map((step) => [step.evidenceId, step.route, step.persona])).toEqual([
-      ['seeker-listing-readiness', `/parkplatz/${PARKAREA_LISTING_ID}`, 'seeker'],
-      ['private-provider-listing-analytics', `/provider/listings/${PARKAREA_LISTING_ID}/analytics`, 'private_provider'],
-      ['enterprise-provider-qr-fleet', '/provider/qr/fleet', 'enterprise_provider'],
-      ['admin-listing-readiness', '/admin/listings', 'admin'],
-    ]);
+    // The ParkArea fixture is one valid instance of the structural contract —
+    // its concrete rows now live in the ParkArea repo's own contract module.
+    expect(validate!(validCoverage(), trustedFor())).toBe(true);
 
     const mutations: Array<[string, (value: Record<string, any>) => void]> = [
       ['extra top-level field', (value) => { value.extra = true; }],
+      ['missing top-level field', (value) => { delete value.metadata; }],
       ['wrong audience', (value) => { value.edition.audience = 'customer'; }],
       ['wrong media', (value) => { value.edition.media = 'video'; }],
       ['wrong publication', (value) => { value.edition.publication = 'public'; }],
       ['unordered evidence', (value) => { value.steps.reverse(); }],
       ['mismatched step ID', (value) => { value.steps[0].stepId = 'other'; }],
-      ['wrong route', (value) => { value.steps[2].route = '/other'; }],
-      ['missing route sentinel', (value) => { value.steps[1].route = '/parkplatz/fixture'; }],
+      ['route shot drift', (value) => { value.steps[2].route = '/other'; }],
       ['wrong persona', (value) => { value.steps[3].persona = 'seeker'; }],
-      ['wrong checkpoint', (value) => { value.steps[3].checkpointKind = 'admin'; }],
       ['broad html selector', (value) => { value.steps[0].requiredSelectors = ['html']; }],
       ['broad body selector', (value) => { value.steps[0].requiredSelectors = ['body']; }],
       ['wildcard selector', (value) => { value.steps[0].requiredSelectors = ['*']; }],
+      ['short selector', (value) => { value.steps[0].requiredSelectors = ['#a']; }],
+      ['bare tag selector', (value) => { value.steps[0].requiredSelectors = ['div']; }],
       ['empty step requirements', (value) => { value.steps[0].requirementIds = []; }],
       ['empty edition requirements', (value) => { value.edition.requirementIds = []; }],
       ['empty global requirements', (value) => { value.requirements = []; }],
-      ['fabricated German claim', (value) => { value.steps[0].claim.de = 'Erfundene Behauptung.'; }],
-      ['fabricated English claim', (value) => { value.steps[0].claim.en = 'Fabricated claim.'; }],
-      ['locale drift', (value) => { value.steps[0].locales = ['en', 'de']; }],
+      ['empty German claim', (value) => { value.steps[0].claim.de = ''; }],
+      ['empty English claim', (value) => { value.steps[0].claim.en = ''; }],
+      ['three locales', (value) => { value.steps[0].locales = ['de', 'en', 'fr']; }],
+      ['single locale', (value) => { value.steps[0].locales = ['de']; }],
       ['missing side effect', (value) => { value.steps[0].sideEffects = []; }],
-      ['wrong side-effect status', (value) => { value.steps[2].sideEffects[0].status = 'read_only'; }],
+      ['multiple side effects', (value) => { value.steps[0].sideEffects.push({ kind: 'x', status: 'y' }); }],
+      ['unverified semantic proof', (value) => { value.steps[0].semanticProof.status = 'pending'; }],
+      ['failed claim proof', (value) => { value.steps[0].admission = 'draft'; }],
       ['extra step field', (value) => { value.steps[0].command = 'project-local'; }],
+      ['tenant authority drift', (value) => { value.steps[0].tenantAuthority = 'caller_supplied'; }],
+      ['scenario class drift', (value) => { value.steps[0].scenarioClass = 'production_data'; }],
+      ['zero body chars', (value) => { value.steps[0].minimumBodyTextChars = 0; }],
+      ['shot body-char drift', (value) => { value.steps[0].minimumBodyTextChars += 1; }],
+      ['fresh context off', (value) => { value.metadata.freshContextPerShot = false; }],
+      ['empty runner contract', (value) => { value.metadata.runnerContract = ''; }],
     ];
     for (const [name, mutate] of mutations) {
       const candidate = JSON.parse(JSON.stringify(validCoverage())) as Record<string, any>;
       mutate(candidate);
-      expect(validate!(candidate, trusted), name).toBe(false);
+      expect(validate!(candidate, trustedFor()), name).toBe(false);
     }
 
     const broadCapture = JSON.parse(JSON.stringify(validCapture())) as Record<string, any>;
     broadCapture.shots[0].requiredSelectors = ['html'];
-    expect(validate!(validCoverage(), { capture: broadCapture, claimMap: validClaimMap() }), 'capture selector drift').toBe(false);
-    const claimVersionDrift = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
-    claimVersionDrift.schema = 'parkarea.guide.claim-evidence-map.v1';
-    expect(validate!(validCoverage(), { capture: validCapture(), claimMap: claimVersionDrift }), 'claim registry version drift').toBe(false);
+    expect(validate!(validCoverage(), { capture: broadCapture, claimMap: validClaimMap(), project_name: 'sample-product' }), 'capture selector drift').toBe(false);
+    const emptyShotsCapture = JSON.parse(JSON.stringify(validCapture())) as Record<string, any>;
+    emptyShotsCapture.shots = [];
+    expect(validate!(validCoverage(), { capture: emptyShotsCapture, claimMap: validClaimMap(), project_name: 'sample-product' }), 'capture without shots').toBe(false);
+    const crossProjectClaimMap = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
+    crossProjectClaimMap.schema = 'other-project.guide.claim-evidence-map.v2';
+    expect(validate!(validCoverage(), { capture: validCapture(), claimMap: crossProjectClaimMap, project_name: 'sample-product' }), 'cross-project claim map rejected').toBe(false);
+    const wrongSlugClaimMap = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
+    wrongSlugClaimMap.schema = 'park.guide.claim-evidence-map.v2';
+    expect(validate!(validCoverage(), { capture: validCapture(), claimMap: wrongSlugClaimMap, project_name: 'sample-product' }), 'non-token slug prefix rejected').toBe(false);
+    const tokenPrefixAccepted = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
+    tokenPrefixAccepted.schema = 'sample.guide.claim-evidence-map.v9';
+    expect(validate!(validCoverage(), { capture: validCapture(), claimMap: tokenPrefixAccepted, project_name: 'sample-product' }), 'token-prefixed schema with any version accepted').toBe(true);
     const claimPersonaDrift = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
     claimPersonaDrift.claims[3].correlation.persona = 'seeker';
-    expect(validate!(validCoverage(), { capture: validCapture(), claimMap: claimPersonaDrift }), 'claim registry persona drift').toBe(false);
+    expect(validate!(validCoverage(), { capture: validCapture(), claimMap: claimPersonaDrift, project_name: 'sample-product' }), 'claim registry persona drift').toBe(false);
     const claimMutations: Array<[string, (value: Record<string, any>) => void]> = [
-      ['claim route drift', (value) => { value.claims[0].correlation.route = '/api/v1/fabricated'; }],
       ['claim tenant authority drift', (value) => { value.claims[1].correlation.tenantAuthority = 'caller_supplied'; }],
-      ['claim proof file drift', (value) => { value.claims[2].proof.file = 'server/__tests__/fake.test.ts'; }],
-      ['claim proof test name drift', (value) => { value.claims[3].proof.testName = 'fabricated passing test'; }],
-      ['claim proof kind drift', (value) => { value.claims[0].proof.kind = 'memory_mock'; }],
       ['claim proof status drift', (value) => { value.claims[2].proof.status = 'pending'; }],
-      ['claim classification drift', (value) => { value.claims[0].sideEffects.classification = 'read-only'; }],
-      ['claim allowed envelope drift', (value) => { value.claims[1].sideEffects.allowed = ['provider_mutation:+1']; }],
+      ['claim proof file empty', (value) => { value.claims[2].proof.file = ''; }],
+      ['claim proof test name empty', (value) => { value.claims[3].proof.testName = ''; }],
+      ['claim classification empty', (value) => { value.claims[0].sideEffects.classification = ''; }],
       ['claim forbidden envelope empty', (value) => { value.claims[0].sideEffects.forbidden = []; }],
-      ['claim forbidden envelope drift', (value) => { value.claims[2].sideEffects.forbidden[0] = 'unknown'; }],
       ['claim registry extra field', (value) => { value.claims[0].trusted = true; }],
+      ['claim evidence id drift', (value) => { value.claims[1].evidenceId = 'other'; }],
+      ['claim order drift', (value) => { value.claims[2].order = 4; }],
     ];
     for (const [name, mutate] of claimMutations) {
       const claimMap = JSON.parse(JSON.stringify(validClaimMap())) as Record<string, any>;
       mutate(claimMap);
-      expect(validate!(validCoverage(), { capture: validCapture(), claimMap }), name).toBe(false);
+      expect(validate!(validCoverage(), { capture: validCapture(), claimMap, project_name: 'sample-product' }), name).toBe(false);
     }
   });
 
@@ -929,7 +942,7 @@ describe('capability and workflow request v2', () => {
     expect(typeof derive).toBe('function');
 
     const outsideRoot = mkdtempSync(join(tmpdir(), 'temperance-scope-outside-')); dirs.push(outsideRoot);
-    const outsideProject = join(outsideRoot, 'parkarea-aleph');
+    const outsideProject = join(outsideRoot, 'sample-product');
     writeGuideScope(outsideProject);
     fixtureWrite(outsideRoot, 'outside-claims.json', validClaimMap());
     rmSync(join(outsideProject, GUIDE_SCOPE_PATHS[3]));
@@ -938,7 +951,7 @@ describe('capability and workflow request v2', () => {
     expect(() => derive!(outsideIdentity)).toThrow('scope_artifact_unsafe');
 
     const componentRoot = mkdtempSync(join(tmpdir(), 'temperance-scope-component-')); dirs.push(componentRoot);
-    const componentProject = join(componentRoot, 'parkarea-aleph');
+    const componentProject = join(componentRoot, 'sample-product');
     writeGuideScope(componentProject);
     fixtureWrite(componentProject, 'actual-product-guides/claim-evidence-map.json', validClaimMap());
     rmSync(join(componentProject, 'scripts', 'product-guides'), { recursive: true, force: true });
@@ -949,7 +962,7 @@ describe('capability and workflow request v2', () => {
 
   test('fails closed when an asynchronous trusted validator exceeds its hard deadline', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-timeout-')); dirs.push(root);
-    writeGuideScope(join(root, 'parkarea-aleph'));
+    writeGuideScope(join(root, 'sample-product'));
     const stalled = capabilitiesFor(root, {
       validatorDeadlineMs: 25,
       validatorRegistry: validatorRegistry({ [VALIDATOR_IDS.capture]: async () => await new Promise<ValidatorOutcome>(() => {}) }),
@@ -961,7 +974,7 @@ describe('capability and workflow request v2', () => {
 
   test('fails ambiguous capture candidates before selecting a preferred path', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-ambiguous-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     writeGuideScope(projectRoot);
     fixtureWrite(projectRoot, 'capture.config.json', validCapture());
     const value = await capabilitiesFor(root);
@@ -972,7 +985,7 @@ describe('capability and workflow request v2', () => {
 
   test('rejects malformed capture content with the exact trusted validator identity', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-malformed-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     writeGuideScope(projectRoot);
     const value = await capabilitiesFor(root, { validatorRegistry: validatorRegistry({
       [VALIDATOR_IDS.capture]: () => ({ ok: false, identity: VALIDATOR_IDS.capture, code: 'invalid_content' }),
@@ -982,7 +995,7 @@ describe('capability and workflow request v2', () => {
 
   test('rejects symlinked and project-root-escaping candidates', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-symlink-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     mkdirSync(projectRoot, { recursive: true });
     fixtureWrite(projectRoot, GUIDE_SCOPE_PATHS[1], { schemaVersion: 1, authority: false, sourceVersion: 'source-fixture-v1' });
     fixtureWrite(projectRoot, GUIDE_SCOPE_PATHS[2], validCoverage());
@@ -1012,7 +1025,7 @@ describe('capability and workflow request v2', () => {
     ];
     for (const [name, validate, expected] of cases) {
       const root = mkdtempSync(join(tmpdir(), `temperance-cap-v2-${name}-`)); dirs.push(root);
-      const projectRoot = join(root, 'parkarea-aleph');
+      const projectRoot = join(root, 'sample-product');
       writeGuideScope(projectRoot);
       const value = await capabilitiesFor(root, { validatorRegistry: validatorRegistry({ [VALIDATOR_IDS.capture]: validate as ValidatorRegistry[string] }) });
       expect(value.artifacts.capture.reason).toBe(expected);
@@ -1022,7 +1035,7 @@ describe('capability and workflow request v2', () => {
 
   test('never executes a project-local validator command during capability GET', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-no-project-exec-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     writeGuideScope(projectRoot);
     fixtureWrite(projectRoot, '.temperance/guide/validate.js', `require('fs').writeFileSync(${JSON.stringify(join(root, 'executed'))}, 'bad')`);
     const value = await capabilitiesFor(root);
@@ -1030,34 +1043,33 @@ describe('capability and workflow request v2', () => {
     expect(existsSync(join(root, 'executed'))).toBe(false);
   });
 
-  test('keeps the approved later ParkArea hero film deferred while generic video can become ready', async () => {
-    const parkRoot = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-park-video-')); dirs.push(parkRoot);
-    writeGuideScope(join(parkRoot, 'parkarea-aleph'));
-    fixtureWrite(join(parkRoot, 'parkarea-aleph'), '.temperance/guide/guide.manifest.json', { schema: 'product-guide.manifest.v1' });
-    fixtureWrite(join(parkRoot, 'parkarea-aleph'), '.temperance/guide/film.json', { schema: 'product-guide.film-spec.v1' });
-    const park = await capabilitiesFor(parkRoot);
-    expect(park.run_kinds.video).toEqual({
+  test('keeps video gated on validated guide inventory and FilmSpec for any project', async () => {
+    const gatedRoot = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-video-gated-')); dirs.push(gatedRoot);
+    const gatedProject = join(gatedRoot, 'generic-product');
+    writeGuideScope(gatedProject);
+    // Guide manifest + FilmSpec absent → video stays gated with structural blockers.
+    const gated = await capabilitiesFor(gatedRoot, {}, 'generic-product');
+    expect(gated.run_kinds.video).toEqual({
       requestable: false,
       state: 'gated',
       authority: 'unchecked_at_request',
-      blockers: ['hero_film_waiting_for_guide_evidence_approval'],
+      blockers: ['guide_manifest_not_validated', 'film_spec_not_validated'],
     });
-    expect(park.capabilities.find((item: Record<string, unknown>) => item.id === 'guide-to-product-video').summary).toBe('The approved ParkArea cross-role hero film remains deferred until guide evidence is approved.');
 
-    const genericRoot = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-generic-video-')); dirs.push(genericRoot);
-    const genericProject = join(genericRoot, 'generic-product');
-    writeGuideScope(genericProject);
-    fixtureWrite(genericProject, '.temperance/guide/guide.manifest.json', { schema: 'product-guide.manifest.v1' });
-    fixtureWrite(genericProject, '.temperance/guide/film.json', { schema: 'product-guide.film-spec.v1' });
-    const generic = await capabilitiesFor(genericRoot, {}, 'generic-product');
-    expect(generic.artifacts.guide_manifest.validator).toBe(VALIDATOR_IDS.guide);
-    expect(generic.artifacts.film_spec.validator).toBe(VALIDATOR_IDS.film);
-    expect(generic.run_kinds.video).toMatchObject({ requestable: true, state: 'ready', authority: 'unchecked_at_request' });
+    const readyRoot = mkdtempSync(join(tmpdir(), 'temperance-cap-v2-video-ready-')); dirs.push(readyRoot);
+    const readyProject = join(readyRoot, 'generic-product');
+    writeGuideScope(readyProject);
+    fixtureWrite(readyProject, '.temperance/guide/guide.manifest.json', { schema: 'product-guide.manifest.v1' });
+    fixtureWrite(readyProject, '.temperance/guide/film.json', { schema: 'product-guide.film-spec.v1' });
+    const ready = await capabilitiesFor(readyRoot, {}, 'generic-product');
+    expect(ready.artifacts.guide_manifest.validator).toBe(VALIDATOR_IDS.guide);
+    expect(ready.artifacts.film_spec.validator).toBe(VALIDATOR_IDS.film);
+    expect(ready.run_kinds.video).toMatchObject({ requestable: true, state: 'ready', authority: 'unchecked_at_request' });
   });
 
   test('derives the grant scope from exact bytes before recording canonical approval', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-grant-v2-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     writeGuideScope(projectRoot);
     Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
     Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
@@ -1098,7 +1110,7 @@ describe('capability and workflow request v2', () => {
     ];
     for (const [name, mutate] of mutations) {
       const root = mkdtempSync(join(tmpdir(), `temperance-approval-redaction-${name}-`)); dirs.push(root);
-      const projectRoot = join(root, 'parkarea-aleph'); writeGuideScope(projectRoot);
+      const projectRoot = join(root, 'sample-product'); writeGuideScope(projectRoot);
       Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
       Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
       Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
@@ -1123,7 +1135,7 @@ describe('capability and workflow request v2', () => {
 
   test('bounds approval persistence errors without returning driver internals', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-approval-driver-redaction-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph'); writeGuideScope(projectRoot);
+    const projectRoot = join(root, 'sample-product'); writeGuideScope(projectRoot);
     Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
     Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.email', 'manifest-tests@invalid.example']);
     Bun.spawnSync(['git', '-C', projectRoot, 'config', 'user.name', 'Manifest Tests']);
@@ -1145,7 +1157,7 @@ describe('capability and workflow request v2', () => {
     const Server = ManifestServer as unknown as new (store: ManifestStore, dependencies: Record<string, unknown>) => ManifestServer;
     const server = new Server(store, { controlLedger: ledger });
     const address = await server.listen(0);
-    const request = { schema: 'temperance.approval-attestation.request.v1', approval_id: 'apr-guide', project_id: 'parkarea', project_cwd: '/fixture', plan_id: 'plan', option_id: 'guide', policy_hash: 'a'.repeat(64), git_head: 'b'.repeat(64), source_fingerprint: 'c'.repeat(64), task_fingerprint: 'd'.repeat(64), scope_hash: 'e'.repeat(64) };
+    const request = { schema: 'temperance.approval-attestation.request.v1', approval_id: 'apr-guide', project_id: 'sample', project_cwd: '/fixture', plan_id: 'plan', option_id: 'guide', policy_hash: 'a'.repeat(64), git_head: 'b'.repeat(64), source_fingerprint: 'c'.repeat(64), task_fingerprint: 'd'.repeat(64), scope_hash: 'e'.repeat(64) };
     const response = await fetch(`http://${address.host}:${address.port}/control/approvals/apr-guide/attestation`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
     const result = await response.json() as Record<string, unknown>;
     expect(response.status).toBe(200);
@@ -1157,7 +1169,7 @@ describe('capability and workflow request v2', () => {
 
   test('reattests current bindings last and appends one sanitized request-only receipt', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-request-v2-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     writeGuideScope(projectRoot);
     fixtureWrite(projectRoot, 'package.json', { devDependencies: { playwright: '^1.0.0' } });
     Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
@@ -1218,7 +1230,7 @@ describe('capability and workflow request v2', () => {
 
   test('returns stable workflow errors and templates diagnostic routes without identifiers', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-request-v2-redaction-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     writeGuideScope(projectRoot);
     fixtureWrite(projectRoot, 'package.json', { devDependencies: { playwright: '^1.0.0' } });
     Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);
@@ -1254,9 +1266,9 @@ describe('capability and workflow request v2', () => {
     expect(JSON.stringify(paths)).not.toContain('apr-secret-value');
   });
 
-  test('denies unknown run kinds and keeps the deferred ParkArea hero film gated before authority', async () => {
+  test('denies unknown run kinds and keeps gated video blocked before authority', async () => {
     const root = mkdtempSync(join(tmpdir(), 'temperance-request-v2-kind-')); dirs.push(root);
-    const projectRoot = join(root, 'parkarea-aleph');
+    const projectRoot = join(root, 'sample-product');
     writeGuideScope(projectRoot);
     const catalog = new ManifestCatalog(join(root, 'state'));
     const project = initProject(projectRoot).identity;
@@ -1273,12 +1285,12 @@ describe('capability and workflow request v2', () => {
       expect(response.status).toBe(409);
       expect((await response.json() as Record<string, unknown>).code).toBe('invalid_run_kind');
     }
-    const deferredHeroRequest = {
-      schema: 'temperance.manifest.workflow-request.v2', request_id: 'deny-deferred-hero', approval_id: 'apr-guide', run_kind: 'video',
+    const gatedVideoRequest = {
+      schema: 'temperance.manifest.workflow-request.v2', request_id: 'deny-gated-video', approval_id: 'apr-guide', run_kind: 'video',
       plan_id: 'guide-plan', option_id: 'guide-option', policy_hash: 'a'.repeat(64), git_head: 'b'.repeat(40),
       source_fingerprint: 'c'.repeat(64), task_fingerprint: 'd'.repeat(64), scope_hash: 'e'.repeat(64),
     };
-    const deferred = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(deferredHeroRequest) });
+    const deferred = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(gatedVideoRequest) });
     expect(deferred.status).toBe(409);
     expect((await deferred.json() as Record<string, unknown>).code).toBe('workflow_trigger_gated');
     expect(attestations).toBe(0);
@@ -1289,7 +1301,7 @@ describe('capability and workflow request v2', () => {
   test('records no request when canonical attestation denies drift, expiry, or revocation', async () => {
     for (const code of ['binding_mismatch', 'approval_expired', 'approval_revoked']) {
       const root = mkdtempSync(join(tmpdir(), `temperance-request-v2-${code}-`)); dirs.push(root);
-      const projectRoot = join(root, 'parkarea-aleph');
+      const projectRoot = join(root, 'sample-product');
       writeGuideScope(projectRoot);
       fixtureWrite(projectRoot, 'package.json', { devDependencies: { playwright: '^1.0.0' } });
       Bun.spawnSync(['git', 'init', '--quiet', projectRoot]);

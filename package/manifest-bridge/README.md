@@ -201,7 +201,7 @@ printf '%s' '{"hook_event_name":"PostToolUse","tool_name":"Agent","session_id":"
 ## Registered Claude hook
 
 The active Claude settings register one additive async `PostToolUse` matcher for
-`Agent` at `/Users/sheshnarayaniyer/.claude/hooks/ManifestEvent.hook.ts`. It
+`Agent` at `$HOME/.claude/hooks/ManifestEvent.hook.ts`. It
 normalizes the bounded summary, POSTs it to `/events` when the bridge is live,
 and falls back to the local JSONL file when the bridge is unavailable. Every
 failure path exits successfully so agent execution is never coupled to the UI.

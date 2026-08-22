@@ -143,9 +143,48 @@ export function phaseMeta(phase: string): PhaseMeta {
   )
 }
 
+function loadHardExclude(home = homedir()): { providers: Set<string>; prefixes: string[] } {
+  const providers = new Set<string>(["codex"]) // never announce Sol while codex is opted down
+  const prefixes: string[] = ["codex/"]
+  try {
+    const klassPath = join(home, ".temperance_engine", "state", "provider-class.json")
+    if (existsSync(klassPath)) {
+      const klass = JSON.parse(readFileSync(klassPath, "utf8"))
+      for (const p of klass?.hard_exclude?.providers || []) providers.add(String(p))
+      for (const p of klass?.hard_exclude?.model_prefixes || []) prefixes.push(String(p))
+    }
+  } catch {
+    /* ignore */
+  }
+  const db = process.env.OMNIROUTE_DB || join(home, ".omniroute", "storage.sqlite")
+  try {
+    if (existsSync(db)) {
+      const raw = execFileSync(
+        "sqlite3",
+        [db, "SELECT provider FROM provider_connections WHERE is_active=0;"],
+        { encoding: "utf8", timeout: 800 },
+      ).trim()
+      for (const line of raw.split("\n")) if (line.trim()) providers.add(line.trim())
+    }
+  } catch {
+    /* ignore */
+  }
+  return { providers, prefixes }
+}
+
+function isExcludedSeat(mid: string, excl: { providers: Set<string>; prefixes: string[] }): boolean {
+  if (!mid) return true
+  const provider = mid.includes("/") ? mid.split("/")[0] : ""
+  if (provider && excl.providers.has(provider)) return true
+  if (excl.prefixes.some((p) => mid.startsWith(p))) return true
+  if (/gpt-5\.6-sol/i.test(mid) && excl.providers.has("codex")) return true
+  return false
+}
+
 export function loadComboStack(combo: string, home = homedir()): StackRow[] {
   const db = process.env.OMNIROUTE_DB || join(home, ".omniroute", "storage.sqlite")
   if (!existsSync(db)) return []
+  const excl = loadHardExclude(home)
   try {
     const raw = execFileSync(
       "sqlite3",
@@ -155,13 +194,16 @@ export function loadComboStack(combo: string, home = homedir()): StackRow[] {
     if (!raw) return []
     const data = JSON.parse(raw)
     const rows: StackRow[] = []
-    for (const [idx, m] of (data.models || []).entries()) {
+    let i = 0
+    for (const m of data.models || []) {
       const mid = String(m.model || "")
+      if (isExcludedSeat(mid, excl)) continue
+      i += 1
       const provider = String(
         m.providerId || (mid.includes("/") ? mid.split("/")[0] : "omniroute"),
       )
       const rest = mid.includes("/") ? mid.slice(mid.indexOf("/") + 1) : mid
-      rows.push({ i: idx + 1, provider, rest, mid })
+      rows.push({ i, provider, rest, mid })
     }
     return rows
   } catch {
@@ -169,8 +211,68 @@ export function loadComboStack(combo: string, home = homedir()): StackRow[] {
   }
 }
 
+/** Live session pin for banners — never static Sol while Codex is inactive. */
+export function resolveSessionPin(home = homedir()): string {
+  const excl = loadHardExclude(home)
+  const candidates: string[] = []
+  try {
+    const settings = JSON.parse(
+      readFileSync(join(home, ".claude", "settings.json"), "utf8"),
+    )
+    if (settings?.env?.ANTHROPIC_MODEL) candidates.push(String(settings.env.ANTHROPIC_MODEL))
+  } catch {
+    /* ignore */
+  }
+  try {
+    const klass = JSON.parse(
+      readFileSync(join(home, ".temperance_engine", "state", "provider-class.json"), "utf8"),
+    )
+    if (klass?.claude_code_default?.model) candidates.push(String(klass.claude_code_default.model))
+    if (klass?.babysit?.standard) candidates.push(String(klass.babysit.standard))
+  } catch {
+    /* ignore */
+  }
+  candidates.push("te-algorithm", "te-build", "te-fast")
+  for (const mid of candidates) {
+    if (!isExcludedSeat(mid, excl)) return mid
+  }
+  return "te-algorithm"
+}
+
 function pad(label: string, n = 10): string {
   return (label + " ".repeat(n)).slice(0, n)
+}
+
+export const PHASE_SIGILS = ["♄", "☿", "☉", "♃", "♂", "♀", "☽"] as const
+
+/** Seven-phase strip + block bar. done=●/█  current=►/▓  pending=○/░ */
+export function formatStageProgress(step: number, total = 7): string {
+  const n = Number(step)
+  const safe = Number.isFinite(n) ? n : 0
+  const marks = PHASE_SIGILS.map((sigil, i) => {
+    const k = i + 1
+    const mark = k < safe ? "●" : k === safe ? "►" : "○"
+    return `${sigil}${mark}`
+  }).join(" ")
+  const bar = PHASE_SIGILS.map((_, i) => {
+    const k = i + 1
+    return k < safe ? "█" : k === safe ? "▓" : "░"
+  }).join("")
+  return `${marks}  [${bar}]`
+}
+
+export function formatCompactStack(stack: StackRow[]): string {
+  if (!stack.length) return "(stack unavailable)"
+  const seat = (row: StackRow) => `${row.provider}/${row.rest}`
+  const head = seat(stack[0])
+  if (stack.length === 1) return head
+  const next = seat(stack[1])
+  const extra = stack.length - 2
+  return extra > 0 ? `${head} → ${next} +${extra}` : `${head} → ${next}`
+}
+
+function railVerbose(): boolean {
+  return process.env.RAIL_FORMAT_VERBOSE === "1"
 }
 
 /** Canonical multi-line header for a phase (Codex + OpenCode parity). */
@@ -203,29 +305,24 @@ export function formatVisibleAnnounce(opts: {
   nativeModel?: string
 }): string {
   const meta = phaseMeta(opts.phase)
-  const head = opts.stack[0]
   const lines: string[] = [formatRailHeader(meta)]
+  lines.push(`  ·  stages  ${formatStageProgress(meta.step, meta.total)}`)
 
   if (opts.surface === "codex") {
-    lines.push(
-      `  ·  ${pad("native")}${opts.nativeModel || "gpt-5.6"}  (orchestrator · babysit)`,
-    )
+    const pin = opts.nativeModel || resolveSessionPin()
+    lines.push(`  ·  native  ${pin} · combo ${opts.combo}`)
   } else {
-    lines.push(`  ·  ${pad("surface")}opencode`)
-    if (opts.agent) lines.push(`  ·  ${pad("agent")}${opts.agent}`)
-    lines.push(`  ·  ${pad("mode")}${opts.mode}`)
-    lines.push(`  ·  ${pad("task")}${opts.taskType}`)
-    if (opts.sessionModel) lines.push(`  ·  ${pad("session")}${opts.sessionModel}`)
+    const bits = [opts.surface]
+    if (opts.agent) bits.push(opts.agent)
+    bits.push(`mode ${opts.mode}`, `combo ${opts.combo}`)
+    if (opts.taskType) bits.push(opts.taskType)
+    lines.push(`  ·  ${bits.join(" · ")}`)
   }
-
-  lines.push(`  ·  ${pad("combo")}${opts.combo}`)
-  if (head) {
-    lines.push(`  ·  ${pad("head")}${head.provider} · ${head.rest}`)
-  } else {
-    lines.push(`  ·  ${pad("head")}(stack unavailable)`)
+  lines.push(`  ·  head    ${formatCompactStack(opts.stack)}`)
+  if (railVerbose()) {
+    lines.push(`  ·  stack`)
+    lines.push(...formatStackLines(opts.stack))
   }
-  lines.push(`  ·  ${pad("stack")}`)
-  lines.push(...formatStackLines(opts.stack))
   return lines.join("\n")
 }
 
@@ -388,26 +485,14 @@ export function formatRailBlock(opts: {
   lines.push(
     `${meta.sigil} RAIL · ${meta.stage} · ${meta.label} · ${meta.step}/${meta.total}`,
   )
+  lines.push(`  ·  stages  ${formatStageProgress(meta.step, meta.total)}`)
   lines.push(`  ·  ${pad("surface")}${opts.surface}`)
   if (opts.agent) lines.push(`  ·  ${pad("agent")}${opts.agent}`)
   lines.push(`  ·  ${pad("mode")}${opts.mode}`)
   lines.push(`  ·  ${pad("task")}${opts.taskType}`)
   lines.push(`  ·  ${pad("session")}${opts.sessionModel}`)
   lines.push(`  ·  ${pad("combo")}${opts.combo}`)
-  if (head) {
-    lines.push(`  ·  ${pad("head")}${head.provider} · ${head.rest}`)
-  }
-  lines.push(`  ·  ${pad("stack")}`)
-  if (opts.stack.length === 0) {
-    lines.push(`     ·  (live stack unavailable)`)
-  } else {
-    for (const row of opts.stack) {
-      const mark = row.i === 1 ? "►" : "·"
-      lines.push(
-        `     ${mark} ${String(row.i).padStart(2, " ")}  ${pad(row.provider, 14)}${row.rest}`,
-      )
-    }
-  }
+  lines.push(`  ·  ${pad("head")}${formatCompactStack(opts.stack)}`)
   lines.push(`  ·  ${pad("workers")}te-dispatch-paid`)
   lines.push(`  ·  ${pad("capacity")}te-fast`)
   lines.push("")
@@ -425,6 +510,7 @@ export function formatRailBlock(opts: {
   lines.push(
     `  ${meta.sigil} RAIL · ${meta.stage} · ${meta.label} · ${meta.step}/${meta.total}`,
   )
+  lines.push(`  ·  stages  ${formatStageProgress(meta.step, meta.total)}`)
   lines.push(
     `  ·  session ${opts.sessionModel} · combo ${opts.combo}` +
       (head ? ` · head ${head.provider}/${head.rest}` : ""),
