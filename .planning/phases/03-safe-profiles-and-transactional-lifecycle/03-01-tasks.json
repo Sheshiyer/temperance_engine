@@ -1,0 +1,8 @@
+[
+  {
+    "id": "03-01-doctor-v2",
+    "task": "Execute Plan 03-01: Doctor v2 convergence (M1-M3). Read the full plan at .planning/phases/03-safe-profiles-and-transactional-lifecycle/03-01-PLAN.md and execute all 5 tasks sequentially. Key constraints: (1) v1 never breaks — default invocation still emits v1, v2 only via --report v2 flag; (2) V2_SECTION_RUNNERS is PARALLEL to SECTION_RUNNERS, never modifies the v1 registry; (3) All IO through ObservationIO seam; (4) Evidence symbolizer rewrites absolute paths to symbolic form; (5) Manifest section passes parity test against bridge doctor on identical fixtures; (6) Host section contains portable probes only — no sqlite/session/speculum. After completing all tasks, run the Task 5 verification gate sequence and report results.",
+    "backend": "omniroute",
+    "model": "te-dispatch-paid"
+  }
+]
