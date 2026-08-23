@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
+# DEPRECATED: Use `temperance install` instead.
+# This script will be removed in a future release.
 set -eu
+
+echo "WARNING: This script is deprecated. Use 'temperance install' instead." >&2
 
 . "${TEMPERANCE_ROOT:?}/scripts/lib.sh"
 
