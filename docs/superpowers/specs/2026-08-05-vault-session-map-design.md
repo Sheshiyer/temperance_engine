@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Vault Project Relocation — Session-Map (Piece C) — Design
 
 **Issue:** Moving Git repositories out of the twc-vault Obsidian vault into a
@@ -29,7 +34,7 @@ This work decomposes into four separable pieces, confirmed with the owner
 - **(A) Physical sibling-repo relocation.** Already built and tested this
   session (`package/relocation/*`): grammar, packet, registry, capsule,
   guarded-rename transaction, pickup, rollback, end-to-end apply. Needs only
-  its destination root repointed at `/Volumes/madara/2026/Projects/`.
+  its destination root repointed at `<PROJECT_VOLUME>/2026/Projects/`.
 - **(B) Nested-repo handling.** Not built. `thoughtseed-labs/CLAUDE.md`
   documents `hermes-aws-ts` as living *inside* `thoughtseed-labs`'s own
   working tree (`thoughtseed-labs/hermes-aws-ts/`), which itself has a
@@ -80,7 +85,7 @@ that history at the new path without any manual hunting.
   `~/.codex/sessions/YYYY/MM/DD/` or `~/.kimi/sessions/<opaque-id>/` to
   attribute individual files to a project.
 - **Not** attempting a mechanism for Craft Agent. Its only per-project-shaped
-  artifact found (`~/.craft-agent/workspaces/`) contains one generic entry
+  artifact found (`~/<SESSION_STORE>/workspaces/`) contains one generic entry
   (`my-workspace`), not evidence of a per-project convention. Recorded
   honestly as `unsupported` rather than guessing.
 - **Not** reading any session/transcript *content*. Every matcher touches
@@ -94,12 +99,12 @@ that history at the new path without any manual hunting.
 
 | Tool | Actual storage shape | Discovery mechanism | Confidence tier |
 |---|---|---|---|
-| **Claude Code** (`~/.claude/projects/`) | Folder-per-project, named by encoding the absolute cwd path (confirmed: `/Users/sheshnarayaniyer` → `-Users-sheshnarayaniyer`; exact character-escaping rules for `.` and other special characters still need one empirical check before implementation — do not assume from pattern-matching alone). | Deterministic path→foldername transform. | `path-derived` |
+| **Claude Code** (`~/.claude/projects/`) | Folder-per-project, named by encoding the absolute cwd path (confirmed: `<OPERATOR_HOME>` → `-Users-sheshnarayaniyer`; exact character-escaping rules for `.` and other special characters still need one empirical check before implementation — do not assume from pattern-matching alone). | Deterministic path→foldername transform. | `path-derived` |
 | **OpenCode** (`~/.local/share/opencode/opencode.db`) | SQLite. `project`, `session`, `workspace` tables; `session.directory`, `session.path`, `workspace.directory` columns, indexed (`session_project_idx`, `session_workspace_idx`). | Bounded read-only `SELECT` for exact path match. | `db-query-match` (highest) |
 | **GitHub Copilot CLI** (`~/.copilot/data.db`) | SQLite. `projects.main_repo_path` (`UNIQUE`, indexed), `worktrees.path`, `workspaces.source_path`. | Bounded read-only `SELECT` for exact path match. | `db-query-match` (highest) |
 | **Codex** (`~/.codex/`) | Sessions organized by **date** (`sessions/YYYY/MM/DD/`), not by path. `.codex-global-state.json` carries `active-workspace-roots`, `electron-saved-workspace-roots`, `project-order`. Separate cross-tool import indexes exist: `external_agent_session_imports.json` (`records`), `claude-cowork-import-history.json` (`accountSetupItems`, `connectorCandidates`, `projects`, `records`, `version`) — Codex already imports *from* Claude sessions. | Exact-string match against known JSON keys. | `workspace-root-index-match` — confirms presence only (see §4) |
 | **Kimi** (`~/.kimi/`) | `sessions/` and `user-history/` are opaque-ID-keyed (e.g. `007caf892d1ae989d133249b7afd3073`), not path-derived. `kimi.json` has exactly one top-level key, `work_dirs`, an array of 241 known absolute paths. | Exact-string match against `work_dirs`. | `workspace-root-index-match` — same caveat as Codex |
-| **Craft Agent** (`~/.craft-agent/`) | `workspaces/` contains a single generic entry (`my-workspace`) — no evidence of a per-project naming convention. | None found. | `unsupported` in v1 (§4) |
+| **Craft Agent** (`~/<SESSION_STORE>/`) | `workspaces/` contains a single generic entry (`my-workspace`) — no evidence of a per-project naming convention. | None found. | `unsupported` in v1 (§4) |
 
 Two scope corrections from the tools originally guessed under "the Kimi
 family": `.kimi-code`, `.kimi-webbridge`, `.kimi-work` are install-binary
@@ -121,8 +126,8 @@ One JSON file per moved project:
   "stableId": "...",
   "portfolio": "thoughtseed",
   "repository": "...",
-  "oldPath": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/<repo>",
-  "newPath": "/Volumes/madara/2026/Projects/thoughtseed/<repo>",
+  "oldPath": "<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/<repo>",
+  "newPath": "<PROJECT_VOLUME>/2026/Projects/thoughtseed/<repo>",
   "generatedAt": "...",
   "tools": [
     {
@@ -214,7 +219,7 @@ New module `package/relocation/project-session-map.ts`, alongside
   relocation file — the property that keeps this whole subsystem from ever
   doing an open-ended home-directory crawl. This module joins that guarded
   list, so its six tool-store paths must be hardcoded absolute literals
-  (`/Users/sheshnarayaniyer/.claude/projects`, etc.), the same way
+  (`<OPERATOR_HOME>/.claude/projects`, etc.), the same way
   `REGISTRY_HOST_ROOTS` and `PORTFOLIO_ROOTS` already are in
   `scripts/vault-project-relocation.ts` — not a new pattern.
 

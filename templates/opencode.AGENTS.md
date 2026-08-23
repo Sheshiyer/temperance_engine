@@ -9,6 +9,6 @@ First visible line for PAI-formatted responses: `NOESIS`.
 
 Use CodeGraph for structural search in `$HOME/.agents` and avoid Augment/codebase-retrieval for home-directory or `.agents` trees.
 
-Skill-cluster routing should go through `$HOME/.agents/skill-clusters/skill-index.json`; do not add `$HOME/.agents/skill-clusters/skills` as a startup skill scan path.
+Skill-cluster routing should go through `$HOME/.agents/skill-clusters/skill-index.json`. Startup scan is **hubs only** (`$HOME/.agents/skills` orchestrator+core + preserve, GSD profile `standard`). Do not add `$HOME/.agents/skill-clusters/skills` as a startup skill scan path. Add a Thoughtseed git root with `thoughtseed-cockpit-add PATH --pin --te-init`. Execute stays Superset + Claude Code — not Codex App as a worker.
 
 Claude Code, Claude Pro/Max, Anthropic auth, Codex auth, and specific model access are optional. If a Claude-only advisor path is unavailable, continue with OpenCode-native verification evidence.

@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Packet-Authoring Tool Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -223,7 +228,7 @@ describe("gatherPacketEvidence", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/.worktrees/packet-authoring && bun test package/relocation/packet-evidence.test.ts`
+Run: `cd <PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/temperance_engine/.worktrees/packet-authoring && bun test package/relocation/packet-evidence.test.ts`
 Expected: FAIL with "Cannot find module './packet-evidence'"
 
 - [ ] **Step 3: Implement `packet-evidence.ts`**
@@ -1132,9 +1137,9 @@ Run:
 
 ```bash
 bun scripts/vault-project-relocation.ts draft-packets \
-  --vault-root /Volumes/madara/2026/twc-vault/01-Projects/thoughtseed \
+  --vault-root <PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed \
   --portfolio thoughtseed \
-  --registry-path /Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/00-meta/work-object-registry.v1.json \
+  --registry-path <PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/00-meta/work-object-registry.v1.json \
   --candidate brandmint-showcase --candidate brandmint-v2 --candidate bwssb \
   --candidate cambium --candidate explee-skills --candidate fitcheck-landing \
   --candidate fmrl --candidate github-next-wave-orchestrator --candidate gram-cli \
@@ -1155,7 +1160,7 @@ Run, for a sample of 4-5 candidates spread across the list (e.g. `cambium`, `hos
 ```bash
 for name in cambium hostscalev0 thoughtseed-paperclip wtfmedia; do
   echo "=== $name ==="
-  git -C "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/$name" status --porcelain
+  git -C "<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/$name" status --porcelain
 done
 ```
 
@@ -1170,9 +1175,9 @@ Read the drafted `PROJECT.md` and `.project/project.yaml` for 3-4 candidates dir
 Run:
 
 ```bash
-cd /Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/temperance_engine
+cd <PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/temperance_engine
 bun scripts/vault-project-relocation.ts plan \
-  --repository /Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/hostscalev0 \
+  --repository <PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/hostscalev0 \
   --dry-run \
   --output /tmp/plan-hostscalev0-check.json
 ```

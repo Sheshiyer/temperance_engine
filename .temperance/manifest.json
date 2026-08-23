@@ -1,0 +1,9 @@
+{
+  "schema": "temperance.manifest.project.v1",
+  "project_id": "temperance-engine-7799042f99",
+  "name": "temperance_engine",
+  "cwd": "/Volumes/madara/2026/Projects/thoughtseed/temperance_engine",
+  "bridge_url": "http://127.0.0.1:8766",
+  "initialized_at": "2026-08-16T19:34:55.871Z",
+  "updated_at": "2026-08-22T01:15:59.164Z"
+}

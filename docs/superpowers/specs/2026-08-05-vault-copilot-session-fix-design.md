@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Vault Project Relocation — Copilot Session Fix (Piece D, first slice) — Design
 
 **Issue:** Piece C (session-map) built a durable, structured, per-project record
@@ -198,8 +203,8 @@ data to justify writing into it speculatively.
 {
   "portfolio": "thoughtseed",
   "repository": "...",
-  "oldPath": "/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/<repo>",
-  "newPath": "/Volumes/madara/2026/Projects/thoughtseed/<repo>",
+  "oldPath": "<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/<repo>",
+  "newPath": "<PROJECT_VOLUME>/2026/Projects/thoughtseed/<repo>",
   "generatedAt": "...",
   "status": "fixable" | "already-fixed" | "not-found" | "held",
   "holdReason": "new_path_project_already_exists:<projectId>" | null,

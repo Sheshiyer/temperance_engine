@@ -19,4 +19,4 @@
 
 ## PLANNING COMPLETE
 
-Next: `/gsd:execute-phase 1` from `/Volumes/madara/2026/Projects/thoughtseed/temperance_engine`.
+Next: `/gsd:execute-phase 1` from the project root.

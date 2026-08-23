@@ -1,3 +1,8 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # New-Project Scaffolding Tool Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -1047,7 +1052,7 @@ run bun test tests/vault-project-relocation-new-project.test.ts
 - [ ] **Step 3: Run the full aggregation script to confirm everything is wired correctly**
 
 Run: `bash scripts/verify-all.sh 2>&1 | grep -E "new-project|project-scaffold|workflow-provenance|work-object-registry-write"`
-Expected: four lines, each showing the test file ran (bun test's own pass/fail summary for each file — no `FAIL` anywhere in this filtered output). The pre-existing, unrelated `private local path found in public/install surface` failure (from `docs/vault-project-relocation.md`'s own pre-existing `/Volumes/madara/...` references, present before this plan's work and out of scope for it) is expected and not a regression introduced by this task — do not attempt to fix it as part of this plan.
+Expected: four lines, each showing the test file ran (bun test's own pass/fail summary for each file — no `FAIL` anywhere in this filtered output). The pre-existing, unrelated `private local path found in public/install surface` failure (from `docs/vault-project-relocation.md`'s own pre-existing `<PROJECT_VOLUME>/...` references, present before this plan's work and out of scope for it) is expected and not a regression introduced by this task — do not attempt to fix it as part of this plan.
 
 - [ ] **Step 4: Commit**
 

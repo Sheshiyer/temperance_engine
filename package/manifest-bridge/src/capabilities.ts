@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import type { ProjectSummary } from './catalog';
 
 export const CAPABILITIES_SCHEMA = 'temperance.manifest.capabilities.v2' as const;
-export const SCOPE_BINDING_SCHEMA = 'parkarea.guide.scope-binding.v1' as const;
+export const SCOPE_BINDING_SCHEMA = 'temperance.guide.scope-binding.v1' as const;
 export const GUIDE_SCOPE_PATHS = [
   '.temperance/guide/capture.config.json',
   '.temperance/guide/capture.scope.json',
@@ -16,7 +16,7 @@ export const GUIDE_SCOPE_PATHS = [
 ] as const;
 export const VALIDATOR_IDS = {
   capture: 'product-guides.capture-contract@1.0.0',
-  coverage: 'parkarea.coverage-contract@1.0.0',
+  coverage: 'temperance.coverage-contract@1.0.0',
   guide: 'product-guides.validate-guide-py@1.0.0',
   film: 'product-guides.film-spec-closed@1.0.0',
 } as const;
@@ -82,6 +82,11 @@ function exactKeys(value: Record<string, unknown>, expected: readonly string[]):
   return received.length === wanted.length && received.every((key, index) => key === wanted[index]);
 }
 
+function hasRequiredKeys(value: Record<string, unknown>, required: readonly string[]): boolean {
+  const keys = Object.keys(value);
+  return required.every(req => keys.includes(req));
+}
+
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
@@ -90,107 +95,103 @@ function boundedStrings(value: unknown, allowEmpty = false): value is string[] {
   return Array.isArray(value) && (allowEmpty || value.length > 0) && value.every((item) => typeof item === 'string' && item.length > 0 && item.length <= 240);
 }
 
-const PARKAREA_REQUIREMENTS = ['SCOPE-01', 'SCOPE-02', 'SCOPE-03', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-01', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'CAP-03', 'CAP-04', 'CAP-05', 'CAP-06', 'CAP-07', 'CAP-08', 'CAP-09', 'DATA-02', 'DATA-03', 'DATA-04', 'DATA-05', 'GUIDE-01'] as const;
-const PARKAREA_EDITION_REQUIREMENTS = ['SCOPE-01', 'SCOPE-04', 'SCOPE-05', 'SCOPE-06', 'AUTH-02', 'AUTH-03', 'CAP-01', 'CAP-02', 'GUIDE-01'] as const;
-const PARKAREA_FORBIDDEN_EFFECTS = ['booking', 'payment', 'ledger', 'notification', 'audit', 'request_log', 'payout', 'transactional_email', 'external_provider'] as const;
-const PARKAREA_PROOF_FILE = 'server/__tests__/postgres/guide-claim-evidence.pg.test.ts';
-const PARKAREA_COVERAGE_ROWS = [
-  {
-    evidenceId: 'seeker-listing-readiness', route: '/parkplatz/__W1A_APPROVED_LISTING_ID__', persona: 'seeker', checkpointKind: 'seeker_read_only', minimumBodyTextChars: 400,
-    requirementIds: ['CAP-04', 'CAP-06', 'CAP-07', 'DATA-03', 'DATA-05'],
-    claim: { de: 'Ein aktives Inserat zeigt Verfügbarkeit, Preisangebot, Gesamtpreis und Buchungsbereitschaft ohne Buchung.', en: 'An active listing shows availability, quote, total, and booking readiness without creating a booking.' },
-    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="page-parkplatz-detail"]', '[data-testid="text-parking-name"]', '[data-testid="badge-availability"]', '[data-testid="listing-availability-summary"]', '[data-testid="card-booking"]', '[data-testid="calendar-booking"]', '[data-testid="text-total-price"]', '[data-testid="button-book-now"]', '[data-booking-readiness="settled"]'],
-    sideEffect: { kind: 'listing_view_telemetry', status: 'isolated_verified' }, claimClassification: 'isolated', claimRoute: '/api/v1/listings/:id | /api/v1/listings/:id/availability-calendar | /api/v1/listings/:id/quote', claimAllowed: ['listing_view_events:view:+1'],
-    claimProofKind: 'postgres_postgis',
-    claimTestName: 'active listing detail, calendar, and quote are tenant-scoped and do not create a booking',
-  },
-  {
-    evidenceId: 'private-provider-listing-analytics', route: '/provider/listings/__W1A_APPROVED_LISTING_ID__/analytics', persona: 'private_provider', checkpointKind: 'private_provider_read_only', minimumBodyTextChars: 300,
-    requirementIds: ['SCOPE-02', 'AUTH-01', 'CAP-03', 'CAP-05', 'DATA-04'],
-    claim: { de: 'Die Analyseansicht zeigt persistierte Leistungs- und Umsatzkennzahlen des privaten Anbieters ohne Änderung.', en: 'The analytics view shows the private provider’s persisted performance and revenue metrics without changing them.' },
-    selectors: ['[data-testid="listing-analytics-page"]', '[data-testid="listing-analytics-export-csv"]', '[data-testid="listing-analytics-total-views"]', '[data-testid="listing-analytics-total-impressions"]', '[data-testid="listing-analytics-conversion-rate"]', '[data-testid="listing-analytics-chart"]'],
-    sideEffect: { kind: 'provider_analytics_read', status: 'read_only_verified' }, claimClassification: 'read-only', claimRoute: '/api/v1/provider/listings/:id/analytics | /api/v1/provider/listings/:id/revenue | /api/v1/provider/listings/revenue', claimAllowed: [],
-    claimProofKind: 'postgres',
-    claimTestName: 'private provider listing analytics reads persisted tenant-owned metrics without mutation',
-  },
-  {
-    evidenceId: 'enterprise-provider-qr-fleet', route: '/provider/qr/fleet', persona: 'enterprise_provider', checkpointKind: 'enterprise_provider_read_only', minimumBodyTextChars: 300,
-    requirementIds: ['CAP-08', 'DATA-02'],
-    claim: { de: 'Die QR-Flottenansicht zeigt mandantensichere Inserate und Scan-Kennzahlen des Unternehmensanbieters ohne Regenerierung.', en: 'The QR fleet view shows the enterprise provider’s tenant-safe listings and scan metrics without regeneration.' },
-    selectors: ['[data-testid="qr-fleet-page"]', '[data-testid="qr-fleet-search"]', '[data-testid="qr-fleet-selected-count"]', '[data-testid="qr-fleet-bulk-regenerate"]', '[data-testid="qr-fleet-bulk-pdf"]', '[data-testid="qr-fleet-export-csv"]', '[data-testid^="qr-fleet-row-"]'],
-    sideEffect: { kind: 'enterprise_qr_fleet_read', status: 'read_only_verified' }, claimClassification: 'read-only', claimRoute: '/api/v1/admin/tenants/:tenantId/qr/fleet', claimAllowed: [],
-    claimProofKind: 'postgres',
-    claimTestName: 'enterprise provider QR fleet reads persisted tenant listings and scan metrics without regeneration',
-  },
-  {
-    evidenceId: 'admin-listing-readiness', route: '/admin/listings', persona: 'admin', checkpointKind: 'admin_read_only', minimumBodyTextChars: 300,
-    requirementIds: ['SCOPE-03', 'CAP-09'],
-    claim: { de: 'Der Moderationsverlauf zeigt die Freigabe desselben aktiven Inserats ohne Änderung.', en: 'Moderation history shows approval of the same active listing without changing it.' },
-    selectors: ['[data-testid="parkarea-app-shell"]', '[data-testid="moderation-history-list"]', '[data-admin-evidence-state="settled"]', '[data-audit-state="settled"]', '[data-queue-state="settled"]', '[data-imports-state="settled"]', '[data-testid="moderation-history-row-__W1A_APPROVED_LISTING_ID__"][data-audit-action="listing.approve"]', '[data-testid="moderation-history-approval-label-__W1A_APPROVED_LISTING_ID__"][data-listing-id="__W1A_APPROVED_LISTING_ID__"]'],
-    sideEffect: { kind: 'admin_audit_read', status: 'read_only_verified' }, claimClassification: 'read-only', claimRoute: '/api/v1/admin/listings | /api/v1/admin/audit-log', claimAllowed: [],
-    claimProofKind: 'postgres_postgis',
-    claimTestName: 'admin listing readiness and persisted approval audit are readable for the same tenant without mutation',
-  },
-] as const;
+// Coverage validation is deliberately generic: Temperance checks structure,
+// ordering, and cross-artifact consistency only. Project-specific requirement
+// inventories, claims, routes, and selectors live in each project's own repo
+// (e.g. parkarea-aleph keeps its closed contract under scripts/product-guides/).
 
-function sameStrings(value: unknown, expected: readonly string[]): boolean {
-  return Array.isArray(value) && value.length === expected.length && value.every((item, index) => item === expected[index]);
+function sameStrings(value: unknown): value is string[] {
+  return boundedStrings(value);
 }
 
-export function validateParkAreaCoverageContract(input: unknown, trusted: { capture: unknown; claimMap: unknown }): boolean {
+function nonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= 240;
+}
+
+function selectorIsBounded(value: unknown): boolean {
+  // Selectors must be specific enough to anchor deterministic evidence:
+  // bare tag names and universal wildcards never pin a concrete UI state.
+  if (!nonEmptyString(value)) return false;
+  const trimmed = value.trim();
+  if (trimmed.length < 4) return false;
+  if (trimmed === '*' || /^[a-zA-Z]+$/.test(trimmed)) return false;
+  return true;
+}
+
+function claimMapSchemaIsProjectPinned(schema: string, projectName: string): boolean {
+  // Each project owns its claim-evidence-map schema name; the bridge accepts
+  // only `<segment>.guide.claim-evidence-map.<version>` where `<segment>` is
+  // the project's own slug or a leading token of it (e.g. `parkarea` for
+  // `parkarea-aleph`). One project's registry can never satisfy another
+  // project's coverage contract.
+  const marker = '.guide.claim-evidence-map.';
+  if (!schema.includes(marker)) return false;
+  const segment = schema.slice(0, schema.indexOf(marker)).toLowerCase();
+  if (!segment) return false;
+  const slug = projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (!slug) return false;
+  return slug === segment || slug.startsWith(`${segment}-`);
+}
+
+export function validateCoverageContract(input: unknown, trusted: { capture: unknown; claimMap: unknown; project_name: string }): boolean {
   const value = record(input);
   const capture = record(trusted?.capture);
   const claimMap = record(trusted?.claimMap);
   if (!value || !exactKeys(value, ['schemaVersion', 'edition', 'metadata', 'requirements', 'steps']) || value.schemaVersion !== 1) return false;
-  if (!capture || capture.schemaVersion !== 1 || capture.project !== 'parkarea-aleph' || !Array.isArray(capture.shots) || capture.shots.length !== PARKAREA_COVERAGE_ROWS.length) return false;
-  if (!claimMap || claimMap.schema !== 'parkarea.guide.claim-evidence-map.v2' || !Array.isArray(claimMap.claims) || claimMap.claims.length !== PARKAREA_COVERAGE_ROWS.length) return false;
+  if (!capture || capture.schemaVersion !== 1 || !nonEmptyString(String(capture.project ?? ''))
+    || !Array.isArray(capture.shots) || capture.shots.length === 0) return false;
+  if (!claimMap || typeof claimMap.schema !== 'string' || !claimMapSchemaIsProjectPinned(claimMap.schema, trusted.project_name)
+    || !Array.isArray(claimMap.claims) || claimMap.claims.length === 0) return false;
+
   const edition = record(value.edition);
   if (!edition || !exactKeys(edition, ['audience', 'primaryPersona', 'primaryLocale', 'secondaryLocale', 'media', 'publication', 'requirementIds'])
-    || edition.audience !== 'internal_qa_operators' || edition.primaryPersona !== 'seeker' || edition.primaryLocale !== 'de' || edition.secondaryLocale !== 'en'
-    || edition.media !== 'deterministic_stills' || edition.publication !== 'private_only' || !sameStrings(edition.requirementIds, PARKAREA_EDITION_REQUIREMENTS)) return false;
+    || edition.audience !== 'internal_qa_operators' || !nonEmptyString(edition.primaryPersona)
+    || !nonEmptyString(edition.primaryLocale) || !nonEmptyString(edition.secondaryLocale)
+    || edition.media !== 'deterministic_stills' || edition.publication !== 'private_only'
+    || !sameStrings(edition.requirementIds)) return false;
   const metadata = record(value.metadata);
-  if (!metadata || !exactKeys(metadata, ['freshContextPerShot', 'runnerContract']) || metadata.freshContextPerShot !== true || metadata.runnerContract !== 'canonical_shared_runner_new_browser_context_per_shot') return false;
-  if (!sameStrings(value.requirements, PARKAREA_REQUIREMENTS) || !Array.isArray(value.steps) || value.steps.length !== PARKAREA_COVERAGE_ROWS.length) return false;
-  const firstShot = record(capture.shots[0]);
-  const listingMatch = typeof firstShot?.route === 'string'
-    ? firstShot.route.match(/^\/parkplatz\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i)
-    : null;
-  if (!listingMatch) return false;
-  const listingId = listingMatch[1];
+  if (!metadata || !exactKeys(metadata, ['freshContextPerShot', 'runnerContract'])
+    || metadata.freshContextPerShot !== true || !nonEmptyString(metadata.runnerContract)) return false;
+  if (!sameStrings(value.requirements) || !Array.isArray(value.steps) || value.steps.length === 0) return false;
 
-  return value.steps.every((candidate, index) => {
+  const steps = value.steps as unknown[];
+  if ((capture.shots as unknown[]).length !== steps.length || claimMap.claims!.length !== steps.length) return false;
+
+  return steps.every((candidate, index) => {
     const step = record(candidate);
-    const shot = record(capture.shots[index]);
-    const claimRow = record(claimMap.claims[index]);
-    const expected = PARKAREA_COVERAGE_ROWS[index];
-    if (!step || !shot || !claimRow || !exactKeys(step, ['order', 'stepId', 'checkpointKind', 'requirementIds', 'claim', 'route', 'persona', 'locales', 'tenantAuthority', 'scenarioClass', 'evidenceId', 'requiredSelectors', 'minimumBodyTextChars', 'semanticProof', 'sideEffects', 'admission'])) return false;
+    const shot = record((capture.shots as unknown[])[index]);
+    const claimRow = record((claimMap.claims as unknown[])[index]);
+    if (!step || !shot || !claimRow) return false;
+    if (!exactKeys(step, ['order', 'stepId', 'checkpointKind', 'requirementIds', 'claim', 'route', 'persona', 'locales', 'tenantAuthority', 'scenarioClass', 'evidenceId', 'requiredSelectors', 'minimumBodyTextChars', 'semanticProof', 'sideEffects', 'admission'])) return false;
+    if (!exactKeys(claimRow, ['order', 'evidenceId', 'proof', 'correlation', 'sideEffects'])) return false;
     const claim = record(step.claim);
     const proof = record(step.semanticProof);
     const claimProof = record(claimRow.proof);
     const correlation = record(claimRow.correlation);
     const claimSideEffects = record(claimRow.sideEffects);
-    const effects = Array.isArray(step.sideEffects) ? step.sideEffects : [];
-    const effect = effects.length === 1 ? record(effects[0]) : null;
-    const expectedRoute = expected.route.replace('__W1A_APPROVED_LISTING_ID__', listingId);
-    const expectedSelectors = expected.selectors.map((selector) => selector.replaceAll('__W1A_APPROVED_LISTING_ID__', listingId));
-    if (!exactKeys(claimRow, ['order', 'evidenceId', 'proof', 'correlation', 'sideEffects'])
-      || !claimProof || !exactKeys(claimProof, ['kind', 'status', 'file', 'testName'])
-      || !correlation || !exactKeys(correlation, ['route', 'persona', 'tenantAuthority'])
-      || !claimSideEffects || !exactKeys(claimSideEffects, ['classification', 'allowed', 'forbidden'])) return false;
-    return step.order === index + 1 && step.stepId === expected.evidenceId && step.evidenceId === expected.evidenceId
-      && step.checkpointKind === expected.checkpointKind && step.route === expectedRoute && step.persona === expected.persona
-      && step.minimumBodyTextChars === expected.minimumBodyTextChars && step.tenantAuthority === 'authenticated_session'
+    const effect = Array.isArray(step.sideEffects) && step.sideEffects.length === 1 ? record(step.sideEffects[0]) : null;
+    if (!claim || !proof || !claimProof || !correlation || !claimSideEffects) return false;
+    if (!exactKeys(claim, ['de', 'en']) || !nonEmptyString(claim.de) || !nonEmptyString(claim.en)) return false;
+    if (!hasRequiredKeys(proof, ['kind', 'status']) || proof.status !== 'verified') return false;
+    if (!effect || !exactKeys(effect, ['kind', 'status'])) return false;
+    if (!exactKeys(claimProof, ['kind', 'status', 'file', 'testName'])
+      || claimProof.status !== 'passed' || !nonEmptyString(claimProof.file) || !nonEmptyString(claimProof.testName)) return false;
+    if (!exactKeys(correlation, ['route', 'persona', 'tenantAuthority']) || !nonEmptyString(correlation.route)) return false;
+    if (!exactKeys(claimSideEffects, ['classification', 'allowed', 'forbidden'])
+      || !nonEmptyString(claimSideEffects.classification)) return false;
+    if (!Array.isArray(claimSideEffects.forbidden) || claimSideEffects.forbidden.length === 0) return false;
+    return step.order === index + 1 && claimRow.order === index + 1
+      && nonEmptyString(step.stepId) && step.stepId === step.evidenceId && shot.id === step.evidenceId && claimRow.evidenceId === step.evidenceId
+      && nonEmptyString(step.route) && step.route === shot.route
+      && nonEmptyString(step.persona) && step.persona === shot.persona && correlation.persona === step.persona
+      && step.tenantAuthority === 'authenticated_session' && correlation.tenantAuthority === 'authenticated_session'
       && step.scenarioClass === 'synthetic_or_approved_demo' && step.admission === 'approved'
-      && sameStrings(step.requirementIds, expected.requirementIds) && sameStrings(step.requiredSelectors, expectedSelectors)
-      && Array.isArray(step.locales) && step.locales.length === 2 && step.locales[0] === 'de' && step.locales[1] === 'en'
-      && Boolean(claim) && exactKeys(claim!, ['de', 'en']) && claim!.de === expected.claim.de && claim!.en === expected.claim.en
-      && Boolean(proof) && exactKeys(proof!, ['kind', 'status']) && proof!.kind === 'w1a_postgres_or_read_only_probe' && proof!.status === 'verified'
-      && Boolean(effect) && exactKeys(effect!, ['kind', 'status']) && effect!.kind === expected.sideEffect.kind && effect!.status === expected.sideEffect.status
-      && shot.id === expected.evidenceId && shot.route === expectedRoute && shot.persona === expected.persona && shot.minimumBodyTextChars === expected.minimumBodyTextChars && sameStrings(shot.requiredSelectors, expectedSelectors)
-      && claimRow.order === index + 1 && claimRow.evidenceId === expected.evidenceId
-      && claimProof.kind === expected.claimProofKind && claimProof.status === 'passed' && claimProof.file === PARKAREA_PROOF_FILE && claimProof.testName === expected.claimTestName
-      && correlation.route === expected.claimRoute && correlation.persona === expected.persona && correlation.tenantAuthority === 'authenticated_session'
-      && claimSideEffects.classification === expected.claimClassification && sameStrings(claimSideEffects.allowed, expected.claimAllowed) && sameStrings(claimSideEffects.forbidden, PARKAREA_FORBIDDEN_EFFECTS);
+      && sameStrings(step.requirementIds)
+      && Array.isArray(step.requiredSelectors) && step.requiredSelectors.every(selectorIsBounded)
+      && Array.isArray(shot.requiredSelectors) && shot.requiredSelectors.every(selectorIsBounded)
+      && Array.isArray(step.locales) && step.locales.length === 2 && step.locales.every((locale) => nonEmptyString(locale))
+      && typeof step.minimumBodyTextChars === 'number' && Number.isFinite(step.minimumBodyTextChars) && step.minimumBodyTextChars > 0
+      && step.minimumBodyTextChars === shot.minimumBodyTextChars;
   });
 }
 
@@ -242,14 +243,19 @@ function readConfinedJson(root: string, relativePath: string): unknown {
   return JSON.parse(readFileSync(target, 'utf8')) as unknown;
 }
 
+function project_name_for(project_root: string): string {
+  const capture = readConfinedJson(project_root, GUIDE_SCOPE_PATHS[0]) as Record<string, unknown> | null;
+  return typeof capture?.project === 'string' ? capture.project : '';
+}
+
 async function defaultRegistry(): Promise<ValidatorRegistry> {
   const capturePath = join(homedir(), '.agents', 'skill-clusters', 'skills', 'product-guides-core', 'scripts', 'capture-contract.mjs');
   const guidePath = join(homedir(), '.agents', 'skill-clusters', 'skills', 'build-product-user-guides', 'scripts', 'validate_guide.py');
   const coverage: Validator = ({ path, project_root }) => {
     try {
       const value = JSON.parse(readFileSync(path, 'utf8')) as unknown;
-      const trusted = { capture: readConfinedJson(project_root, GUIDE_SCOPE_PATHS[0]), claimMap: readConfinedJson(project_root, GUIDE_SCOPE_PATHS[3]) };
-      return { ok: validateParkAreaCoverageContract(value, trusted), identity: VALIDATOR_IDS.coverage, code: 'invalid_content' };
+      const trusted = { capture: readConfinedJson(project_root, GUIDE_SCOPE_PATHS[0]), claimMap: readConfinedJson(project_root, GUIDE_SCOPE_PATHS[3]), project_name: project_name_for(project_root) };
+      return { ok: validateCoverageContract(value, trusted), identity: VALIDATOR_IDS.coverage, code: 'invalid_content' };
     } catch { return { ok: false, identity: VALIDATOR_IDS.coverage, code: 'invalid_content' }; }
   };
   const film: Validator = ({ path }) => {
@@ -359,13 +365,12 @@ export async function projectCapabilities(project: ProjectSummary, route?: Recor
     ffmpeg: options.toolAvailability?.ffmpeg ?? commandAvailable('ffmpeg'),
   };
   const guideBlockers = [!artifacts.capture.validated && 'capture_not_validated', !artifacts.coverage.validated && 'coverage_not_validated', !tools.playwright && 'playwright_unavailable'].filter(Boolean) as string[];
-  const parkArea = project.name.toLowerCase().includes('parkarea');
-  const videoBlockers = parkArea ? ['hero_film_waiting_for_guide_evidence_approval'] : [!artifacts.capture.validated && 'capture_not_validated', !artifacts.guide_manifest.validated && 'guide_manifest_not_validated', !artifacts.film_spec.validated && 'film_spec_not_validated', !tools.ffmpeg && 'ffmpeg_unavailable'].filter(Boolean) as string[];
+  const videoBlockers = [!artifacts.capture.validated && 'capture_not_validated', !artifacts.guide_manifest.validated && 'guide_manifest_not_validated', !artifacts.film_spec.validated && 'film_spec_not_validated', !tools.ffmpeg && 'ffmpeg_unavailable'].filter(Boolean) as string[];
   const guideReady = guideBlockers.length === 0;
   const videoReady = videoBlockers.length === 0;
   const capabilities: CapabilityRecord[] = [
     { id: 'build-product-user-guides', label: 'BUILD PRODUCT USER GUIDES', cluster: 'product-guides', tier: 'active', state: guideReady ? 'ready' : 'gated', summary: 'Validated guide contract and deterministic still evidence.', requirements: [requirement('capture-config', 'Validated capture configuration', artifacts.capture.validated, VALIDATOR_IDS.capture), requirement('coverage-matrix', 'Validated coverage matrix', artifacts.coverage.validated, VALIDATOR_IDS.coverage), requirement('playwright', 'Playwright project dependency', tools.playwright, 'project package manifest')], execution: 'explicit-approval' },
-    { id: 'guide-to-product-video', label: 'GUIDE TO PRODUCT VIDEO', cluster: 'product-guides', tier: 'active', state: videoReady ? 'ready' : 'gated', summary: parkArea ? 'The approved ParkArea cross-role hero film remains deferred until guide evidence is approved.' : 'Validated guide inventory and FilmSpec for bounded video.', requirements: [requirement('guide-inventory', 'Validated guide inventory', artifacts.guide_manifest.validated, VALIDATOR_IDS.guide), requirement('film-spec', 'Validated FilmSpec', artifacts.film_spec.validated, VALIDATOR_IDS.film), requirement('ffmpeg', 'FFmpeg', tools.ffmpeg, 'bridge host runtime')], execution: 'explicit-approval' },
+    { id: 'guide-to-product-video', label: 'GUIDE TO PRODUCT VIDEO', cluster: 'product-guides', tier: 'active', state: videoReady ? 'ready' : 'gated', summary: 'Validated guide inventory and FilmSpec for bounded video.', requirements: [requirement('guide-inventory', 'Validated guide inventory', artifacts.guide_manifest.validated, VALIDATOR_IDS.guide), requirement('film-spec', 'Validated FilmSpec', artifacts.film_spec.validated, VALIDATOR_IDS.film), requirement('ffmpeg', 'FFmpeg', tools.ffmpeg, 'bridge host runtime')], execution: 'explicit-approval' },
   ];
   return {
     schema: CAPABILITIES_SCHEMA, generated_at: new Date().toISOString(), project_id: project.project_id, project_name: project.name, source: 'canonical-project-cwd', authority: 'unchecked_at_request', artifacts,

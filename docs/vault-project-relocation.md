@@ -1,8 +1,13 @@
+> **Historical record** (unredacted original maintained privately): this document describes
+> work executed against a specific operator machine. Machine-specific paths appear as
+> symbolic placeholders (`<OPERATOR_HOME>`, `<PROJECT_VOLUME>`, `<SESSION_STORE>`); the
+> narrative and decisions are unchanged.
+
 # Vault Project Relocation
 
 Reference documentation for the subsystem that relocates approved `thoughtseed` and
 `tryambakam-noesis` working repositories out of the TWC Obsidian/PARA vault tree into
-`/Volumes/madara/2026/Projects/<portfolio>/<repository>`, while preserving Git history,
+`<PROJECT_VOLUME>/2026/Projects/<portfolio>/<repository>`, while preserving Git history,
 stable project identity, portfolio knowledge records, portable pickup, and rollback.
 
 This document describes what the code *is* and how its pieces fit together. For current
@@ -37,8 +42,8 @@ validator and an executable source guard.
 
 ## Pinned vault
 
-`/Volumes/madara/2026/twc-vault/` remains the PARA/Obsidian knowledge system.
-`/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/` remains a
+`<PROJECT_VOLUME>/2026/twc-vault/` remains the PARA/Obsidian knowledge system.
+`<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed/thoughtseed-labs/` remains a
 nested knowledge vault at its current path — it is never a relocation candidate, and
 the inventory CLI holds it explicitly (`pinned_knowledge_vault`). Historical pack
 analysis, compaction, or history rewriting of the outer vault repository is a
@@ -59,8 +64,8 @@ destination collision, or for Tryambakam, the still-unresolved TN registry basel
 Writes only the caller-supplied report file, mode `0600`, inside a mode `0700`
 directory. No destination directory is created. Portfolio source roots:
 
-- `thoughtseed` → `/Volumes/madara/2026/twc-vault/01-Projects/thoughtseed`
-- `tryambakam-noesis` → `/Volumes/madara/2026/twc-vault/01-Projects/tryambakam-noesis`
+- `thoughtseed` → `<PROJECT_VOLUME>/2026/twc-vault/01-Projects/thoughtseed`
+- `tryambakam-noesis` → `<PROJECT_VOLUME>/2026/twc-vault/01-Projects/tryambakam-noesis`
 
 (Note: this is the source root for *candidate repositories*, distinct from the
 Tryambakam *registry* root below — the two are easy to conflate and an earlier version
@@ -270,7 +275,7 @@ holds the repository.
 Bound to their ratified knowledge authorities:
 
 - Thoughtseed → `thoughtseed-labs/20-operations/project-management/relocation-registry/thoughtseed/<repository>/`
-- Tryambakam → `/Volumes/madara/2026/twc-vault/_System/10865xseed/projects/<repository>/`
+- Tryambakam → `<PROJECT_VOLUME>/2026/twc-vault/_System/10865xseed/projects/<repository>/`
 
 `package/relocation/project-registry.ts` is the sole writer, selecting exactly one
 registry from the packet's `portfolio` field — `assertNoCompetingRegistryClaim()`

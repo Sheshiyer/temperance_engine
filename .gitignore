@@ -16,3 +16,8 @@ coverage/
 # self-referential links left by unguarded `ln -s` re-runs (BSD ln follows symlinked dst)
 skills/temperance-*/temperance-*
 .temperance/goal.json
+.temperance/secrets/
+
+# research scratch (untracked working notes, not project history)
+.planning/react-bits-pro/
+.superset/

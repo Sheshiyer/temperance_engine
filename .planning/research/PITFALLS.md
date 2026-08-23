@@ -91,7 +91,7 @@ Stage B (blocking source/overlay separation); verify again in Stages E and F.
 `verify.sh` stays permanently red, or it turns green because broad directories/tests/history were excluded while executable install sources still contain workstation paths. The current run exits 1 with `private local path found in public/install surface`; matches include real runtime constants, tests, historical plans, `ISA.md`, `.planning/NEXT-WAVE.json`, generated/node_modules content, and the audit itself. A single undifferentiated grep cannot tell unsafe runtime literals from historical evidence or synthetic fixtures.
 
 **Why it happens:**
-The guard scans nearly the whole public repository for `/Users/`, `/Volumes/madara`, and `.craft-agent`. It has no file-role taxonomy, no fixture convention, and no generated-directory pruning. Developers then face pressure either to redact valuable historical records or add ever broader exclusions.
+The guard scans nearly the whole public repository for `/Users/`, `<PROJECT_VOLUME>`, and `<SESSION_STORE>`. It has no file-role taxonomy, no fixture convention, and no generated-directory pruning. Developers then face pressure either to redact valuable historical records or add ever broader exclusions.
 
 **How to avoid:**
 Stage A defines path-policy scopes:
@@ -107,14 +107,14 @@ Replace the one-bit guard with output that lists `path`, `role`, `pattern`, and 
 
 ```bash
 ./verify.sh                       # currently exits 1
-grep -R -n -I -F -e '/Users/' -e '/Volumes/madara' \
+grep -R -n -I -F -e '/Users/' -e '<PROJECT_VOLUME>' \
   scripts package templates install.sh uninstall.sh verify.sh
 ```
 
 - The guard prints only a generic failure, not offending paths.
 - `node_modules` or generated files influence the result.
 - A suppression is directory-wide rather than tied to a classified non-payload file.
-- Runtime code still defines `/Users/sheshnarayaniyer/...` constants after the guard is declared fixed.
+- Runtime code still defines `<OPERATOR_HOME>/...` constants after the guard is declared fixed.
 
 **Phase to address:**
 Stage A (policy), Stage B (repair and green guard), Stage F (artifact-only rerun).
