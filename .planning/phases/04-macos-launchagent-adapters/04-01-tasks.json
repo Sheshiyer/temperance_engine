@@ -1,0 +1,8 @@
+[
+  {
+    "id": "04-01-launchagent-lifecycle",
+    "task": "Execute Plan 04-01: macOS LaunchAgent lifecycle adapters. Read the full plan at .planning/phases/04-macos-launchagent-adapters/04-01-PLAN.md and execute all 5 tasks sequentially. Key constraints: (1) LAUNCHAGENT is a new SurfaceClass in types.ts; (2) Platform gating uses existing isPlatformSupported() outcome pattern — never throws PLATFORM_UNSUPPORTED; (3) All launchctl calls go through LifecycleIO.execFile; (4) Idempotency is executor-level (isLoaded check before load); (5) Update diff uses sha256 comparison; (6) Rollback preimage is {plistBytes, wasLoaded} JSON; (7) Fragment records use root_token HOME; (8) NEVER-SHIP records for deprecated shell scripts in fragments/deprecated-scripts.json; (9) Both-arch docstring required in launchagent.ts. After completing all tasks, run the Task 4 verification gate sequence and report results.",
+    "backend": "omniroute",
+    "model": "te-dispatch-paid"
+  }
+]
