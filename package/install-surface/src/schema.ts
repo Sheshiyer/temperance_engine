@@ -1,14 +1,18 @@
 import Ajv2020, { type ValidateFunction } from "ajv/dist/2020.js";
 
 import doctorReportSchema from "../schemas/doctor-report.v1.schema.json" with { type: "json" };
+import doctorReportV2Schema from "../schemas/doctor-report.v2.schema.json" with { type: "json" };
 import fragmentSchema from "../schemas/fragment.v1.schema.json" with { type: "json" };
 import lockSchema from "../schemas/lock.v1.schema.json" with { type: "json" };
 import privateRegistrySchema from "../schemas/private-registry.v1.schema.json" with { type: "json" };
 import type {
   DoctorReportV1,
+  DoctorReportV2,
   InstallSurfaceFragmentV1,
   InstallSurfaceLockV1,
 } from "./types.ts";
+
+export type { DoctorReportV2 };
 
 export const MAX_FRAGMENT_BYTES = 1_048_576;
 export const MAX_LOCK_BYTES = 8_388_608;
@@ -24,6 +28,7 @@ const fragmentValidator = schemaCompiler.compile(fragmentSchema);
 const lockValidator = schemaCompiler.compile(lockSchema);
 const privateRegistryValidator = schemaCompiler.compile(privateRegistrySchema);
 const doctorReportValidator = schemaCompiler.compile(doctorReportSchema);
+const doctorReportV2Validator = schemaCompiler.compile(doctorReportV2Schema);
 
 function withinBound(value: unknown, maxBytes: number): boolean {
   try {
@@ -56,4 +61,8 @@ export function validatePrivateRegistry(value: unknown): boolean {
 
 export function validateDoctorReport(value: unknown): value is DoctorReportV1 {
   return validateBounded(value, MAX_DOCTOR_REPORT_BYTES, doctorReportValidator);
+}
+
+export function validateDoctorReportV2(value: unknown): value is DoctorReportV2 {
+  return validateBounded(value, MAX_DOCTOR_REPORT_BYTES, doctorReportV2Validator);
 }

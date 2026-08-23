@@ -20,7 +20,8 @@ import { runInstallSection } from "../src/doctor/sections/install.ts";
 import { renderDoctorHuman } from "../src/doctor/render-human.ts";
 import { renderDoctorJson } from "../src/doctor/render-json.ts";
 import { observePrivateRegistry } from "../src/private-registry.ts";
-import type { InstallSurfaceLockV1, SurfaceRecord } from "../src/types.ts";
+import { validateDoctorReport, validateDoctorReportV2 } from "../src/schema.ts";
+import type { DoctorReportV2, InstallSurfaceLockV1, SurfaceRecord } from "../src/types.ts";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -200,5 +201,58 @@ describe("private registry privacy and file controls", () => {
     const outputs = [renderDoctorHuman(report), renderDoctorHuman(report, true), renderDoctorJson(report), JSON.stringify(observePrivateRegistry(fixture.state))];
     for (const output of outputs) expect(output).not.toContain(fixture.honeytoken);
     expect(report.sections[0].checks[0].condition).toBe("SKIPPED");
+  });
+});
+
+describe("doctor report schema compilation and validation", () => {
+  test("v1 schema compiles and validates a captured report instance", async () => {
+    const repository = tempRoot("schema-v1-repo-");
+    writeFixtureLock(repository, []);
+    const report = await runDoctor({ repositoryRoot: repository, stateRoot: tempRoot("schema-v1-state-") });
+    expect(validateDoctorReport(report)).toBe(true);
+  });
+
+  test("v2 schema compiles and validates a captured report instance", () => {
+    const v2Report: DoctorReportV2 = {
+      schema: "temperance.doctor.report.v2",
+      version: { major: 2, minor: 0 },
+      generated_at: new Date().toISOString(),
+      scope: { complete: true, requested_sections: ["install", "privacy", "manifest", "runtime", "host"] },
+      trustworthy: true,
+      overall_condition: "PASS",
+      exit_code: 0,
+      inventory_digest: "sha256:" + "a".repeat(64),
+      sections: [],
+    };
+    expect(validateDoctorReportV2(v2Report)).toBe(true);
+  });
+
+  test("v2 schema rejects report with missing inventory_digest", () => {
+    const badReport = {
+      schema: "temperance.doctor.report.v2",
+      version: { major: 2, minor: 0 },
+      generated_at: new Date().toISOString(),
+      scope: { complete: true, requested_sections: [] },
+      trustworthy: true,
+      overall_condition: "PASS",
+      exit_code: 0,
+      sections: [],
+    };
+    expect(validateDoctorReportV2(badReport)).toBe(false);
+  });
+
+  test("v2 schema rejects report with wrong schema constant", () => {
+    const badReport = {
+      schema: "temperance.doctor.report.v1",
+      version: { major: 2, minor: 0 },
+      generated_at: new Date().toISOString(),
+      scope: { complete: true, requested_sections: [] },
+      trustworthy: true,
+      overall_condition: "PASS",
+      exit_code: 0,
+      inventory_digest: "sha256:" + "a".repeat(64),
+      sections: [],
+    };
+    expect(validateDoctorReportV2(badReport)).toBe(false);
   });
 });

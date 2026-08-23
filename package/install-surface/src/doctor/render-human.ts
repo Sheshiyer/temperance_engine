@@ -1,4 +1,4 @@
-import type { DoctorCheck, DoctorReportV1 } from "./model.ts";
+import type { DoctorCheck, DoctorReportV1, DoctorReportV2 } from "./model.ts";
 
 function renderCheck(check: DoctorCheck): string[] {
   return [
@@ -9,12 +9,15 @@ function renderCheck(check: DoctorCheck): string[] {
   ];
 }
 
-export function renderDoctorHuman(report: DoctorReportV1, verbose = false): string {
+export function renderDoctorHuman(report: DoctorReportV1 | DoctorReportV2, verbose = false): string {
+  const digestLabel = "inventory_digest" in report
+    ? `  inventory    ${report.inventory_digest}`
+    : `  manifest     ${report.manifest_digest}`;
   const lines = [
     `TEMPERANCE DOCTOR · ${report.overall_condition}`,
     `  trustworthy  ${report.trustworthy}`,
     `  scope        ${report.scope.complete ? "complete" : `partial (${report.scope.requested_sections.join(",")})`}`,
-    `  manifest     ${report.manifest_digest}`,
+    digestLabel,
     "SECTIONS",
     ...report.sections.map((section) => `  [${section.condition}] ${section.id} · ${section.checks.length} checks`),
   ];

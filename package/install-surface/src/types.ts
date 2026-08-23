@@ -2,6 +2,7 @@ export const FRAGMENT_SCHEMA = "temperance.install-surface.fragment.v1" as const
 export const LOCK_SCHEMA = "temperance.install-surface.lock.v1" as const;
 export const PRIVATE_REGISTRY_SCHEMA = "temperance.private-registry.v1" as const;
 export const DOCTOR_REPORT_SCHEMA = "temperance.doctor.report.v1" as const;
+export const DOCTOR_REPORT_SCHEMA_V2 = "temperance.doctor.report.v2" as const;
 
 export interface SchemaVersionV1 {
   major: 1;
@@ -122,7 +123,7 @@ export interface DoctorCheck {
 }
 
 export interface DoctorSection {
-  id: "install" | "privacy" | "runtime";
+  id: "install" | "privacy" | "runtime" | "manifest" | "host";
   condition: DoctorCondition;
   checks: DoctorCheck[];
 }
@@ -139,5 +140,20 @@ export interface DoctorReportV1 {
   overall_condition: DoctorCondition;
   exit_code: DoctorExitCode;
   manifest_digest: `sha256:${string}`;
+  sections: DoctorSection[];
+}
+
+export interface DoctorReportV2 {
+  schema: typeof DOCTOR_REPORT_SCHEMA_V2;
+  version: { major: 2; minor: 0 };
+  generated_at: string;
+  scope: {
+    complete: boolean;
+    requested_sections: DoctorSection["id"][];
+  };
+  trustworthy: boolean;
+  overall_condition: DoctorCondition;
+  exit_code: DoctorExitCode;
+  inventory_digest: `sha256:${string}`;
   sections: DoctorSection[];
 }
