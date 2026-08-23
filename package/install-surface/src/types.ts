@@ -38,6 +38,18 @@ export interface IdentityMigration {
   to_id: string;
 }
 
+/**
+ * Runtime dependency declarations for preflight checking.
+ * - http-health: probes a URL token (resolved via rootBindings) with HEAD request
+ * - binary: checks a command exists on PATH via `which`
+ *
+ * Doctor v2 host section (Plan 03-01) derives its probes FROM these declarations
+ * rather than duplicating them — see spec §3.2 derivation table.
+ */
+export type RuntimeDependency =
+  | { kind: "http-health"; url_token: string }
+  | { kind: "binary"; name: string };
+
 interface SurfaceRecordBase {
   id: string;
   owner: string;
@@ -46,6 +58,8 @@ interface SurfaceRecordBase {
   eligibility: SurfaceEligibility;
   depends_on?: string[];
   identity_migration?: IdentityMigration;
+  /** Optional runtime dependency declarations; absent = no requirement. All 18 current records unaffected. */
+  requires?: RuntimeDependency[];
 }
 
 export interface CopySurfaceRecord extends SurfaceRecordBase {
