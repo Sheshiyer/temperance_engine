@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
+# DEPRECATED: Use `temperance install` instead.
+# This script will be removed in a future release.
 # Install the Thoughtseed-member "glove": Codex UPS compose, GSD wrappers,
 # Manifest console+bridge, product symlink, router SoT copy.
 # Does not vendor GSD core, does not copy secrets, does not apply OmniRoute combos.
 set -eu
+
+echo "WARNING: This script is deprecated. Use 'temperance install' instead." >&2
 
 . "${TEMPERANCE_ROOT:?}/scripts/lib.sh"
 
