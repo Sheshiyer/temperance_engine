@@ -47,7 +47,7 @@ function main() {
     hours === null
       ? "  ·  fleet      paid-fleet ranking missing — run rank-paid-fleet.py before Execute"
       : hours > 6
-        ? `  ·  fleet      ranking ${hours.toFixed(1)}h stale — refresh before te-dispatch-paid`
+        ? `  ·  fleet      ranking ${hours.toFixed(1)}h stale — refresh before noesis-execute`
         : `  ·  fleet      ranking ${hours.toFixed(1)}h old`,
     "  ·  doctor     /gsd:doctor or temperance-project-init --check",
   ];

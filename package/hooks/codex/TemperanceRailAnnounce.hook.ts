@@ -189,11 +189,11 @@ function formatRailBlock(opts: {
       )
     }
   }
-  lines.push(`  ·  ${pad("workers")}te-dispatch-paid`)
-  lines.push(`  ·  ${pad("capacity")}te-fast`)
+  lines.push(`  ·  ${pad("workers")}noesis-execute`)
+  lines.push(`  ·  ${pad("capacity")}noesis-fast`)
   lines.push("")
   lines.push("CONTRACT")
-  lines.push("  ·  Native session babysits only unless --profile te-* is active.")
+  lines.push("  ·  Native session babysits by default; explicit --profile noesis-* selects bounded routed work.")
   lines.push("  ·  Dispatch heavy alchemical work to the combo; do not bulk-code on native.")
   lines.push("  ·  After each worker: announce resolved provider + model (no emojis).")
   lines.push("")
@@ -206,7 +206,7 @@ function formatRailBlock(opts: {
   )
   lines.push(`  ·  codex --profile ${opts.combo}`)
   lines.push(
-    `  ·  temperance-batch … model te-dispatch-paid  (Execute fleet)`,
+    `  ·  temperance-batch … model noesis-execute  (Execute fleet)`,
   )
   lines.push("")
   lines.push("ANNOUNCE (paste at phase transitions)")
@@ -231,7 +231,7 @@ export function buildContext(prompt: string): string {
   const taskType = classifyTaskType(prompt)
   const combo =
     (map?.task_type_to_combo && map.task_type_to_combo[taskType]) ||
-    (taskType === "plan" ? "te-plan" : "te-fast")
+    (taskType === "plan" ? "noesis-plan" : "noesis-fast")
   const phase = phaseForTaskType(taskType)
   const phaseCombo =
     (map?.algorithm_phases && map.algorithm_phases[phase]) || combo
@@ -296,7 +296,7 @@ function main(): void {
     ctx = [
       "<temperance-rail>",
       "◇ RAIL · PROCESS · FAIL-OPEN · ·/7",
-      "  ·  combo      te-fast",
+      "  ·  combo      noesis-fast",
       "</temperance-rail>",
     ].join("\n")
   }

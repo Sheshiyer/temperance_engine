@@ -35,6 +35,7 @@ export function formatRail(name: string, spec: any, chosen: string | null): stri
   const view = spec.view || "PLANNING";
   const consoleUrl = (process.env.TEMPERANCE_MANIFEST_CONSOLE_URL || "https://speculum.localhost:1355").replace(/\/$/, "");
   const url = `${consoleUrl}/?mode=${encodeURIComponent(spec.mode || "ALGORITHM")}&view=${encodeURIComponent(view)}&gsd=${encodeURIComponent(name)}`;
+  const skipHitl = spec.mode === "MINIMAL" || name === "help" || name === "stats" || name === "note" || name === "progress" || name === "list-workspaces";
   const lines = [
     "<gsd-rail>",
     `☿ GSD · /${name} · ${spec.group || "ops"}`,
@@ -43,12 +44,13 @@ export function formatRail(name: string, spec: any, chosen: string | null): stri
     `  ·  view      ${view}`,
     `  ·  alchemy   ${spec.alchemy || "—"}`,
     `  ·  workflow  ~/.claude/get-shit-done/workflows/${name}.md`,
+    skipHitl ? "" : "  ·  hitl      AskUserQuestion (Codex/Claude) · OpenCode question · Grok ask_user_question · never Reply 1, 2, or 3",
+    skipHitl ? "" : "  ·  text_mode false unless --text or workflow.text_mode",
+    skipHitl ? "" : "  ·  override  ~/.temperance_engine/docs/GSD-TEXT-MODE-OVERRIDE.md (void: Codex has no AskUserQuestion)",
     (chosen || spec.mode)
       ? `  ·  console   mode ${chosen || spec.mode} already bound — print Manifest URL (ChatGPT iab if available) → ${url}`
       : "  ·  console   no session mode: call ask_user_question / AskUserQuestion — never a chat-reply quiz",
-    spec.next_wave ? "  ·  fleet     temperance-next-wave + te-dispatch-paid (no double spawn)" : "",
-    "  ·  design    ~/.temperance_engine/docs/GSD-PAI-DESIGN-FLOW.md",
-    "  ·  init      rail-format.sh gsd-init " + name,
+    spec.next_wave ? "  ·  fleet     temperance-next-wave + noesis-execute (no double spawn)" : "",
     "</gsd-rail>",
   ].filter(Boolean);
   return lines.join("\n");
