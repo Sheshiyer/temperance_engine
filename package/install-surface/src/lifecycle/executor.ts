@@ -9,6 +9,16 @@
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 import { prepareCopies, captureCopyManifest, assertCopyPrior, declaredCopyHashesForSteps, loadCopyManifest, rollbackCopies, safePath, sha256, type CopyManifest } from "./copy-tree.ts";
+import { prepareNonCopy, producerAvailability } from "./non-copy.ts";
+import {
+  assertSurfacePrior,
+  captureSurfaceManifest,
+  loadSurfaceManifest,
+  rollbackSurface,
+  verifySurfaceOutput,
+  type PreparedSurface,
+  type SurfaceManifest,
+} from "./prepared-surface.ts";
 
 import type { CompileResult } from "../compile.ts";
 import type { SurfaceRecord } from "../types.ts";
@@ -27,6 +37,8 @@ import {
 } from "./journal.ts";
 import { createPlan, type PlanResult, type PlanOptions, type StepOutcome } from "./planner.ts";
 import { writeReceipt, type Receipt } from "./receipts.ts";
+
+export { spliceManagedBlock } from "./non-copy.ts";
 
 // ─── Executor errors ─────────────────────────────────────────────────────────
 
@@ -92,48 +104,6 @@ function defaultResolveRoot(token: string): string {
   return resolver();
 }
 
-// ─── File operations ─────────────────────────────────────────────────────────
-
-async function stageFile(
-  io: LifecycleIO,
-  source: string,
-  stagePath: string,
-): Promise<void> {
-  const content = await io.readFile(source);
-  await io.writeFileAtomic(stagePath, content);
-}
-
-async function verifySha256(
-  io: LifecycleIO,
-  path: string,
-  expected: string,
-): Promise<boolean> {
-  const content = await io.readFile(path);
-  const hash = createHash("sha256").update(content).digest("hex");
-  return hash === expected;
-}
-
-async function verifyCopyLeaf(
-  io: LifecycleIO,
-  path: string,
-  expectedHash: string,
-  expectedMode: number,
-): Promise<boolean> {
-  const matchesExpectedRegularFile = async (): Promise<boolean> => {
-    const stat = await io.lstat(path);
-    return stat.isFile()
-      && !stat.isSymbolicLink()
-      && stat.nlink === 1
-      // Do not mask setuid, setgid, or sticky bits into an apparent 0644/0755.
-      && (stat.mode & 0o7777) === expectedMode;
-  };
-  if (!await matchesExpectedRegularFile()) return false;
-  if (!await verifySha256(io, path, expectedHash)) return false;
-  // Re-check after content verification so a swapped path cannot receive a
-  // successful stage/promotion receipt merely because its earlier lstat matched.
-  return matchesExpectedRegularFile();
-}
-
 async function promoteFile(
   io: LifecycleIO,
   stagePath: string,
@@ -142,44 +112,30 @@ async function promoteFile(
   await io.rename(stagePath, destPath);
 }
 
+async function verifyCopyLeaf(
+  io: LifecycleIO,
+  path: string,
+  expectedHash: string,
+  expectedMode: number,
+): Promise<boolean> {
+  const valid = async (): Promise<boolean> => {
+    const stat = await io.lstat(path);
+    return stat.isFile()
+      && !stat.isSymbolicLink()
+      && stat.nlink === 1
+      && (stat.mode & 0o7777) === expectedMode;
+  };
+  if (!await valid()) return false;
+  const hash = createHash("sha256").update(await io.readFile(path)).digest("hex");
+  return hash === expectedHash && await valid();
+}
+
 async function removeStaged(io: LifecycleIO, stagePath: string): Promise<void> {
   try {
     await io.rm(stagePath, { recursive: true, force: true });
   } catch {
     // Ignore errors during cleanup
   }
-}
-
-// ─── Managed block splice ────────────────────────────────────────────────────
-
-const BLOCK_START_MARKER = "<!-- temperance:managed:start";
-const BLOCK_END_MARKER = "<!-- temperance:managed:end";
-
-/**
- * Splice a Temperance-managed block into a file, preserving outside-block content.
- * Returns the new file content.
- */
-export function spliceManagedBlock(
-  existingContent: string,
-  blockId: string,
-  newBlockContent: string,
-): string {
-  const startMarker = `${BLOCK_START_MARKER} ${blockId} -->`;
-  const endMarker = `${BLOCK_END_MARKER} ${blockId} -->`;
-
-  const startIdx = existingContent.indexOf(startMarker);
-  const endIdx = existingContent.indexOf(endMarker);
-
-  if (startIdx === -1 || endIdx === -1) {
-    // No existing block — append
-    const prefix = existingContent.endsWith("\n") ? existingContent : existingContent + "\n";
-    return `${prefix}${startMarker}\n${newBlockContent}\n${endMarker}\n`;
-  }
-
-  // Replace existing block
-  const before = existingContent.slice(0, startIdx + startMarker.length + 1);
-  const after = existingContent.slice(endIdx);
-  return `${before}${newBlockContent}\n${after}`;
 }
 
 // ─── Executor ────────────────────────────────────────────────────────────────
@@ -278,10 +234,50 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
   let filteredSteps: typeof plan.steps = [];
   const filteredRecords: typeof stepRecords = [];
   const skippedOptional: string[] = [];
+  const unavailableOptional = new Map<string, string>();
 
   for (const step of plan.steps) {
     const record = stepRecords.find((r) => r.id === step.record_id);
     if (!record) continue;
+
+    // There is no removal producer for a contextual managed transform. Raw
+    // unlink would delete user-owned bytes outside its block, so hold before
+    // creating a transaction until a separately reviewed removal contract
+    // exists.
+    if (step.mode === "uninstall" && record.class === "TRANSFORM") {
+      return {
+        txid,
+        status: "failed",
+        outcomes: plan.outcomes.map((outcome) => ({
+          ...outcome,
+          status: "failed" as const,
+          reason: outcome.record_id === record.id
+            ? "TRANSFORM_UNINSTALL_UNSUPPORTED: no managed-block removal producer"
+            : undefined,
+        })),
+        exitCode: 1,
+      };
+    }
+
+    const producer = record.class === "TRANSFORM" || record.class === "REGENERATE"
+      ? producerAvailability(record)
+      : null;
+    if (producer) {
+      if (record.eligibility.required || explicitSelections?.has(record.id)) {
+        return {
+          txid,
+          status: "failed",
+          outcomes: plan.outcomes.map((outcome) => ({
+            ...outcome,
+            status: "failed" as const,
+            reason: outcome.record_id === record.id ? producer.reason : undefined,
+          })),
+          exitCode: 1,
+        };
+      }
+      unavailableOptional.set(record.id, producer.reason);
+      continue;
+    }
 
     // Check if this is an optional record with unavailable dependencies
     if (record.eligibility.required === false && record.requires) {
@@ -313,6 +309,10 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
 
   // Update outcomes for skipped optional records
   const finalOutcomes = plan.outcomes.map((o) => {
+    const unavailable = unavailableOptional.get(o.record_id);
+    if (unavailable) {
+      return { ...o, status: "unavailable" as const, reason: unavailable };
+    }
     if (skippedOptional.includes(o.record_id)) {
       return {
         ...o,
@@ -323,12 +323,23 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     return o;
   });
 
-  let copies: Awaited<ReturnType<typeof prepareCopies>>["copies"];
+  let copies: Awaited<ReturnType<typeof prepareCopies>>["copies"] = new Map();
+  const preparedSurfaces = new Map<string, PreparedSurface>();
+  const preparedTransformInputs = new Map<string, { hash: string | null; mode: number | null }>();
   try {
     const declaredCopyHashes = declaredCopyHashesForSteps(filteredSteps, filteredRecords);
     const prepared = await prepareCopies(io, filteredSteps, filteredRecords, options.repositoryRoot, declaredCopyHashes);
     filteredSteps = prepared.steps;
     copies = prepared.copies;
+    for (const copy of copies.values()) {
+      preparedSurfaces.set(copy.step.step_id, {
+        step: copy.step,
+        surface_class: "COPY",
+        content: copy.content,
+        expected_hash: copy.expected_hash,
+        expected_mode: copy.expected_mode,
+      });
+    }
     // Check every stage reservation and destination ancestry before journal writes.
     for (const step of filteredSteps) {
       if (!/^[\w.-]+$/.test(step.step_id)) throw new Error("STEP_ID_INVALID");
@@ -366,17 +377,54 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     throw error;
   }
 
+  try {
+    for (const step of filteredSteps) {
+      const record = compileResult.lockObject.records.find((candidate) => candidate.id === step.record_id);
+      if (!record || record.class !== "TRANSFORM" || step.mode === "uninstall") continue;
+      const prepared = await prepareNonCopy(record, { io, repositoryRoot: options.repositoryRoot, resolveRoot });
+      if (prepared.status !== "prepared") throw new Error(prepared.reason);
+      preparedSurfaces.set(step.step_id, {
+        step,
+        surface_class: "TRANSFORM",
+        producer_id: prepared.producer_id,
+        source_hash: prepared.source_hash,
+        content: prepared.content,
+        expected_hash: sha256(prepared.content),
+        expected_mode: "preserve",
+      });
+      preparedTransformInputs.set(step.step_id, prepared.destination_before);
+    }
+    // Retain the RO-00 COPY manifest for pure COPY transactions so historic
+    // receipts/recovery remain readable. A mixed transaction upgrades as one
+    // whole to the prepared surface manifest before its first mutation.
+    if (preparedTransformInputs.size === 0) preparedSurfaces.clear();
+  } catch (error) {
+    return { txid, status: "failed", exitCode: 1, outcomes: finalOutcomes.map((outcome) => ({ ...outcome, status: "failed" as const, reason: String(error) })) };
+  }
+
   const journal = await Journal.create(stateRoot, io, txid);
 
   const committedSteps: string[] = [];
-  const preimageDir = join(txDir, "preimage");
 
   const stagedPaths = new Set<string>();
   try {
-    const copyManifest = await captureCopyManifest(io, txDir, copies, resolveRoot);
+    const surfaceManifest = preparedSurfaces.size > 0
+      ? await captureSurfaceManifest(io, txDir, preparedSurfaces, resolveRoot)
+      : null;
+    const copyManifest = surfaceManifest === null && copies.size > 0
+      ? await captureCopyManifest(io, txDir, copies, resolveRoot)
+      : null;
+    const surfaceLeaves = new Map((surfaceManifest?.leaves ?? []).map((leaf) => [leaf.step_id, leaf]));
+    for (const [stepId, input] of preparedTransformInputs) {
+      const leaf = surfaceLeaves.get(stepId);
+      if (!leaf || leaf.prior_hash !== input.hash || leaf.prior_mode !== input.mode) {
+        throw new Error("TRANSFORM_DESTINATION_RACE");
+      }
+    }
     await journal.append({
       kind: "BEGIN", ts: io.now().toISOString(), verb, profile, inventory_digest: compileResult.digest,
-      ...(copies.size ? { copy_manifest_sha256: sha256(JSON.stringify(copyManifest, null, 2) + "\n") } : {}),
+      ...(surfaceManifest ? { surface_manifest_sha256: sha256(await io.readFile(join(txDir, "surface-manifest.json"))) } : {}),
+      ...(copyManifest ? { copy_manifest_sha256: sha256(await io.readFile(join(txDir, "copy-manifest.json"))) } : {}),
     });
     // Execute steps
     for (const step of filteredSteps) {
@@ -388,8 +436,14 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
       const stagePath = join(rootPath, `.temperance-stage-${txid}-${sha256(step.step_id)}`);
       if (!/^[\w.-]+$/.test(step.step_id)) throw new Error("STEP_ID_INVALID");
       await safePath(io, rootPath, destPath, "file");
+      const surface = preparedSurfaces.get(step.step_id);
+      const surfaceLeaf = surface ? surfaceLeaves.get(step.step_id) : undefined;
       const copy = copies.get(step.step_id);
-      if (copy) await assertCopyPrior(io, copyManifest.leaves.find(l => l.step_id === step.step_id)!, resolveRoot);
+      const copyLeaf = copy ? copyManifest?.leaves.find((leaf) => leaf.step_id === step.step_id) : undefined;
+      if (surface && !surfaceLeaf) throw new Error("SURFACE_MANIFEST_LEAF_MISSING");
+      if (copy && !copyLeaf && !surfaceLeaf) throw new Error("COPY_MANIFEST_LEAF_MISSING");
+      if (surfaceLeaf) await assertSurfacePrior(io, surfaceLeaf, resolveRoot);
+      if (copyLeaf) await assertCopyPrior(io, copyLeaf, resolveRoot);
       try { await io.lstat(stagePath); throw new Error("STAGE_ALREADY_EXISTS"); }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
       stagedPaths.add(stagePath);
@@ -412,13 +466,14 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
         mode: step.mode,
       });
 
-      // Backup preimage if file exists
-      if (!copy) try {
+      // Uninstall is not a prepared-output mutation. Retain the legacy
+      // preimage path for that separate, older compensation contract.
+      if (!surfaceLeaf && !copyLeaf) try {
         const existing = await io.readFile(destPath);
-        const preimagePath = join(preimageDir, `${step.step_id}.preimage`);
+        const preimagePath = join(txDir, "preimage", `${step.step_id}.preimage`);
         await io.writeFileAtomic(preimagePath, existing);
       } catch {
-        // File doesn't exist — no preimage needed
+        // A missing destination is an idempotent uninstall.
       }
 
       if (step.mode === "uninstall") {
@@ -429,23 +484,21 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
           // File doesn't exist — idempotent
         }
       } else {
-        // Install/Update: stage and promote
-        // Stage based on record class
-        if (record.class === "COPY") {
-          if (!copy) throw new Error("COPY_PREPARATION_MISSING");
-          await io.writeFileAtomic(stagePath, copy.content);
-          await io.chmod(stagePath, copy.expected_mode);
-          if (!await verifyCopyLeaf(io, stagePath, copy.expected_hash, copy.expected_mode)) throw new Error("COPY_STAGE_VERIFY_FAILED");
+        // Install/Update: every output is prepared before BEGIN. Pure legacy
+        // COPY transactions retain their v2 manifest; mixed transactions use
+        // the prepared surface manifest as one recovery unit.
+        if (surface && surfaceLeaf) {
+          await io.writeFileAtomic(stagePath, surface.content, { mode: surfaceLeaf.expected_mode });
           await safePath(io, rootPath, stagePath, "file");
-          await assertCopyPrior(io, copyManifest.leaves.find(l => l.step_id === step.step_id)!, resolveRoot);
-        } else if (record.class === "TRANSFORM") {
-          // Transform: render via adapter
-          // For now, treat as copy with adapter verification
-          await stageFile(io, record.source, stagePath);
-        } else if (record.class === "REGENERATE") {
-          // Regenerate: invoke generator
-          // For now, create placeholder
-          await io.writeFileAtomic(stagePath, `<!-- regenerated by ${record.verification.generator_id} -->\n`);
+          await verifySurfaceOutput(io, surfaceLeaf, stagePath, rootPath);
+          await assertSurfacePrior(io, surfaceLeaf, resolveRoot);
+        } else if (copy && copyLeaf) {
+          await io.writeFileAtomic(stagePath, copy.content, { mode: copy.expected_mode });
+          await safePath(io, rootPath, stagePath, "file");
+          if (!await verifyCopyLeaf(io, stagePath, copy.expected_hash, copy.expected_mode)) throw new Error("COPY_STAGE_VERIFY_FAILED");
+          await assertCopyPrior(io, copyLeaf, resolveRoot);
+        } else {
+          throw new Error("SURFACE_PREPARATION_MISSING");
         }
 
         // Promote: atomic rename
@@ -453,7 +506,8 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
           await safePath(io, rootPath, destPath, "file");
           await promoteFile(io, stagePath, destPath);
           stagedPaths.delete(stagePath);
-          if (copy && !await verifyCopyLeaf(io, destPath, copy.expected_hash, copy.expected_mode)) throw new Error("COPY_PROMOTE_VERIFY_FAILED");
+          if (surfaceLeaf) await verifySurfaceOutput(io, surfaceLeaf, destPath, rootPath);
+          else if (copy && !await verifyCopyLeaf(io, destPath, copy.expected_hash, copy.expected_mode)) throw new Error("COPY_PROMOTE_VERIFY_FAILED");
         } catch (error) {
           // Promotion failed — abort
           await journal.append({
@@ -557,33 +611,57 @@ export async function rollbackTransaction(
   const txDir = join(stateRoot, "transactions", txid);
   const journal = Journal.open(txDir, io);
 
-  let copyManifest: CopyManifest | null;
+  let copyManifest: CopyManifest | null = null;
+  let surfaceManifest: SurfaceManifest | null = null;
+  let entries: JournalEntry[] = [];
+
+  const assertManifestJournalScope = (manifest: SurfaceManifest | CopyManifest): void => {
+    const leafIds = new Set(manifest.leaves.map((leaf) => leaf.step_id));
+    for (const entry of entries) {
+      if (
+        (entry.kind === "STAGE" || entry.kind === "COMMIT_STEP" || entry.kind === "COMPENSATE")
+        && !leafIds.has(entry.step_id)
+      ) {
+        throw new Error("MANIFEST_ROLLBACK_UNVERIFIED");
+      }
+    }
+  };
+
   try {
-    copyManifest = await loadCopyManifest(io, txDir);
-    const entries = await journal.readEntries();
+    entries = await journal.readEntries();
     const begin = entries.find(e => e.kind === "BEGIN");
-    if (copyManifest) {
-      if (begin?.kind !== "BEGIN" || begin.copy_manifest_sha256 !== sha256(await io.readFile(join(txDir, "copy-manifest.json")))) throw new Error("COPY_MANIFEST_DRIFT");
-      // Legacy non-COPY compensation has no hash contract. Refuse a mixed
-      // transaction before changing COPY leaves rather than claim atomic recovery.
-      if (entries.some(e => e.kind === "STAGE" && !copyManifest!.leaves.some(l => l.step_id === e.step_id))) throw new Error("MIXED_ROLLBACK_UNVERIFIED");
-      await rollbackCopies(io, txDir, copyManifest, resolveRoot);
-    } else if (begin?.kind === "BEGIN" && begin.copy_manifest_sha256) throw new Error("COPY_MANIFEST_MISSING");
+    surfaceManifest = await loadSurfaceManifest(io, txDir);
+    if (surfaceManifest) {
+      if (begin?.kind !== "BEGIN" || begin.surface_manifest_sha256 !== sha256(await io.readFile(join(txDir, "surface-manifest.json")))) {
+        throw new Error("SURFACE_MANIFEST_DRIFT");
+      }
+      // A transaction must use one authoritative recovery format. Mixing
+      // legacy COPY and prepared output evidence has no all-leaf proof.
+      if (await loadCopyManifest(io, txDir)) throw new Error("SURFACE_MANIFEST_FORMAT_CONFLICT");
+      assertManifestJournalScope(surfaceManifest);
+      await rollbackSurface(io, txDir, surfaceManifest, resolveRoot);
+    } else {
+      copyManifest = await loadCopyManifest(io, txDir);
+      if (copyManifest) {
+        if (begin?.kind !== "BEGIN" || begin.copy_manifest_sha256 !== sha256(await io.readFile(join(txDir, "copy-manifest.json")))) throw new Error("COPY_MANIFEST_DRIFT");
+        // A manifest owns the complete recovery scope. Do not fall back to
+        // journal-provided paths for any unbound stage, commit, or prior retry.
+        assertManifestJournalScope(copyManifest);
+        await rollbackCopies(io, txDir, copyManifest, resolveRoot);
+      } else if (begin?.kind === "BEGIN" && (begin.copy_manifest_sha256 || begin.surface_manifest_sha256)) {
+        throw new Error(begin.surface_manifest_sha256 ? "SURFACE_MANIFEST_MISSING" : "COPY_MANIFEST_MISSING");
+      }
+    }
   } catch {
     return { txid, status: "failed", outcomes: [], exitCode: 1 };
   }
   if (copyManifest) {
     for (const leaf of copyManifest.leaves) await journal.append({ kind: "COMPENSATE", ts: io.now().toISOString(), step_id: leaf.step_id, method: "verified-copy-leaf" });
+    return { txid, status: "committed", outcomes: [], exitCode: 0 };
   }
-  const status = await journal.getStatus();
-  if (status === "aborted") {
-    // Already aborted — nothing to rollback
-    return {
-      txid,
-      status: "committed",
-      outcomes: [],
-      exitCode: 0,
-    };
+  if (surfaceManifest) {
+    for (const leaf of surfaceManifest.leaves) await journal.append({ kind: "COMPENSATE", ts: io.now().toISOString(), step_id: leaf.step_id, method: "verified-surface-leaf" });
+    return { txid, status: "committed", outcomes: [], exitCode: 0 };
   }
 
   const committedSteps = await journal.committedSteps();
@@ -591,7 +669,6 @@ export async function rollbackTransaction(
 
   // Reverse order compensation
   for (const stepId of committedSteps.reverse()) {
-    if (copyManifest?.leaves.some(l => l.step_id === stepId)) continue;
     const preimagePath = join(preimageDir, `${stepId}.preimage`);
 
     // Try to restore from preimage

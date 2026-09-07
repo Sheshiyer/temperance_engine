@@ -79,7 +79,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function validateCopyExpectation(record: SurfaceRecord, errors: string[]): void {
   const rawExpected = (record.verification as Record<string, unknown>).expected;
-  if (record.class !== "COPY") {
+  if (record.class !== "COPY" && record.class !== "TRANSFORM") {
     if (rawExpected !== undefined) errors.push("COPY_EXPECTATION_INVALID");
     return;
   }
@@ -99,6 +99,10 @@ function validateCopyExpectation(record: SurfaceRecord, errors: string[]): void 
     ) {
       errors.push("COPY_EXPECTATION_INVALID");
     }
+    return;
+  }
+  if (record.class === "TRANSFORM") {
+    errors.push("TRANSFORM_SOURCE_EXPECTATION_INVALID");
     return;
   }
   if (
@@ -169,17 +173,11 @@ function validateOwnership(records: readonly SurfaceRecord[], errors: string[]):
       const relation = segmentRelationship(leftSegments, assertDestination(right.destination));
       if (relation === "disjoint") continue;
 
-      const leftOwnership = left.destination.ownership;
-      const rightOwnership = right.destination.ownership;
-      const validSharedManagedBlock = relation === "equal"
-        && leftOwnership.kind === "managed-block"
-        && rightOwnership.kind === "managed-block"
-        && Boolean(leftOwnership.marker_id)
-        && Boolean(rightOwnership.marker_id)
-        && leftOwnership.marker_id !== rightOwnership.marker_id
-        && left.class === "TRANSFORM"
-        && right.class === "TRANSFORM";
-      if (!validSharedManagedBlock) errors.push("OWNERSHIP_OVERLAP");
+      // The current transaction manifest has one verified output/preimage per
+      // destination. A second managed block on the same file would compile but
+      // cannot be installed or rolled back as one atomic surface yet, so reject
+      // it at the source boundary rather than defer a runtime collision.
+      errors.push("OWNERSHIP_OVERLAP");
     }
   }
 }

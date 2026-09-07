@@ -30,7 +30,11 @@ async function fixture(source = "payload") {
     readdir: p => fs.readdir(p), rm: (p, o) => fs.rm(p, o), lstat: p => fs.lstat(p),
     chmod: (p, mode) => fs.chmod(p, mode),
     rename: (a, b) => fs.rename(a, b), realpath: p => fs.realpath(p), now: () => new Date(),
-    writeFileAtomic: async (p, d) => { await fs.writeFile(p + ".tmp", d); await fs.rename(p + ".tmp", p); },
+    writeFileAtomic: async (p, d, options) => {
+      await fs.writeFile(p + ".tmp", d, { mode: options?.mode });
+      if (options?.mode !== undefined) await fs.chmod(p + ".tmp", options.mode);
+      await fs.rename(p + ".tmp", p);
+    },
     execFile: async () => { throw new Error("no processes"); }, fetch: async () => { throw new Error("no network"); },
   };
   const compileResult: CompileResult = {
@@ -161,7 +165,7 @@ test("rollback preflights all leaves and refuses destination and preimage drift 
 
 test("staged corruption is checked against declared hash before promotion", async () => {
   const f = await fixture();
-  const io = { ...f.io, writeFileAtomic: async (p: string, d: string) => { await f.io.writeFileAtomic(p, p.includes(".temperance-stage-") ? "corrupt" : d); } };
+  const io = { ...f.io, writeFileAtomic: async (p: string, d: string, options?: { mode?: number }) => { await f.io.writeFileAtomic(p, p.includes(".temperance-stage-") ? "corrupt" : d, options); } };
   expect((await executePlan({ ...f.options, io })).status).toBe("failed");
   expect(await fs.readFile(join(f.home, "installed/a.txt"), "utf8")).toBe("old a\n");
 });
@@ -171,9 +175,12 @@ test("staged mode corruption is checked before promotion", async () => {
   let stagedWrites = 0;
   const io = {
     ...f.io,
-    chmod: async (path: string, mode: number) => {
+    writeFileAtomic: async (path: string, data: string, options?: { mode?: number }) => {
       if (path.includes(".temperance-stage-")) stagedWrites += 1;
-      await f.io.chmod(path, stagedWrites === 2 ? 0o644 : mode);
+      await f.io.writeFileAtomic(path, data, {
+        ...options,
+        mode: stagedWrites === 2 ? 0o644 : options?.mode,
+      });
     },
   };
   const result = await executePlan({ ...f.options, io });
@@ -219,19 +226,20 @@ test("mode-only destination drift blocks whole-manifest rollback", async () => {
   expect(await fs.readFile(join(f.home, "installed/nested/b.txt"), "utf8")).toBe("new b\n");
 });
 
-test("rollback stages prior bytes and mode so a chmod failure remains retryable", async () => {
+test("rollback stages prior bytes and mode so a stage-write failure remains retryable", async () => {
   const f = await fixture();
   const installed = await executePlan(f.options);
   expect(installed.status).toBe("committed");
-  let failRestoreChmod = true;
+  let failRestoreWrite = true;
   const io = {
     ...f.io,
-    chmod: async (path: string, mode: number) => {
-      if (failRestoreChmod && path.includes(".temperance-restore-")) {
-        failRestoreChmod = false;
-        throw new Error("injected restore chmod failure");
+    writeFileAtomic: async (path: string, data: string, options?: { mode?: number }) => {
+      if (failRestoreWrite && path.includes(".temperance-restore-")) {
+        failRestoreWrite = false;
+        await f.io.writeFileAtomic(path, data, options);
+        throw new Error("injected restore-stage write failure");
       }
-      await f.io.chmod(path, mode);
+      await f.io.writeFileAtomic(path, data, options);
     },
   };
   const failed = await rollbackTransaction(installed.txid, f.options.stateRoot, io, { resolveRoot: () => f.home });

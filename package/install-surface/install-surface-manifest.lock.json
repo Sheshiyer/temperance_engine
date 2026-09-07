@@ -217,6 +217,11 @@
       "source": "templates/codex.AGENTS.md",
       "verification": {
         "adapter_id": "managed-template-v1",
+        "expected": {
+          "kind": "file",
+          "mode": "0644",
+          "sha256": "sha256:3da5a78868677a0a90a8cb0825aea38641231e15acf792919001de9cf7cfcdac"
+        },
         "method": "adapter"
       }
     },

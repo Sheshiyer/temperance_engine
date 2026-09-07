@@ -99,7 +99,16 @@ export interface CopySurfaceRecord extends SurfaceRecordBase {
 export interface TransformSurfaceRecord extends SurfaceRecordBase {
   class: "TRANSFORM";
   source: string;
-  verification: { method: "adapter"; adapter_id: string };
+  /**
+   * `expected` binds the reviewed source template. Transform output is often
+   * destination-contextual (for example a managed block), so its exact output
+   * digest/mode is captured in the transaction manifest before promotion.
+   */
+  verification: {
+    method: "adapter";
+    adapter_id: string;
+    expected?: Extract<CopyExpectation, { kind: "file" }>;
+  };
   rollback: { policy: "restore-backup" | "remove-installed" };
 }
 

@@ -53,7 +53,7 @@ describe("ownership", () => {
     ])).toThrow("OWNERSHIP_OVERLAP");
   });
 
-  test("distinct managed-block markers may share one file", () => {
+  test("distinct managed-block markers sharing one file are rejected until multi-block transactions exist", () => {
     const left = {
       ...copyRecord("surface.alpha", "config.txt"),
       class: "TRANSFORM",
@@ -65,7 +65,7 @@ describe("ownership", () => {
       id: "surface.beta",
       destination: { ...left.destination, ownership: { kind: "managed-block", marker_id: "beta" } },
     } as SurfaceRecord;
-    expect(() => assertSemanticValidity([left, right])).not.toThrow();
+    expect(() => assertSemanticValidity([left, right])).toThrow("OWNERSHIP_OVERLAP");
   });
 });
 
@@ -181,17 +181,17 @@ describe("semantic", () => {
     expect(() => assertSemanticValidity([unsafe])).toThrow("COPY_EXPECTATION_INVALID");
   });
 
-  test("rejects COPY expectations on a non-COPY record", () => {
+  test("rejects a tree COPY expectation on a transform record", () => {
     const unsafe = {
       ...copyRecord(),
       class: "TRANSFORM",
       verification: {
         method: "adapter",
         adapter_id: "managed-template-v1",
-        expected: { kind: "file", sha256: `sha256:${"a".repeat(64)}` },
+        expected: { kind: "tree", files: { "source.txt": `sha256:${"a".repeat(64)}` } },
       },
     } as unknown as SurfaceRecord;
 
-    expect(() => assertSemanticValidity([unsafe])).toThrow("COPY_EXPECTATION_INVALID");
+    expect(() => assertSemanticValidity([unsafe])).toThrow("TRANSFORM_SOURCE_EXPECTATION_INVALID");
   });
 });

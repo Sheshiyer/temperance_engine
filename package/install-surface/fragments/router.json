@@ -214,7 +214,12 @@
       },
       "verification": {
         "method": "adapter",
-        "adapter_id": "managed-template-v1"
+        "adapter_id": "managed-template-v1",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:3da5a78868677a0a90a8cb0825aea38641231e15acf792919001de9cf7cfcdac",
+          "mode": "0644"
+        }
       },
       "rollback": {
         "policy": "restore-backup"

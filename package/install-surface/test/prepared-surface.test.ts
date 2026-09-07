@@ -16,7 +16,11 @@ async function fixture() {
     mkdir: async (p, o) => { await fs.mkdir(p, o); }, writeFile: (p, d) => fs.writeFile(p, d), readFile: p => fs.readFile(p, "utf8"),
     readdir: p => fs.readdir(p), rm: (p, o) => fs.rm(p, o), lstat: p => fs.lstat(p), chmod: (p, m) => fs.chmod(p, m),
     rename: (a, b) => fs.rename(a, b), realpath: p => fs.realpath(p), now: () => new Date(0),
-    writeFileAtomic: async (p, d) => { await fs.mkdir(dirname(p), { recursive: true }); await fs.writeFile(p, d, { flag: "wx" }); },
+    writeFileAtomic: async (p, d, options) => {
+      await fs.mkdir(dirname(p), { recursive: true });
+      await fs.writeFile(p, d, { flag: "wx", mode: options?.mode });
+      if (options?.mode !== undefined) await fs.chmod(p, options.mode);
+    },
     execFile: async () => { throw new Error("no processes"); }, fetch: async () => { throw new Error("no network"); },
   };
   await fs.writeFile(join(home, "AGENTS.md"), "outside\nold managed block\n"); await fs.chmod(join(home, "AGENTS.md"), 0o640);
@@ -24,6 +28,8 @@ async function fixture() {
   const output = (id: string, file: string, content: string, mode: number | "preserve"): PreparedSurface => ({
     step: { step_id: id, record_id: id, mode: "install", ownership: id === "transform" ? "managed-block" : "exclusive-path",
       destination: { root_token: "HOME", relative_path: file, ownership: { kind: id === "transform" ? "managed-block" : "exclusive-path" } } },
+    surface_class: id === "transform" ? "TRANSFORM" : "COPY",
+    ...(id === "transform" ? { producer_id: "managed-template-v1", source_hash: sha256("reviewed template\n") } : {}),
     content, expected_hash: sha256(content), expected_mode: mode,
   });
   const prepared = new Map([
@@ -132,11 +138,15 @@ test("capture rejects changed prepared bytes, special bits, and non-text before 
 test("failed restore staging leaves destination intact and retry ignores old stages", async () => {
   const f = await fixture(), manifest = await f.capture(); await f.install(manifest);
   let fail = true;
-  const io = { ...f.io, chmod: async (path: string, mode: number) => {
-    if (path.includes(".temperance-surface-restore-") && fail) { fail = false; throw new Error("injected chmod failure"); }
-    await f.io.chmod(path, mode);
+  const io = { ...f.io, writeFileAtomic: async (path: string, content: string, options?: { mode?: number }) => {
+    if (path.includes(".temperance-surface-restore-") && fail) {
+      fail = false;
+      await f.io.writeFileAtomic(path, content, options);
+      throw new Error("injected restore-stage failure");
+    }
+    await f.io.writeFileAtomic(path, content, options);
   } };
-  await expect(rollbackSurface(io, f.tx, manifest, f.resolveRoot)).rejects.toThrow("injected chmod failure");
+  await expect(rollbackSurface(io, f.tx, manifest, f.resolveRoot)).rejects.toThrow("injected restore-stage failure");
   expect(await fs.readFile(join(f.home, "AGENTS.md"), "utf8")).toBe(f.prepared.get("transform")!.content);
   const stale = (await fs.readdir(f.home)).filter(p => p.startsWith(".temperance-surface-restore-"));
   expect(stale.length).toBe(1);
@@ -164,9 +174,9 @@ test("resolved root aliases cannot target the same leaf or transaction artifacts
 test("stage link replacement is rejected before chmod or destination promotion", async () => {
   const f = await fixture(), manifest = await f.capture(); await f.install(manifest);
   const victim = join(f.root, "external.txt"); await fs.writeFile(victim, "external\n"); await fs.chmod(victim, 0o600);
-  const io = { ...f.io, writeFileAtomic: async (path: string, content: string) => {
+  const io = { ...f.io, writeFileAtomic: async (path: string, content: string, options?: { mode?: number }) => {
     if (path.includes(".temperance-surface-restore-")) await fs.symlink(victim, path);
-    else await f.io.writeFileAtomic(path, content);
+    else await f.io.writeFileAtomic(path, content, options);
   } };
   await expect(rollbackSurface(io, f.tx, manifest, f.resolveRoot)).rejects.toThrow("LINK_REJECTED");
   expect((await fs.lstat(victim)).mode & 0o777).toBe(0o600);

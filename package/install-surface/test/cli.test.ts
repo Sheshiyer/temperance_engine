@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -36,13 +36,18 @@ async function invokeTemporaryCli(
   cwd: string,
   environment: Record<string, string>,
   args: string[],
+  restrictiveUmask?: number,
 ): Promise<{ code: number; stdout: string; stderr: string }> {
-  const child = Bun.spawn([
+  const invocation = [
     process.execPath,
     "run",
     join(repositoryRoot, "package/install-surface/src/cli.ts"),
     ...args,
-  ], {
+  ];
+  const command = restrictiveUmask === undefined
+    ? invocation
+    : ["sh", "-c", `umask ${restrictiveUmask.toString(8)}; exec \"$@\"`, "sh", ...invocation];
+  const child = Bun.spawn(command, {
     cwd,
     env: environment,
     stdout: "pipe",
@@ -75,6 +80,7 @@ test("CLI resolves a declared tree COPY from its product root outside the caller
   writeFileSync(join(repository, "payload/nested/b.txt"), "new b\n");
   chmodSync(join(repository, "payload/nested/b.txt"), 0o755);
   writeFileSync(join(home, "installed/a.txt"), "old a\n");
+  chmodSync(join(home, "installed/a.txt"), 0o640);
   writeFileSync(join(home, "installed/sentinel"), "user-owned\n");
   writeFileSync(join(repository, "ISA.md"), "- [x] ISC-769: COPY classification is ratified.\n");
   writeFileSync(join(repository, ".planning/REQUIREMENTS.md"), "- [ ] **PROV-02** — stable records\n");
@@ -129,20 +135,24 @@ test("CLI resolves a declared tree COPY from its product root outside the caller
     TMPDIR: join(repository, "tmp"),
   };
 
-  const install = await invokeTemporaryCli(repository, unrelatedCwd, environment, ["install", "--profile", "ro00-cli", "--json"]);
+  const install = await invokeTemporaryCli(repository, unrelatedCwd, environment, ["install", "--profile", "ro00-cli", "--json"], 0o077);
   expect(install.code).toBe(0);
   const installed = JSON.parse(install.stdout);
   expect(installed.status).toBe("committed");
   expect(installed.receipt.inventory_digest).toBe(expectedDigest);
   expect(readFileSync(join(home, "installed/a.txt"), "utf8")).toBe("new a\n");
   expect(readFileSync(join(home, "installed/nested/b.txt"), "utf8")).toBe("new b\n");
+  expect(lstatSync(join(home, "installed/a.txt")).mode & 0o777).toBe(0o644);
+  expect(lstatSync(join(home, "installed/nested/b.txt")).mode & 0o777).toBe(0o755);
+  expect(lstatSync(join(state, "transactions", installed.txid, "receipt.json")).mode & 0o777).toBe(0o600);
   expect(readFileSync(join(home, "installed/sentinel"), "utf8")).toBe("user-owned\n");
   expect(existsSync(join(state, "transactions", installed.txid, "copy-manifest.json"))).toBe(true);
 
-  const rollback = await invokeTemporaryCli(repository, unrelatedCwd, environment, ["rollback", "--select", installed.txid, "--json"]);
+  const rollback = await invokeTemporaryCli(repository, unrelatedCwd, environment, ["rollback", "--select", installed.txid, "--json"], 0o077);
   expect(rollback.code).toBe(0);
   expect(JSON.parse(rollback.stdout).status).toBe("committed");
   expect(readFileSync(join(home, "installed/a.txt"), "utf8")).toBe("old a\n");
+  expect(lstatSync(join(home, "installed/a.txt")).mode & 0o777).toBe(0o640);
   expect(existsSync(join(home, "installed/nested/b.txt"))).toBe(false);
   expect(readFileSync(join(home, "installed/sentinel"), "utf8")).toBe("user-owned\n");
 });

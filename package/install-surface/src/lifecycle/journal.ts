@@ -32,7 +32,8 @@ export interface LifecycleIO {
   realpath(path: string): Promise<string>;
   now(): Date;
   /** Atomic write + fsync: data is durable on disk before the promise resolves. */
-  writeFileAtomic(path: string, data: string): Promise<void>;
+  /** Atomic replacement with a caller-selected safe mode for staged outputs. */
+  writeFileAtomic(path: string, data: string, options?: { mode?: number }): Promise<void>;
   fetch(url: string, options: { signal: AbortSignal }): Promise<Response>;
   execFile(
     file: string,
@@ -63,6 +64,8 @@ export interface BeginEntry extends JournalEntryBase {
   inventory_digest: string;
   /** Binds COPY recovery paths and declared hashes before the first mutation. */
   copy_manifest_sha256?: string;
+  /** Binds all newly prepared COPY/TRANSFORM output and preimage evidence. */
+  surface_manifest_sha256?: string;
 }
 
 export interface StageEntry extends JournalEntryBase {
@@ -160,8 +163,11 @@ export class Journal {
     if (this.loaded) return;
     try {
       const raw = await this.io.readFile(this.journalPath());
-      this.entries = JSON.parse(raw) as JournalEntry[];
-    } catch {
+      const entries: unknown = JSON.parse(raw);
+      if (!Array.isArray(entries)) throw new Error("JOURNAL_INVALID");
+      this.entries = entries as JournalEntry[];
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") throw error;
       this.entries = [];
     }
     this.loaded = true;

@@ -84,14 +84,18 @@ function createTestIO(): LifecycleIO {
       return realpathSync(path);
     },
     now: () => new Date("2026-01-01T00:00:00.000Z"),
-    writeFileAtomic: async (path, data) => {
+    writeFileAtomic: async (path, data, options) => {
       const { openSync, writeSync, fsyncSync, closeSync } = await import("node:fs");
-      const fd = openSync(path, "w");
+      const fd = openSync(path, "w", options?.mode);
       try {
         writeSync(fd, data, 0, "utf8");
         fsyncSync(fd);
       } finally {
         closeSync(fd);
+      }
+      if (options?.mode !== undefined) {
+        const { chmodSync } = await import("node:fs");
+        chmodSync(path, options.mode);
       }
     },
     fetch: async (_url, _opts) => new Response(null, { status: 200 }),

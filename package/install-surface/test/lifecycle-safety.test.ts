@@ -84,14 +84,18 @@ function createTestIO(): LifecycleIO {
       return realpathSync(path);
     },
     now: () => new Date("2026-01-01T00:00:00.000Z"),
-    writeFileAtomic: async (path, data) => {
+    writeFileAtomic: async (path, data, options) => {
       const { openSync, writeSync, fsyncSync, closeSync } = await import("node:fs");
-      const fd = openSync(path, "w");
+      const fd = openSync(path, "w", options?.mode);
       try {
         writeSync(fd, data, 0, "utf8");
         fsyncSync(fd);
       } finally {
         closeSync(fd);
+      }
+      if (options?.mode !== undefined) {
+        const { chmodSync } = await import("node:fs");
+        chmodSync(path, options.mode);
       }
     },
     fetch: async (url, _opts) => {
@@ -179,6 +183,15 @@ describe("journal", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0].kind).toBe("BEGIN");
     expect(entries[0].verb).toBe("install");
+  });
+
+  test("a malformed persisted journal never downgrades to an empty transaction", async () => {
+    const root = tempRoot("journal-corrupt-");
+    const io = createTestIO();
+    const journal = await Journal.create(join(root, "state"), io);
+    writeFileSync(join(journal.txDir, "journal.json"), "{");
+    const reopened = Journal.open(journal.txDir, io);
+    await expect(reopened.getStatus()).rejects.toThrow();
   });
 
   test("txid is lexicographically sortable by time", () => {

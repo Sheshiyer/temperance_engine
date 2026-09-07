@@ -299,8 +299,8 @@ export async function rollbackCopies(io: LifecycleIO, txDir: string, manifest: C
         // destination. A failed chmod therefore leaves the expected state
         // intact and permits a later rollback retry.
         staged = true;
-        await io.writeFileAtomic(restoreStage, prior.content);
-        await io.chmod(restoreStage, prior.mode);
+        await io.writeFileAtomic(restoreStage, prior.content, { mode: prior.mode });
+        await safePath(io, root, restoreStage, "file");
         const verifiedStage = await readExisting(io, root, restoreStage);
         if (
           verifiedStage === null

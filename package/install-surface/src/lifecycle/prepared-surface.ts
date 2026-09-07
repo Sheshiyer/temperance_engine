@@ -8,6 +8,11 @@ import type { LifecycleIO } from "./journal.ts";
 
 export interface PreparedSurface {
   step: PlannedStep;
+  surface_class: "COPY" | "TRANSFORM";
+  /** Source-owned producer identity for contextual transform output. */
+  producer_id?: string;
+  /** Reviewed transform-template digest, without a filesystem path. */
+  source_hash?: string;
   content: string;
   expected_hash: string;
   /** Preserve a managed file's safe existing mode; absent files default to 0644. */
@@ -18,6 +23,10 @@ export interface SurfaceLeaf {
   record_id: string;
   root_token: string;
   relative_path: string;
+  surface_class: "COPY" | "TRANSFORM";
+  producer_id: string | null;
+  source_hash: string | null;
+  ownership: "exclusive-path" | "managed-block";
   expected_hash: string;
   expected_mode: number;
   output: string;
@@ -71,7 +80,13 @@ export function validateSurfaceManifest(value: unknown): SurfaceManifest {
   for (const leaf of manifest.leaves) {
     if (!leaf || typeof leaf.step_id !== "string" || !/^[\w.-]+$/.test(leaf.step_id) || ids.has(leaf.step_id) || typeof leaf.record_id !== "string" || !leaf.record_id) throw new Error("SURFACE_MANIFEST_INVALID");
     ids.add(leaf.step_id);
-    assertDestination({ root_token: leaf.root_token, relative_path: leaf.relative_path, ownership: { kind: "exclusive-path" } });
+    if (leaf.surface_class !== "COPY" && leaf.surface_class !== "TRANSFORM") throw new Error("SURFACE_MANIFEST_INVALID");
+    if (leaf.ownership !== "exclusive-path" && leaf.ownership !== "managed-block") throw new Error("SURFACE_MANIFEST_INVALID");
+    if (
+      (leaf.surface_class === "COPY" && (leaf.producer_id !== null || leaf.source_hash !== null))
+      || (leaf.surface_class === "TRANSFORM" && (typeof leaf.producer_id !== "string" || !leaf.producer_id || !validHash(leaf.source_hash)))
+    ) throw new Error("SURFACE_MANIFEST_INVALID");
+    assertDestination({ root_token: leaf.root_token, relative_path: leaf.relative_path, ownership: { kind: leaf.ownership } });
     const key = `${leaf.root_token}/${leaf.relative_path}`.normalize("NFC").toLowerCase();
     if (paths.some(path => overlap(path, key))) throw new Error("SURFACE_DESTINATION_COLLISION");
     paths.push(key);
@@ -99,9 +114,8 @@ async function writeArtifact(io: LifecycleIO, txDir: string, path: string, conte
   await requireAbsent(io, txDir, path);
   await io.mkdir(dirname(path), { recursive: true });
   await requireAbsent(io, txDir, path);
-  await io.writeFileAtomic(path, content);
+  await io.writeFileAtomic(path, content, { mode });
   await safePath(io, txDir, path, "file");
-  await io.chmod(path, mode);
   const state = await readState(io, txDir, path);
   if (!matches(state, sha256(content), mode)) throw new Error("SURFACE_ARTIFACT_VERIFY_FAILED");
 }
@@ -119,6 +133,8 @@ export async function captureSurfaceManifest(io: LifecycleIO, txDir: string, pre
     const prior = await readState(io, root, path);
     priors.set(id, prior);
     manifest.leaves.push({ step_id: id, record_id: step.record_id, root_token: step.destination.root_token, relative_path: step.destination.relative_path,
+      surface_class: output.surface_class, producer_id: output.surface_class === "TRANSFORM" ? output.producer_id ?? null : null,
+      source_hash: output.surface_class === "TRANSFORM" ? output.source_hash ?? null : null, ownership: step.ownership,
       expected_hash: output.expected_hash, expected_mode: output.expected_mode === "preserve" ? prior?.mode ?? 0o644 : output.expected_mode,
       output: artifactPath("output", id), prior_hash: prior?.hash ?? null, prior_mode: prior?.mode ?? null, preimage: prior ? artifactPath("preimage", id) : null });
   }
@@ -184,9 +200,8 @@ export async function rollbackSurface(io: LifecycleIO, txDir: string, value: Sur
     await requireAbsent(io, root, stage);
     // Failed stages are deliberately left as evidence; retries use a new name.
     // Never delete an unknown path that may have replaced our staging inode.
-    await io.writeFileAtomic(stage, prior.content);
+    await io.writeFileAtomic(stage, prior.content, { mode: leaf.prior_mode! });
     await safePath(io, root, stage, "file");
-    await io.chmod(stage, leaf.prior_mode!);
     if (!matches(await readState(io, root, stage), leaf.prior_hash, leaf.prior_mode)) throw new Error("SURFACE_RESTORE_STAGE_VERIFY_FAILED");
     await verifySurfaceOutput(io, leaf, path, root);
     if (!matches(await readState(io, root, stage), leaf.prior_hash, leaf.prior_mode)) throw new Error("SURFACE_RESTORE_STAGE_VERIFY_FAILED");
