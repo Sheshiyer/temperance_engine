@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { lstat, readFile, realpath } from "node:fs/promises";
+import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -40,6 +40,8 @@ export const SECTION_TIMEOUTS_MS = { install: 2000, privacy: 750, runtime: 4000 
 
 export const nodeObservationIO: ObservationIO = {
   readFile: (path) => readFile(path, "utf8"),
+  readBytes: (path) => readFile(path),
+  readdir,
   lstat,
   realpath,
   fetch: (url, options) => fetch(url, options),

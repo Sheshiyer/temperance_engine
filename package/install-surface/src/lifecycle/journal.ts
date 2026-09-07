@@ -27,6 +27,7 @@ export interface LifecycleIO {
   readdir(path: string): Promise<string[]>;
   rm(path: string, options: { recursive: boolean; force: boolean }): Promise<void>;
   lstat(path: string): Promise<Stats>;
+  chmod(path: string, mode: number): Promise<void>;
   rename(oldPath: string, newPath: string): Promise<void>;
   realpath(path: string): Promise<string>;
   now(): Date;

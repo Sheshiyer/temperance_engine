@@ -8,7 +8,7 @@
 
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
-import { prepareCopies, captureCopyManifest, assertCopyPrior, loadCopyManifest, rollbackCopies, safePath, sha256, type DeclaredCopyHashes, type CopyManifest } from "./copy-tree.ts";
+import { prepareCopies, captureCopyManifest, assertCopyPrior, declaredCopyHashesForSteps, loadCopyManifest, rollbackCopies, safePath, sha256, type CopyManifest } from "./copy-tree.ts";
 
 import type { CompileResult } from "../compile.ts";
 import type { SurfaceRecord } from "../types.ts";
@@ -63,10 +63,8 @@ export interface ExecutorResult {
 
 export interface ExecutorOptions {
   stateRoot: string;
-  /** Required for tree COPY; relative sources are resolved only beneath this root. */
+  /** Binds compiled relative COPY sources to the product checkout. */
   repositoryRoot?: string;
-  sourceRoot?: string;
-  declaredCopyHashes?: DeclaredCopyHashes;
   resolveRoot?: (token: string) => string;
   io: LifecycleIO;
   plan: PlanResult;
@@ -113,6 +111,27 @@ async function verifySha256(
   const content = await io.readFile(path);
   const hash = createHash("sha256").update(content).digest("hex");
   return hash === expected;
+}
+
+async function verifyCopyLeaf(
+  io: LifecycleIO,
+  path: string,
+  expectedHash: string,
+  expectedMode: number,
+): Promise<boolean> {
+  const matchesExpectedRegularFile = async (): Promise<boolean> => {
+    const stat = await io.lstat(path);
+    return stat.isFile()
+      && !stat.isSymbolicLink()
+      && stat.nlink === 1
+      // Do not mask setuid, setgid, or sticky bits into an apparent 0644/0755.
+      && (stat.mode & 0o7777) === expectedMode;
+  };
+  if (!await matchesExpectedRegularFile()) return false;
+  if (!await verifySha256(io, path, expectedHash)) return false;
+  // Re-check after content verification so a swapped path cannot receive a
+  // successful stage/promotion receipt merely because its earlier lstat matched.
+  return matchesExpectedRegularFile();
 }
 
 async function promoteFile(
@@ -306,8 +325,8 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
 
   let copies: Awaited<ReturnType<typeof prepareCopies>>["copies"];
   try {
-    if (options.repositoryRoot && options.sourceRoot && resolve(options.repositoryRoot) !== resolve(options.sourceRoot)) throw new Error("COPY_SOURCE_ROOT_CONFLICT");
-    const prepared = await prepareCopies(io, filteredSteps, filteredRecords, options.repositoryRoot ?? options.sourceRoot, options.declaredCopyHashes);
+    const declaredCopyHashes = declaredCopyHashesForSteps(filteredSteps, filteredRecords);
+    const prepared = await prepareCopies(io, filteredSteps, filteredRecords, options.repositoryRoot, declaredCopyHashes);
     filteredSteps = prepared.steps;
     copies = prepared.copies;
     // Check every stage reservation and destination ancestry before journal writes.
@@ -415,7 +434,8 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
         if (record.class === "COPY") {
           if (!copy) throw new Error("COPY_PREPARATION_MISSING");
           await io.writeFileAtomic(stagePath, copy.content);
-          if (!await verifySha256(io, stagePath, copy.expected_hash)) throw new Error("COPY_STAGE_VERIFY_FAILED");
+          await io.chmod(stagePath, copy.expected_mode);
+          if (!await verifyCopyLeaf(io, stagePath, copy.expected_hash, copy.expected_mode)) throw new Error("COPY_STAGE_VERIFY_FAILED");
           await safePath(io, rootPath, stagePath, "file");
           await assertCopyPrior(io, copyManifest.leaves.find(l => l.step_id === step.step_id)!, resolveRoot);
         } else if (record.class === "TRANSFORM") {
@@ -433,7 +453,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
           await safePath(io, rootPath, destPath, "file");
           await promoteFile(io, stagePath, destPath);
           stagedPaths.delete(stagePath);
-          if (copy && !await verifySha256(io, destPath, copy.expected_hash)) throw new Error("COPY_PROMOTE_VERIFY_FAILED");
+          if (copy && !await verifyCopyLeaf(io, destPath, copy.expected_hash, copy.expected_mode)) throw new Error("COPY_PROMOTE_VERIFY_FAILED");
         } catch (error) {
           // Promotion failed — abort
           await journal.append({

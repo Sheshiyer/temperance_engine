@@ -47,3 +47,65 @@ test("shuffled fragments, records, dependencies, and object keys produce byte-id
   expect(second.canonicalBytes).toBe(first.canonicalBytes);
   expect(second.digest).toBe(first.digest);
 });
+
+test("COPY tree expectation maps have deterministic lock bytes", () => {
+  const alpha = {
+    ...record("surface.alpha"),
+    verification: {
+      method: "sha256",
+      expected: {
+        kind: "tree",
+        files: {
+          "nested/b.ts": `sha256:${"b".repeat(64)}`,
+          "a.ts": `sha256:${"a".repeat(64)}`,
+        },
+        modes: {
+          "nested/b.ts": "0755",
+          "a.ts": "0644",
+        },
+      },
+    },
+  };
+  const beta = {
+    ...alpha,
+    verification: {
+      method: "sha256",
+      expected: {
+        kind: "tree",
+        files: {
+          "a.ts": `sha256:${"a".repeat(64)}`,
+          "nested/b.ts": `sha256:${"b".repeat(64)}`,
+        },
+        modes: {
+          "a.ts": "0644",
+          "nested/b.ts": "0755",
+        },
+      },
+    },
+  };
+
+  const first = compileFragments([{ name: "expectation.json", contents: fragment([alpha]) }], authority);
+  const second = compileFragments([{ name: "expectation.json", contents: fragment([beta]) }], authority);
+  expect(second.canonicalBytes).toBe(first.canonicalBytes);
+  expect(second.digest).toBe(first.digest);
+});
+
+test("COPY mode changes alter the compiled inventory digest", () => {
+  const base = {
+    ...record("surface.mode"),
+    verification: {
+      method: "sha256",
+      expected: { kind: "file", sha256: `sha256:${"a".repeat(64)}`, mode: "0644" },
+    },
+  };
+  const executable = {
+    ...base,
+    verification: {
+      method: "sha256",
+      expected: { kind: "file", sha256: `sha256:${"a".repeat(64)}`, mode: "0755" },
+    },
+  };
+  const first = compileFragments([{ name: "mode.json", contents: fragment([base]) }], authority);
+  const second = compileFragments([{ name: "mode.json", contents: fragment([executable]) }], authority);
+  expect(second.digest).not.toBe(first.digest);
+});

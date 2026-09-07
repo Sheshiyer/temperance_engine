@@ -36,6 +36,10 @@ const lifecycleIO: LifecycleIO = {
     const { lstatSync } = await import("node:fs");
     return lstatSync(path);
   },
+  chmod: async (path, mode) => {
+    const { chmodSync } = await import("node:fs");
+    chmodSync(path, mode);
+  },
   rename: async (oldPath, newPath) => {
     const { renameSync } = await import("node:fs");
     renameSync(oldPath, newPath);
@@ -275,6 +279,7 @@ async function main(): Promise<void> {
 
       const result = await executePlan({
         stateRoot,
+        repositoryRoot,
         io: lifecycleIO,
         plan,
         compileResult,

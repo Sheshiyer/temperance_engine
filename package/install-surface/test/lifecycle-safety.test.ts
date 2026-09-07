@@ -71,6 +71,10 @@ function createTestIO(): LifecycleIO {
     readdir: async (path) => readdirSync(path),
     rm: async (path, opts) => rmSync(path, opts),
     lstat: async (path) => lstatSync(path),
+    chmod: async (path, mode) => {
+      const { chmodSync } = await import("node:fs");
+      chmodSync(path, mode);
+    },
     rename: async (oldPath, newPath) => {
       const { renameSync } = await import("node:fs");
       renameSync(oldPath, newPath);

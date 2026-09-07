@@ -1,28 +1,138 @@
 {
   "schema": "temperance.install-surface.fragment.v1",
   "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
-  "version": { "major": 1, "minor": 0 },
+  "version": {
+    "major": 1,
+    "minor": 0
+  },
   "records": [
     {
       "id": "manifest.bridge-runtime",
       "owner": "temperance-engine",
       "class": "COPY",
       "source": "package/manifest-bridge",
-      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "runtime/manifest-bridge", "ownership": { "kind": "exclusive-path" } },
-      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
-      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "destination": {
+        "root_token": "TEMPERANCE_STATE",
+        "relative_path": "runtime/manifest-bridge",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "tree",
+          "files": {
+            "README.md": "sha256:5b2f32d12ad3dd53aa37701b7379550cb271014fa690f9dbd53cc17d1ca8c2c0",
+            "bun.lock": "sha256:6caa340cf2ee264a30c340091d8f1305806cc7119ead11a7fb303c79c3aae6fb",
+            "examples/activation-policy.json": "sha256:3479e0067fb3d52e7f39d7ee53fd72f8d9efe937a6c9bcb41108267bb45be6b8",
+            "package.json": "sha256:047e8d45d47314f3824285c8e44f63ae0e0d99e70de6a233b7b2c3ffca1c5a63",
+            "src/activation.ts": "sha256:258774662b70b20256bef1c29c6f77f395db4ff7cfd1e375e9324a1f42a8628d",
+            "src/capabilities.ts": "sha256:854dfe01465f5ae82c1b983acee52de7fc5ce7974fc3fa901d14a8965679beb3",
+            "src/catalog.ts": "sha256:f66203ddb79d790d728fb371ab27b9e2a6ec2867c0c8afbdc1142c1117a597d3",
+            "src/cli.ts": "sha256:68f460a56f6be8fe6cdd3f71bac76cd35f8ea86d6b0e0d3095b16f7a92842040",
+            "src/codegraph.ts": "sha256:a81694a57554c73498dce0e5f8e2b1677b1fad096aef204228bc7a5daeba6cd1",
+            "src/contract.ts": "sha256:850fcf13d9a2572d06750661e5f333359ebcc47cc66c01fe731190b58b1d8aa8",
+            "src/control-ledger.ts": "sha256:db4d346bd3f7e1bef21dfdc2333493b36d9033df81a7debe2d1abf9ec12015b3",
+            "src/diagnostics.ts": "sha256:c3640f4d1379cbdf338a0239bbcf8a52ee67e40df7429120c9ccbb608e61a622",
+            "src/doctor.ts": "sha256:a28e4b7949ea1774fb5c3e9dd1aa1278ef9ec4705b9fbda882b77e3c906b8de3",
+            "src/hook-adapter.ts": "sha256:00155032072c4f42c90525cfb379b63fa310b13003b1394e93e6d91642006dad",
+            "src/project.ts": "sha256:993445aa4dc26213b382ed9b2f49dfdd2e552905cac8fba00bb68ad3c9d98334",
+            "src/runtime-status.ts": "sha256:f3825300c4cc40f830eec1e978a1c326cc1c7ab4331063a035cec4ea7c7cac9d",
+            "src/server.ts": "sha256:a08ad09c656388b57446f177f2f5a0ce824e1daf0331a80952daea4dbf5d5ed6",
+            "src/store.ts": "sha256:41f448ed0e8a23e1276e667d9e169a6fdfacdff57f80d3c80a49d476753a5dcf",
+            "src/types.ts": "sha256:b6436cdb9dbdb8114d779a48c9333a506e117be58a61cc95bd22e743b69eb606",
+            "src/watcher.ts": "sha256:4c10f008389f0a8b921d5a7a44cffa55f9b393d4bae9be8991273fbf0db99f90",
+            "src/workflow-projection.ts": "sha256:8663c0136719564fb8ea6dbb972353feeea8df77682e4925318079b0cf540eb2",
+            "test/bridge.test.ts": "sha256:1e5679c7bd0d277372610996e9bb02b26f0c4668b758a571b6100d5dbf5ee7ce",
+            "test/control-ledger.test.ts": "sha256:a3d06015217c2a950f205619fc107842931317ba7b33aa21a906d94512743d69"
+          },
+          "modes": {
+            "README.md": "0644",
+            "bun.lock": "0644",
+            "examples/activation-policy.json": "0644",
+            "package.json": "0644",
+            "src/activation.ts": "0644",
+            "src/capabilities.ts": "0644",
+            "src/catalog.ts": "0644",
+            "src/cli.ts": "0644",
+            "src/codegraph.ts": "0644",
+            "src/contract.ts": "0644",
+            "src/control-ledger.ts": "0644",
+            "src/diagnostics.ts": "0644",
+            "src/doctor.ts": "0644",
+            "src/hook-adapter.ts": "0644",
+            "src/project.ts": "0644",
+            "src/runtime-status.ts": "0644",
+            "src/server.ts": "0644",
+            "src/store.ts": "0644",
+            "src/types.ts": "0644",
+            "src/watcher.ts": "0644",
+            "src/workflow-projection.ts": "0644",
+            "test/bridge.test.ts": "0644",
+            "test/control-ledger.test.ts": "0644"
+          }
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     },
     {
       "id": "manifest.zone-project-state",
       "owner": "temperance-engine",
       "class": "REGENERATE",
-      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "state/manifest-zone.json", "ownership": { "kind": "exclusive-path" } },
-      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-05", "PROV-07"], "isa": "ISC-771" },
-      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": false },
-      "verification": { "method": "semantic-probe", "generator_id": "manifest-zone-v1" },
-      "rollback": { "policy": "regenerate" }
+      "destination": {
+        "root_token": "TEMPERANCE_STATE",
+        "relative_path": "state/manifest-zone.json",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-05",
+          "PROV-07"
+        ],
+        "isa": "ISC-771"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": false
+      },
+      "verification": {
+        "method": "semantic-probe",
+        "generator_id": "manifest-zone-v1"
+      },
+      "rollback": {
+        "policy": "regenerate"
+      }
     }
   ]
 }

@@ -12,9 +12,11 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 import { dirname, join, relative } from "node:path";
 
 import { canonical } from "../src/canonical-json.ts";
+import type { ObservationIO } from "../src/doctor/model.ts";
 import { nodeObservationIO, runDoctor } from "../src/doctor/orchestrator.ts";
 import { runInstallSection } from "../src/doctor/sections/install.ts";
 import { renderDoctorHuman } from "../src/doctor/render-human.ts";
@@ -34,6 +36,10 @@ function tempRoot(prefix: string): string {
   return root;
 }
 
+function hash(value: string): `sha256:${string}` {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
 function copyRecord(id: string, source: string, destination: string, required = true): SurfaceRecord {
   return {
     id,
@@ -43,7 +49,7 @@ function copyRecord(id: string, source: string, destination: string, required = 
     destination: { root_token: "HOME", relative_path: destination, ownership: { kind: "exclusive-path" } },
     authority: { requirement_ids: ["PROV-02"], isa: "ISC-769" },
     eligibility: { platforms: ["darwin"], profiles: ["default"], required },
-    verification: { method: "sha256" },
+    verification: { method: "sha256", expected: { kind: "file", sha256: hash("same\n"), mode: "0644" } },
     rollback: { policy: "restore-backup" },
   };
 }
@@ -254,5 +260,146 @@ describe("doctor report schema compilation and validation", () => {
       sections: [],
     };
     expect(validateDoctorReportV2(badReport)).toBe(false);
+  });
+});
+
+
+describe("reviewed COPY observations", () => {
+  async function observe(record: SurfaceRecord, setup: (home: string, repository: string) => void, io?: Partial<ObservationIO>) {
+    const repository = tempRoot("doctor-copy-contract-");
+    const home = join(repository, "home");
+    mkdirSync(home);
+    setup(home, repository);
+    writeFixtureLock(repository, [record]);
+    const before = snapshot(repository);
+    const report = await runDoctor({ repositoryRoot: repository, sections: ["install"], platform: "darwin", rootBindings: { HOME: home }, io: { ...nodeObservationIO, ...io } });
+    expect(snapshot(repository)).toBe(before);
+    return report.sections[0].checks[0];
+  }
+
+  test("file observes declared bytes rather than equally drifted mutable sources", async () => {
+    const check = await observe(copyRecord("surface.copy", "source.txt", "target.txt"), (home, repo) => {
+      writeFileSync(join(repo, "source.txt"), "drifted\n");
+      writeFileSync(join(home, "target.txt"), "drifted\n");
+    });
+    expect(check.condition).toBe("DRIFT");
+    expect(check.reason_code).toBe("COPY_DIGEST_DRIFT");
+  });
+
+  test("matching destination passes without reading an absent source", async () => {
+    const check = await observe(copyRecord("surface.copy", "absent.txt", "target.txt"), (home) => {
+      writeFileSync(join(home, "target.txt"), "same\n");
+      chmodSync(join(home, "target.txt"), 0o644);
+    });
+    expect(check.condition).toBe("PASS");
+    expect(check.reason_code).toBe("COPY_DECLARATION_MATCH");
+  });
+
+  test("mode-only drift is visible", async () => {
+    const check = await observe(copyRecord("surface.copy", "source.txt", "target.txt"), (home) => {
+      writeFileSync(join(home, "target.txt"), "same\n");
+      chmodSync(join(home, "target.txt"), 0o755);
+    });
+    expect(check.condition).toBe("DRIFT");
+    expect(check.reason_code).toBe("COPY_MODE_DRIFT");
+  });
+
+  test("legacy declarations cannot claim reviewed content", async () => {
+    const record = copyRecord("surface.copy", "source.txt", "target.txt");
+    if (record.class !== "COPY") throw new Error("fixture");
+    delete record.verification.expected;
+    const check = await observe(record, (home, repo) => {
+      writeFileSync(join(repo, "source.txt"), "same\n");
+      writeFileSync(join(home, "target.txt"), "same\n");
+    });
+    expect(check.condition).toBe("WARN");
+    expect(check.reason_code).toBe("COPY_EXPECTATION_UNDECLARED");
+  });
+
+  function treeRecord(): SurfaceRecord {
+    const record = copyRecord("surface.tree", "source-tree", "target");
+    if (record.class !== "COPY") throw new Error("fixture");
+    record.verification.expected = {
+      kind: "tree", files: { "a.txt": hash("a"), "bin/run": hash("run") },
+      modes: { "a.txt": "0644", "bin/run": "0755" },
+    };
+    return record;
+  }
+  function tree(home: string) {
+    mkdirSync(join(home, "target/bin"), { recursive: true });
+    writeFileSync(join(home, "target/a.txt"), "a");
+    chmodSync(join(home, "target/a.txt"), 0o644);
+    writeFileSync(join(home, "target/bin/run"), "run");
+    chmodSync(join(home, "target/bin/run"), 0o755);
+  }
+
+  test("complete tree verifies declared digests and executable modes", async () => {
+    expect((await observe(treeRecord(), tree)).condition).toBe("PASS");
+  });
+
+  test("extra or missing leaves invalidate the exact inventory", async () => {
+    for (const extra of [true, false]) {
+      const check = await observe(treeRecord(), (home) => {
+        tree(home);
+        if (extra) writeFileSync(join(home, "target/unknown.txt"), "unknown");
+        else rmSync(join(home, "target/a.txt"));
+      });
+      expect(check.condition).toBe("DRIFT");
+      expect(check.reason_code).toBe("COPY_LEAF_SET_DRIFT");
+    }
+  });
+
+  test("extra leaves are rejected before reading any tree content", async () => {
+    let reads = 0;
+    const check = await observe(treeRecord(), (home) => {
+      tree(home);
+      writeFileSync(join(home, "target/unknown.txt"), "unknown");
+    }, { readBytes: async () => { reads++; throw new Error("unexpected content read"); } });
+    expect(check.reason_code).toBe("COPY_LEAF_SET_DRIFT");
+    expect(reads).toBe(0);
+  });
+
+  test("a legacy declaration without modes cannot pass", async () => {
+    const record = treeRecord();
+    if (record.class !== "COPY" || record.verification.expected?.kind !== "tree") throw new Error("fixture");
+    delete record.verification.expected.modes;
+    expect((await observe(record, tree)).reason_code).toBe("COPY_EXPECTATION_UNDECLARED");
+  });
+
+  test("tree content drift is checked after complete inventory", async () => {
+    const check = await observe(treeRecord(), (home) => {
+      tree(home);
+      writeFileSync(join(home, "target/bin/run"), "changed");
+    });
+    expect(check.reason_code).toBe("COPY_DIGEST_DRIFT");
+  });
+
+  test("invalid UTF-8 bytes do not match replacement-character text", async () => {
+    const record = copyRecord("surface.copy", "source.txt", "target.txt");
+    if (record.class !== "COPY") throw new Error("fixture");
+    record.verification.expected = { kind: "file", sha256: hash("\uFFFD"), mode: "0644" };
+    const check = await observe(record, (home) => {
+      writeFileSync(join(home, "target.txt"), new Uint8Array([255]));
+      chmodSync(join(home, "target.txt"), 0o644);
+    });
+    expect(check.reason_code).toBe("COPY_DIGEST_DRIFT");
+  });
+
+  test("symlink leaves and symlink destination ancestors fail without following links", async () => {
+    for (const ancestor of [true, false]) {
+      const check = await observe(treeRecord(), (home) => {
+        tree(home);
+        if (ancestor) {
+          mkdirSync(join(home, "elsewhere"));
+          rmSync(join(home, "target"), { recursive: true });
+          symlinkSync(join(home, "elsewhere"), join(home, "target"));
+        } else {
+          rmSync(join(home, "target/a.txt"));
+          symlinkSync(join(home, "target/bin/run"), join(home, "target/a.txt"));
+        }
+      });
+      expect(check.condition).toBe("FAIL");
+      expect(check.reason_code).toBe("COPY_DESTINATION_UNSAFE");
+    }
   });
 });

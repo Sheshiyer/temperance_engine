@@ -16,6 +16,7 @@ import {
   writeFileSync,
   existsSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -70,6 +71,10 @@ function createTestIO(): LifecycleIO {
       const { lstatSync } = await import("node:fs");
       return lstatSync(path);
     },
+    chmod: async (path, mode) => {
+      const { chmodSync } = await import("node:fs");
+      chmodSync(path, mode);
+    },
     rename: async (oldPath, newPath) => {
       const { renameSync } = await import("node:fs");
       renameSync(oldPath, newPath);
@@ -99,6 +104,14 @@ function createTestIO(): LifecycleIO {
  * @param srcDir - Absolute path to the source directory for COPY records
  */
 function createFixture(overrides?: Partial<CompileResult>, srcDir?: string): CompileResult {
+  const sourceExpectation = (name: string) => srcDir
+    ? {
+        kind: "file" as const,
+        sha256: `sha256:${createHash("sha256").update(readFileSync(join(srcDir, name), "utf8"), "utf8").digest("hex")}` as `sha256:${string}`,
+        mode: "0644" as const,
+      }
+    : undefined;
+  const file1Expectation = sourceExpectation("file1.txt");
   const records: SurfaceRecord[] = [
     {
       id: "test-record-1",
@@ -112,7 +125,9 @@ function createFixture(overrides?: Partial<CompileResult>, srcDir?: string): Com
       },
       authority: { requirement_ids: ["REQ-01"], isa: "ISA-01" },
       eligibility: { platforms: ["darwin", "linux"], profiles: ["minimal", "full"], required: true },
-      verification: { method: "sha256" },
+      verification: file1Expectation
+        ? { method: "sha256", expected: file1Expectation }
+        : { method: "sha256" },
       rollback: { policy: "restore-backup" },
     },
     {

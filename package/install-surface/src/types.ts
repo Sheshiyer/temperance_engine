@@ -34,6 +34,32 @@ export interface SurfaceEligibility {
   required: boolean;
 }
 
+/** Modes supported by the text-only public COPY lifecycle. */
+export type CopyFileMode = "0644" | "0755";
+
+/** A reviewed source-content declaration for a public COPY record. */
+export type CopyExpectation =
+  | {
+      kind: "file";
+      /** Lowercase SHA-256 with the explicit algorithm prefix. */
+      sha256: `sha256:${string}`;
+      /** Optional for v1 read compatibility; lifecycle install/update requires it. */
+      mode?: CopyFileMode;
+    }
+  | {
+      kind: "tree";
+      /** Complete source-root-relative regular-file leaf inventory. */
+      files: Record<string, `sha256:${string}`>;
+      /** Complete source-root-relative regular-file mode inventory. */
+      modes?: Record<string, CopyFileMode>;
+    };
+
+export interface CopyVerification {
+  method: "sha256";
+  /** Optional for v1 read compatibility; install/update requires it. */
+  expected?: CopyExpectation;
+}
+
 export interface IdentityMigration {
   from_id: string;
   to_id: string;
@@ -66,7 +92,7 @@ interface SurfaceRecordBase {
 export interface CopySurfaceRecord extends SurfaceRecordBase {
   class: "COPY";
   source: string;
-  verification: { method: "sha256" };
+  verification: CopyVerification;
   rollback: { policy: "restore-backup" | "remove-installed" };
 }
 

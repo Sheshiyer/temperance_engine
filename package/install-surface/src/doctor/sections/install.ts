@@ -5,8 +5,8 @@ import { loadLock } from "../../load.ts";
 import type { SurfaceRecord } from "../../types.ts";
 import type { DoctorCheck, DoctorContext, DoctorSection } from "../model.ts";
 
-function digest(value: string): string {
-  return `sha256:${createHash("sha256").update(value, "utf8").digest("hex")}`;
+function digest(value: string | Uint8Array): string {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
 function publicDestination(record: SurfaceRecord): string {
@@ -38,6 +38,90 @@ function result(
   values: Pick<DoctorCheck, "expected_state" | "actual_state" | "condition" | "reason_code" | "severity" | "actionable" | "remediation" | "evidence">,
 ): DoctorCheck {
   return { ...checkBase(record), ...values };
+}
+
+type CopyRecord = Extract<SurfaceRecord, { class: "COPY" }>;
+
+/** Walk below the bound root with lstat; never follow a destination symlink. */
+async function safeDestination(record: CopyRecord, context: DoctorContext): Promise<string> {
+  const destination = destinationPath(record, context);
+  const root = resolve(context.rootBindings[record.destination.root_token]);
+  const rootStat = await context.io.lstat(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Error("COPY_DESTINATION_UNSAFE");
+  let cursor = root;
+  const segments = relative(root, destination).split(sep);
+  for (const [index, segment] of segments.entries()) {
+    context.signal.throwIfAborted();
+    cursor = resolve(cursor, segment);
+    const stat = await context.io.lstat(cursor);
+    if (stat.isSymbolicLink() || (index < segments.length - 1 && !stat.isDirectory())) {
+      throw new Error("COPY_DESTINATION_UNSAFE");
+    }
+  }
+  return destination;
+}
+
+async function observeCopy(record: CopyRecord, context: DoctorContext): Promise<DoctorCheck> {
+  const expected = record.verification.expected;
+  if (!expected || (expected.kind === "file" ? !expected.mode : !expected.modes
+    || Object.keys(expected.files).some((leaf) => !expected.modes?.[leaf])
+    || Object.keys(expected.modes).length !== Object.keys(expected.files).length)) {
+    return result(record, {
+      expected_state: "reviewed content and mode declaration", actual_state: "undeclared",
+      condition: "WARN", reason_code: "COPY_EXPECTATION_UNDECLARED", severity: "warning", actionable: true,
+      remediation: "Generate and review the committed-source COPY declaration before installation.", evidence: ["sha256"],
+    });
+  }
+  const expectedState = expected.kind === "file" ? `${expected.sha256};mode:${expected.mode}` : `reviewed tree:${Object.keys(expected.files).length} leaves`;
+  const observedResult = (code: string, state: string): DoctorCheck => result(record, {
+    expected_state: expectedState, actual_state: state, condition: code === "COPY_DECLARATION_MATCH" ? "PASS" : "DRIFT",
+    reason_code: code, severity: code === "COPY_DECLARATION_MATCH" ? "info" : "warning", actionable: code !== "COPY_DECLARATION_MATCH",
+    remediation: code === "COPY_DECLARATION_MATCH" ? "None." : "Review destination drift before running the governed lifecycle update.", evidence: ["sha256", "regular-file-mode"],
+  });
+  try {
+    const destination = await safeDestination(record, context);
+    const files: Record<string, string> = expected.kind === "file" ? { "": expected.sha256 } : expected.files;
+    const modes = expected.kind === "file" ? { "": expected.mode! } : expected.modes!;
+    const actualLeaves: string[] = [];
+    const visit = async (path: string, rel: string): Promise<void> => {
+      context.signal.throwIfAborted();
+      const stat = await context.io.lstat(path);
+      if (stat.isSymbolicLink() || (!stat.isFile() && !stat.isDirectory()) || (stat.isFile() && stat.nlink !== 1)) {
+        throw new Error("COPY_DESTINATION_UNSAFE");
+      }
+      if (stat.isFile()) { actualLeaves.push(rel); return; }
+      for (const name of (await context.io.readdir(path)).sort()) {
+        if (!name || name === "." || name === ".." || name.includes("/") || name.includes("\\")) throw new Error("COPY_DESTINATION_UNSAFE");
+        await visit(resolve(path, name), rel ? `${rel}/${name}` : name);
+      }
+    };
+    const destinationStat = await context.io.lstat(destination);
+    if ((expected.kind === "file" && !destinationStat.isFile()) || (expected.kind === "tree" && !destinationStat.isDirectory())) {
+      return observedResult("COPY_TYPE_DRIFT", "destination type mismatch");
+    }
+    await visit(destination, "");
+    const keys = Object.keys(files).sort();
+    if (JSON.stringify(actualLeaves.sort()) !== JSON.stringify(keys)) return observedResult("COPY_LEAF_SET_DRIFT", "destination leaf inventory differs");
+    // Only declared leaves are read, and bytes are hashed without UTF-8 replacement.
+    for (const leaf of keys) {
+      context.signal.throwIfAborted();
+      const path = leaf ? resolve(destination, leaf) : destination;
+      const stat = await context.io.lstat(path);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) throw new Error("COPY_DESTINATION_UNSAFE");
+      if ((stat.mode & 0o7777) !== Number.parseInt(modes[leaf], 8)) return observedResult("COPY_MODE_DRIFT", "destination regular-file mode differs");
+      if (digest(await context.io.readBytes(path)) !== files[leaf]) return observedResult("COPY_DIGEST_DRIFT", "destination content digest differs");
+    }
+    return observedResult("COPY_DECLARATION_MATCH", expectedState);
+  } catch (error) {
+    const unsafe = error instanceof Error && error.message === "COPY_DESTINATION_UNSAFE";
+    return result(record, {
+      expected_state: expectedState, actual_state: unsafe ? "unsafe destination structure" : "unavailable",
+      condition: unsafe || record.eligibility.required ? "FAIL" : "SKIPPED",
+      reason_code: unsafe ? "COPY_DESTINATION_UNSAFE" : record.eligibility.required ? "REQUIRED_SURFACE_UNAVAILABLE" : "OPTIONAL_SURFACE_SKIPPED",
+      severity: unsafe || record.eligibility.required ? "error" : "info", actionable: unsafe || record.eligibility.required,
+      remediation: "Inspect the declared destination before restoring the reviewed surface.", evidence: ["sha256"],
+    });
+  }
 }
 
 async function observeRecord(record: SurfaceRecord, context: DoctorContext): Promise<DoctorCheck> {
@@ -106,6 +190,8 @@ async function observeRecord(record: SurfaceRecord, context: DoctorContext): Pro
     }
   }
 
+  if (record.class === "COPY") return observeCopy(record, context);
+
   try {
     const source = await context.io.readFile(resolve(context.repositoryRoot, record.source));
     const observed = await context.io.readFile(destinationPath(record, context));
@@ -116,9 +202,7 @@ async function observeRecord(record: SurfaceRecord, context: DoctorContext): Pro
       expected_state: expectedDigest,
       actual_state: actualDigest,
       condition: matches ? "PASS" : "DRIFT",
-      reason_code: record.class === "COPY"
-        ? (matches ? "COPY_DIGEST_MATCH" : "COPY_DIGEST_DRIFT")
-        : (matches ? "TRANSFORM_ADAPTER_MATCH" : "TRANSFORM_ADAPTER_DRIFT"),
+      reason_code: matches ? "TRANSFORM_ADAPTER_MATCH" : "TRANSFORM_ADAPTER_DRIFT",
       severity: matches ? "info" : "warning",
       actionable: !matches,
       remediation: matches ? "None." : "Run the governed lifecycle update after reviewing the source change.",
@@ -126,7 +210,7 @@ async function observeRecord(record: SurfaceRecord, context: DoctorContext): Pro
     });
   } catch {
     return result(record, {
-      expected_state: record.class === "COPY" ? "matching source bytes" : "matching in-memory adapter output",
+      expected_state: "matching in-memory adapter output",
       actual_state: "unavailable",
       condition: record.eligibility.required ? "FAIL" : "SKIPPED",
       reason_code: record.eligibility.required ? "REQUIRED_SURFACE_UNAVAILABLE" : "OPTIONAL_SURFACE_SKIPPED",

@@ -6,6 +6,9 @@ import {
 } from "./path-policy.ts";
 import type { InstallSurfaceLockV1, SurfaceRecord } from "./types.ts";
 
+const SHA256_EXPECTATION = /^sha256:[a-f0-9]{64}$/;
+const COPY_FILE_MODE = /^(0644|0755)$/;
+
 export const ALLOWED_TRANSFORM_ADAPTERS = [
   "managed-template-v1",
   "command-wrapper-v1",
@@ -67,6 +70,92 @@ function validateClass(record: SurfaceRecord, errors: string[]): void {
         errors.push("CLASS_CONTRACT_INVALID");
       }
       break;
+  }
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateCopyExpectation(record: SurfaceRecord, errors: string[]): void {
+  const rawExpected = (record.verification as Record<string, unknown>).expected;
+  if (record.class !== "COPY") {
+    if (rawExpected !== undefined) errors.push("COPY_EXPECTATION_INVALID");
+    return;
+  }
+  // v1 records remain readable and compilable. Lifecycle execution decides
+  // whether an expectation is required for the requested operation.
+  if (rawExpected === undefined) return;
+  if (!isObject(rawExpected) || typeof rawExpected.kind !== "string") {
+    errors.push("COPY_EXPECTATION_INVALID");
+    return;
+  }
+  if (rawExpected.kind === "file") {
+    if (
+      (Object.keys(rawExpected).length !== 2 && Object.keys(rawExpected).length !== 3)
+      || typeof rawExpected.sha256 !== "string"
+      || !SHA256_EXPECTATION.test(rawExpected.sha256)
+      || (rawExpected.mode !== undefined && (typeof rawExpected.mode !== "string" || !COPY_FILE_MODE.test(rawExpected.mode)))
+    ) {
+      errors.push("COPY_EXPECTATION_INVALID");
+    }
+    return;
+  }
+  if (
+    rawExpected.kind !== "tree"
+    || (Object.keys(rawExpected).length !== 2 && Object.keys(rawExpected).length !== 3)
+    || !isObject(rawExpected.files)
+    || (rawExpected.modes !== undefined && !isObject(rawExpected.modes))
+  ) {
+    errors.push("COPY_EXPECTATION_INVALID");
+    return;
+  }
+
+  const canonicalPaths = new Set<string>();
+  const canonicalDirectories = new Set<string>();
+  const renderedPrefixes = new Map<string, string>();
+  const entries = Object.entries(rawExpected.files);
+  const modes = rawExpected.modes as Record<string, unknown> | undefined;
+  if (entries.length === 0 || entries.length > 4096) {
+    errors.push("COPY_EXPECTATION_INVALID");
+    return;
+  }
+  if (modes && Object.keys(modes).length !== entries.length) errors.push("COPY_EXPECTATION_INVALID");
+  for (const [path, hash] of entries) {
+    let segments: readonly string[];
+    try {
+      segments = assertRepositoryRelativeSource(path);
+    } catch {
+      errors.push("COPY_EXPECTATION_INVALID");
+      continue;
+    }
+    if (path.normalize("NFC") !== path || !SHA256_EXPECTATION.test(String(hash))) {
+      errors.push("COPY_EXPECTATION_INVALID");
+    }
+    if (modes && (typeof modes[path] !== "string" || !COPY_FILE_MODE.test(modes[path] as string))) {
+      errors.push("COPY_EXPECTATION_INVALID");
+    }
+    for (let index = 0; index < segments.length; index += 1) {
+      const prefix = segments.slice(0, index + 1).join("/");
+      const collisionKey = prefix.normalize("NFC").toLocaleLowerCase("en-US");
+      const rendered = renderedPrefixes.get(collisionKey);
+      if (rendered !== undefined && rendered !== prefix) errors.push("COPY_EXPECTATION_INVALID");
+      renderedPrefixes.set(collisionKey, prefix);
+      if (index === segments.length - 1) {
+        if (canonicalPaths.has(collisionKey)) errors.push("COPY_EXPECTATION_INVALID");
+        canonicalPaths.add(collisionKey);
+      } else {
+        canonicalDirectories.add(collisionKey);
+      }
+    }
+  }
+  for (const path of canonicalPaths) {
+    if (canonicalDirectories.has(path)) errors.push("COPY_EXPECTATION_INVALID");
+  }
+  if (modes) {
+    for (const path of Object.keys(modes)) {
+      if (!Object.hasOwn(rawExpected.files, path)) errors.push("COPY_EXPECTATION_INVALID");
+    }
   }
 }
 
@@ -157,6 +246,7 @@ export function assertSemanticValidity(
       errors.push("MANAGED_BLOCK_MARKER_REQUIRED");
     }
     validateClass(record, errors);
+    validateCopyExpectation(record, errors);
   }
   validateOwnership(records, errors);
   validateDependencies(records, errors);

@@ -1,0 +1,85 @@
+{
+  "records": [
+    {
+      "expectation_digest": "sha256:79877a60e8b1fe7955547d0e606f5d25790f4b9730e07c98266289712a38d0aa",
+      "id": "enrichment.public-pipeline",
+      "source": "package/enrich",
+      "source_object": "5d179a0da5f1d369d0c2f96541c3e4c228d05347"
+    },
+    {
+      "expectation_digest": "sha256:c0ed66a71a7ce876b66766657cce69e3a8624df43048b90dffaadc5dbc63d0ed",
+      "id": "hooks.claude.prompt-processing",
+      "source": "package/hooks/claude/PromptProcessing.hook.ts",
+      "source_object": "d6b153198efd3ccd3ba5b6fe6e61e9822b4de457"
+    },
+    {
+      "expectation_digest": "sha256:f15d7a4a547238d093dcd4f4ea8e1d3cbc13d88e9babaf01b142fd46905ba190",
+      "id": "hooks.codex.gsd-command",
+      "source": "package/hooks/codex/GsdCommand.hook.ts",
+      "source_object": "76f9befe10ac60fdeec43c4796a92811ad592518"
+    },
+    {
+      "expectation_digest": "sha256:238b04e610ee7e721d76a77d96614410fcea7f60181d9b468b422da065563533",
+      "id": "hooks.codex.manifest-mode-commit",
+      "source": "package/hooks/codex/ManifestModeCommit.hook.ts",
+      "source_object": "e7a412d78c134fc0aa17c599c66ddbe243b91bbd"
+    },
+    {
+      "expectation_digest": "sha256:592358186eeb2fb9877d9ac6eac1021c0c77fea88fb2f924f79eea9b170aecd6",
+      "id": "hooks.codex.prompt-processing",
+      "source": "package/hooks/codex/PromptProcessing.hook.ts",
+      "source_object": "cecab7137b764f1fbb2c3c62fb3ee1aef914ba54"
+    },
+    {
+      "expectation_digest": "sha256:cdb612d26418d79c20b3f37ab836f1d2471d7a840ae283ff27138fdf1b0843b3",
+      "id": "hooks.codex.session-start",
+      "source": "package/hooks/codex/SessionStartTe.hook.ts",
+      "source_object": "731aee3e21e0aaf10c65b085a14c0c4edfddffb8"
+    },
+    {
+      "expectation_digest": "sha256:e6d3a8a37de7a27fdf2a169f7e26efa3a4dae05925769bc93461219a591caec3",
+      "id": "hooks.codex.temperance-rail-announce",
+      "source": "package/hooks/codex/TemperanceRailAnnounce.hook.ts",
+      "source_object": "40733fc1878665123522e860d35db690f0dedf92"
+    },
+    {
+      "expectation_digest": "sha256:4cf592d1de27e7a6e4309b68b6e4dec269fa1e08ef73d92190d135d42e97b8a8",
+      "id": "manifest.bridge-runtime",
+      "source": "package/manifest-bridge",
+      "source_object": "69388030dcb083dab03ce2163d1ced30657de859"
+    },
+    {
+      "expectation_digest": "sha256:9630d4039a18736426454312bf7187ef94eb692705f714783c3fac0c5a98b96c",
+      "id": "router.governed-runtime",
+      "source": "package/router",
+      "source_object": "1b6c416abb9a8be56052d2d9c71f567baccad0a0"
+    },
+    {
+      "expectation_digest": "sha256:cf556d274fb8c0269227a1840bf854a6ed8998c739d6d2bf4cf74ea469327a37",
+      "id": "skills.temperance-algorithm",
+      "source": "skills/temperance-algorithm",
+      "source_object": "e3529e9bc1a52975fce7ed7b91d36ca5b7581b5a"
+    },
+    {
+      "expectation_digest": "sha256:a92f17fb9328dc5b06f177431add8d2468db0d475b9bce404e37f96ec7f6fb89",
+      "id": "skills.temperance-engine",
+      "source": "skills/temperance-engine",
+      "source_object": "aed3a501bb59d90c65fc173a335400e3e3fa50c6"
+    },
+    {
+      "expectation_digest": "sha256:6f64ce58f1ac6e50a8e3981461c1faa35f3bb5ea2a0404a08c8fd470042edd1e",
+      "id": "skills.temperance-native",
+      "source": "skills/temperance-native",
+      "source_object": "c1990e963a3aa82484ed3664cf2d992e855abd9a"
+    },
+    {
+      "expectation_digest": "sha256:67eeba838d0897f4666bf355bdc01d29b659d6e42898784845211ef7880a36fb",
+      "id": "skills.temperance-parallel-dispatch",
+      "source": "skills/temperance-parallel-dispatch",
+      "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
+    }
+  ],
+  "revision": "09cbff5ad82cec4b65b5e2f26b201d08e7346c5a",
+  "schema": "temperance.install-surface.copy-expectations-provenance.v1",
+  "tree": "8fb9f2a7e4f72ee3c6f20b1e0587b88ef36009dd"
+}
