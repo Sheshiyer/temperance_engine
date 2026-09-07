@@ -1,3 +1,4 @@
+import { observationLike } from './routing-observation';
 import { createHash, randomUUID } from 'node:crypto';
 import { EVENT_SCHEMA, type AlgorithmPhase, type EvidencePointer, type EventSource, type EventStatus, type ManifestEvent } from './types';
 
@@ -56,6 +57,7 @@ function generatedId(input: Record<string, unknown>): string {
 }
 
 export function normalizeEvent(input: unknown, defaults: Partial<ManifestEvent> = {}): ManifestEvent {
+  if (observationLike(input)) throw new Error('unsupported_observation');
   if (!isRecord(input)) throw new Error('event must be a JSON object');
   const source = stringField(input, 'source') || defaults.source;
   const kind = stringField(input, 'kind');
