@@ -60,6 +60,8 @@ export interface BeginEntry extends JournalEntryBase {
   verb: string;
   profile: string;
   inventory_digest: string;
+  /** Binds COPY recovery paths and declared hashes before the first mutation. */
+  copy_manifest_sha256?: string;
 }
 
 export interface StageEntry extends JournalEntryBase {

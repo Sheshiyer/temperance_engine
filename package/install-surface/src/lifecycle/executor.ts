@@ -7,7 +7,8 @@
  */
 
 import { createHash } from "node:crypto";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { prepareCopies, captureCopyManifest, assertCopyPrior, loadCopyManifest, rollbackCopies, safePath, sha256, type DeclaredCopyHashes, type CopyManifest } from "./copy-tree.ts";
 
 import type { CompileResult } from "../compile.ts";
 import type { SurfaceRecord } from "../types.ts";
@@ -62,6 +63,11 @@ export interface ExecutorResult {
 
 export interface ExecutorOptions {
   stateRoot: string;
+  /** Required for tree COPY; relative sources are resolved only beneath this root. */
+  repositoryRoot?: string;
+  sourceRoot?: string;
+  declaredCopyHashes?: DeclaredCopyHashes;
+  resolveRoot?: (token: string) => string;
   io: LifecycleIO;
   plan: PlanResult;
   compileResult: CompileResult;
@@ -82,7 +88,7 @@ const ROOT_PATHS: Record<string, () => string> = {
   CLAUDE_CONFIG_DIR: () => process.env.CLAUDE_CONFIG_DIR || "/tmp/claude-config",
 };
 
-function resolveRoot(token: string): string {
+function defaultResolveRoot(token: string): string {
   const resolver = ROOT_PATHS[token];
   if (!resolver) throw new Error(`Unknown root token: ${token}`);
   return resolver();
@@ -182,6 +188,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     signal = new AbortController().signal,
   } = options;
 
+  const resolveRoot = options.resolveRoot ?? defaultResolveRoot;
   const txid = generateTxId();
   const txDir = join(stateRoot, "transactions", txid);
 
@@ -242,15 +249,14 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     }
   }
 
-  // Create journal
-  const journal = await Journal.create(stateRoot, io, txid);
+  // No destination mutations until source inventory and hazards pass.
 
   // Pre-flight hazards (only check records that are in the plan steps)
   const stepRecordIds = new Set(plan.steps.map((s) => s.record_id));
   let stepRecords = compileResult.lockObject.records.filter((r) => stepRecordIds.has(r.id));
 
   // Filter out optional records with unavailable dependencies
-  const filteredSteps: typeof plan.steps = [];
+  let filteredSteps: typeof plan.steps = [];
   const filteredRecords: typeof stepRecords = [];
   const skippedOptional: string[] = [];
 
@@ -298,6 +304,25 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     return o;
   });
 
+  let copies: Awaited<ReturnType<typeof prepareCopies>>["copies"];
+  try {
+    if (options.repositoryRoot && options.sourceRoot && resolve(options.repositoryRoot) !== resolve(options.sourceRoot)) throw new Error("COPY_SOURCE_ROOT_CONFLICT");
+    const prepared = await prepareCopies(io, filteredSteps, filteredRecords, options.repositoryRoot ?? options.sourceRoot, options.declaredCopyHashes);
+    filteredSteps = prepared.steps;
+    copies = prepared.copies;
+    // Check every stage reservation and destination ancestry before journal writes.
+    for (const step of filteredSteps) {
+      if (!/^[\w.-]+$/.test(step.step_id)) throw new Error("STEP_ID_INVALID");
+      const root = resolveRoot(step.destination.root_token);
+      await safePath(io, root, join(root, step.destination.relative_path), "file");
+      const staged = join(root, `.temperance-stage-${txid}-${sha256(step.step_id)}`);
+      try { await io.lstat(staged); throw new Error("STAGE_ALREADY_EXISTS"); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+    }
+  } catch (error) {
+    return { txid, status: "failed", exitCode: 1, outcomes: finalOutcomes.map(o => ({ ...o, status: "failed", reason: String(error) })) };
+  }
+
   try {
     await preflight(
       filteredSteps,
@@ -322,19 +347,18 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     throw error;
   }
 
-  // Journal BEGIN
-  await journal.append({
-    kind: "BEGIN",
-    ts: new Date().toISOString(),
-    verb,
-    profile,
-    inventory_digest: compileResult.digest,
-  });
+  const journal = await Journal.create(stateRoot, io, txid);
 
   const committedSteps: string[] = [];
   const preimageDir = join(txDir, "preimage");
 
+  const stagedPaths = new Set<string>();
   try {
+    const copyManifest = await captureCopyManifest(io, txDir, copies, resolveRoot);
+    await journal.append({
+      kind: "BEGIN", ts: io.now().toISOString(), verb, profile, inventory_digest: compileResult.digest,
+      ...(copies.size ? { copy_manifest_sha256: sha256(JSON.stringify(copyManifest, null, 2) + "\n") } : {}),
+    });
     // Execute steps
     for (const step of filteredSteps) {
       const record = compileResult.lockObject.records.find((r) => r.id === step.record_id);
@@ -342,7 +366,14 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
 
       const rootPath = resolveRoot(step.destination.root_token);
       const destPath = `${rootPath}/${step.destination.relative_path}`;
-      const stagePath = join(rootPath, `.temperance-stage-${step.step_id}`);
+      const stagePath = join(rootPath, `.temperance-stage-${txid}-${sha256(step.step_id)}`);
+      if (!/^[\w.-]+$/.test(step.step_id)) throw new Error("STEP_ID_INVALID");
+      await safePath(io, rootPath, destPath, "file");
+      const copy = copies.get(step.step_id);
+      if (copy) await assertCopyPrior(io, copyManifest.leaves.find(l => l.step_id === step.step_id)!, resolveRoot);
+      try { await io.lstat(stagePath); throw new Error("STAGE_ALREADY_EXISTS"); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+      stagedPaths.add(stagePath);
 
       // Ensure destination parent directory exists (install/update only)
       if (step.mode !== "uninstall") {
@@ -363,7 +394,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
       });
 
       // Backup preimage if file exists
-      try {
+      if (!copy) try {
         const existing = await io.readFile(destPath);
         const preimagePath = join(preimageDir, `${step.step_id}.preimage`);
         await io.writeFileAtomic(preimagePath, existing);
@@ -382,15 +413,11 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
         // Install/Update: stage and promote
         // Stage based on record class
         if (record.class === "COPY") {
-          await stageFile(io, record.source, stagePath);
-
-          // Verify
-          if (record.verification.method === "sha256") {
-            const content = await io.readFile(stagePath);
-            const hash = createHash("sha256").update(content).digest("hex");
-            // For COPY, we verify the staged content matches source
-            // In real implementation, this would compare against expected hash
-          }
+          if (!copy) throw new Error("COPY_PREPARATION_MISSING");
+          await io.writeFileAtomic(stagePath, copy.content);
+          if (!await verifySha256(io, stagePath, copy.expected_hash)) throw new Error("COPY_STAGE_VERIFY_FAILED");
+          await safePath(io, rootPath, stagePath, "file");
+          await assertCopyPrior(io, copyManifest.leaves.find(l => l.step_id === step.step_id)!, resolveRoot);
         } else if (record.class === "TRANSFORM") {
           // Transform: render via adapter
           // For now, treat as copy with adapter verification
@@ -403,7 +430,10 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
 
         // Promote: atomic rename
         try {
+          await safePath(io, rootPath, destPath, "file");
           await promoteFile(io, stagePath, destPath);
+          stagedPaths.delete(stagePath);
+          if (copy && !await verifySha256(io, destPath, copy.expected_hash)) throw new Error("COPY_PROMOTE_VERIFY_FAILED");
         } catch (error) {
           // Promotion failed — abort
           await journal.append({
@@ -418,10 +448,10 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
           return {
             txid,
             status: "failed",
-            outcomes: plan.outcomes.map((o) => ({
+            outcomes: finalOutcomes.map((o) => ({
               ...o,
-              status: o.step_id === step.step_id ? "failed" : o.status,
-              reason: o.step_id === step.step_id ? "Promotion failed" : o.reason,
+              status: o.record_id === step.record_id ? "failed" : o.status,
+              reason: o.record_id === step.record_id ? "Promotion failed" : o.reason,
             })),
             exitCode: 1,
           };
@@ -472,6 +502,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
       exitCode: 0,
     };
   } catch (error) {
+    for (const staged of stagedPaths) await removeStaged(io, staged);
     // Unexpected error — abort
     await journal.append({
       kind: "ABORT",
@@ -485,7 +516,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
       outcomes: finalOutcomes.map((o) => ({
         ...o,
         status: "failed" as const,
-        reason: "Unexpected error during execution",
+        reason: String(error),
       })),
       exitCode: 1,
     };
@@ -499,10 +530,31 @@ export async function rollbackTransaction(
   txid: string,
   stateRoot: string,
   io: LifecycleIO,
+  options: { resolveRoot?: (token: string) => string } = {},
 ): Promise<ExecutorResult> {
+  const resolveRoot = options.resolveRoot ?? defaultResolveRoot;
+  if (!/^[a-f0-9]{12}-[a-f0-9]{8}$/.test(txid)) return { txid, status: "failed", outcomes: [], exitCode: 1 };
   const txDir = join(stateRoot, "transactions", txid);
   const journal = Journal.open(txDir, io);
 
+  let copyManifest: CopyManifest | null;
+  try {
+    copyManifest = await loadCopyManifest(io, txDir);
+    const entries = await journal.readEntries();
+    const begin = entries.find(e => e.kind === "BEGIN");
+    if (copyManifest) {
+      if (begin?.kind !== "BEGIN" || begin.copy_manifest_sha256 !== sha256(await io.readFile(join(txDir, "copy-manifest.json")))) throw new Error("COPY_MANIFEST_DRIFT");
+      // Legacy non-COPY compensation has no hash contract. Refuse a mixed
+      // transaction before changing COPY leaves rather than claim atomic recovery.
+      if (entries.some(e => e.kind === "STAGE" && !copyManifest!.leaves.some(l => l.step_id === e.step_id))) throw new Error("MIXED_ROLLBACK_UNVERIFIED");
+      await rollbackCopies(io, txDir, copyManifest, resolveRoot);
+    } else if (begin?.kind === "BEGIN" && begin.copy_manifest_sha256) throw new Error("COPY_MANIFEST_MISSING");
+  } catch {
+    return { txid, status: "failed", outcomes: [], exitCode: 1 };
+  }
+  if (copyManifest) {
+    for (const leaf of copyManifest.leaves) await journal.append({ kind: "COMPENSATE", ts: io.now().toISOString(), step_id: leaf.step_id, method: "verified-copy-leaf" });
+  }
   const status = await journal.getStatus();
   if (status === "aborted") {
     // Already aborted — nothing to rollback
@@ -519,6 +571,7 @@ export async function rollbackTransaction(
 
   // Reverse order compensation
   for (const stepId of committedSteps.reverse()) {
+    if (copyManifest?.leaves.some(l => l.step_id === stepId)) continue;
     const preimagePath = join(preimageDir, `${stepId}.preimage`);
 
     // Try to restore from preimage
