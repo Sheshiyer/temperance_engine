@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-08-19)
 Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
 Plan: 3 of 3 complete
 Status: Phase 1 complete; Phase 2 requires discuss/plan before execution
-Last activity: 2026-09-07 — Documentation quick task 260907-9ps completed and review-corrected; RO-00 lifecycle capability must precede temporary-install proof. Routing-observation implementation has not started. Prior phase evidence remains below.
+Last activity: 2026-09-07 — RO-01 source-only routing-observation receipt contract completed after RO-00 lifecycle capability. Packaging, adapter, bridge, isolated install, host integration and consumer work remain separate gates. Prior phase evidence remains below.
 
 Progress: [██████████] 100%
 
@@ -69,9 +69,12 @@ None yet.
 
 | # | Description | Date | Commit | Status | Directory |
 |---|---|---|---|---|---|
-| 260907-9ps | Product routing-observation receipt architecture and source-provenance packet | 2026-09-07 | See quick-directory Git history | Documentation complete; implementation not started | [260907-9ps](./quick/260907-9ps-plan-product-routing-observation-receipt/) |
+| 260907-9ps | Product routing-observation receipt architecture and source-provenance packet | 2026-09-07 | See quick-directory Git history | Documentation complete; RO-01 later began from this packet | [260907-9ps](./quick/260907-9ps-plan-product-routing-observation-receipt/) |
+| 260907-esb | Pure TypeScript routing-observation receipt contract | 2026-09-07 | See quick-directory Git history | Source-only RO-01 complete; later routing-observation slices remain gated | [260907-esb](./quick/260907-esb-implement-routing-observation-receipt-contract/) |
 
-This quick task adds a review packet only. Public Temperance Glove milestone phase acceptance, existing pending gates, runtime state and execution authority are unchanged.
+These quick tasks retain the reviewed source packet and its bounded RO-01
+contract implementation. Public Temperance Glove milestone phase acceptance,
+existing pending gates, runtime state and execution authority are unchanged.
 
 ## Deferred Items
 
