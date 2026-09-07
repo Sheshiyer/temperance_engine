@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:temperance:routing-observation-receipt:v1",
   "title": "Routing observation receipt v1",
-  "$comment": "Canonical product structural schema. Runtime TS validation additionally enforces duplicate-key rejection, valid UTF-8 and Unicode, 4096 encoded bytes, safe typed-object descriptors, registered project and reviewed provider/model pair membership, SHA-256 content digest, exact calendar timestamps, positive policy-bounded freshness, count arithmetic and reason predicates. Policy is explicit caller trust, not identity publication proof. completed declares coverage; a later adapter authenticates typed evidence. This schema does not infer provider success or task completion. No generated copies exist in RO-01.",
+  "$comment": "Canonical product structural schema. Runtime TS validation additionally enforces duplicate-key rejection, valid UTF-8 and Unicode, 4096 encoded bytes, safe typed-object descriptors, registered project and reviewed provider/model pair membership, SHA-256 content digest, exact calendar timestamps, positive policy-bounded freshness, count arithmetic and reason predicates. Policy is explicit caller trust, not identity publication proof. completed declares coverage; a later adapter authenticates typed evidence. This schema does not infer provider success or task completion. RO-02 generates byte-identical repository TypeScript copies for router and Manifest bridge; this JSON schema remains canonical and is not generated.",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -288,5 +288,8 @@ describe("routing observation receipt v1", () => {
     expect([...source.matchAll(/^import .+ from "([^"]+)";/gm)].map(match => match[1])).toEqual(["node:crypto", "node:util"]);
     expect(source).not.toMatch(/\b(?:process|fetch|console|Bun|require|setTimeout|setInterval)\b|Date\.now|Math\.random|new Date\(\s*\)|import\s*\(/);
     expect(source.startsWith("// Canonical product source.")).toBe(true);
+    expect(source).toContain("Generated RO-02 repository copies must remain byte-for-byte identical;");
+    expect(source).toContain("// edit package/contracts/routing-observation-receipt.v1.ts, then run scripts/sync-routing-observation-contract.mjs --write.\n");
+    expect(source).not.toMatch(/^export\s.*\bfrom\s/m);
   });
 });
