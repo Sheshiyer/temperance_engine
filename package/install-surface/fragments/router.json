@@ -43,6 +43,7 @@
           "files": {
             "classify-task.sh": "sha256:dfb90dda51213d7e48ab3de7d2d4669081065d7d9d702a4d6ca89c71cd7508ac",
             "claude-launch-shim/claude": "sha256:abdc94492da03a0d01a79dbcd06e0f291d5209f0da2d6506d31ce70f88b937bf",
+            "contracts/routing-observation-receipt.v1.ts": "sha256:7c6c2e133057540c85e62642882031591fb7d1f151ea77c641487240a09b820b",
             "dispatch-tasklist.sh": "sha256:de4a09471ae90b3328f33e0eda0f0dab26139974d7c40421b5b6e6ce19b57487",
             "gsd-command-install.mjs": "sha256:9e32a44040a4649bf5162e05c678086baa40d43199541c3b3a5fc0942d9ad819",
             "gsd-rail-map.json": "sha256:2288370d95b6f80203cddbaa38595b73935ac91580e676b84e144b4348b5ce77",
@@ -82,6 +83,8 @@
             "phase-combo-map.json": "sha256:b587ecc558298ae57baca24ddaeb5039192d102a71a90fd7d6308decea77b5df",
             "rail-announce.ts": "sha256:0ade0d822324ec0dc68e9f8bd74a93f33810d679549de8c76bc3b09196c27da1",
             "rail-format.sh": "sha256:f8d1049085ad0808c70281f1eae0c289a10bcc6b6c7f15a68b1587632eb81bc7",
+            "routing-observation-adapter.test.ts": "sha256:d87b5850c592fb0a52045461438b0ec24997af68c6e291f38615e7cbf8e87513",
+            "routing-observation-adapter.ts": "sha256:0c53bf12c04e0a932341a12e0fa62b666ebb8eaf5065bb900dfc834ed149eccf",
             "routing-policy.test.ts": "sha256:7d4dae8f65d53123d4d01cd489a6852aac1529d091aafcd38ecff25e2c1996d7",
             "routing-policy.ts": "sha256:d3eb2acaf0557142f674dc3a564f9dca14816ef4ca8206081187efdecfd05393",
             "signed-probe-challenge-ledger.test.ts": "sha256:b5b870386785816d6443a9b87e5d8b4bd911f39ebb7f40662ba974aaca56d00c",
@@ -110,6 +113,7 @@
           "modes": {
             "classify-task.sh": "0755",
             "claude-launch-shim/claude": "0755",
+            "contracts/routing-observation-receipt.v1.ts": "0644",
             "dispatch-tasklist.sh": "0755",
             "gsd-command-install.mjs": "0755",
             "gsd-rail-map.json": "0644",
@@ -149,6 +153,8 @@
             "phase-combo-map.json": "0644",
             "rail-announce.ts": "0644",
             "rail-format.sh": "0755",
+            "routing-observation-adapter.test.ts": "0644",
+            "routing-observation-adapter.ts": "0644",
             "routing-policy.test.ts": "0644",
             "routing-policy.ts": "0644",
             "signed-probe-challenge-ledger.test.ts": "0644",

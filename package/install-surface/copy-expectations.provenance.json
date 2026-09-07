@@ -43,16 +43,16 @@
       "source_object": "40733fc1878665123522e860d35db690f0dedf92"
     },
     {
-      "expectation_digest": "sha256:4cf592d1de27e7a6e4309b68b6e4dec269fa1e08ef73d92190d135d42e97b8a8",
+      "expectation_digest": "sha256:10d477e6e17921528eeab4c1d75a5b01b8d61f13777961f95c772f23039bf467",
       "id": "manifest.bridge-runtime",
       "source": "package/manifest-bridge",
-      "source_object": "69388030dcb083dab03ce2163d1ced30657de859"
+      "source_object": "3585b05f1b31e53c87c4f5fdf00bb511a9302534"
     },
     {
-      "expectation_digest": "sha256:9630d4039a18736426454312bf7187ef94eb692705f714783c3fac0c5a98b96c",
+      "expectation_digest": "sha256:8f70e85ce7e02d244e2b59214dc7da2697ce81c2c4d1f488945c133361235e47",
       "id": "router.governed-runtime",
       "source": "package/router",
-      "source_object": "1b6c416abb9a8be56052d2d9c71f567baccad0a0"
+      "source_object": "48fe5bcc91d92b5d8049abf564e78fb9a10e6100"
     },
     {
       "expectation_digest": "sha256:cf556d274fb8c0269227a1840bf854a6ed8998c739d6d2bf4cf74ea469327a37",
@@ -79,7 +79,7 @@
       "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
     }
   ],
-  "revision": "09cbff5ad82cec4b65b5e2f26b201d08e7346c5a",
+  "revision": "b386ea0868876414ff2839083d12d769428aaf2b",
   "schema": "temperance.install-surface.copy-expectations-provenance.v1",
-  "tree": "8fb9f2a7e4f72ee3c6f20b1e0587b88ef36009dd"
+  "tree": "7cbdfa2eaf982a934ec991661c75a54991a2dc9b"
 }
