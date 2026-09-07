@@ -74,9 +74,11 @@ None yet.
 | 260907-fdy | Deterministic routing-observation contract parity | 2026-09-07 | See quick-directory Git history | Source-only RO-02 complete; adapter and bridge work remain gated | [260907-fdy](./quick/260907-fdy-sync-routing-observation-contract/) |
 | 260907-fxk-ro03 | Pure typed routing-observation adapter | 2026-09-07 | 201ea72 | Source-only RO-03 complete; independent Astra review passed | [260907-fxk-ro03](./quick/260907-fxk-implement-pure-routing-observation-adapter/) |
 | 260907-fxk-ro04 | Strict routing-observation Manifest admission and replay | 2026-09-07 | 61231de | Source-only RO-04 complete; independent Astra review passed | [260907-fxk-ro04](./quick/260907-fxk-implement-routing-observation-manifest-admission/) |
+| 260907-rrx | Installed routing-observation graph and replay proof | 2026-09-07 | a40ee6e | Bounded temporary-layout RO-05 proof complete; independent Astra review passed | [260907-rrx](./quick/260907-rrx-verify-installed-routing-observation/) |
 
 These quick tasks retain the reviewed source packet, bounded RO-01 contract
-implementation, RO-02 repository-copy parity and RO-03 pure adapter. Public Temperance Glove
+implementation, RO-02 repository-copy parity, RO-03 pure adapter, RO-04 admission
+and the bounded RO-05 temporary installation proof. Public Temperance Glove
 milestone phase acceptance, existing pending gates, runtime state and execution
 authority are unchanged.
 
