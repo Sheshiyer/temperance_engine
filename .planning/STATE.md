@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-08-19)
 Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
 Plan: 3 of 3 complete
 Status: Phase 1 complete; Phase 2 requires discuss/plan before execution
-Last activity: 2026-08-20 — 38 focused tests pass; canonical private-path baseline remains visible for Phase 2
+Last activity: 2026-09-07 — Documentation quick task 260907-9ps completed; routing-observation implementation not started. Prior phase evidence remains below.
 
 Progress: [██████████] 100%
 
@@ -64,6 +64,14 @@ None yet.
 
 - Phase 2 must close the existing `verify.sh` private-path guard failure through source convergence, not broad suppression.
 - Phase 4/6 planning must prove meaningful LaunchAgent lifecycle control on both blocking macOS architectures or define an equivalent clean ephemeral Mac gate.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|---|---|---|---|---|
+| 260907-9ps | Product routing-observation receipt architecture and source-provenance packet | 2026-09-07 | See quick-directory Git history | Documentation complete; implementation not started | [260907-9ps](./quick/260907-9ps-plan-product-routing-observation-receipt/) |
+
+This quick task adds a review packet only. Public Temperance Glove milestone phase acceptance, existing pending gates, runtime state and execution authority are unchanged.
 
 ## Deferred Items
 
