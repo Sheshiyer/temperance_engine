@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:temperance:routing-observation-receipt:v1",
+  "title": "Routing observation receipt v1",
+  "$comment": "Canonical product structural schema. Runtime TS validation additionally enforces duplicate-key rejection, valid UTF-8 and Unicode, 4096 encoded bytes, safe typed-object descriptors, registered project and reviewed provider/model pair membership, SHA-256 content digest, exact calendar timestamps, positive policy-bounded freshness, count arithmetic and reason predicates. Policy is explicit caller trust, not identity publication proof. completed declares coverage; a later adapter authenticates typed evidence. This schema does not infer provider success or task completion. No generated copies exist in RO-01.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "receipt_id",
+    "observation_id",
+    "project_ref",
+    "observed_at",
+    "fresh_until",
+    "source",
+    "evidence_mode",
+    "provenance",
+    "request",
+    "attribution",
+    "tools"
+  ],
+  "properties": {
+    "schema": {
+      "const": "temperance.routing-observation-receipt.v1"
+    },
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^ro_[a-f0-9]{64}$"
+    },
+    "observation_id": {
+      "type": "string",
+      "pattern": "^obs_[a-f0-9]{32}$"
+    },
+    "project_ref": {
+      "type": "string",
+      "pattern": "^prj_[a-z0-9-]{8,60}$"
+    },
+    "observed_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "fresh_until": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "source": {
+      "const": "product-routing-adapter"
+    },
+    "evidence_mode": {
+      "type": "string",
+      "enum": [
+        "synthetic",
+        "local-observation"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product_source_commit",
+        "closure_sha256",
+        "contract_sha256"
+      ],
+      "properties": {
+        "product_source_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "closure_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "contract_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome"
+      ],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "succeeded",
+            "failed",
+            "unavailable"
+          ]
+        }
+      }
+    },
+    "attribution": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "provider",
+            "model",
+            "successful_attempt_ordinal",
+            "evidence_basis"
+          ],
+          "properties": {
+            "state": {
+              "const": "observed"
+            },
+            "provider": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            },
+            "model": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"
+            },
+            "successful_attempt_ordinal": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "evidence_basis": {
+              "const": "terminal-attempt-record"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason_code"
+          ],
+          "properties": {
+            "state": {
+              "const": "unavailable"
+            },
+            "reason_code": {
+              "type": "string",
+              "enum": [
+                "no_successful_attempt",
+                "missing_attribution",
+                "evidence_unavailable",
+                "unsupported_identity"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason_code"
+          ],
+          "properties": {
+            "state": {
+              "const": "ambiguous"
+            },
+            "reason_code": {
+              "type": "string",
+              "enum": [
+                "conflicting_attribution",
+                "multiple_successful_bindings"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "tools": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "started_count",
+            "completed_count",
+            "failed_count"
+          ],
+          "properties": {
+            "state": {
+              "const": "completed"
+            },
+            "started_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "completed_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "failed_count": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason_code",
+            "started_count",
+            "completed_count",
+            "failed_count"
+          ],
+          "properties": {
+            "state": {
+              "const": "incomplete"
+            },
+            "reason_code": {
+              "type": "string",
+              "enum": [
+                "open_tools",
+                "tool_failed",
+                "coverage_incomplete"
+              ]
+            },
+            "started_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "completed_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "failed_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason_code"
+          ],
+          "properties": {
+            "state": {
+              "const": "unavailable"
+            },
+            "reason_code": {
+              "type": "string",
+              "enum": [
+                "not_instrumented",
+                "evidence_unavailable"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
