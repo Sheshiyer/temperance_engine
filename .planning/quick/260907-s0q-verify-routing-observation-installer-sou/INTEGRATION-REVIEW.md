@@ -46,5 +46,9 @@ Cambium Website and Codigo/Decodik identities. Three existing repository identit
 were reconciled using prepared mapping receipts. The founder subsequently approved
 Session Atlas and Meristem as distinct modular Cambium organs, Somatic Canticles
 under Tryambakam Noesis, and Synchronocities as a retained partner blog. Their
-separate mapping source lane is applying these declarations. Observation-only
-mappings do not imply issued receipts or publication.
+separate source lane committed the mapping as `e93fade`, then published and read
+back exactly four local root headers after verified backup/restoration and the
+75/38 directory census. Existing Labs Hands admission still passed its read-only
+check. Session Atlas and Synchronocities remain reviewed mapping nodes pending
+canonical catalog promotion; existing execution pins and prepared receipts were
+preserved. Local header publication does not issue execution approvals.
