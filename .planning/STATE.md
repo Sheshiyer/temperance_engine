@@ -72,9 +72,10 @@ None yet.
 | 260907-9ps | Product routing-observation receipt architecture and source-provenance packet | 2026-09-07 | See quick-directory Git history | Documentation complete; RO-01 later began from this packet | [260907-9ps](./quick/260907-9ps-plan-product-routing-observation-receipt/) |
 | 260907-esb | Pure TypeScript routing-observation receipt contract | 2026-09-07 | See quick-directory Git history | Source-only RO-01 complete; later routing-observation slices remain gated | [260907-esb](./quick/260907-esb-implement-routing-observation-receipt-contract/) |
 | 260907-fdy | Deterministic routing-observation contract parity | 2026-09-07 | See quick-directory Git history | Source-only RO-02 complete; adapter and bridge work remain gated | [260907-fdy](./quick/260907-fdy-sync-routing-observation-contract/) |
+| 260907-fxk-ro03 | Pure typed routing-observation adapter | 2026-09-07 | 201ea72 | Source-only RO-03 complete; independent Astra review passed | [260907-fxk-ro03](./quick/260907-fxk-implement-pure-routing-observation-adapter/) |
 
 These quick tasks retain the reviewed source packet, bounded RO-01 contract
-implementation and RO-02 repository-copy parity. Public Temperance Glove
+implementation, RO-02 repository-copy parity and RO-03 pure adapter. Public Temperance Glove
 milestone phase acceptance, existing pending gates, runtime state and execution
 authority are unchanged.
 
