@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-08-19)
 Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
 Plan: 3 of 3 complete
 Status: Phase 1 complete; Phase 2 requires discuss/plan before execution
-Last activity: 2026-09-07 — Documentation quick task 260907-9ps completed; routing-observation implementation not started. Prior phase evidence remains below.
+Last activity: 2026-09-07 — Documentation quick task 260907-9ps completed and review-corrected; RO-00 lifecycle capability must precede temporary-install proof. Routing-observation implementation has not started. Prior phase evidence remains below.
 
 Progress: [██████████] 100%
 

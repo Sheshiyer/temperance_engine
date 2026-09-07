@@ -25,7 +25,7 @@ Product directory inspection finds no dedicated `routing-activity-receipt`, `can
 | `scripts/install-spine.sh` | Legacy router rsync and bridge service installer call; generated source owner must remain durable. |
 | `scripts/temperance-manifest-bridge-launchd.sh` | CLI_SOURCE/working directory use product package checkout, diverging from fragment destination. Hold runtime claim until converged/tested. |
 | `package/install-surface/src/compile.ts` | Canonical lock digest covers semantic records; not a complete source-content import graph. |
-| `package/install-surface/src/lifecycle/executor.ts` | Existing source/content-hash lifecycle owner is a future smoke target, not proof exercised here. |
+| `package/install-surface/src/lifecycle/executor.ts` | Current blocker for G2: COPY stages a single file; its computed COPY hash is not compared; rollback restores preimages without destination-drift guards and cannot remove newly created paths. RO-00 must close these gaps before an installed-layout smoke can claim lifecycle proof. |
 
 ## Baseline inspected-file SHA-256
 
@@ -57,6 +57,15 @@ Hashes below were calculated from the clean assigned product worktree. They are 
 Before source implementation is promoted, fill an explicit row for each dependency with product baseline hash, authorized host source hash (or `unavailable`), semantic delta, chosen owner, disposition, destination, generated-source owner, import closure, fixture evidence and rollback evidence. Never infer parity from matching filenames, a host manifest display, or a passing source test. Do not put host raw diffs, account IDs or tool output into this public packet.
 
 The proposed slice is new product-owned contract/adapter/bridge projection. Host activity/canary implementation import is held until separately inventoried and reviewed. No rsync from host root to product is permitted by this packet. Template/ranker ownership, routing contracts and provider state stay outside its scope.
+
+## Installer prerequisite hold
+
+The product fragments describe router and Manifest bridge directory copies, while
+the inspected executor currently implements file-level staging only. Until
+RO-00 provides directory or explicit-expanded-file semantics, declared-hash
+comparison, and drift-safe rollback proof in a temporary root, G2 temporary
+installation and every installed-import claim remain held. This is a planning
+correction based on the reviewed source, not evidence of a failed runtime.
 
 ## Verification receipt for this documentation lane
 
