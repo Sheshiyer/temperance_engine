@@ -1,10 +1,10 @@
 {
   "records": [
     {
-      "expectation_digest": "sha256:79877a60e8b1fe7955547d0e606f5d25790f4b9730e07c98266289712a38d0aa",
+      "expectation_digest": "sha256:d60d76dedce10bb422d3e49de2c7b40d2eb25bc35fbd80ffe17e9354eb730574",
       "id": "enrichment.public-pipeline",
       "source": "package/enrich",
-      "source_object": "5d179a0da5f1d369d0c2f96541c3e4c228d05347"
+      "source_object": "d5e74db46bae774d71a0e1351de62f3a74b44581"
     },
     {
       "expectation_digest": "sha256:c0ed66a71a7ce876b66766657cce69e3a8624df43048b90dffaadc5dbc63d0ed",
@@ -49,10 +49,22 @@
       "source_object": "3585b05f1b31e53c87c4f5fdf00bb511a9302534"
     },
     {
-      "expectation_digest": "sha256:8f70e85ce7e02d244e2b59214dc7da2697ce81c2c4d1f488945c133361235e47",
+      "expectation_digest": "sha256:115fa7f2a6284e07b62f6b2f25c5f82c761b1135c4feabbbacfb2652de780b09",
+      "id": "router.enrichment-runtime-dependency",
+      "source": "package/router/task-classification.ts",
+      "source_object": "2c15ff81f4afb0865bb8db1db60f1a1d8c560077"
+    },
+    {
+      "expectation_digest": "sha256:3049c09ede2b7f82c4292f1e78e36c2bfbac02dd002640201eb11a31452efbb2",
       "id": "router.governed-runtime",
       "source": "package/router",
-      "source_object": "48fe5bcc91d92b5d8049abf564e78fb9a10e6100"
+      "source_object": "4637e09a533f89bf466b4d8b5101a5fb9dedc88e"
+    },
+    {
+      "expectation_digest": "sha256:f40f92598d75fca3203768a53b1e5bb229d169243944f6c8bd63b949af02490f",
+      "id": "router.gsd-backup-helper",
+      "source": "package/bin/te-backup-if-changed",
+      "source_object": "b6916f01c114566ffcb788374f6a4c164541d152"
     },
     {
       "expectation_digest": "sha256:cf556d274fb8c0269227a1840bf854a6ed8998c739d6d2bf4cf74ea469327a37",
@@ -79,7 +91,7 @@
       "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
     }
   ],
-  "revision": "b386ea0868876414ff2839083d12d769428aaf2b",
+  "revision": "a9391a96d5b7b19ef967fcda8476f591ab1dd408",
   "schema": "temperance.install-surface.copy-expectations-provenance.v1",
-  "tree": "7cbdfa2eaf982a934ec991661c75a54991a2dc9b"
+  "tree": "05017b1d4add01d9a0258f898d7cc5f86a806f4f"
 }

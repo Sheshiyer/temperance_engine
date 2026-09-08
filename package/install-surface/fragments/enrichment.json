@@ -71,8 +71,8 @@
             "stages/isaPointer.ts": "sha256:2843a737ae1b7bbc34acd3b0fa230b7847dc0baf1c88e8743a5f864218fdfa4a",
             "stages/memory.test.ts": "sha256:9eff24570198465c9ec49dd5a208478d3793b1a85dd1e39a2503edeae33add09",
             "stages/memory.ts": "sha256:a0f0a420798aa0713e016bfad4993b24b0fe1f0c5d2ff437fc76e548e2a1f5b8",
-            "stages/routing.test.ts": "sha256:a15453782089f3d39070bdbb10b65fda56e36ce3be0b2ee1a3f28276d1c0c72f",
-            "stages/routing.ts": "sha256:127811038996f9c4f2168e05a98fb6162d56173cb9dc5a3387a1ce5d5fc2da7e"
+            "stages/routing.test.ts": "sha256:8ab7f5e6db6709981b009598d23d46912680575d34f5eaafcb44ed6ed906177a",
+            "stages/routing.ts": "sha256:1cd75d539c071fa613749234e2996a9ebf9fe853fbd42a248091d01e5571d000"
           },
           "modes": {
             "adapters/claude-prompthook.ts": "0644",

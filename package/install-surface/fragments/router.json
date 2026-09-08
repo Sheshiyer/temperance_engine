@@ -44,12 +44,16 @@
         "expected": {
           "kind": "tree",
           "files": {
-            "classify-task.sh": "sha256:dfb90dda51213d7e48ab3de7d2d4669081065d7d9d702a4d6ca89c71cd7508ac",
+            "alchemy-stage-hub-map.json": "sha256:6edc3ddeb22eff5af2398c96c7ef42a0d0be655b8deb9a11b30aeca1bcaf6fc6",
+            "backup-if-changed.ts": "sha256:ba55926b26170cb265568f59e88525f5818d56ec64109609fa9b7f862e8bee20",
+            "classify-task.sh": "sha256:85aedea3f702da2a85770926246f70d166f77ef09d95d510409be59fa8518334",
+            "classify-task.ts": "sha256:1f12e7b09bff868b3e55e25a94780668712d15c4dd861d5b3a393ac5f3fd714b",
             "claude-launch-shim/claude": "sha256:abdc94492da03a0d01a79dbcd06e0f291d5209f0da2d6506d31ce70f88b937bf",
             "contracts/routing-observation-receipt.v1.ts": "sha256:7c6c2e133057540c85e62642882031591fb7d1f151ea77c641487240a09b820b",
             "dispatch-tasklist.sh": "sha256:de4a09471ae90b3328f33e0eda0f0dab26139974d7c40421b5b6e6ce19b57487",
-            "gsd-command-install.mjs": "sha256:9e32a44040a4649bf5162e05c678086baa40d43199541c3b3a5fc0942d9ad819",
-            "gsd-rail-map.json": "sha256:2288370d95b6f80203cddbaa38595b73935ac91580e676b84e144b4348b5ce77",
+            "effort-contract.ts": "sha256:663fc5125568a8277e2005d53cf393138a2cd2df59c35e86ddd73d45247612c6",
+            "gsd-command-install.mjs": "sha256:4a69943ebdff4c5c7f79c46151e7cc74f1569c1abc5f39c9516d727c3d06f3fe",
+            "gsd-rail-map.json": "sha256:8dd2e27633a98e26d57f4f9de038b2173552800474ff2aa2d6017f67f653bd61",
             "multi-backend-router.sh": "sha256:0733987c95f7cc0c95561cb7eb1063c4430f1560ecba6ef8142017378742ec99",
             "omniroute-acp-agent.test.ts": "sha256:b011eff78439c8b5d5ab2918070a3a461d1e123076a5ecf41ed525c08a7bcf4f",
             "omniroute-acp-agent.ts": "sha256:07501496dcdcfdf7cc2b402004d81fce1034f80b515f16118117e32e6d57a4b5",
@@ -60,7 +64,7 @@
             "omniroute-cloudflare-promotion.example.json": "sha256:e47257499f586486728b79fcadaf4bed08fa87fc349435b6e26fa0805c9a7bf3",
             "omniroute-cloudflare-promotion.test.ts": "sha256:f3f601245ff3ab7c0d45193aa4a911a4145d157cb2089cb4bd5df5d6568a36e2",
             "omniroute-cloudflare-promotion.ts": "sha256:b11a362c6e61e9cacafc7162f075a0f097e4268b813b7113fb0f65145483642c",
-            "omniroute-codex.sh": "sha256:5550626bead0da993be43c6b37abcdc2a743b73d6a9793ab80b6147cdb7bb853",
+            "omniroute-codex.sh": "sha256:b4e9e7c0d0b66450daa1dbe0819c355964dcd7b98d1181c55b60045e020db496",
             "omniroute-connection-roles.json": "sha256:5e3785d0cb34e188d17d3bf6c1529f8e22a45bae6d35213fc6cf3717da7a9017",
             "omniroute-context-preview.test.ts": "sha256:96a5e9f51848d831c04b70c02c56c5e19f5ee56e3bb819baeeefb3e7b09e6c33",
             "omniroute-context-preview.ts": "sha256:4363cadf06081003bd188df39360ebd98a6bf51bdbdd2cbe55ef20085ddb6790",
@@ -83,9 +87,12 @@
             "pai-memory-frontmatter.test.ts": "sha256:64f43b97a3b86f291da3dcc73caa962307eb5214b407ed59f32e0f320ab1e434",
             "pai-memory-frontmatter.ts": "sha256:de5f281c1757b1845ddacfcfeabf89857dac0a5806dabaafd5ff158f2e47bc8d",
             "parallel-backend-dispatch.sh": "sha256:588b30d40fdc5e00499d4dff1828d0e6fa99930cf841bf189d080c87d2b1966c",
-            "phase-combo-map.json": "sha256:b587ecc558298ae57baca24ddaeb5039192d102a71a90fd7d6308decea77b5df",
-            "rail-announce.ts": "sha256:0ade0d822324ec0dc68e9f8bd74a93f33810d679549de8c76bc3b09196c27da1",
+            "phase-capability-contract.ts": "sha256:17ef39fd094c2ece0238445a14ee6dcdb9a1e5f94074e10fc5e3d8b92ae1c46e",
+            "phase-combo-map.json": "sha256:7c51d28ba6927f7b55d3b3cac74b372c837ace656f49313ba86a911b2f5c4d12",
+            "phase-resolution.ts": "sha256:1b8fb4ba57a23e5b5b031048acb75fc80045e5b2dafbd068c1ea02cf1f137de5",
+            "rail-announce.ts": "sha256:7fb9ebf0fc4bf05ba40db351c83c253cdeaefd7ff9b483ba098bb3127dd13139",
             "rail-format.sh": "sha256:f8d1049085ad0808c70281f1eae0c289a10bcc6b6c7f15a68b1587632eb81bc7",
+            "routing-contract-cli.ts": "sha256:99ffe991c0d7dfdbcedb7b5a3981f10ce35a675e279979f52fefcbf96352140b",
             "routing-observation-adapter.test.ts": "sha256:d87b5850c592fb0a52045461438b0ec24997af68c6e291f38615e7cbf8e87513",
             "routing-observation-adapter.ts": "sha256:0c53bf12c04e0a932341a12e0fa62b666ebb8eaf5065bb900dfc834ed149eccf",
             "routing-policy.test.ts": "sha256:7d4dae8f65d53123d4d01cd489a6852aac1529d091aafcd38ecff25e2c1996d7",
@@ -94,13 +101,15 @@
             "signed-probe-challenge-ledger.ts": "sha256:0f5364e4bd02e598f1a20d40619680b35cb52d5dbd1a2a5d84eb5813f4dd7273",
             "signed-probe-receipt.test.ts": "sha256:08d3d997ff39b056d499fec6b60039ca04b8222267daddddbcaf87f933ac92da",
             "signed-probe-receipt.ts": "sha256:5303c7a686fbfb36deb7431f14c041d772eddaea2e3a0ba3fb721ae8fc251039",
+            "surface-convergence-contract.ts": "sha256:e4310dc4e85d3d69dbc28e3bf89d50ececa3f0c725d44007e4dd77974b642f0c",
+            "task-classification.ts": "sha256:148d6d4a62ddcf9be3befe33a3c155839b892e8604f3f2ac31681682fd823e45",
             "temperance-goal.mjs": "sha256:e82a8b956ab089cf991fc7f8095946e68e3ea7f6289c8e2edc6e0d4b85576fb8",
             "temperance-manifest.mjs": "sha256:9f37f4394dacc6b6ce38647c4254601daa3859314302106bdf67fdfb18d99224",
             "temperance-next-wave.mjs": "sha256:14e049c3ec62d828784d2a465eeb087ea93abd4ace12515db710bbc28591a5e7",
             "temperance-openai-proxy.mock.ts": "sha256:6ffc94ddc512f35c35669b5e8e5290011420b81761ddd01271bd176e6edec53c",
             "temperance-openai-proxy.test.ts": "sha256:2bad0d58d0a39141c85dc1997dbbc779cbbff8eaff94f35266f87335a948e863",
             "temperance-openai-proxy.ts": "sha256:818fa09382661286916b4b2b875366a71c63bed6e0a9f34a771df2e08cc00bcc",
-            "temperance-phase-dispatch.sh": "sha256:3c9abedb82cad9e0b6c9ae153b0dd16b6993cd139cbd6cfdb3db00b13830aa0e",
+            "temperance-phase-dispatch.sh": "sha256:b3bdfe3324563a468a55ead0a12941642d56c71869ca191ac452f10a210752ca",
             "temperance-project-init.mjs": "sha256:091cd0ec0829da82673f969ce175050f360d9ff4df4c52b33ed141e5c1c12bad",
             "temperance-session-profiles.ec2.json": "sha256:ed2ed3ac86ecc546819fc23d51bfff192069709faf7de024218612eeb9a9f014",
             "temperance-session-profiles.json": "sha256:12f0aca25122c83f05ece17fe590a1f5aff0f51c6c76fae1f7a5b76e0a6720a9",
@@ -114,10 +123,14 @@
             "temperance-workflows.ts": "sha256:9a837c9ab3bd3a1e513d0d6f75d6c2dce3494e9f32fca47c0cf69e7cad06afd0"
           },
           "modes": {
+            "alchemy-stage-hub-map.json": "0644",
+            "backup-if-changed.ts": "0644",
             "classify-task.sh": "0755",
+            "classify-task.ts": "0644",
             "claude-launch-shim/claude": "0755",
             "contracts/routing-observation-receipt.v1.ts": "0644",
             "dispatch-tasklist.sh": "0755",
+            "effort-contract.ts": "0644",
             "gsd-command-install.mjs": "0755",
             "gsd-rail-map.json": "0644",
             "multi-backend-router.sh": "0755",
@@ -153,9 +166,12 @@
             "pai-memory-frontmatter.test.ts": "0644",
             "pai-memory-frontmatter.ts": "0644",
             "parallel-backend-dispatch.sh": "0755",
+            "phase-capability-contract.ts": "0644",
             "phase-combo-map.json": "0644",
+            "phase-resolution.ts": "0644",
             "rail-announce.ts": "0644",
             "rail-format.sh": "0755",
+            "routing-contract-cli.ts": "0644",
             "routing-observation-adapter.test.ts": "0644",
             "routing-observation-adapter.ts": "0644",
             "routing-policy.test.ts": "0644",
@@ -164,6 +180,8 @@
             "signed-probe-challenge-ledger.ts": "0644",
             "signed-probe-receipt.test.ts": "0644",
             "signed-probe-receipt.ts": "0644",
+            "surface-convergence-contract.ts": "0644",
+            "task-classification.ts": "0644",
             "temperance-goal.mjs": "0644",
             "temperance-manifest.mjs": "0755",
             "temperance-next-wave.mjs": "0755",
@@ -220,7 +238,12 @@
         "required": true
       },
       "verification": {
-        "method": "sha256"
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:148d6d4a62ddcf9be3befe33a3c155839b892e8604f3f2ac31681682fd823e45",
+          "mode": "0644"
+        }
       },
       "rollback": {
         "policy": "restore-backup"
@@ -257,7 +280,12 @@
         "required": true
       },
       "verification": {
-        "method": "sha256"
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:e1f9eeae4a739ff85e03096c38d7270c6098ea70797020a4b8d2aab6ac23e7c1",
+          "mode": "0755"
+        }
       },
       "rollback": {
         "policy": "restore-backup"
