@@ -21,6 +21,8 @@ printf '%s\n' "Running regression guards..."
 # && list is exempt from errexit, which would silently swallow a failing guard.
 bash "$ROOT_DIR/tests/command-code-permissions.sh" >/dev/null
 printf '%s\n' "ok: command-code --yolo guard"
+bash "$ROOT_DIR/tests/verify-install-private-path-guard.sh" >/dev/null
+printf '%s\n' "ok: private-path guard regression suite"
 if command -v jq >/dev/null 2>&1; then
   bash "$ROOT_DIR/tests/wire-session-hook.sh" >/dev/null
   printf '%s\n' "ok: wire-session-hook suite"

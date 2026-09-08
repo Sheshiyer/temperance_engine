@@ -11,7 +11,7 @@ SAFE-01, SAFE-02, RELS-04 (see `.planning/ROADMAP.md` Phase 2)
 ## Current Baseline (measured 2026-08-22)
 
 `bash ./verify.sh` fails its private-path guard (`scripts/verify-install.sh:104-133`)
-with **154 hits across 39 files** for patterns `/Users/`, `/Volumes/madara`, `.craft-agent`.
+with **154 hits across 39 files** for private-path and session-store patterns.
 
 ### Violation taxonomy and ratified disposition
 

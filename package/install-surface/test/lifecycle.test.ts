@@ -515,7 +515,7 @@ describe("receipts", () => {
         {
           id: "step-1",
           record_id: "record-1",
-          destination_symbolic: "/Users/testuser/.config/test/file.txt", // PRIVATE!
+          destination_symbolic: "/Users/testuser/.config/test/file.txt", // PRIVATE_PATH_GUARD_FIXTURE: synthetic redaction rejection
           outcome: "installed",
         },
       ],
