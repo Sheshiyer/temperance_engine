@@ -43,10 +43,12 @@ grep -q "get-shit-done-cc@1.42.3" "$DIR/scripts/install-gsd.sh" && echo "ok - in
 grep -q "gsd-sdk query current-timestamp" "$DIR/scripts/install-gsd.sh" \
   && echo "ok - install-gsd probes the GSD query runtime" \
   || { echo "FAIL - install-gsd.sh missing gsd-sdk query readiness probe"; fail=1; }
-grep -q "Before any workflow Read" "$DIR/package/router/gsd-command-install.mjs" \
-  && grep -q "do not spawn.*gsd-planner.*gsd-plan-checker" "$DIR/package/router/gsd-command-install.mjs" \
-  && echo "ok - generated GSD wrappers fail before planner/checker dispatch" \
-  || { echo "FAIL - generated GSD wrappers lack fail-fast planner/checker guard"; fail=1; }
+grep -Fq "## CONTEXT preflight (nesting law #1009 — required)" "$DIR/package/router/gsd-command-install.mjs" \
+  && grep -Fq "Before research/planner agents:" "$DIR/package/router/gsd-command-install.mjs" \
+  && grep -Fq 'print exactly \`/gsd:discuss-phase N\` and **exit**.' "$DIR/package/router/gsd-command-install.mjs" \
+  && grep -Fq "Do **not** invoke discuss-phase as a nested Skill/Task/Agent" "$DIR/package/router/gsd-command-install.mjs" \
+  && echo "ok - generated GSD wrappers hand off before planner dispatch" \
+  || { echo "FAIL - generated GSD wrappers lack the #1009 fail-fast handoff"; fail=1; }
 grep -q '"gsd_version": "1.42.3"' "$DIR/package/router/gsd-rail-map.json" \
   && echo "ok - wrapper receipt matches installed GSD 1.42.3" \
   || { echo "FAIL - wrapper receipt does not match installed GSD 1.42.3"; fail=1; }
@@ -212,9 +214,15 @@ grep -q 'tool-safe-compatibility' "$KIMI_DOC" \
   || { echo "FAIL - kimi-surface.md missing tool-safe pin / pinned portfolio docs"; fail=1; }
 
 # --- kimi desktop: agent-core reality check ---
-grep -q 'kimi_desktop_target' "$DIR/scripts/temperance-doctor.sh" \
-  && echo "ok - doctor checks the desktop agentFile target" \
-  || { echo "FAIL - temperance-doctor.sh missing kimi_desktop_target check"; fail=1; }
+# The public doctor intentionally delegates to the read-only install-surface
+# doctor. It must not regain the historical host-integrated desktop inspection.
+grep -Fq 'earlier host-integrated' "$KIMI_DOC" \
+  && grep -Fq 'doctor reported this mismatch as' "$KIMI_DOC" \
+  && grep -Fq 'does not inspect desktop app configuration' "$KIMI_DOC" \
+  && grep -Fq 'exec "$ROOT_DIR/bin/temperance" doctor "$@"' "$DIR/scripts/temperance-doctor.sh" \
+  && ! grep -Fq 'kimi_desktop_target' "$DIR/scripts/temperance-doctor.sh" \
+  && echo "ok - public doctor keeps desktop inspection explicitly out of scope" \
+  || { echo "FAIL - kimi desktop documentation and public doctor scope diverge"; fail=1; }
 grep -q 'agent-core' "$KIMI_DOC" && grep -q 'openai_legacy' "$KIMI_DOC" \
   && echo "ok - kimi-surface documents the agent-core kernel constraint" \
   || { echo "FAIL - kimi-surface.md missing agent-core provider-shape warning"; fail=1; }
