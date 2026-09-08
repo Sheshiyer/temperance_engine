@@ -97,7 +97,7 @@
             "routing-observation-adapter.ts": "sha256:0c53bf12c04e0a932341a12e0fa62b666ebb8eaf5065bb900dfc834ed149eccf",
             "routing-policy.test.ts": "sha256:7d4dae8f65d53123d4d01cd489a6852aac1529d091aafcd38ecff25e2c1996d7",
             "routing-policy.ts": "sha256:d3eb2acaf0557142f674dc3a564f9dca14816ef4ca8206081187efdecfd05393",
-            "signed-probe-challenge-ledger.test.ts": "sha256:b5b870386785816d6443a9b87e5d8b4bd911f39ebb7f40662ba974aaca56d00c",
+            "signed-probe-challenge-ledger.test.ts": "sha256:318f0f5649ba3b2324bf28221fe55d714d929590afd998c9e3484809c2d94b07",
             "signed-probe-challenge-ledger.ts": "sha256:0f5364e4bd02e598f1a20d40619680b35cb52d5dbd1a2a5d84eb5813f4dd7273",
             "signed-probe-receipt.test.ts": "sha256:08d3d997ff39b056d499fec6b60039ca04b8222267daddddbcaf87f933ac92da",
             "signed-probe-receipt.ts": "sha256:5303c7a686fbfb36deb7431f14c041d772eddaea2e3a0ba3fb721ae8fc251039",
