@@ -49,13 +49,19 @@ inventory_commit: 003ff745d1368220e4bf77e26f16c768c65e001c
 - `bun --no-env-file package/install-surface/scripts/sync-copy-expectations.ts --revision a9391a96d5b7b19ef967fcda8476f591ab1dd408 --check` passed for 15 COPY records and source tree `05017b1d4add01d9a0258f898d7cc5f86a806f4f`.
 - `bun --no-env-file package/install-surface/src/cli.ts write-lock` produced
   the recorded 22-record semantic inventory digest.
-- `bun --no-env-file test ./package/install-surface/test/product-foundation-layout.test.ts ./package/install-surface/test/semantics.test.ts` passed 20 tests and 36 assertions.
+- `bun install --frozen-lockfile --ignore-scripts` was run only in
+  `package/install-surface`; it installed the locked `ajv@8.20.0` dependency
+  without changing package or lockfile bytes.
+- `bun --no-env-file test ./package/install-surface/test` passed **242 tests,
+  11,235 assertions** across 18 files. This includes the checked-in full
+  Darwin/Linux replay, doctor read-back, failure recovery, and rollback suite.
 - `bun --no-env-file test package/enrich/stages/routing.test.ts` passed 5 tests and 23 assertions.
 - `bash tests/classify-task.sh` and `bash tests/router-hardening.sh` passed.
 - `node scripts/sync-routing-observation-contract.mjs --check` returned
   `{"ok":true,"changed":[]}`. The independent
-  `tests/sync-routing-observation-contract.test.ts` run passed 44 tests and
-  186 assertions.
+  RO06 source-layout aggregate (`routing-observation-installed-layout`,
+  `manifest-bridge-runtime-layout`, and `sync-routing-observation-contract`)
+  passed **47 tests and 318 assertions**.
 - Shell syntax and `git diff --check` passed.
 
 ## Deviations from Plan
@@ -70,24 +76,21 @@ inventory_commit: 003ff745d1368220e4bf77e26f16c768c65e001c
      retaining its reviewed product mapping for `model_for_type` and CLI
      output. Direct TypeScript enrichment remains on the noesis contract.
 
-2. **[Rule 3 - Test-environment blocker] Kept the focused proof independent of
-   the absent schema-loader package**
-   - This worktree cannot resolve `ajv/dist/2020.js`, so the existing
-     full-surface replay and RO06 installed-layout suites stop before executing
-     their tests.
-   - The new focused test reads the current reviewed fragment declarations
-     directly and exercises the lifecycle’s pinned COPY checks, install, import,
-     helper execution, and rollback in a synthetic root. No package was
-     installed and no shared dependency manifest was changed.
+2. **[Rule 3 - Test-environment isolation] Kept the focused proof independent
+   of the schema-loader package**
+   - The focused proof reads reviewed fragment declarations directly and
+     exercises the lifecycle’s pinned COPY checks, install, import, helper
+     execution, and rollback in a synthetic root. After the authorized frozen
+     dependency install, the complete schema-backed installer and RO06 suites
+     also passed. No dependency version or lockfile changed.
 
 ## Held Boundary
 
 This is source and disposable-installation evidence only. No host runtime was
 installed, no service or listener was started, and no provider, gateway,
-credentials, database, remote, tag, merge, or deployment was touched. The two
-existing Ajv-dependent suites remain unexecuted in this worktree until their
-already-declared dependency is made available through an authorized dependency
-workflow.
+credentials, database, remote, tag, merge, or deployment was touched. The
+separately opt-in Manifest CLI smoke was not run because it performs its own
+registry dependency installation, outside this source-only acceptance lane.
 
 ## Self-Check: PASSED
 
