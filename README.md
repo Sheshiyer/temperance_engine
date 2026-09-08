@@ -237,9 +237,9 @@ graph LR
 - source-reference: manifest.json
 - source-count: 6
 - source-note: README.md, CHANGELOG.md, CONTRIBUTING.md, CREDITS.md, ISA.md, QUICKSTART.md
-- generated-at: 2026-09-08T13:49:18+0000
+- generated-at: 2026-09-08T14:05:59+0000
 - notebook-id: a6e54ace-8597-4c34-b679-88cb66af7ccc
-- generation-command: READMEREBUILD_SKIP_NOTEBOOKLM=1 bash scripts/rebuild-readme.sh 'Temperance Engine' 'Sheshiyer'
+- generation-command: READMEREBUILD_PIPELINE=/path/to/run_mvp_pipeline.py bash scripts/rebuild-readme.sh 'temperance_engine' 'Sheshiyer'
 - continuity-mode: merge-queue refresh workflow
 - follow-up-target: readme-continuity-refresh
 - workflow-reference: .github/workflows/readme-auto-refresh.yml
