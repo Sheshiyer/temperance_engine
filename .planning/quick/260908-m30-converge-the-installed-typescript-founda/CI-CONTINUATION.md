@@ -33,3 +33,5 @@ At source head3033f28 the local full verifier passed, but GitHub run34234011609 
 README continuity run34234011717 also correctly detected the changelog redaction without refreshed README assets. Rebuild through the existing generator with NotebookLM regeneration explicitly disabled; record the local source revision and historical asset reuse in the asset manifest and README. No NotebookLM request or new research claim is made. Verify both exact-range continuity and private-path guards, then publish the finite correction.
 
 The existing README generator emitted an unsupported `datatable` fence above20 rows and always labeled its command as a new NotebookLM pipeline run. Correct the source generator to retain the complete Markdown table and report the actual skip-regeneration command; preserve the JSON sidecar and source column.
+
+Clean-checkout run34234384883 now passes the installer suite and reaches signed-probe policy checks, where the spawned `rg` command is unavailable on the runner. Declare ripgrep beside jq in CI; preserve the policy assertions. README continuity passed atd7c7678.
