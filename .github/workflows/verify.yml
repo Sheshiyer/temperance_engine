@@ -27,6 +27,10 @@ jobs:
       - name: Install bash 4+
         run: brew install bash
 
+      - name: Install locked verifier dependencies
+        working-directory: package/install-surface
+        run: bun install --frozen-lockfile --ignore-scripts
+
       - name: Verify package
         run: ./scripts/verify-all.sh
 
