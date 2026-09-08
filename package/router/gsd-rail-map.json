@@ -1,81 +1,675 @@
 {
-  "schema": "temperance.gsd-rail-map.v1",
+  "schema": "temperance.gsd-rail-map.v3",
   "gsd_home": "~/.claude/get-shit-done",
   "gsd_version": "1.42.3",
   "workflow_dir": "workflows",
-  "notes": "GSD remains planning/execute authority. This map only names PAI mode, OmniRoute combo, Manifest view, and alchemy. Wrappers must read the upstream workflow file — do not fork GSD.",
+  "notes": "GSD remains planning/execute authority. This map declares explicit command stage, route references, approval class, and execution plane only. Wrappers must read the upstream workflow file and resolve canonical combos through phase-combo-map.json.",
   "defaults": {
     "mode": "ALGORITHM",
-    "combo": "te-reason",
     "view": "PLANNING",
-    "alchemy": "OBSERVE"
+    "stage": null,
+    "route": null,
+    "approval": "workflow-defined",
+    "execution_plane": "codex-cockpit"
+  },
+  "effort_contract": {
+    "mode_defaults": {
+      "MINIMAL": "E1",
+      "NATIVE": "E2",
+      "ALGORITHM": "E3"
+    },
+    "command_overrides": {
+      "autonomous": "E5",
+      "execute-phase": "E4",
+      "execute-plan": "E4",
+      "goal": "E4",
+      "loop": "E4",
+      "ship": "E5"
+    },
+    "note": "Effort governs persistence and verification only; it never selects or authorizes a provider or model."
   },
   "groups": {
-    "init": ["new-project", "map-codebase", "new-milestone", "new-workspace", "discovery-phase", "plant-seed", "profile-user"],
-    "plan": ["discuss-phase", "discuss-phase-assumptions", "research-phase", "list-phase-assumptions", "plan-phase", "add-phase", "insert-phase", "remove-phase", "plan-milestone-gaps", "ui-phase"],
-    "execute": ["execute-phase", "execute-plan", "quick", "fast", "do", "autonomous"],
-    "verify": ["verify-phase", "validate-phase", "verify-work", "review", "ui-review", "audit-milestone", "audit-uat", "add-tests"],
-    "ops": ["help", "progress", "next", "stats", "health", "doctor", "goal", "pause-work", "resume-project", "ship", "settings", "update", "note", "session-report", "cleanup", "check-todos", "add-todo", "transition", "complete-milestone", "milestone-summary", "forensics", "diagnose-issues", "manager", "list-workspaces", "remove-workspace", "pr-branch", "node-repair", "workstreams"]
+    "init": [
+      "new-project",
+      "map-codebase",
+      "new-milestone",
+      "new-workspace",
+      "discovery-phase",
+      "plant-seed",
+      "profile-user"
+    ],
+    "plan": [
+      "discuss-phase",
+      "discuss-phase-assumptions",
+      "research-phase",
+      "list-phase-assumptions",
+      "plan-phase",
+      "add-phase",
+      "insert-phase",
+      "remove-phase",
+      "plan-milestone-gaps",
+      "ui-phase"
+    ],
+    "execute": [
+      "execute-phase",
+      "execute-plan",
+      "quick",
+      "fast",
+      "do",
+      "autonomous"
+    ],
+    "verify": [
+      "verify-phase",
+      "validate-phase",
+      "verify-work",
+      "review",
+      "ui-review",
+      "audit-milestone",
+      "audit-uat",
+      "add-tests"
+    ],
+    "ops": [
+      "help",
+      "progress",
+      "next",
+      "stats",
+      "health",
+      "doctor",
+      "goal",
+      "loop",
+      "pause-work",
+      "resume-project",
+      "ship",
+      "settings",
+      "update",
+      "note",
+      "session-report",
+      "cleanup",
+      "check-todos",
+      "add-todo",
+      "transition",
+      "complete-milestone",
+      "milestone-summary",
+      "forensics",
+      "diagnose-issues",
+      "manager",
+      "list-workspaces",
+      "remove-workspace",
+      "pr-branch",
+      "node-repair",
+      "workstreams"
+    ]
   },
   "commands": {
-    "help": { "mode": "MINIMAL", "combo": null, "view": "OVERVIEW", "alchemy": null, "group": "ops" },
-    "progress": { "mode": "NATIVE", "combo": null, "view": "PLANNING", "alchemy": null, "group": "ops" },
-    "next": { "mode": "NATIVE", "combo": "te-fast", "view": "PLANNING", "alchemy": "PLAN", "group": "ops" },
-    "stats": { "mode": "MINIMAL", "combo": null, "view": "OVERVIEW", "alchemy": null, "group": "ops" },
-    "health": { "mode": "NATIVE", "combo": null, "view": "OPS / DELIVERY", "alchemy": null, "group": "ops" },
-    "doctor": { "mode": "NATIVE", "combo": null, "view": "OVERVIEW", "alchemy": null, "group": "ops", "te_only": true },
-    "goal": { "mode": "ALGORITHM", "combo": "te-reason", "view": "PLANNING", "alchemy": "EXECUTE", "group": "ops", "te_only": true },
-    "new-project": { "mode": "ALGORITHM", "combo": "te-reason", "view": "PLANNING", "alchemy": "OBSERVE", "group": "init" },
-    "map-codebase": { "mode": "ALGORITHM", "combo": "te-reason", "view": "PLANNING", "alchemy": "OBSERVE", "group": "init" },
-    "new-milestone": { "mode": "ALGORITHM", "combo": "te-plan", "view": "PLANNING", "alchemy": "PLAN", "group": "init" },
-    "new-workspace": { "mode": "NATIVE", "combo": "te-fast", "view": "PLANNING", "alchemy": "PLAN", "group": "init" },
-    "discovery-phase": { "mode": "ALGORITHM", "combo": "te-reason", "view": "PLANNING", "alchemy": "THINK", "group": "init" },
-    "plant-seed": { "mode": "NATIVE", "combo": "te-fast", "view": "PLANNING", "alchemy": "OBSERVE", "group": "init" },
-    "profile-user": { "mode": "NATIVE", "combo": "te-reason", "view": "PLANNING", "alchemy": "OBSERVE", "group": "init" },
-    "discuss-phase": { "mode": "ALGORITHM", "combo": "te-reason", "view": "PLANNING", "alchemy": "THINK", "group": "plan" },
-    "discuss-phase-assumptions": { "mode": "ALGORITHM", "combo": "te-reason", "view": "PLANNING", "alchemy": "THINK", "group": "plan" },
-    "research-phase": { "mode": "ALGORITHM", "combo": "te-reason", "view": "PLANNING", "alchemy": "THINK", "group": "plan" },
-    "list-phase-assumptions": { "mode": "NATIVE", "combo": null, "view": "PLANNING", "alchemy": "THINK", "group": "plan" },
-    "plan-phase": { "mode": "ALGORITHM", "combo": "te-plan", "view": "PLANNING", "alchemy": "PLAN", "group": "plan" },
-    "add-phase": { "mode": "ALGORITHM", "combo": "te-plan", "view": "PLANNING", "alchemy": "PLAN", "group": "plan" },
-    "insert-phase": { "mode": "ALGORITHM", "combo": "te-plan", "view": "PLANNING", "alchemy": "PLAN", "group": "plan" },
-    "remove-phase": { "mode": "NATIVE", "combo": "te-fast", "view": "PLANNING", "alchemy": "PLAN", "group": "plan" },
-    "plan-milestone-gaps": { "mode": "ALGORITHM", "combo": "te-plan", "view": "PLANNING", "alchemy": "PLAN", "group": "plan" },
-    "ui-phase": { "mode": "ALGORITHM", "combo": "te-plan", "view": "PLANNING", "alchemy": "PLAN", "group": "plan" },
-    "execute-phase": { "mode": "ALGORITHM", "combo": "te-dispatch-paid", "combo_sequence": ["te-build", "te-dispatch-paid"], "view": "EXECUTION", "alchemy": "EXECUTE", "group": "execute", "next_wave": true, "fleet": "temperance-batch" },
-    "execute-plan": { "mode": "ALGORITHM", "combo": "te-dispatch-paid", "combo_sequence": ["te-build", "te-dispatch-paid"], "view": "EXECUTION", "alchemy": "EXECUTE", "group": "execute", "next_wave": true, "fleet": "temperance-batch" },
-    "quick": { "mode": "NATIVE", "combo": "te-build", "view": "PLANNING", "alchemy": "BUILD", "group": "execute" },
-    "fast": { "mode": "NATIVE", "combo": "te-fast", "view": "OVERVIEW", "alchemy": null, "group": "execute" },
-    "do": { "mode": "ALGORITHM", "combo": null, "view": "PLANNING", "alchemy": "OBSERVE", "group": "execute", "router": true },
-    "autonomous": { "mode": "ALGORITHM", "combo": "te-dispatch-paid", "view": "EXECUTION", "alchemy": "EXECUTE", "group": "execute", "next_wave": true },
-    "verify-phase": { "mode": "ALGORITHM", "combo": "te-validate", "view": "EVIDENCE", "alchemy": "VERIFY", "group": "verify" },
-    "validate-phase": { "mode": "ALGORITHM", "combo": "te-validate", "view": "EVIDENCE", "alchemy": "VERIFY", "group": "verify" },
-    "verify-work": { "mode": "ALGORITHM", "combo": "te-validate", "view": "EVIDENCE", "alchemy": "VERIFY", "group": "verify" },
-    "review": { "mode": "ALGORITHM", "combo": "te-validate", "view": "EVIDENCE", "alchemy": "VERIFY", "group": "verify" },
-    "ui-review": { "mode": "ALGORITHM", "combo": "te-validate", "view": "EVIDENCE", "alchemy": "VERIFY", "group": "verify" },
-    "audit-milestone": { "mode": "ALGORITHM", "combo": "te-reason", "view": "EVIDENCE", "alchemy": "VERIFY", "group": "verify" },
-    "audit-uat": { "mode": "ALGORITHM", "combo": "te-validate", "view": "EVIDENCE", "alchemy": "VERIFY", "group": "verify" },
-    "add-tests": { "mode": "ALGORITHM", "combo": "te-build", "view": "EVIDENCE", "alchemy": "BUILD", "group": "verify" },
-    "pause-work": { "mode": "NATIVE", "combo": null, "view": "OPS / DELIVERY", "alchemy": "LEARN", "group": "ops" },
-    "resume-project": { "mode": "ALGORITHM", "combo": "te-reason", "view": "PLANNING", "alchemy": "OBSERVE", "group": "ops" },
-    "ship": { "mode": "ALGORITHM", "combo": "te-validate", "view": "OPS / DELIVERY", "alchemy": "LEARN", "group": "ops" },
-    "settings": { "mode": "NATIVE", "combo": null, "view": "OPS / DELIVERY", "alchemy": null, "group": "ops" },
-    "update": { "mode": "NATIVE", "combo": "te-fast", "view": "OPS / DELIVERY", "alchemy": null, "group": "ops" },
-    "note": { "mode": "MINIMAL", "combo": null, "view": "PLANNING", "alchemy": null, "group": "ops" },
-    "session-report": { "mode": "NATIVE", "combo": "te-reason", "view": "OPS / DELIVERY", "alchemy": "LEARN", "group": "ops" },
-    "cleanup": { "mode": "NATIVE", "combo": "te-fast", "view": "OPS / DELIVERY", "alchemy": null, "group": "ops" },
-    "check-todos": { "mode": "NATIVE", "combo": null, "view": "PLANNING", "alchemy": null, "group": "ops" },
-    "add-todo": { "mode": "NATIVE", "combo": "te-fast", "view": "PLANNING", "alchemy": null, "group": "ops" },
-    "transition": { "mode": "ALGORITHM", "combo": "te-reason", "view": "OPS / DELIVERY", "alchemy": "LEARN", "group": "ops" },
-    "complete-milestone": { "mode": "ALGORITHM", "combo": "te-reason", "view": "OPS / DELIVERY", "alchemy": "LEARN", "group": "ops" },
-    "milestone-summary": { "mode": "NATIVE", "combo": "te-reason", "view": "PLANNING", "alchemy": "LEARN", "group": "ops" },
-    "forensics": { "mode": "ALGORITHM", "combo": "te-reason", "view": "EVIDENCE", "alchemy": "THINK", "group": "ops" },
-    "diagnose-issues": { "mode": "ALGORITHM", "combo": "te-reason", "view": "EVIDENCE", "alchemy": "THINK", "group": "ops" },
-    "manager": { "mode": "NATIVE", "combo": null, "view": "OVERVIEW", "alchemy": null, "group": "ops" },
-    "list-workspaces": { "mode": "MINIMAL", "combo": null, "view": "OVERVIEW", "alchemy": null, "group": "ops" },
-    "remove-workspace": { "mode": "NATIVE", "combo": "te-fast", "view": "OPS / DELIVERY", "alchemy": null, "group": "ops" },
-    "pr-branch": { "mode": "NATIVE", "combo": "te-fast", "view": "OPS / DELIVERY", "alchemy": "BUILD", "group": "ops" },
-    "node-repair": { "mode": "NATIVE", "combo": "te-build", "view": "OPS / DELIVERY", "alchemy": "BUILD", "group": "ops" },
-    "workstreams": { "mode": "NATIVE", "combo": null, "view": "PLANNING", "alchemy": "PLAN", "group": "ops" }
+    "help": {
+      "mode": "MINIMAL",
+      "view": "OVERVIEW",
+      "group": "ops",
+      "stage": null,
+      "approval": "none",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "progress": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": null,
+      "approval": "none",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "next": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": "learn",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "stats": {
+      "mode": "MINIMAL",
+      "view": "OVERVIEW",
+      "group": "ops",
+      "stage": null,
+      "approval": "none",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "health": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "doctor": {
+      "mode": "NATIVE",
+      "view": "OVERVIEW",
+      "group": "ops",
+      "stage": "observe",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null,
+      "te_only": true
+    },
+    "goal": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route_sequence": [
+        "phase:Observe",
+        "phase:Plan"
+      ],
+      "te_only": true
+    },
+    "loop": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route_sequence": [
+        "phase:Observe",
+        "phase:Plan"
+      ],
+      "te_only": true
+    },
+    "new-project": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "init",
+      "stage": "observe",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Observe"
+    },
+    "map-codebase": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "init",
+      "stage": "observe",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:long-horizon"
+    },
+    "new-milestone": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "init",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Plan"
+    },
+    "new-workspace": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "init",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "discovery-phase": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "init",
+      "stage": "think",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Think"
+    },
+    "plant-seed": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "init",
+      "stage": "observe",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "profile-user": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "init",
+      "stage": "observe",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Observe"
+    },
+    "discuss-phase": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "think",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route_sequence": [
+        "phase:Observe",
+        "task:provider-write-research"
+      ]
+    },
+    "discuss-phase-assumptions": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "think",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Think"
+    },
+    "research-phase": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:research"
+    },
+    "list-phase-assumptions": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "think",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "plan-phase": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Plan"
+    },
+    "add-phase": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Plan"
+    },
+    "insert-phase": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Plan"
+    },
+    "remove-phase": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "plan-milestone-gaps": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Plan"
+    },
+    "ui-phase": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "plan",
+      "stage": "plan",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route_sequence": [
+        "task:creative",
+        "phase:Plan"
+      ]
+    },
+    "execute-phase": {
+      "mode": "ALGORITHM",
+      "view": "EXECUTION",
+      "group": "execute",
+      "stage": "execute",
+      "approval": "execution-grant",
+      "execution_plane": "claude-superset-hands",
+      "route_sequence": [
+        "phase:Build",
+        "phase:Execute"
+      ],
+      "next_wave": true,
+      "fleet": "temperance-batch"
+    },
+    "execute-plan": {
+      "mode": "ALGORITHM",
+      "view": "EXECUTION",
+      "group": "execute",
+      "stage": "execute",
+      "approval": "execution-grant",
+      "execution_plane": "claude-superset-hands",
+      "route_sequence": [
+        "phase:Build",
+        "phase:Execute"
+      ],
+      "next_wave": true,
+      "fleet": "temperance-batch"
+    },
+    "quick": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "execute",
+      "stage": "build",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Build"
+    },
+    "fast": {
+      "mode": "NATIVE",
+      "view": "OVERVIEW",
+      "group": "execute",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "do": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "execute",
+      "stage": "observe",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null,
+      "router": true
+    },
+    "autonomous": {
+      "mode": "ALGORITHM",
+      "view": "EXECUTION",
+      "group": "execute",
+      "stage": "execute",
+      "approval": "execution-grant",
+      "execution_plane": "claude-superset-hands",
+      "route": "phase:Execute",
+      "next_wave": true
+    },
+    "verify-phase": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "verify",
+      "stage": "verify",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Verify"
+    },
+    "validate-phase": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "verify",
+      "stage": "verify",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Verify"
+    },
+    "verify-work": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "verify",
+      "stage": "verify",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Verify"
+    },
+    "review": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "verify",
+      "stage": "verify",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:review"
+    },
+    "ui-review": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "verify",
+      "stage": "verify",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route_sequence": [
+        "task:vision",
+        "phase:Verify"
+      ]
+    },
+    "audit-milestone": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "verify",
+      "stage": "verify",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Verify"
+    },
+    "audit-uat": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "verify",
+      "stage": "verify",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Verify"
+    },
+    "add-tests": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "verify",
+      "stage": "verify",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:long-horizon"
+    },
+    "pause-work": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": "learn",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "resume-project": {
+      "mode": "ALGORITHM",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": "learn",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Learn"
+    },
+    "ship": {
+      "mode": "ALGORITHM",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": "execute",
+      "approval": "external-authority",
+      "execution_plane": "codex-cockpit",
+      "route": "task:validation"
+    },
+    "settings": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "update": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "note": {
+      "mode": "MINIMAL",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": null,
+      "approval": "none",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "session-report": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": "learn",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Learn"
+    },
+    "cleanup": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "check-todos": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "add-todo": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "transition": {
+      "mode": "ALGORITHM",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": "learn",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Learn"
+    },
+    "complete-milestone": {
+      "mode": "ALGORITHM",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": "learn",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Learn"
+    },
+    "milestone-summary": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": "learn",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "phase:Learn"
+    },
+    "forensics": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "ops",
+      "stage": "think",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:validation"
+    },
+    "diagnose-issues": {
+      "mode": "ALGORITHM",
+      "view": "EVIDENCE",
+      "group": "ops",
+      "stage": "think",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:validation"
+    },
+    "manager": {
+      "mode": "NATIVE",
+      "view": "OVERVIEW",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "list-workspaces": {
+      "mode": "MINIMAL",
+      "view": "OVERVIEW",
+      "group": "ops",
+      "stage": null,
+      "approval": "none",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    },
+    "remove-workspace": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "pr-branch": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": "execute",
+      "approval": "external-authority",
+      "execution_plane": "codex-cockpit",
+      "route": "task:fast"
+    },
+    "node-repair": {
+      "mode": "NATIVE",
+      "view": "OPS / DELIVERY",
+      "group": "ops",
+      "stage": "execute",
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": "task:long-horizon"
+    },
+    "workstreams": {
+      "mode": "NATIVE",
+      "view": "PLANNING",
+      "group": "ops",
+      "stage": null,
+      "approval": "workflow-defined",
+      "execution_plane": "codex-cockpit",
+      "route": null
+    }
   }
 }

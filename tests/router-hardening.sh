@@ -33,12 +33,14 @@ out=$(TEMPERANCE_BACKENDS="omniroute command-code grok kimi" "$R" --route-only-w
 expected=$'omniroute\ttemperance-coding\ncommand-code\txiaomi/mimo-v2.5-pro\ngrok\tgrok-build\nkimi\tkimi-code/kimi-for-coding'
 check "OmniRoute gateway precedes direct fallback rails" "$expected" "$out"
 
-# Task-specific OmniRoute portfolios are proposal-only until a promotion receipt
-# exists. The frozen selected chain must stay on the compatibility combo.
+# Task-specific local OmniRoute portfolios use the canonical noesis namespace
+# and remain proposal-only until a promotion receipt exists. The frozen selected
+# chain must stay on the compatibility combo; company-edge te-* lifecycle names
+# have separate coverage.
 portfolio_fast=$(TEMPERANCE_BACKENDS="omniroute command-code" \
   TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
   "$R" --plan-json "fix typo")
-check "fast task proposes live te-fast portfolio" "te-fast" \
+check "fast task proposes live noesis-fast portfolio" "noesis-fast" \
   "$(jq -r '.proposed_order[0].model' <<< "$portfolio_fast")"
 check "fast task selects compatibility combo in shadow" "temperance-coding" \
   "$(jq -r '.selected_order[0].model' <<< "$portfolio_fast")"
@@ -46,7 +48,7 @@ check "fast task selects compatibility combo in shadow" "temperance-coding" \
 portfolio_validation=$(TEMPERANCE_BACKENDS="omniroute command-code" \
   TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \
   "$R" --plan-json "audit the code")
-check "validation task proposes live te-validate portfolio" "te-validate" \
+check "validation task proposes live noesis-verify portfolio" "noesis-verify" \
   "$(jq -r '.proposed_order[0].model' <<< "$portfolio_validation")"
 check "validation task keeps compatibility selected" "temperance-coding" \
   "$(jq -r '.selected_order[0].model' <<< "$portfolio_validation")"
@@ -71,7 +73,7 @@ PROMOTION_HASH="$(bun "$(dirname "$R")/omniroute-promotion.ts" manifest-hash)"
 PROMOTION_RECEIPT="$(mktemp)"
 PROMOTION_KEY="fixture-promotion-key"
 jq -n --arg hash "$PROMOTION_HASH" '{
-  schema_version:1, portfolio:"te-fast", suite_id:"suite-fast-v1",
+  schema_version:1, portfolio:"noesis-fast", suite_id:"suite-fast-v1",
   run_id:"run-20260722-001", run_status:"completed", sample_count:100,
   success_rate:0.98, cost_usd:0.25, latency_p95_ms:800,
   created_at:"2026-01-01T00:00:00Z", expires_at:"2099-01-01T00:00:00Z",
@@ -86,11 +88,11 @@ promotion_plan=$(TEMPERANCE_BACKENDS="omniroute command-code" \
   TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY="$PROMOTION_KEY" \
   TEMPERANCE_OMNIROUTE_RUNTIME_VERSION="3.8.48-fixture" \
   "$R" --plan-json "fix typo")
-check "valid receipt promotes te-fast into selected order" "te-fast" \
+check "valid receipt promotes noesis-fast into selected order" "noesis-fast" \
   "$(jq -r '.selected_order[0].model' <<< "$promotion_plan")"
-check "promoted static gateway model is te-fast" "te-fast" \
+check "promoted static gateway model is noesis-fast" "noesis-fast" \
   "$(jq -r '.static_order[0].model' <<< "$promotion_plan")"
-check "promoted proposed gateway model is te-fast" "te-fast" \
+check "promoted proposed gateway model is noesis-fast" "noesis-fast" \
   "$(jq -r '.proposed_order[0].model' <<< "$promotion_plan")"
 check "valid receipt marks portfolio promoted" "promoted" \
   "$(jq -r '.portfolio.enforcement // empty' <<< "$promotion_plan")"
@@ -101,7 +103,7 @@ promotion_wrong_task=$(TEMPERANCE_BACKENDS="omniroute command-code" \
   TEMPERANCE_OMNIROUTE_PROMOTION_SIGNING_KEY="$PROMOTION_KEY" \
   TEMPERANCE_OMNIROUTE_RUNTIME_VERSION="3.8.48-fixture" \
   "$R" --plan-json "audit the code")
-check "receipt for te-fast cannot promote validation portfolio" "temperance-coding" \
+check "receipt for noesis-fast cannot promote validation portfolio" "temperance-coding" \
   "$(jq -r '.selected_order[0].model' <<< "$promotion_wrong_task")"
 
 promotion_no_key=$(TEMPERANCE_BACKENDS="omniroute command-code" \

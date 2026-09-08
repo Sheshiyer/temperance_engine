@@ -4,8 +4,8 @@
   "models": {
     "data": [
       {"id": "temperance-coding", "owned_by": "combo"},
-      {"id": "te-fast", "owned_by": "combo"},
-      {"id": "te-validate", "owned_by": "combo"},
+      {"id": "noesis-fast", "owned_by": "combo"},
+      {"id": "noesis-verify", "owned_by": "combo"},
       {"id": "oc/deepseek-v4-flash-free", "owned_by": "ollamacloud"}
     ]
   },

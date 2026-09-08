@@ -1,3 +1,4 @@
+import { classifyTaskType as classifySharedTaskType } from "./task-classification"
 /**
  * Shared sigil-formatted rail announce for OpenCode + Codex (no emojis).
  * Lists OmniRoute combo stack with providers from live storage.sqlite.
@@ -31,49 +32,16 @@ export function loadPhaseMap(home = homedir()): any {
   }
 }
 
-export function classifyTaskType(prompt: string, home = homedir()): string {
-  const script =
-    process.env.TEMPERANCE_CLASSIFY ||
-    join(home, ".temperance_engine", "router", "classify-task.sh")
-  try {
-    if (existsSync(script)) {
-      const out = execFileSync(script, [prompt], {
-        encoding: "utf8",
-        timeout: 1500,
-        env: process.env,
-      }).trim()
-      const tt = out.split("\t")[0]?.trim()
-      if (tt) return tt
-    }
-  } catch {
-    /* fall through */
+export function classifyTaskType(prompt: string, _home = homedir()): string {
+  // Explicit external adapters remain supported; normal callers share pure TS.
+  const script = process.env.TEMPERANCE_CLASSIFY
+  if (script) {
+    try {
+      const value = execFileSync(script, [prompt], { encoding: "utf8", timeout: 1500 }).trim().split("\t")[0]
+      if (value) return value
+    } catch { /* Advisory override unavailable: use the canonical local policy. */ }
   }
-  const v = prompt.toLowerCase()
-  if (/\b(ralph|maestro|ephemeral feature|feature loop)\b/.test(v)) return "ralph"
-  if (/\b(autoresearch|hill-?climb|optimize loop|eval mode|keep\/discard)\b/.test(v)) return "optimize"
-  if (/\b(elevenlabs|runway|text-to-speech|\btts\b|image-to-video|meshy|voiceover)\b/.test(v)) return "media"
-  if (/\b(screenshot|vision bridge|te-vision|image audit)\b/.test(v)) return "vision"
-  if (/\b(literature|cite sources|web search|search evidence|te-write-research)\b/.test(v)) return "research"
-  if (/\b(plan|roadmap|spec|architecture)\b/.test(v)) {
-    // Mirror classify-task.sh plan-max signals (complexity → te-plan-max)
-    if (
-      /\/e([345]|5)\b/i.test(v) ||
-      /\b(plan-max|te-plan-max|architecture decision|system design|re-?architect|multi-?milestone|cross-?cutting|strategic (plan|roadmap)|pai algorithm|ideal state|deep pass|task graph|deploy swarm|te-swarm|settings audit|screenshot)\b/.test(
-        v,
-      ) ||
-      (v.split(/\s+/).length >= 90 &&
-        /\b(plan|roadmap|architecture|spec|milestone)\b/.test(v))
-    ) {
-      return "plan-max"
-    }
-    return "plan"
-  }
-  if (/\b(dispatch|parallel|fleet|workers)\b/.test(v)) return "dispatch"
-  if (/\b(refactor|migrate|multi.?file|entire)\b/.test(v)) return "long-horizon"
-  if (/\b(debug|analyze|reason|diagnose)\b/.test(v)) return "reasoning"
-  if (/\b(validate|verify|review|audit|test)\b/.test(v)) return "validation"
-  if (/\b(quick|simple|typo|minor)\b/.test(v)) return "fast"
-  return "balanced"
+  return classifySharedTaskType(prompt)
 }
 
 export function classifyMode(prompt: string): Mode {

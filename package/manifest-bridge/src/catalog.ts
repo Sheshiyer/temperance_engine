@@ -1,3 +1,4 @@
+import { admitRoutingObservation, type RoutingObservationPolicy } from './routing-observation';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { normalizeEvent } from './contract';
@@ -35,10 +36,12 @@ export class ManifestCatalog {
   private readonly projectsDir: string;
   private readonly retentionDir: string;
   private readonly records = new Map<string, RegistryRecord>();
+  // Generic metadata may recover from cache; observation authority may not.
+  private readonly observationRegistered = new Set<string>();
   private readonly stores = new Map<string, ManifestStore>();
   private readonly listeners = new Set<Listener>();
 
-  constructor(readonly root: string) {
+  constructor(readonly root: string, private readonly observationPolicy?: RoutingObservationPolicy) {
     this.projectsDir = join(root, 'projects');
     this.retentionDir = join(root, 'retention');
     this.registryFile = join(root, 'projects.json');
@@ -75,6 +78,19 @@ export class ManifestCatalog {
   }
 
   ingest(input: unknown): { accepted: boolean; event?: ManifestEvent; error?: string } {
+    const observation = admitRoutingObservation(input, this.observationPolicy);
+    if (observation.special) {
+      if (!observation.ok) return { accepted: false, error: observation.code };
+      // Metadata reload is read-only. Neither a payload nor directory discovery registers a producer.
+      this.loadRegistry();
+      const record = this.records.get(observation.event.project_id!);
+      if (!record || !this.observationRegistered.has(record.project_id)) return { accepted: false, error: 'project_not_registered' };
+      const result = this.storeFor(record.project_id).ingest(observation.event);
+      if (result.accepted && result.event) for (const listener of this.listeners) {
+        try { listener(structuredClone(result.event)); } catch { /* observers are fail-open */ }
+      }
+      return result;
+    }
     try {
       const event = normalizeEvent(input);
       const projectId = event.project_id || LEGACY_PROJECT_ID;
@@ -166,7 +182,14 @@ export class ManifestCatalog {
     const existing = this.stores.get(projectId);
     if (existing) return existing;
     const file = projectId === LEGACY_PROJECT_ID ? join(this.root, 'events.jsonl') : join(this.projectsDir, projectId, 'events.jsonl');
-    const store = new ManifestStore(file, projectId === LEGACY_PROJECT_ID ? undefined : projectId);
+    const store = new ManifestStore(file, projectId === LEGACY_PROJECT_ID ? undefined : projectId, this.observationPolicy && {
+      ...this.observationPolicy,
+      isProjectRegistered: (id, ref) => {
+        const record = this.records.get(id);
+        return Boolean(record && this.observationRegistered.has(id))
+          && (this.observationPolicy?.isProjectRegistered?.(id, ref) ?? true);
+      },
+    });
     this.stores.set(projectId, store);
     return store;
   }
@@ -180,10 +203,11 @@ export class ManifestCatalog {
     const states = [...this.records.keys()].map((id) => this.storeFor(id).state);
     const merged: ManifestState = {
       schema: 'temperance.manifest.state.v1', generated_at: new Date().toISOString(), last_event_at: null, event_count: 0,
-      freshness: { status: 'empty', age_ms: null, stale_after_ms: STALE_AFTER_MS }, projects: {}, sessions: {}, agents: {}, waves: {}, plans: {}, approvals: {}, skills: {}, dispatches: {}, reports: {}, routes: {}, codegraph: {}, workflows: {}, evidence: {}, alerts: [], recent_events: [],
+      freshness: { status: 'empty', age_ms: null, stale_after_ms: STALE_AFTER_MS }, projects: {}, sessions: {}, agents: {}, waves: {}, plans: {}, approvals: {}, skills: {}, dispatches: {}, reports: {}, routes: {}, routing_observations: {}, codegraph: {}, workflows: {}, evidence: {}, alerts: [], recent_events: [],
     };
     for (const state of states) {
       merged.event_count += state.event_count;
+      Object.assign(merged.routing_observations!, state.routing_observations || {});
       if (!merged.last_event_at || (state.last_event_at && state.last_event_at > merged.last_event_at)) merged.last_event_at = state.last_event_at;
       Object.assign(merged.projects, state.projects); Object.assign(merged.sessions, state.sessions); Object.assign(merged.agents, state.agents); Object.assign(merged.waves, state.waves); Object.assign(merged.plans, state.plans); Object.assign(merged.approvals, state.approvals); Object.assign(merged.skills, state.skills); Object.assign(merged.dispatches, state.dispatches); Object.assign(merged.reports, state.reports); Object.assign(merged.routes, state.routes); Object.assign(merged.codegraph, state.codegraph); Object.assign(merged.workflows, state.workflows); Object.assign(merged.evidence, state.evidence);
       merged.alerts.push(...state.alerts); merged.recent_events.push(...state.recent_events);
@@ -196,9 +220,16 @@ export class ManifestCatalog {
   }
 
   private loadRegistry(): void {
+    this.observationRegistered.clear();
     try {
       const values = JSON.parse(readFileSync(this.registryFile, 'utf8')) as RegistryRecord[];
-      if (Array.isArray(values)) for (const value of values) if (value?.project_id && /^[a-zA-Z0-9._-]+$/.test(value.project_id)) this.records.set(value.project_id, { ...value, visibility: value.visibility || 'active' });
+      const currentIds = new Set<string>();
+      if (Array.isArray(values)) for (const value of values) if (typeof value?.project_id === 'string' && /^[a-zA-Z0-9._-]+$/.test(value.project_id)) {
+        this.records.set(value.project_id, { ...value, visibility: value.visibility || 'active' });
+        if (currentIds.has(value.project_id)) { this.observationRegistered.delete(value.project_id); continue; }
+        currentIds.add(value.project_id);
+        if (value.initialized === true && !value.history_deleted_at && (!value.visibility || value.visibility === 'active' || value.visibility === 'archived')) this.observationRegistered.add(value.project_id);
+      }
     } catch { /* first run */ }
   }
 
@@ -213,6 +244,7 @@ export class ManifestCatalog {
     const temporary = `${this.registryFile}.${process.pid}.${Date.now()}.tmp`;
     writeFileSync(temporary, `${JSON.stringify([...this.records.values()], null, 2)}\n`, 'utf8');
     renameSync(temporary, this.registryFile);
+    this.loadRegistry();
   }
 
   private withRegistryLock<T>(work: () => T): T {

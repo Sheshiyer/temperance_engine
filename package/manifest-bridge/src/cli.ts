@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { decodeEventInput, emitEventInput, MAX_EVENT_INPUT_BYTES } from './routing-observation';
+import { readSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ManifestCatalog } from './catalog';
@@ -91,16 +92,29 @@ async function main(): Promise<void> {
     return;
   }
   if (command === 'emit' || command === 'hook') {
-    let input: unknown;
-    try { input = JSON.parse(readFileSync(0, 'utf8')); } catch (error) {
-      console.log(JSON.stringify({ accepted: false, error: error instanceof Error ? error.message : String(error) }));
-      if (command === 'hook') return;
-      process.exitCode = 1;
-      return;
-    }
-    const result = catalog.ingest(command === 'hook' ? hookInputToEvent(input, cwd) : input);
-    console.log(JSON.stringify(result));
-    process.exitCode = command === 'hook' ? 0 : result.error ? 1 : 0;
+    // Bounded byte read retains UTF-8 boundaries and cannot echo parser snippets.
+    const buffer = Buffer.alloc(MAX_EVENT_INPUT_BYTES + 1);
+    let length = 0;
+    try {
+      while (length < buffer.length) {
+        const count = readSync(0, buffer, length, buffer.length - length, null);
+        if (!count) break;
+        length += count;
+      }
+      const raw = buffer.subarray(0, length);
+      if (command === 'emit') {
+        const emitted = emitEventInput(raw, catalog);
+        console.log(JSON.stringify(emitted.result));
+        process.exitCode = emitted.exitCode;
+        return;
+      }
+      const decoded = decodeEventInput(raw);
+      if (!decoded.ok || decoded.special) {
+        console.log(JSON.stringify({ accepted: false, error: decoded.ok ? 'unsupported_observation' : decoded.error }));
+        return;
+      }
+      console.log(JSON.stringify(catalog.ingest(hookInputToEvent(decoded.input, cwd))));
+    } catch { console.log(JSON.stringify({ accepted: false, error: 'invalid_json' })); process.exitCode = command === 'hook' ? 0 : 1; }
     return;
   }
   if (command === 'snapshot') { console.log(JSON.stringify(catalog.snapshot(process.argv.includes('--all') ? undefined : arg('--project-id', 'all')), null, 2)); return; }

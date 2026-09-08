@@ -46,5 +46,15 @@
     "report": ".readme-notebooklm/assets/notebooklm-report.md",
     "mind-map": ".readme-notebooklm/assets/notebooklm-mind-map.json",
     "data-table": ".readme-notebooklm/assets/notebooklm-data-table.csv"
+  },
+  "localSourceReconciliation": {
+    "mode": "local-source-refresh-existing-research-assets",
+    "observedAt": "2026-09-08T13:48:29.584919+00:00",
+    "sourceHead": "3033f28e10374a4e1c1c9d9adfc655bf1702b9b6",
+    "source": "CHANGELOG.md",
+    "sourceSha256": "dcee7af3ea56cda9c53b7c70fab67644b5dbc717a4fd56471524f9a03506855e",
+    "reason": "Deidentify historical changelog path and document reviewed source convergence.",
+    "notebookRegenerated": false,
+    "historicalResearchAssetsReused": true
   }
 }

@@ -60,7 +60,12 @@ check "shadow records adaptive proposal" "grok" \
 
 portfolio_plan=$(TEMPERANCE_BACKENDS="omniroute command-code" \
   TEMPERANCE_OMNIROUTE_CATALOG_FILE="$ROOT/tests/fixtures/omniroute-models.json" \
+  TEMPERANCE_ROUTING_POLICY=shadow \
+  TEMPERANCE_STATE_DIR="$TMP/portfolio-state" \
+  TEMPERANCE_ROUTING_STATE="$TMP/portfolio-state/routing-observations.json" \
   "$ROUTER" --plan-json "fix typo")
+check "local catalog proposes canonical noesis-fast portfolio" "noesis-fast" \
+  "$(jq -r '.proposed_order[0].model' <<< "$portfolio_plan")"
 check "portfolio proposal does not enter selected order" "temperance-coding" \
   "$(jq -r '.selected_order[0].model' <<< "$portfolio_plan")"
 

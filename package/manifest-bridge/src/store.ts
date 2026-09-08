@@ -1,4 +1,5 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { admitRoutingObservation, decodeEventInput, ROUTING_OBSERVATION_KIND, type ObservationAdmission, type ObservationCode, type RoutingObservationPolicy } from './routing-observation';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { normalizeEvent } from './contract';
 import { STATE_SCHEMA, type ManifestEvent, type ManifestState } from './types';
@@ -13,7 +14,7 @@ function emptyState(): ManifestState {
     last_event_at: null,
     event_count: 0,
     freshness: { status: 'empty', age_ms: null, stale_after_ms: STALE_AFTER_MS },
-    projects: {}, sessions: {}, agents: {}, waves: {}, plans: {}, approvals: {}, skills: {}, dispatches: {}, reports: {}, routes: {}, codegraph: {}, workflows: {}, evidence: {}, alerts: [], recent_events: [],
+    projects: {}, sessions: {}, agents: {}, waves: {}, plans: {}, approvals: {}, skills: {}, dispatches: {}, reports: {}, routes: {}, routing_observations: {}, codegraph: {}, workflows: {}, evidence: {}, alerts: [], recent_events: [],
   };
 }
 
@@ -25,14 +26,31 @@ function projectId(event: ManifestEvent): string {
   return event.project_id || String(event.payload.project_id || 'global');
 }
 
+/** Trusted filesystem seam for failure tests; omitted in runtime construction. */
+export interface RoutingObservationStoreIO {
+  read?: (file: string) => string;
+  release?: (lock: string) => void;
+}
+
 export class ManifestStore {
   readonly file: string;
   private stateValue = emptyState();
   private seen = new Set<string>();
   private listeners = new Set<(event: ManifestEvent) => void>();
   private sequence = 0;
+  private replayReadFailed = false;
+  private replayNeedsSeparator = false;
+  private readonly observations = new Map<string, ManifestEvent>();
+  private readonly liveConflicts = new Map<string, number>();
+  private readonly rejections: Partial<Record<ObservationCode, number>> = {};
 
-  constructor(file: string, private readonly projectId?: string) {
+  get observationRejections(): Partial<Record<ObservationCode, number>> { return { ...this.rejections }; }
+  private rejected(code: ObservationCode): { accepted: false; error: ObservationCode } {
+    this.rejections[code] = Math.min(10_000, (this.rejections[code] || 0) + 1);
+    return { accepted: false, error: code };
+  }
+
+  constructor(file: string, private readonly projectId?: string, private readonly observationPolicy?: RoutingObservationPolicy, private readonly observationIO: RoutingObservationStoreIO = {}) {
     this.file = file;
     this.replay();
   }
@@ -46,7 +64,12 @@ export class ManifestStore {
       age_ms: age,
       stale_after_ms: STALE_AFTER_MS,
     };
-    return structuredClone(this.stateValue);
+    const snapshot = structuredClone(this.stateValue);
+    const now = this.observationPolicy?.now() ?? Date.now();
+    for (const projection of Object.values(snapshot.routing_observations || {})) {
+      projection.freshness = Date.parse(projection.receipt.fresh_until) <= now ? 'stale' : 'fresh';
+    }
+    return snapshot;
   }
 
   subscribe(listener: (event: ManifestEvent) => void): () => void {
@@ -55,8 +78,14 @@ export class ManifestStore {
   }
 
   ingest(input: unknown): { accepted: boolean; event?: ManifestEvent; error?: string } {
+    const observation = admitRoutingObservation(input, this.observationPolicy, { projectId: this.projectId });
+    if (observation.special) {
+      if (!observation.ok) return this.rejected(observation.code);
+      return this.ingestObservation(observation);
+    }
     try {
       const event = normalizeEvent(input);
+      if (event.id.startsWith('evt_ro_')) return this.rejected('unsupported_observation');
       if (event.fresh_until && Date.parse(event.fresh_until) <= Date.now()) event.status = 'stale';
       if (this.projectId && event.project_id && event.project_id !== this.projectId) throw new Error(`event project_id ${event.project_id} does not match store ${this.projectId}`);
       if (this.projectId && !event.project_id) event.project_id = this.projectId;
@@ -74,19 +103,92 @@ export class ManifestStore {
     }
   }
 
+  /** Synchronous critical section shared by every opt-in writer, including separate processes.
+   * No timeout-based lock stealing: an abandoned lock requires separate operator recovery. */
+  private ingestObservation(admission: Extract<ObservationAdmission, { ok: true }>): { accepted: boolean; event?: ManifestEvent; error?: string } {
+    const lock = `${this.file}.routing-observation.lock`;
+    try { mkdirSync(dirname(this.file), { recursive: true }); } catch { return this.rejected('persistence_failed'); }
+    try { mkdirSync(lock); } catch { return this.rejected('writer_busy'); }
+    let result: { accepted: boolean; event?: ManifestEvent; error?: string };
+    try {
+      // Rebuild inside the lock; an instance-local seen set is not writer authority.
+      this.replay();
+      if (this.replayReadFailed) throw new Error('persistence_failed');
+      const existing = this.observations.get(admission.key);
+      if (existing) {
+        if (existing.id !== admission.event.id) {
+          this.markConflict(admission.key, true);
+          result = this.rejected('receipt_conflict');
+        } else result = { accepted: false, event: structuredClone(existing) };
+      } else if (this.seen.has(admission.event.id)) result = this.rejected('receipt_conflict');
+      else {
+        const event = admission.event;
+        event.seq = this.sequence + 1;
+        // Preserve an unterminated historical tail as its own line; never merge an
+        // accepted receipt into corrupt bytes or rewrite the existing content.
+        appendFileSync(this.file, `${this.replayNeedsSeparator ? '\n' : ''}${JSON.stringify(event)}\n`, 'utf8');
+        this.sequence++;
+        this.applyObservation(admission);
+        result = { accepted: true, event: structuredClone(event) };
+      }
+    } catch { result = this.rejected('persistence_failed'); }
+    finally { try { (this.observationIO.release || rmdirSync)(lock); } catch { result = this.rejected('persistence_failed'); } }
+    if (result.accepted && result.event) for (const listener of this.listeners) {
+      try { listener(structuredClone(result.event)); } catch { /* observers are fail-open */ }
+    }
+    return result;
+  }
+
+  private markConflict(key: string, live = false): void {
+    if (live) this.liveConflicts.set(key, Math.min(10_000, (this.liveConflicts.get(key) || 0) + 1));
+    const projection = this.stateValue.routing_observations?.[key];
+    if (projection) projection.conflict_count = Math.min(10_000, projection.conflict_count + 1);
+  }
+
+  private applyObservation(admission: Extract<ObservationAdmission, { ok: true }>): void {
+    this.observations.set(admission.key, admission.event);
+    this.stateValue.routing_observations![admission.key] = {
+      receipt: structuredClone(admission.receipt), freshness: 'fresh', conflict_count: this.liveConflicts.get(admission.key) || 0,
+    };
+    this.apply(admission.event);
+  }
+
   replay(): ManifestEvent[] {
+    this.replayReadFailed = false;
+    this.replayNeedsSeparator = false;
+    let lines = '';
+    if (existsSync(this.file)) {
+      try { lines = this.observationIO.read ? this.observationIO.read(this.file) : readFileSync(this.file, 'utf8'); }
+      catch { this.replayReadFailed = true; return []; }
+    }
+    this.replayNeedsSeparator = lines.length > 0 && !lines.endsWith('\n');
     const previousSeen = new Set(this.seen);
     this.stateValue = emptyState();
     this.seen.clear();
+    this.observations.clear();
     this.sequence = 0;
-    if (!existsSync(this.file)) return [];
-    let lines = '';
-    try { lines = readFileSync(this.file, 'utf8'); } catch { return []; }
     const newEvents: ManifestEvent[] = [];
     for (const line of lines.split('\n')) {
       if (!line.trim()) continue;
       try {
-        const event = normalizeEvent(JSON.parse(line));
+        const decoded = decodeEventInput(line);
+        if (!decoded.ok) { this.rejected(decoded.error); continue; }
+        const admission = admitRoutingObservation(decoded.input, this.observationPolicy, { replay: true, projectId: this.projectId });
+        if (admission.special) {
+          if (!admission.ok) { this.rejected(admission.code); continue; }
+          const previous = this.observations.get(admission.key);
+          if (previous) {
+            if (previous.id !== admission.event.id) { this.markConflict(admission.key); this.rejected('receipt_conflict'); }
+            continue;
+          }
+          if (this.seen.has(admission.event.id)) { this.rejected('receipt_conflict'); continue; }
+          admission.event.seq = ++this.sequence;
+          this.applyObservation(admission);
+          if (!previousSeen.has(admission.event.id)) newEvents.push(structuredClone(admission.event));
+          continue;
+        }
+        const event = normalizeEvent(decoded.input);
+        if (event.id.startsWith('evt_ro_')) { this.rejected('unsupported_observation'); continue; }
         if (event.fresh_until && Date.parse(event.fresh_until) <= Date.now()) event.status = 'stale';
         if (this.projectId && event.project_id !== this.projectId) continue;
         if (this.seen.has(event.id)) continue;
@@ -105,6 +207,7 @@ export class ManifestStore {
       this.stateValue.last_event_at = event.ts;
     }
     this.stateValue.recent_events = [...this.stateValue.recent_events, event].slice(-RECENT_LIMIT);
+    if (event.kind === ROUTING_OBSERVATION_KIND) return;
     const pid = projectId(event);
     this.stateValue.projects[pid] = {
       ...(this.stateValue.projects[pid] || {}),

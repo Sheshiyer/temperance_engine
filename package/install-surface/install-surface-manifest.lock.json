@@ -217,6 +217,11 @@
       "source": "templates/codex.AGENTS.md",
       "verification": {
         "adapter_id": "managed-template-v1",
+        "expected": {
+          "kind": "file",
+          "mode": "0644",
+          "sha256": "sha256:3da5a78868677a0a90a8cb0825aea38641231e15acf792919001de9cf7cfcdac"
+        },
         "method": "adapter"
       }
     },
@@ -230,6 +235,9 @@
         ]
       },
       "class": "COPY",
+      "depends_on": [
+        "router.enrichment-runtime-dependency"
+      ],
       "destination": {
         "ownership": {
           "kind": "exclusive-path"
@@ -254,6 +262,71 @@
       },
       "source": "package/enrich",
       "verification": {
+        "expected": {
+          "files": {
+            "adapters/claude-prompthook.ts": "sha256:b0d5fb2674446b23cd8b3ddf35cace914b9494ed4d1059fac137925695817c4c",
+            "adapters/claude.ts": "sha256:6d0c73c0870a42d7258f2da89004d6e1654648474a68fcbab4ab1d1bcec1895a",
+            "adapters/codex-prompthook.ts": "sha256:92d421571eaa1bc3e3ba7a3c8ca2e362428e60523a14a0207079b06b6e643cc0",
+            "contextSources.test.ts": "sha256:ce69925bca1213ec6e6bbd7903bf35055852623aa45f5def9f392a744adae49d",
+            "contextSources.ts": "sha256:122e5aca0015b368b7e673f5528eacb2bcb864babf7bc38705da61b66bf90f7d",
+            "contract.ts": "sha256:c3570a20e4b3acdd97afa508bbf2ff37de26053236d8306ea9ad1ac7e6857236",
+            "fixtures/ctx-empty.json": "sha256:0dde06ec370125f8a6cebdaaa2045f3adc2e021c2305c6ddc34469d62025ebc8",
+            "fixtures/ctx-full.json": "sha256:aa396a779c245bf9680990b4df27f6c8f3bfd6dfbb2d2394277f5c835f799c3a",
+            "fixtures/sample-ISA.md": "sha256:8b75fb3b78331ddb8c5050130a9dd9d2d456cb241c03c2e944ebe9e19b22fb45",
+            "index.test.ts": "sha256:db1da142501a0b5ee709a08b2b1c599bb26d3d41ad5082cd638c60d3bfffd8e1",
+            "index.ts": "sha256:3ea9e37b861b9f0e787421a5e9d07d979742e6d886bda3fa058825494a816d34",
+            "resolver.test.ts": "sha256:0fdcf6dbe445ef8b71faefa779026309ae06709a355363e5b386d7c6ff3fe863",
+            "resolver.ts": "sha256:c8e523ee45e2b1607898e90db2610105478e2ade7affa754369ffc7716e2390e",
+            "stages/classify.test.ts": "sha256:d242f26b51b0e91181d9d45ac0071f88242e819445aea9040a771f742a8eeebe",
+            "stages/classify.ts": "sha256:7d471f23c52cf67accc0b4add5dab280d3cedb05b8547d460310aa4f48b98902",
+            "stages/contextSources.test.ts": "sha256:ce6e7670563a331f01faafd96cde19823031979aed9246d959d4e109950e8538",
+            "stages/contextSources.ts": "sha256:946421179d8ed11b4898254f6907a109ab29e892f9b722ab88bb9f7a385ae0e5",
+            "stages/dispatch.test.ts": "sha256:b88b8a75517c504abcaf1dc6b3465b092c2d540bc5972361c4705d475b19ec6b",
+            "stages/dispatch.ts": "sha256:8342f456102759fdccb8a9923b99a02301ed89183bcf98788f7d150a624e97ba",
+            "stages/guardrails.test.ts": "sha256:10d912988aeae5009f4c79dc97c19c602d1e9236ccffe10cf9d661eaea701500",
+            "stages/guardrails.ts": "sha256:b902cbd3b16dfba3f5a3307a1d2f329f27b107ae3e98089edc4218ccc1202b73",
+            "stages/intent.test.ts": "sha256:149dcbb922bb8f205b459557b446e6189fc98b47cfaebcf95709f2a0804f7ba5",
+            "stages/intent.ts": "sha256:31bc1d84f786a9a2cbdee6476389f165bb05b0d704624a8222728115aecbbdb8",
+            "stages/isaPointer.test.ts": "sha256:8083c779acc11f56f59d19150664d3e3ad48ba8c513f2f0eb496078e281351aa",
+            "stages/isaPointer.ts": "sha256:2843a737ae1b7bbc34acd3b0fa230b7847dc0baf1c88e8743a5f864218fdfa4a",
+            "stages/memory.test.ts": "sha256:9eff24570198465c9ec49dd5a208478d3793b1a85dd1e39a2503edeae33add09",
+            "stages/memory.ts": "sha256:a0f0a420798aa0713e016bfad4993b24b0fe1f0c5d2ff437fc76e548e2a1f5b8",
+            "stages/routing.test.ts": "sha256:8ab7f5e6db6709981b009598d23d46912680575d34f5eaafcb44ed6ed906177a",
+            "stages/routing.ts": "sha256:1cd75d539c071fa613749234e2996a9ebf9fe853fbd42a248091d01e5571d000"
+          },
+          "kind": "tree",
+          "modes": {
+            "adapters/claude-prompthook.ts": "0644",
+            "adapters/claude.ts": "0644",
+            "adapters/codex-prompthook.ts": "0755",
+            "contextSources.test.ts": "0644",
+            "contextSources.ts": "0644",
+            "contract.ts": "0644",
+            "fixtures/ctx-empty.json": "0644",
+            "fixtures/ctx-full.json": "0644",
+            "fixtures/sample-ISA.md": "0644",
+            "index.test.ts": "0644",
+            "index.ts": "0644",
+            "resolver.test.ts": "0644",
+            "resolver.ts": "0644",
+            "stages/classify.test.ts": "0644",
+            "stages/classify.ts": "0644",
+            "stages/contextSources.test.ts": "0644",
+            "stages/contextSources.ts": "0644",
+            "stages/dispatch.test.ts": "0644",
+            "stages/dispatch.ts": "0644",
+            "stages/guardrails.test.ts": "0644",
+            "stages/guardrails.ts": "0644",
+            "stages/intent.test.ts": "0644",
+            "stages/intent.ts": "0644",
+            "stages/isaPointer.test.ts": "0644",
+            "stages/isaPointer.ts": "0644",
+            "stages/memory.test.ts": "0644",
+            "stages/memory.ts": "0644",
+            "stages/routing.test.ts": "0644",
+            "stages/routing.ts": "0644"
+          }
+        },
         "method": "sha256"
       }
     },
@@ -291,6 +364,11 @@
       },
       "source": "package/hooks/claude/PromptProcessing.hook.ts",
       "verification": {
+        "expected": {
+          "kind": "file",
+          "mode": "0644",
+          "sha256": "sha256:9dc835cdf59ce54732d8f769082dc0d9bcf3f999bf659be8074fb814980d5b0a"
+        },
         "method": "sha256"
       }
     },
@@ -304,11 +382,14 @@
         ]
       },
       "class": "COPY",
+      "depends_on": [
+        "hooks.codex.manifest-mode-commit"
+      ],
       "destination": {
         "ownership": {
           "kind": "exclusive-path"
         },
-        "relative_path": "hooks/GSDCommand.hook.ts",
+        "relative_path": "hooks/GsdCommand.hook.ts",
         "root_token": "CODEX_HOME"
       },
       "eligibility": {
@@ -326,8 +407,13 @@
       "rollback": {
         "policy": "restore-backup"
       },
-      "source": "package/hooks/codex/GSDCommand.hook.ts",
+      "source": "package/hooks/codex/GsdCommand.hook.ts",
       "verification": {
+        "expected": {
+          "kind": "file",
+          "mode": "0755",
+          "sha256": "sha256:a895d515238214d73f998d87bfa3c4f7e4286221594b39f79257aa7d2bb246eb"
+        },
         "method": "sha256"
       }
     },
@@ -341,6 +427,53 @@
         ]
       },
       "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "hooks/ManifestModeCommit.hook.ts",
+        "root_token": "CODEX_HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "hooks.codex.manifest-mode-commit",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/hooks/codex/ManifestModeCommit.hook.ts",
+      "verification": {
+        "expected": {
+          "kind": "file",
+          "mode": "0755",
+          "sha256": "sha256:d1c6ee8867240f10bd9e662af5b28bf4dddec4aadd9a7c4dac5bf5d342aea39d"
+        },
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "depends_on": [
+        "hooks.codex.gsd-command",
+        "hooks.codex.manifest-mode-commit",
+        "hooks.codex.temperance-rail-announce"
+      ],
       "destination": {
         "ownership": {
           "kind": "exclusive-path"
@@ -365,6 +498,11 @@
       },
       "source": "package/hooks/codex/PromptProcessing.hook.ts",
       "verification": {
+        "expected": {
+          "kind": "file",
+          "mode": "0755",
+          "sha256": "sha256:8b00793b312249665874c1483db48cd4977988545fd75ac4ebd38a5c75936507"
+        },
         "method": "sha256"
       }
     },
@@ -382,7 +520,7 @@
         "ownership": {
           "kind": "exclusive-path"
         },
-        "relative_path": "hooks/SessionStart.hook.ts",
+        "relative_path": "hooks/SessionStartTe.hook.ts",
         "root_token": "CODEX_HOME"
       },
       "eligibility": {
@@ -400,8 +538,55 @@
       "rollback": {
         "policy": "restore-backup"
       },
-      "source": "package/hooks/codex/SessionStart.hook.ts",
+      "source": "package/hooks/codex/SessionStartTe.hook.ts",
       "verification": {
+        "expected": {
+          "kind": "file",
+          "mode": "0755",
+          "sha256": "sha256:60cf28e11332016b55e9e135c5278dbf46d7b2b9083734e779459718864c82d5"
+        },
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "hooks/TemperanceRailAnnounce.hook.ts",
+        "root_token": "CODEX_HOME"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "hooks.codex.temperance-rail-announce",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/hooks/codex/TemperanceRailAnnounce.hook.ts",
+      "verification": {
+        "expected": {
+          "kind": "file",
+          "mode": "0755",
+          "sha256": "sha256:046f21838b532847e8f67217f1be5eb1b6c6bfe24c15df0bfcad947b38d51555"
+        },
         "method": "sha256"
       }
     },
@@ -439,6 +624,67 @@
       },
       "source": "package/manifest-bridge",
       "verification": {
+        "expected": {
+          "files": {
+            "README.md": "sha256:ed11570c2c88420be7d59063a493e9f7af3ddb08631bbcc68dce729c4be084e9",
+            "bun.lock": "sha256:6caa340cf2ee264a30c340091d8f1305806cc7119ead11a7fb303c79c3aae6fb",
+            "examples/activation-policy.json": "sha256:3479e0067fb3d52e7f39d7ee53fd72f8d9efe937a6c9bcb41108267bb45be6b8",
+            "package.json": "sha256:047e8d45d47314f3824285c8e44f63ae0e0d99e70de6a233b7b2c3ffca1c5a63",
+            "src/activation.ts": "sha256:258774662b70b20256bef1c29c6f77f395db4ff7cfd1e375e9324a1f42a8628d",
+            "src/capabilities.ts": "sha256:854dfe01465f5ae82c1b983acee52de7fc5ce7974fc3fa901d14a8965679beb3",
+            "src/catalog.ts": "sha256:50ae0e5bd737fc15504c3aabc42b2f7efaf20738d79ecea1a2531937f935f85b",
+            "src/cli.ts": "sha256:c6451558c92cde62fd8a600c218b274205653e25e59d0d5db292823a4c4e8a5b",
+            "src/codegraph.ts": "sha256:a81694a57554c73498dce0e5f8e2b1677b1fad096aef204228bc7a5daeba6cd1",
+            "src/contract.ts": "sha256:6c0b8bdc94ee3b9757026b81e4bd5dd841d57ace8b64fcf0f12cfc6361cd1753",
+            "src/contracts/routing-observation-receipt.v1.ts": "sha256:7c6c2e133057540c85e62642882031591fb7d1f151ea77c641487240a09b820b",
+            "src/control-ledger.ts": "sha256:db4d346bd3f7e1bef21dfdc2333493b36d9033df81a7debe2d1abf9ec12015b3",
+            "src/diagnostics.ts": "sha256:c3640f4d1379cbdf338a0239bbcf8a52ee67e40df7429120c9ccbb608e61a622",
+            "src/doctor.ts": "sha256:a28e4b7949ea1774fb5c3e9dd1aa1278ef9ec4705b9fbda882b77e3c906b8de3",
+            "src/event-input.ts": "sha256:ded9137711434575b4a2fce67a33836ff6ca314763cbbccfec4d485e171d7afd",
+            "src/hook-adapter.ts": "sha256:00155032072c4f42c90525cfb379b63fa310b13003b1394e93e6d91642006dad",
+            "src/project.ts": "sha256:993445aa4dc26213b382ed9b2f49dfdd2e552905cac8fba00bb68ad3c9d98334",
+            "src/routing-observation.ts": "sha256:c6c90d5524aaa1a3a1e95eae9e62a5e3340ecafd1db65cab1d1dfff6f5a89917",
+            "src/runtime-status.ts": "sha256:f3825300c4cc40f830eec1e978a1c326cc1c7ab4331063a035cec4ea7c7cac9d",
+            "src/server.ts": "sha256:8fec7a72f3f887c6737abf47b55ac82ea465874c31a9a9abac36306e9c6ab38c",
+            "src/store.ts": "sha256:236842cada84926623595ed678660cca258e3031fba43081532ae0be01de3f74",
+            "src/types.ts": "sha256:797c9a41485001e0de8d2309aa5ae18c58336601311f87d02622175c474e280a",
+            "src/watcher.ts": "sha256:4c10f008389f0a8b921d5a7a44cffa55f9b393d4bae9be8991273fbf0db99f90",
+            "src/workflow-projection.ts": "sha256:8663c0136719564fb8ea6dbb972353feeea8df77682e4925318079b0cf540eb2",
+            "test/bridge.test.ts": "sha256:1e5679c7bd0d277372610996e9bb02b26f0c4668b758a571b6100d5dbf5ee7ce",
+            "test/control-ledger.test.ts": "sha256:a3d06015217c2a950f205619fc107842931317ba7b33aa21a906d94512743d69",
+            "test/routing-observation.test.ts": "sha256:a1d7878fd83afc305e0e809dcabeff69500858faa3fbc0c7478a146f7eb6c9ad"
+          },
+          "kind": "tree",
+          "modes": {
+            "README.md": "0644",
+            "bun.lock": "0644",
+            "examples/activation-policy.json": "0644",
+            "package.json": "0644",
+            "src/activation.ts": "0644",
+            "src/capabilities.ts": "0644",
+            "src/catalog.ts": "0644",
+            "src/cli.ts": "0644",
+            "src/codegraph.ts": "0644",
+            "src/contract.ts": "0644",
+            "src/contracts/routing-observation-receipt.v1.ts": "0644",
+            "src/control-ledger.ts": "0644",
+            "src/diagnostics.ts": "0644",
+            "src/doctor.ts": "0644",
+            "src/event-input.ts": "0644",
+            "src/hook-adapter.ts": "0644",
+            "src/project.ts": "0644",
+            "src/routing-observation.ts": "0644",
+            "src/runtime-status.ts": "0644",
+            "src/server.ts": "0644",
+            "src/store.ts": "0644",
+            "src/types.ts": "0644",
+            "src/watcher.ts": "0644",
+            "src/workflow-projection.ts": "0644",
+            "test/bridge.test.ts": "0644",
+            "test/control-ledger.test.ts": "0644",
+            "test/routing-observation.test.ts": "0644"
+          }
+        },
         "method": "sha256"
       }
     },
@@ -494,6 +740,51 @@
         "ownership": {
           "kind": "exclusive-path"
         },
+        "relative_path": "runtime/router/task-classification.ts",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "router.enrichment-runtime-dependency",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/router/task-classification.ts",
+      "verification": {
+        "expected": {
+          "kind": "file",
+          "mode": "0644",
+          "sha256": "sha256:148d6d4a62ddcf9be3befe33a3c155839b892e8604f3f2ac31681682fd823e45"
+        },
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "depends_on": [
+        "router.gsd-backup-helper"
+      ],
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
         "relative_path": "router",
         "root_token": "TEMPERANCE_STATE"
       },
@@ -514,6 +805,209 @@
       },
       "source": "package/router",
       "verification": {
+        "expected": {
+          "files": {
+            "alchemy-stage-hub-map.json": "sha256:6edc3ddeb22eff5af2398c96c7ef42a0d0be655b8deb9a11b30aeca1bcaf6fc6",
+            "backup-if-changed.ts": "sha256:ba55926b26170cb265568f59e88525f5818d56ec64109609fa9b7f862e8bee20",
+            "classify-task.sh": "sha256:85aedea3f702da2a85770926246f70d166f77ef09d95d510409be59fa8518334",
+            "classify-task.ts": "sha256:1f12e7b09bff868b3e55e25a94780668712d15c4dd861d5b3a393ac5f3fd714b",
+            "claude-launch-shim/claude": "sha256:abdc94492da03a0d01a79dbcd06e0f291d5209f0da2d6506d31ce70f88b937bf",
+            "contracts/routing-observation-receipt.v1.ts": "sha256:7c6c2e133057540c85e62642882031591fb7d1f151ea77c641487240a09b820b",
+            "dispatch-tasklist.sh": "sha256:de4a09471ae90b3328f33e0eda0f0dab26139974d7c40421b5b6e6ce19b57487",
+            "effort-contract.ts": "sha256:663fc5125568a8277e2005d53cf393138a2cd2df59c35e86ddd73d45247612c6",
+            "gsd-command-install.mjs": "sha256:4a69943ebdff4c5c7f79c46151e7cc74f1569c1abc5f39c9516d727c3d06f3fe",
+            "gsd-rail-map.json": "sha256:8dd2e27633a98e26d57f4f9de038b2173552800474ff2aa2d6017f67f653bd61",
+            "multi-backend-router.sh": "sha256:0733987c95f7cc0c95561cb7eb1063c4430f1560ecba6ef8142017378742ec99",
+            "omniroute-acp-agent.test.ts": "sha256:b011eff78439c8b5d5ab2918070a3a461d1e123076a5ecf41ed525c08a7bcf4f",
+            "omniroute-acp-agent.ts": "sha256:07501496dcdcfdf7cc2b402004d81fce1034f80b515f16118117e32e6d57a4b5",
+            "omniroute-catalog-guard.ts": "sha256:16e456863622f762611698cc992fbfabc20fcd6d5481a2e222fd8fdad2bcc4b4",
+            "omniroute-claude.sh": "sha256:538addff1c78edd443207b662b0f31d8cc3d38c76d7794b966c9b67287bd615a",
+            "omniroute-cloudflare-production-adapter.test.ts": "sha256:129e8e3990096bb526c8dcbf360d45b13424a24a170b566d6171f4cd7ac035dd",
+            "omniroute-cloudflare-production-adapter.ts": "sha256:201b769b8094984ede71967122b98b843f25b86e2b95242a4797d220c19095ab",
+            "omniroute-cloudflare-promotion.example.json": "sha256:e47257499f586486728b79fcadaf4bed08fa87fc349435b6e26fa0805c9a7bf3",
+            "omniroute-cloudflare-promotion.test.ts": "sha256:f3f601245ff3ab7c0d45193aa4a911a4145d157cb2089cb4bd5df5d6568a36e2",
+            "omniroute-cloudflare-promotion.ts": "sha256:b11a362c6e61e9cacafc7162f075a0f097e4268b813b7113fb0f65145483642c",
+            "omniroute-codex.sh": "sha256:b4e9e7c0d0b66450daa1dbe0819c355964dcd7b98d1181c55b60045e020db496",
+            "omniroute-connection-roles.json": "sha256:5e3785d0cb34e188d17d3bf6c1529f8e22a45bae6d35213fc6cf3717da7a9017",
+            "omniroute-context-preview.test.ts": "sha256:96a5e9f51848d831c04b70c02c56c5e19f5ee56e3bb819baeeefb3e7b09e6c33",
+            "omniroute-context-preview.ts": "sha256:4363cadf06081003bd188df39360ebd98a6bf51bdbdd2cbe55ef20085ddb6790",
+            "omniroute-fallback-policy.json": "sha256:4be3b9b4a007301d5ae79892358aa1dda283278d017cb04bb6fa96e3c6d86b21",
+            "omniroute-native-cli-readiness.test.ts": "sha256:6d6f71818840af7a3e640118496bbc084feaa922ae5c0aa230ba0f446c6a320d",
+            "omniroute-native-cli-readiness.ts": "sha256:4d46abd88d9a703005cc5eb4efbde3b4178f181a704214fcd8dfe9b3372ec34a",
+            "omniroute-native-control-plane.test.ts": "sha256:30993adabf7c7fca3f70db6fccc0fd2d6c0c67e786ac55ed45223d16cd30f9ad",
+            "omniroute-native-control-plane.ts": "sha256:3f9f0af87b3ccc57c56572483a51859e7f6d286f675cefee2db4e619b72bbf0f",
+            "omniroute-opencode.sh": "sha256:b431e09b7569e1e9dd70347e5f3577bf0c6092ad2e92fcd0c72471e438b9421e",
+            "omniroute-portfolios.json": "sha256:0308c37939e7c66f972d358a3b9a3dd13784c005e600996ac09047fee11e4dc0",
+            "omniroute-portfolios.test.ts": "sha256:6cb2c6267627649cd92e569c1a506f353991d69bb26952db20bd35cd713c9430",
+            "omniroute-portfolios.ts": "sha256:676ad85bb0951d1258c45f4d386ce8a9304869ea4e0df90f4b932a0b013f76ad",
+            "omniroute-promotion.schema.json": "sha256:644c2c78ddcb77135726eb721d4215417eb574971a9880a2d4b251f123ab912e",
+            "omniroute-promotion.test.ts": "sha256:040f8a4df3c5459d9770aa25edbc6e5a34c910a9ee39137e97e2053a1c0d4df2",
+            "omniroute-promotion.ts": "sha256:69abae0e19d205ba43fea9a6ec181900e7f64915b1024b95dcee7841fa645845",
+            "omniroute-s-tier-candidates.ec2.json": "sha256:4cf9c4deda73e163638115a76537b7607fd29e3c9c11c2e9f98fe0fed2eed596",
+            "omniroute-s-tier-readiness.test.ts": "sha256:86a62a4c38615826333b425d25babfbb902a3139ee8d55bfb0a2be63167bb592",
+            "omniroute-s-tier-readiness.ts": "sha256:0e71ddc087dbeb72afa6c11937a70e86a6bbd96f8bfbcef35e7d21fa29230bad",
+            "organs.json": "sha256:d7010b4723695393cda91357564eeea68e786e38b702c53ccc3c8cc99e3a2216",
+            "pai-memory-frontmatter.test.ts": "sha256:64f43b97a3b86f291da3dcc73caa962307eb5214b407ed59f32e0f320ab1e434",
+            "pai-memory-frontmatter.ts": "sha256:de5f281c1757b1845ddacfcfeabf89857dac0a5806dabaafd5ff158f2e47bc8d",
+            "parallel-backend-dispatch.sh": "sha256:588b30d40fdc5e00499d4dff1828d0e6fa99930cf841bf189d080c87d2b1966c",
+            "phase-capability-contract.ts": "sha256:17ef39fd094c2ece0238445a14ee6dcdb9a1e5f94074e10fc5e3d8b92ae1c46e",
+            "phase-combo-map.json": "sha256:7c51d28ba6927f7b55d3b3cac74b372c837ace656f49313ba86a911b2f5c4d12",
+            "phase-resolution.ts": "sha256:1b8fb4ba57a23e5b5b031048acb75fc80045e5b2dafbd068c1ea02cf1f137de5",
+            "rail-announce.ts": "sha256:7fb9ebf0fc4bf05ba40db351c83c253cdeaefd7ff9b483ba098bb3127dd13139",
+            "rail-format.sh": "sha256:f8d1049085ad0808c70281f1eae0c289a10bcc6b6c7f15a68b1587632eb81bc7",
+            "routing-contract-cli.ts": "sha256:99ffe991c0d7dfdbcedb7b5a3981f10ce35a675e279979f52fefcbf96352140b",
+            "routing-observation-adapter.test.ts": "sha256:d87b5850c592fb0a52045461438b0ec24997af68c6e291f38615e7cbf8e87513",
+            "routing-observation-adapter.ts": "sha256:0c53bf12c04e0a932341a12e0fa62b666ebb8eaf5065bb900dfc834ed149eccf",
+            "routing-policy.test.ts": "sha256:7d4dae8f65d53123d4d01cd489a6852aac1529d091aafcd38ecff25e2c1996d7",
+            "routing-policy.ts": "sha256:d3eb2acaf0557142f674dc3a564f9dca14816ef4ca8206081187efdecfd05393",
+            "signed-probe-challenge-ledger.test.ts": "sha256:318f0f5649ba3b2324bf28221fe55d714d929590afd998c9e3484809c2d94b07",
+            "signed-probe-challenge-ledger.ts": "sha256:0f5364e4bd02e598f1a20d40619680b35cb52d5dbd1a2a5d84eb5813f4dd7273",
+            "signed-probe-receipt.test.ts": "sha256:08d3d997ff39b056d499fec6b60039ca04b8222267daddddbcaf87f933ac92da",
+            "signed-probe-receipt.ts": "sha256:5303c7a686fbfb36deb7431f14c041d772eddaea2e3a0ba3fb721ae8fc251039",
+            "surface-convergence-contract.ts": "sha256:e4310dc4e85d3d69dbc28e3bf89d50ececa3f0c725d44007e4dd77974b642f0c",
+            "task-classification.ts": "sha256:148d6d4a62ddcf9be3befe33a3c155839b892e8604f3f2ac31681682fd823e45",
+            "temperance-goal.mjs": "sha256:e82a8b956ab089cf991fc7f8095946e68e3ea7f6289c8e2edc6e0d4b85576fb8",
+            "temperance-manifest.mjs": "sha256:9f37f4394dacc6b6ce38647c4254601daa3859314302106bdf67fdfb18d99224",
+            "temperance-next-wave.mjs": "sha256:14e049c3ec62d828784d2a465eeb087ea93abd4ace12515db710bbc28591a5e7",
+            "temperance-openai-proxy.mock.ts": "sha256:6ffc94ddc512f35c35669b5e8e5290011420b81761ddd01271bd176e6edec53c",
+            "temperance-openai-proxy.test.ts": "sha256:2bad0d58d0a39141c85dc1997dbbc779cbbff8eaff94f35266f87335a948e863",
+            "temperance-openai-proxy.ts": "sha256:818fa09382661286916b4b2b875366a71c63bed6e0a9f34a771df2e08cc00bcc",
+            "temperance-phase-dispatch.sh": "sha256:b3bdfe3324563a468a55ead0a12941642d56c71869ca191ac452f10a210752ca",
+            "temperance-project-init.mjs": "sha256:091cd0ec0829da82673f969ce175050f360d9ff4df4c52b33ed141e5c1c12bad",
+            "temperance-session-profiles.ec2.json": "sha256:ed2ed3ac86ecc546819fc23d51bfff192069709faf7de024218612eeb9a9f014",
+            "temperance-session-profiles.json": "sha256:12f0aca25122c83f05ece17fe590a1f5aff0f51c6c76fae1f7a5b76e0a6720a9",
+            "temperance-session-profiles.test.ts": "sha256:0557baeb1ec27973d99532a06cb356171ff2ccb76899dfdb7752552362a87858",
+            "temperance-session-profiles.ts": "sha256:4b59ff7b112201c5a8b82ad703d3dd9318eb504ce6c08a5a2fa38bf6a7822ce1",
+            "temperance-stage-contract.test.ts": "sha256:80970ba2a8202c410391f89062121fcdcffb451653b603e0fffada1d3ab3205a",
+            "temperance-stage-contract.ts": "sha256:8d9bc7702801974b2df3076f4e979e00169c92879b393fffb0c3540754f09812",
+            "temperance-swarm-dispatch.mjs": "sha256:9182047b1330b715e70f7f9ec2c77c12c837e33264d3d44f8460b9025bf04d4f",
+            "temperance-workflows.json": "sha256:9d7e76793e334c57bcbeb4400a73098e5b8744bdde356dd5a65f99f31b209f77",
+            "temperance-workflows.test.ts": "sha256:1aabe457147c1b5ab62665f49de66a058648f2bbd88830f4784d844ee7ce9228",
+            "temperance-workflows.ts": "sha256:9a837c9ab3bd3a1e513d0d6f75d6c2dce3494e9f32fca47c0cf69e7cad06afd0"
+          },
+          "kind": "tree",
+          "modes": {
+            "alchemy-stage-hub-map.json": "0644",
+            "backup-if-changed.ts": "0644",
+            "classify-task.sh": "0755",
+            "classify-task.ts": "0644",
+            "claude-launch-shim/claude": "0755",
+            "contracts/routing-observation-receipt.v1.ts": "0644",
+            "dispatch-tasklist.sh": "0755",
+            "effort-contract.ts": "0644",
+            "gsd-command-install.mjs": "0755",
+            "gsd-rail-map.json": "0644",
+            "multi-backend-router.sh": "0755",
+            "omniroute-acp-agent.test.ts": "0644",
+            "omniroute-acp-agent.ts": "0644",
+            "omniroute-catalog-guard.ts": "0644",
+            "omniroute-claude.sh": "0755",
+            "omniroute-cloudflare-production-adapter.test.ts": "0644",
+            "omniroute-cloudflare-production-adapter.ts": "0644",
+            "omniroute-cloudflare-promotion.example.json": "0644",
+            "omniroute-cloudflare-promotion.test.ts": "0644",
+            "omniroute-cloudflare-promotion.ts": "0644",
+            "omniroute-codex.sh": "0755",
+            "omniroute-connection-roles.json": "0644",
+            "omniroute-context-preview.test.ts": "0644",
+            "omniroute-context-preview.ts": "0644",
+            "omniroute-fallback-policy.json": "0644",
+            "omniroute-native-cli-readiness.test.ts": "0644",
+            "omniroute-native-cli-readiness.ts": "0644",
+            "omniroute-native-control-plane.test.ts": "0644",
+            "omniroute-native-control-plane.ts": "0644",
+            "omniroute-opencode.sh": "0755",
+            "omniroute-portfolios.json": "0644",
+            "omniroute-portfolios.test.ts": "0644",
+            "omniroute-portfolios.ts": "0644",
+            "omniroute-promotion.schema.json": "0644",
+            "omniroute-promotion.test.ts": "0644",
+            "omniroute-promotion.ts": "0644",
+            "omniroute-s-tier-candidates.ec2.json": "0644",
+            "omniroute-s-tier-readiness.test.ts": "0644",
+            "omniroute-s-tier-readiness.ts": "0644",
+            "organs.json": "0644",
+            "pai-memory-frontmatter.test.ts": "0644",
+            "pai-memory-frontmatter.ts": "0644",
+            "parallel-backend-dispatch.sh": "0755",
+            "phase-capability-contract.ts": "0644",
+            "phase-combo-map.json": "0644",
+            "phase-resolution.ts": "0644",
+            "rail-announce.ts": "0644",
+            "rail-format.sh": "0755",
+            "routing-contract-cli.ts": "0644",
+            "routing-observation-adapter.test.ts": "0644",
+            "routing-observation-adapter.ts": "0644",
+            "routing-policy.test.ts": "0644",
+            "routing-policy.ts": "0644",
+            "signed-probe-challenge-ledger.test.ts": "0644",
+            "signed-probe-challenge-ledger.ts": "0644",
+            "signed-probe-receipt.test.ts": "0644",
+            "signed-probe-receipt.ts": "0644",
+            "surface-convergence-contract.ts": "0644",
+            "task-classification.ts": "0644",
+            "temperance-goal.mjs": "0644",
+            "temperance-manifest.mjs": "0755",
+            "temperance-next-wave.mjs": "0755",
+            "temperance-openai-proxy.mock.ts": "0644",
+            "temperance-openai-proxy.test.ts": "0644",
+            "temperance-openai-proxy.ts": "0644",
+            "temperance-phase-dispatch.sh": "0755",
+            "temperance-project-init.mjs": "0755",
+            "temperance-session-profiles.ec2.json": "0644",
+            "temperance-session-profiles.json": "0644",
+            "temperance-session-profiles.test.ts": "0644",
+            "temperance-session-profiles.ts": "0644",
+            "temperance-stage-contract.test.ts": "0644",
+            "temperance-stage-contract.ts": "0644",
+            "temperance-swarm-dispatch.mjs": "0644",
+            "temperance-workflows.json": "0644",
+            "temperance-workflows.test.ts": "0644",
+            "temperance-workflows.ts": "0644"
+          }
+        },
+        "method": "sha256"
+      }
+    },
+    {
+      "authority": {
+        "isa": "ISC-769",
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ]
+      },
+      "class": "COPY",
+      "destination": {
+        "ownership": {
+          "kind": "exclusive-path"
+        },
+        "relative_path": "bin/te-backup-if-changed",
+        "root_token": "TEMPERANCE_STATE"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "id": "router.gsd-backup-helper",
+      "owner": "temperance-engine",
+      "rollback": {
+        "policy": "restore-backup"
+      },
+      "source": "package/bin/te-backup-if-changed",
+      "verification": {
+        "expected": {
+          "kind": "file",
+          "mode": "0755",
+          "sha256": "sha256:e1f9eeae4a739ff85e03096c38d7270c6098ea70797020a4b8d2aab6ac23e7c1"
+        },
         "method": "sha256"
       }
     },
@@ -551,6 +1045,15 @@
       },
       "source": "skills/temperance-algorithm",
       "verification": {
+        "expected": {
+          "files": {
+            "SKILL.md": "sha256:0e0ace256e79f8e730ebd98dae69275109b2acdc6bd70551a7f9928e888da8da"
+          },
+          "kind": "tree",
+          "modes": {
+            "SKILL.md": "0644"
+          }
+        },
         "method": "sha256"
       }
     },
@@ -588,6 +1091,17 @@
       },
       "source": "skills/temperance-engine",
       "verification": {
+        "expected": {
+          "files": {
+            "README.md": "sha256:3d9d814e2fa26270da018014851ee8604f9ed3a1e13f7bf697e4b12dc76eee70",
+            "SKILL.md": "sha256:2c9a2f1e03e88182ab714dc3e5e6cec14a4e519fdee8faee9ffc1d8382012d1d"
+          },
+          "kind": "tree",
+          "modes": {
+            "README.md": "0644",
+            "SKILL.md": "0644"
+          }
+        },
         "method": "sha256"
       }
     },
@@ -625,6 +1139,15 @@
       },
       "source": "skills/temperance-native",
       "verification": {
+        "expected": {
+          "files": {
+            "SKILL.md": "sha256:3a5b39a34230be89b427c88cdd467d46d5e7ac950fd4868e46278c1bffee81c6"
+          },
+          "kind": "tree",
+          "modes": {
+            "SKILL.md": "0644"
+          }
+        },
         "method": "sha256"
       }
     },
@@ -662,6 +1185,15 @@
       },
       "source": "skills/temperance-parallel-dispatch",
       "verification": {
+        "expected": {
+          "files": {
+            "SKILL.md": "sha256:24205504ff0f3e663611d58ff85b2ecc774c8f4053a00e1e471ed8349a8d03d4"
+          },
+          "kind": "tree",
+          "modes": {
+            "SKILL.md": "0644"
+          }
+        },
         "method": "sha256"
       }
     }

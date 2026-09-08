@@ -24,6 +24,8 @@ export type V2_SectionId = (typeof V2_DOCTOR_SECTION_ORDER)[number];
 
 export interface ObservationIO {
   readFile(path: string): Promise<string>;
+  readBytes(path: string): Promise<Uint8Array>;
+  readdir(path: string): Promise<string[]>;
   lstat(path: string): Promise<Stats>;
   realpath(path: string): Promise<string>;
   fetch(url: string, options: { signal: AbortSignal }): Promise<Response>;

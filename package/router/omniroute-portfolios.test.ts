@@ -1,15 +1,16 @@
 import { describe, expect, test } from "bun:test";
 
 import manifest from "./omniroute-portfolios.json";
+import phaseComboMap from "./phase-combo-map.json";
 import { resolvePortfolio } from "./omniroute-portfolios";
 
 const expectedMappings = {
-  fast: "te-fast",
-  "long-horizon": "te-build",
-  reasoning: "te-reason",
-  validation: "te-validate",
-  creative: "te-creative",
-  balanced: "te-build",
+  fast: "noesis-fast",
+  "long-horizon": "noesis-build",
+  reasoning: "noesis-observe",
+  validation: "noesis-verify",
+  creative: "noesis-creative",
+  balanced: "noesis-fast",
 } as const;
 
 describe("resolvePortfolio", () => {
@@ -30,7 +31,7 @@ describe("resolvePortfolio", () => {
   test("uses the compatibility combo when a named portfolio is absent", () => {
     expect(resolvePortfolio("validation", ["temperance-coding"])).toEqual({
       task_type: "validation",
-      requested_portfolio: "te-validate",
+      requested_portfolio: "noesis-verify",
       selected_model: "temperance-coding",
       source: "compatibility",
       enforcement: "shadow",
@@ -40,7 +41,7 @@ describe("resolvePortfolio", () => {
   test("returns direct when neither named nor compatibility combo exists", () => {
     expect(resolvePortfolio("balanced", [])).toEqual({
       task_type: "balanced",
-      requested_portfolio: "te-build",
+      requested_portfolio: "noesis-fast",
       selected_model: null,
       source: "direct",
       enforcement: "shadow",
@@ -48,30 +49,37 @@ describe("resolvePortfolio", () => {
   });
 
   test("normalizes unknown types to balanced without classifying prompt text", () => {
-    expect(resolvePortfolio("invent-a-new-type", ["te-build"]).task_type).toBe("balanced");
+    expect(resolvePortfolio("invent-a-new-type", ["noesis-fast"]).task_type).toBe("balanced");
+  });
+
+  test("keeps shared task portfolios contained by the canonical phase map", () => {
+    const taskTypeToCombo = (phaseComboMap as { task_type_to_combo: Record<string, string> }).task_type_to_combo;
+    expect(manifest.task_type_portfolios).toEqual(expectedMappings);
+    for (const [taskType, portfolio] of Object.entries(expectedMappings)) {
+      expect(taskTypeToCombo[taskType]).toBe(portfolio);
+    }
   });
 
   test("manifest stores combo names but no provider or model membership", () => {
     expect(manifest.enforcement).toBe("shadow");
     expect(manifest.required_portfolios).toEqual([
-      "te-algorithm",
-      "te-fast",
-      "te-build",
-      "te-reason",
-      "te-validate",
-      "te-creative",
+      "noesis-full",
+      "noesis-fast",
+      "noesis-build",
+      "noesis-observe",
+      "noesis-verify",
+      "noesis-creative",
     ]);
     expect(manifest.reserved_portfolios).toEqual([
-      "te-batch",
-      "te-vision",
-      "te-write",
-      "te-write-critique",
-      "te-write-research",
-      "te-write-media",
-      "te-orchestrate",
-      "te-free-burst",
-      "te-review",
-      "te-swarm-s",
+      "noesis-swarm",
+      "noesis-vision",
+      "noesis-write",
+      "noesis-write-critique",
+      "noesis-research",
+      "noesis-media",
+      "noesis-full",
+      "noesis-free-burst",
+      "noesis-review",
     ]);
     expect(JSON.stringify(manifest)).not.toMatch(/provider|members|targets/);
   });

@@ -1,3 +1,4 @@
+import type { RoutingObservationProjection } from './routing-observation';
 export const EVENT_SCHEMA = 'temperance.manifest.event.v1' as const;
 export const STATE_SCHEMA = 'temperance.manifest.state.v1' as const;
 
@@ -53,6 +54,8 @@ export interface ManifestState {
   dispatches: Record<string, Record<string, unknown>>;
   reports: Record<string, Record<string, unknown>>;
   routes: Record<string, Record<string, unknown>>;
+  /** Additive read-only collection; older consumers may default missing to empty. */
+  routing_observations?: Record<string, RoutingObservationProjection>;
   codegraph: Record<string, Record<string, unknown>>;
   workflows: Record<string, Record<string, unknown>>;
   evidence: Record<string, Record<string, unknown>>;

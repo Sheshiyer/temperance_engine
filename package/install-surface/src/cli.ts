@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { randomBytes } from "node:crypto";
+import { dirname, resolve } from "node:path";
 
 import { canonical } from "./canonical-json.ts";
 import { compileFragments, writeLock, type CompileResult } from "./compile.ts";
@@ -36,6 +37,10 @@ const lifecycleIO: LifecycleIO = {
     const { lstatSync } = await import("node:fs");
     return lstatSync(path);
   },
+  chmod: async (path, mode) => {
+    const { chmodSync } = await import("node:fs");
+    chmodSync(path, mode);
+  },
   rename: async (oldPath, newPath) => {
     const { renameSync } = await import("node:fs");
     renameSync(oldPath, newPath);
@@ -45,14 +50,40 @@ const lifecycleIO: LifecycleIO = {
     return realpathSync(path);
   },
   now: () => new Date(),
-  writeFileAtomic: async (path, data) => {
-    const { openSync, writeSync, fsyncSync, closeSync } = await import("node:fs");
-    const fd = openSync(path, "w");
+  writeFileAtomic: async (path, data, options) => {
+    const { closeSync, fchmodSync, fsyncSync, openSync, renameSync, unlinkSync, writeSync } = await import("node:fs");
+    const mode = options?.mode ?? 0o600;
+    if (!Number.isInteger(mode) || mode < 0 || mode > 0o777) throw new Error("ATOMIC_WRITE_MODE_INVALID");
+    const temporary = `${path}.temperance-write-${randomBytes(16).toString("hex")}.tmp`;
+    let fd: number | undefined;
+    let temporaryExists = false;
     try {
-      writeSync(fd, data, 0, "utf8");
+      fd = openSync(temporary, "wx", mode);
+      temporaryExists = true;
+      // open(2)'s creation mode is masked by the process umask. Apply the
+      // reviewed final mode through the already-open descriptor before any
+      // bytes are durable, so a restrictive caller umask cannot change a
+      // lifecycle artifact or staged output's required mode.
+      fchmodSync(fd, mode);
+      const bytes = Buffer.from(data, "utf8");
+      let offset = 0;
+      while (offset < bytes.length) offset += writeSync(fd, bytes, offset, bytes.length - offset, offset);
       fsyncSync(fd);
-    } finally {
       closeSync(fd);
+      fd = undefined;
+      renameSync(temporary, path);
+      temporaryExists = false;
+      const directoryFd = openSync(dirname(path), "r");
+      try {
+        fsyncSync(directoryFd);
+      } finally {
+        closeSync(directoryFd);
+      }
+    } finally {
+      if (fd !== undefined) closeSync(fd);
+      if (temporaryExists) {
+        try { unlinkSync(temporary); } catch { /* Preserve the original failure. */ }
+      }
     }
   },
   fetch: async (url, options) => fetch(url, options),
@@ -251,6 +282,9 @@ async function main(): Promise<void> {
         profileResult: compileResult,
         profile,
         force: args.force,
+        explicitSelections: args.select
+          ? new Set(args.select.split(",").filter((selection) => /^[a-z0-9][a-z0-9._-]*$/.test(selection)))
+          : undefined,
       };
 
       const plan = createPlan(planOptions);
@@ -275,12 +309,14 @@ async function main(): Promise<void> {
 
       const result = await executePlan({
         stateRoot,
+        repositoryRoot,
         io: lifecycleIO,
         plan,
         compileResult,
         verb: command,
         profile,
         force: args.force,
+        explicitSelections: planOptions.explicitSelections,
         signal: new AbortController().signal,
       });
 

@@ -3,7 +3,7 @@
  *
  * Topological ordering honors `depends_on` edges.
  * NEVER-SHIP records are rejected at plan time.
- * Outcome taxonomy: installed | skipped | unsupported | failed.
+ * Outcome taxonomy: installed | skipped | unsupported | unavailable | failed.
  */
 
 import { createHash } from "node:crypto";
@@ -41,7 +41,7 @@ export class PlanError extends Error {
 
 // ─── Outcome taxonomy (INST-05) ──────────────────────────────────────────────
 
-export type OutcomeStatus = "installed" | "skipped" | "unsupported" | "failed";
+export type OutcomeStatus = "installed" | "skipped" | "unsupported" | "unavailable" | "failed";
 
 export interface StepOutcome {
   step_id: string;

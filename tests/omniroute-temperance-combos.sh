@@ -303,11 +303,13 @@ check "fixture rollback preserves the current activeCombo" \
 rm -rf "$mock_state"
 
 check "manifest has six required portfolios" test "$(jq -r '.required_portfolios | length' "$ROOT/package/router/omniroute-portfolios.json")" = 6
-check "manifest maps fast lane" test "$(jq -r '.task_type_portfolios.fast' "$ROOT/package/router/omniroute-portfolios.json")" = te-fast
-check "manifest maps build lane" test "$(jq -r '.task_type_portfolios["long-horizon"]' "$ROOT/package/router/omniroute-portfolios.json")" = te-build
-check "manifest maps creative lane" test "$(jq -r '.task_type_portfolios.creative' "$ROOT/package/router/omniroute-portfolios.json")" = te-creative
-check "manifest maps reasoning lane" test "$(jq -r '.task_type_portfolios.reasoning' "$ROOT/package/router/omniroute-portfolios.json")" = te-reason
-check "manifest maps validation lane" test "$(jq -r '.task_type_portfolios.validation' "$ROOT/package/router/omniroute-portfolios.json")" = te-validate
+# The local classifier contract uses canonical noesis lanes. The `te-*` checks
+# below exercise the separately intentional company-edge compatibility fleet.
+check "manifest maps fast lane" test "$(jq -r '.task_type_portfolios.fast' "$ROOT/package/router/omniroute-portfolios.json")" = noesis-fast
+check "manifest maps build lane" test "$(jq -r '.task_type_portfolios["long-horizon"]' "$ROOT/package/router/omniroute-portfolios.json")" = noesis-build
+check "manifest maps creative lane" test "$(jq -r '.task_type_portfolios.creative' "$ROOT/package/router/omniroute-portfolios.json")" = noesis-creative
+check "manifest maps reasoning lane" test "$(jq -r '.task_type_portfolios.reasoning' "$ROOT/package/router/omniroute-portfolios.json")" = noesis-observe
+check "manifest maps validation lane" test "$(jq -r '.task_type_portfolios.validation' "$ROOT/package/router/omniroute-portfolios.json")" = noesis-verify
 check "runtime docs name all portfolios" sh -c "grep -q 'te-algorithm' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-fast' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-build' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-reason' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-validate' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-creative' '$ROOT/docs/omniroute-runtime.md'"
 check "connection docs preserve native non-chat lanes" grep -q 'native capability lanes' "$ROOT/docs/omniroute-connections.md"
 check "writer lifecycle script is executable" test -x "$ROOT/scripts/omniroute-temperance-writer.sh"
@@ -317,7 +319,7 @@ check "writer lifecycle has explicit rollback" grep -q -- '--rollback' "$ROOT/sc
 check "writer lifecycle preserves active combo" grep -q 'activeCombo' "$ROOT/scripts/omniroute-temperance-writer.sh"
 check "writer lifecycle preflights live catalog" grep -q '/v1/models' "$ROOT/scripts/omniroute-temperance-writer.sh"
 check "workflow manifest names the writing role combos" sh -c "grep -q 'te-write' '$ROOT/package/router/temperance-workflows.json' && grep -q 'te-write-critique' '$ROOT/package/router/temperance-workflows.json'"
-check "portfolio manifest reserves writing combos names-only" sh -c "jq -e '(.reserved_portfolios | index(\"te-write\") != null) and (.reserved_portfolios | index(\"te-write-critique\") != null)' '$ROOT/package/router/omniroute-portfolios.json' >/dev/null"
+check "local portfolio manifest reserves writing lanes names-only" sh -c "jq -e '(.reserved_portfolios | index(\"noesis-write\") != null) and (.reserved_portfolios | index(\"noesis-write-critique\") != null)' '$ROOT/package/router/omniroute-portfolios.json' >/dev/null"
 check "runtime docs name writing portfolios" sh -c "grep -q 'te-write' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-write-critique' '$ROOT/docs/omniroute-runtime.md'"
 check "writer routing doc keeps image generation client-side" sh -c "test -f '$ROOT/docs/noesis-writer-routing.md' && grep -qi 'client-side' '$ROOT/docs/noesis-writer-routing.md' && grep -qi 'FAL' '$ROOT/docs/noesis-writer-routing.md'"
 check "writer expansion lifecycle script is executable" test -x "$ROOT/scripts/omniroute-temperance-writer-expansion.sh"
@@ -327,13 +329,13 @@ check "writer expansion lifecycle has explicit rollback" grep -q -- '--rollback'
 check "writer expansion lifecycle preserves active combo" grep -q 'activeCombo' "$ROOT/scripts/omniroute-temperance-writer-expansion.sh"
 check "writer expansion lifecycle preflights live catalog" grep -q '/v1/models' "$ROOT/scripts/omniroute-temperance-writer-expansion.sh"
 check "workflow manifest names the research and media sub-lanes" sh -c "grep -q 'te-write-research' '$ROOT/package/router/temperance-workflows.json' && grep -q 'te-write-media' '$ROOT/package/router/temperance-workflows.json'"
-check "portfolio manifest reserves research and media combos names-only" sh -c "jq -e '(.reserved_portfolios | index(\"te-write-research\") != null) and (.reserved_portfolios | index(\"te-write-media\") != null)' '$ROOT/package/router/omniroute-portfolios.json' >/dev/null"
+check "local portfolio manifest reserves research and media lanes names-only" sh -c "jq -e '(.reserved_portfolios | index(\"noesis-research\") != null) and (.reserved_portfolios | index(\"noesis-media\") != null)' '$ROOT/package/router/omniroute-portfolios.json' >/dev/null"
 check "runtime docs name research and media portfolios" sh -c "grep -q 'te-write-research' '$ROOT/docs/omniroute-runtime.md' && grep -q 'te-write-media' '$ROOT/docs/omniroute-runtime.md'"
 check "writer routing doc maps research and media phases" sh -c "grep -q 'te-write-research' '$ROOT/docs/noesis-writer-routing.md' && grep -q 'te-write-media' '$ROOT/docs/noesis-writer-routing.md'"
 check "writer routing doc frames Somatic Canticles link as narrative, not a built mechanic" sh -c "grep -qi 'Somatic Canticles' '$ROOT/docs/noesis-writer-routing.md' && grep -qi 'narrative' '$ROOT/docs/noesis-writer-routing.md'"
 check "workflow manifest names the bulk role and its zero-cost models" \
   sh -c "jq -e '.bulk.portfolio == \"te-free-burst\" and (.bulk.models | index(\"opencode/deepseek-v4-flash-free\") != null) and (.bulk.models | index(\"command-code/poolside/laguna-s-2.1-free\") != null)' '$ROOT/package/router/temperance-workflows.json' >/dev/null"
-check "portfolio manifest reserves te-free-burst names-only" \
-  jq -e '.reserved_portfolios | index("te-free-burst") != null' "$ROOT/package/router/omniroute-portfolios.json"
+check "local portfolio manifest reserves noesis-free-burst names-only" \
+  jq -e '.reserved_portfolios | index("noesis-free-burst") != null' "$ROOT/package/router/omniroute-portfolios.json"
 
 exit "$fail"

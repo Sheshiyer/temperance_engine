@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LAUNCHER="$ROOT_DIR/package/router/omniroute-claude.sh"
 SHIM="$ROOT_DIR/package/router/claude-launch-shim/claude"
 TEST_DIR="$(mktemp -d)"
+TEST_HOME="$TEST_DIR/home"
+mkdir -p "$TEST_HOME"
+trap 'rm -rf "$TEST_DIR"' EXIT
 MOCK_SECURITY="$TEST_DIR/security"
 MOCK_OMNIROUTE="$TEST_DIR/omniroute"
 MOCK_CLAUDE="$TEST_DIR/real-claude"
@@ -46,10 +49,19 @@ profiles=(
   no-think-gh-claude-sonnet-5
 )
 
+# Profiles belong to the external CLI. Seed tokenless disposable settings so
+# this source test proves launcher non-persistence without reading host profiles.
+for profile in "${profiles[@]}"; do
+  profile_dir="$TEST_HOME/.claude/profiles/$profile"
+  mkdir -p "$profile_dir"
+  printf '%s\n' '{"env":{"ANTHROPIC_BASE_URL":"http://127.0.0.1:20128"}}' > "$profile_dir/settings.json"
+  cp "$profile_dir/settings.json" "$TEST_DIR/$profile.settings-before.json"
+done
+
 for profile in "${profiles[@]}"; do
   capture="$TEST_DIR/$profile"
   mkdir -p "$capture"
-  MOCK_CAPTURE_DIR="$capture" MOCK_CLAUDE_KEY="$CANARY" \
+  HOME="$TEST_HOME" MOCK_CAPTURE_DIR="$capture" MOCK_CLAUDE_KEY="$CANARY" \
     TEMPERANCE_SECURITY_BIN="$MOCK_SECURITY" TEMPERANCE_OMNIROUTE_BIN="$MOCK_OMNIROUTE" \
     TEMPERANCE_REAL_CLAUDE_BIN="$MOCK_CLAUDE" \
     TEMPERANCE_OMNIROUTE_CLAUDE_KEYCHAIN_SERVICE='test-service' \
@@ -70,7 +82,7 @@ symlink_launcher="$TEST_DIR/temperance-claude"
 ln -s "$LAUNCHER" "$symlink_launcher"
 symlink_capture="$TEST_DIR/symlink"
 mkdir -p "$symlink_capture"
-MOCK_CAPTURE_DIR="$symlink_capture" MOCK_CLAUDE_KEY="$CANARY" \
+HOME="$TEST_HOME" MOCK_CAPTURE_DIR="$symlink_capture" MOCK_CLAUDE_KEY="$CANARY" \
   TEMPERANCE_SECURITY_BIN="$MOCK_SECURITY" TEMPERANCE_OMNIROUTE_BIN="$MOCK_OMNIROUTE" \
   TEMPERANCE_REAL_CLAUDE_BIN="$MOCK_CLAUDE" \
   "$symlink_launcher" antigravity-claude-sonnet-5 -p 'symlink canary' >/dev/null
@@ -78,7 +90,7 @@ MOCK_CAPTURE_DIR="$symlink_capture" MOCK_CLAUDE_KEY="$CANARY" \
 
 reject_capture="$TEST_DIR/reject"
 mkdir -p "$reject_capture"
-if MOCK_CAPTURE_DIR="$reject_capture" MOCK_CLAUDE_KEY="$CANARY" \
+if HOME="$TEST_HOME" MOCK_CAPTURE_DIR="$reject_capture" MOCK_CLAUDE_KEY="$CANARY" \
   TEMPERANCE_SECURITY_BIN="$MOCK_SECURITY" TEMPERANCE_OMNIROUTE_BIN="$MOCK_OMNIROUTE" \
   TEMPERANCE_REAL_CLAUDE_BIN="$MOCK_CLAUDE" "$LAUNCHER" unknown-profile >/dev/null 2>&1; then
   fail 'unknown profile is rejected'
@@ -89,7 +101,7 @@ fi
 
 missing_capture="$TEST_DIR/missing"
 mkdir -p "$missing_capture"
-if MOCK_CAPTURE_DIR="$missing_capture" MOCK_CLAUDE_KEY="$CANARY" MOCK_SECURITY_EMPTY=1 \
+if HOME="$TEST_HOME" MOCK_CAPTURE_DIR="$missing_capture" MOCK_CLAUDE_KEY="$CANARY" MOCK_SECURITY_EMPTY=1 \
   TEMPERANCE_SECURITY_BIN="$MOCK_SECURITY" TEMPERANCE_OMNIROUTE_BIN="$MOCK_OMNIROUTE" \
   TEMPERANCE_REAL_CLAUDE_BIN="$MOCK_CLAUDE" "$LAUNCHER" antigravity-claude-sonnet-5 >/dev/null 2>&1; then
   fail 'missing Keychain item fails closed'
@@ -100,7 +112,7 @@ fi
 
 upstream_failure_capture="$TEST_DIR/upstream-failure"
 mkdir -p "$upstream_failure_capture"
-if MOCK_CAPTURE_DIR="$upstream_failure_capture" MOCK_CLAUDE_KEY="$CANARY" MOCK_OMNIROUTE_FAIL=1 \
+if HOME="$TEST_HOME" MOCK_CAPTURE_DIR="$upstream_failure_capture" MOCK_CLAUDE_KEY="$CANARY" MOCK_OMNIROUTE_FAIL=1 \
   TEMPERANCE_SECURITY_BIN="$MOCK_SECURITY" TEMPERANCE_OMNIROUTE_BIN="$MOCK_OMNIROUTE" \
   TEMPERANCE_REAL_CLAUDE_BIN="$MOCK_CLAUDE" \
   "$LAUNCHER" antigravity-claude-sonnet-5 -p 'fail-closed canary' >/dev/null 2>&1; then
@@ -112,19 +124,26 @@ fi
   && pass 'OmniRoute upstream failure never falls back to direct Claude' \
   || fail 'OmniRoute upstream failure never falls back to direct Claude'
 
-if TEMPERANCE_REAL_CLAUDE_BIN="$MOCK_CLAUDE" "$SHIM" >/dev/null 2>&1; then
+if HOME="$TEST_HOME" TEMPERANCE_REAL_CLAUDE_BIN="$MOCK_CLAUDE" "$SHIM" >/dev/null 2>&1; then
   fail 'scrubber refuses ungoverned direct execution'
 else
   pass 'scrubber refuses ungoverned direct execution'
 fi
 
 for profile in "${profiles[@]}"; do
-  settings="$HOME/.claude/profiles/$profile/settings.json"
-  if [ -r "$settings" ] && ! grep -Eq 'ANTHROPIC_(AUTH_TOKEN|API_KEY)' "$settings"; then
-    pass "$profile persisted profile remains tokenless"
+  settings="$TEST_HOME/.claude/profiles/$profile/settings.json"
+  if cmp -s "$TEST_DIR/$profile.settings-before.json" "$settings" \
+     && ! grep -Eq 'ANTHROPIC_(AUTH_TOKEN|API_KEY)' "$settings"; then
+    pass "$profile disposable profile remains unchanged and tokenless"
   else
-    fail "$profile persisted profile remains tokenless"
+    fail "$profile disposable profile remains unchanged and tokenless"
   fi
 done
+
+if grep -R -Fq "$CANARY" "$TEST_HOME"; then
+  fail 'launcher persisted the canary into its disposable home'
+else
+  pass 'launcher leaves no canary in disposable home'
+fi
 
 exit "$status"

@@ -21,11 +21,15 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Install jq
-        run: brew install jq
+      - name: Install jq and ripgrep
+        run: brew install jq ripgrep
 
       - name: Install bash 4+
         run: brew install bash
+
+      - name: Install locked verifier dependencies
+        working-directory: package/install-surface
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Verify package
         run: ./scripts/verify-all.sh

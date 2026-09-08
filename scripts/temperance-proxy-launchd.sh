@@ -72,7 +72,7 @@ install_agent() {
   auto_ready="$(canonical_auto_ready)" || return $?
   stamp="$(date +%Y%m%d-%H%M%S)-$$"
   router_files=(
-    multi-backend-router.sh classify-task.sh routing-policy.ts
+    multi-backend-router.sh classify-task.sh classify-task.ts task-classification.ts phase-resolution.ts routing-contract-cli.ts routing-policy.ts
     omniroute-portfolios.ts omniroute-portfolios.json
     omniroute-promotion.ts omniroute-promotion.schema.json
   )

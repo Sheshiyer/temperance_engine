@@ -17,7 +17,7 @@ Product bump reflecting the local runtime's v5.4 Five of Swords state. All noted
 ### Added (day of 2026-08-26)
 
 - **Plugin Contract v1** (v14 · XIV Temperance) — 7 alchemical phase agents at `~/.claude/agents/{Observe,Think,Plan,Build,Execute,Verify,Learn}.md`. Structural depth cap · Panch Kosha layer declaration · distribution rule · fail-open receipts.
-- **45 cluster orchestrator agents** (v14.1 · Ace of Wands) at `~/.claude/agents/clusters/*Orchestrator.md`, sourced from `/Volumes/madara/2026/Projects/thoughtseed/skill-clusters/` SKILL.md hubs.
+- **45 cluster orchestrator agents** (v14.1 · Ace of Wands) at `~/.claude/agents/clusters/*Orchestrator.md`, sourced from repository-managed SKILL.md hubs.
 - **Alchemy stage-hub map v3** + dispatch advisory (v14.2 · Two of Wands).
 - **SPRD-03 combo-diversity fix** (v14.3 · Three of Wands) — `resolveCapabilityField()` connection-prefix fallback in `router/truth-contract.ts`. 27/27 tests pass.
 - **v5 canonical banner + surface unification** (v17.0 · XVII The Star) — Header + Kosha Spine × 3 + Timeline + Adaptive Island layout. Speculum browser UI stays as opt-in visualization (dual-surface contract).

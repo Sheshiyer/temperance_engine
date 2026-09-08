@@ -37,6 +37,49 @@ run_install() {
     sh "$REPO_ROOT/install.sh" "$@" )
 }
 
+# GSD core remains an external dependency.  The real installer deliberately
+# refuses to generate wrappers until every mapped upstream workflow exists.
+# Seed only disposable, source-derived fixture files so this full-surface test
+# proves the install path without reading a developer's real GSD checkout.
+seed_gsd_workflows() {
+  root="$1"
+  REPO_ROOT="$REPO_ROOT" \
+    WORKFLOW_ROOT="$root/.claude/get-shit-done/workflows" \
+    node -e '
+      const { mkdirSync, readFileSync, writeFileSync } = require("node:fs");
+      const { join } = require("node:path");
+      const map = JSON.parse(readFileSync(join(process.env.REPO_ROOT, "package/router/gsd-rail-map.json"), "utf8"));
+      const special = new Set(["goal", "loop", "doctor", "research-phase", "workstreams"]);
+      const root = process.env.WORKFLOW_ROOT;
+      mkdirSync(root, { recursive: true });
+      for (const name of Object.keys(map.commands)) {
+        if (special.has(name)) continue;
+        if (!/^[a-z0-9-]+$/.test(name)) throw new Error(`unsafe fixture workflow name: ${name}`);
+        writeFileSync(join(root, `${name}.md`), `# Synthetic external GSD workflow fixture: ${name}\n`);
+      }
+    '
+}
+
+# Keep the production boundary explicit: the wrapper installer must leave an
+# empty external GSD root untouched instead of generating a partial surface.
+GSD_PRECHECK_ROOT="$SANDBOX/gsd-precheck"
+mkdir -p "$GSD_PRECHECK_ROOT"
+if HOME="$GSD_PRECHECK_ROOT" node "$REPO_ROOT/package/router/gsd-command-install.mjs" --apply \
+     >"$SANDBOX/gsd-precheck.log" 2>&1; then
+  bad "GSD wrapper installer accepted missing external workflows"
+elif grep -q '^surface_workflow_missing: ' "$SANDBOX/gsd-precheck.log" \
+     && [ ! -e "$GSD_PRECHECK_ROOT/.codex/prompts" ]; then
+  ok "GSD wrapper installer fails closed before destination writes"
+else
+  bad "GSD wrapper installer missing-workflow boundary changed"
+fi
+
+if seed_gsd_workflows "$INSTALL_ROOT"; then
+  ok "external GSD workflow fixture seeded from rail map"
+else
+  bad "external GSD workflow fixture could not be seeded"
+fi
+
 # --- Assertion 1: file landing after a real full install ---
 if run_install "$INSTALL_ROOT" --skip-voice --with-claude --with-codex --with-gsd \
      >"$SANDBOX/install1.log" 2>&1; then

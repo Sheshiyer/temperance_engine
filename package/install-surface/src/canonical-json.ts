@@ -32,10 +32,18 @@ export function normalizeCanonical(value: unknown): unknown {
   const entries = Object.entries(value as Record<string, unknown>)
     .map(([key, item]) => [key.normalize("NFC"), item] as const)
     .sort(([left], [right]) => keyOrder(left, right));
-  const output: Record<string, unknown> = {};
+  // Canonical payloads may contain reviewed file maps. A normal object would
+  // invoke Object.prototype's __proto__ setter and silently lose that leaf.
+  // A null-prototype object preserves every own JSON key deterministically.
+  const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
   for (const [key, item] of entries) {
     if (Object.hasOwn(output, key)) throw new TypeError("CANONICAL_KEY_COLLISION");
-    output[key] = normalizeCanonical(item);
+    Object.defineProperty(output, key, {
+      value: normalizeCanonical(item),
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
   }
   return output;
 }

@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-08-19)
 Phase: 1 of 7 (Provenance Contract and Read-Only Control Plane)
 Plan: 3 of 3 complete
 Status: Phase 1 complete; Phase 2 requires discuss/plan before execution
-Last activity: 2026-08-20 — 38 focused tests pass; canonical private-path baseline remains visible for Phase 2
+Last activity: 2026-09-07 — RO-02 source-only byte-parity copies completed after RO-01. Adapter, bridge admission, isolated install, host integration and consumer work remain separate gates. Prior phase evidence remains below.
 
 Progress: [██████████] 100%
 
@@ -64,6 +64,24 @@ None yet.
 
 - Phase 2 must close the existing `verify.sh` private-path guard failure through source convergence, not broad suppression.
 - Phase 4/6 planning must prove meaningful LaunchAgent lifecycle control on both blocking macOS architectures or define an equivalent clean ephemeral Mac gate.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|---|---|---|---|---|
+| 260907-9ps | Product routing-observation receipt architecture and source-provenance packet | 2026-09-07 | See quick-directory Git history | Documentation complete; RO-01 later began from this packet | [260907-9ps](./quick/260907-9ps-plan-product-routing-observation-receipt/) |
+| 260907-esb | Pure TypeScript routing-observation receipt contract | 2026-09-07 | See quick-directory Git history | Source-only RO-01 complete; later routing-observation slices remain gated | [260907-esb](./quick/260907-esb-implement-routing-observation-receipt-contract/) |
+| 260907-fdy | Deterministic routing-observation contract parity | 2026-09-07 | See quick-directory Git history | Source-only RO-02 complete; adapter and bridge work remain gated | [260907-fdy](./quick/260907-fdy-sync-routing-observation-contract/) |
+| 260907-fxk-ro03 | Pure typed routing-observation adapter | 2026-09-07 | 201ea72 | Source-only RO-03 complete; independent Astra review passed | [260907-fxk-ro03](./quick/260907-fxk-implement-pure-routing-observation-adapter/) |
+| 260907-fxk-ro04 | Strict routing-observation Manifest admission and replay | 2026-09-07 | 61231de | Source-only RO-04 complete; independent Astra review passed | [260907-fxk-ro04](./quick/260907-fxk-implement-routing-observation-manifest-admission/) |
+| 260907-rrx | Installed routing-observation graph and replay proof | 2026-09-07 | a40ee6e | Bounded temporary-layout RO-05 proof complete; independent Astra review passed | [260907-rrx](./quick/260907-rrx-verify-installed-routing-observation/) |
+| 260907-s0q | Pinned installer parity and guarded installed CLI proof | 2026-09-07 | bf263d6, 50029f5 | RO-06 source verification complete; reviews passed; host/service gates remain held | [260907-s0q](./quick/260907-s0q-verify-routing-observation-installer-sou/) |
+
+These quick tasks retain the reviewed source packet, bounded RO-01 contract
+implementation, RO-02 repository-copy parity, RO-03 pure adapter, RO-04 admission
+and the bounded RO-05 temporary installation proof. Public Temperance Glove
+milestone phase acceptance, existing pending gates, runtime state and execution
+authority are unchanged.
 
 ## Deferred Items
 

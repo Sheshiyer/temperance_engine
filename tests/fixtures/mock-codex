@@ -1,13 +1,31 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+all_args=("$@")
+args_text=" $* "
+output_last_message=""
+while (( $# )); do
+  case "$1" in
+    -o|--output-last-message)
+      [[ $# -ge 2 ]] || exit 64
+      output_last_message="$2"
+      shift 2
+      ;;
+    *) shift ;;
+  esac
+done
+
 printf 'MOCK_CODEX_ARGS_START\n'
-printf '%s\n' "$@"
+printf '%s\n' "${all_args[@]}"
 printf 'MOCK_CODEX_ARGS_END\n'
 printf 'MOCK_CODEX_CORRELATION=%s\n' "${TEMPERANCE_CORRELATION_ID:-}"
 
-case " ${*} " in
+case "$args_text" in
   *" FAIL_OMNIROUTE "*) exit 17 ;;
 esac
+
+if [[ -n "$output_last_message" ]]; then
+  printf '%s\n' 'Completed mock Codex task.' > "$output_last_message"
+fi
 
 exit 0

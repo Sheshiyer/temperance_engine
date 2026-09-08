@@ -1,51 +1,270 @@
 {
   "schema": "temperance.install-surface.fragment.v1",
   "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
-  "version": { "major": 1, "minor": 0 },
+  "version": {
+    "major": 1,
+    "minor": 0
+  },
   "records": [
     {
       "id": "hooks.codex.prompt-processing",
       "owner": "temperance-engine",
       "class": "COPY",
       "source": "package/hooks/codex/PromptProcessing.hook.ts",
-      "destination": { "root_token": "CODEX_HOME", "relative_path": "hooks/PromptProcessing.hook.ts", "ownership": { "kind": "exclusive-path" } },
-      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
-      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "destination": {
+        "root_token": "CODEX_HOME",
+        "relative_path": "hooks/PromptProcessing.hook.ts",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "depends_on": [
+        "hooks.codex.gsd-command",
+        "hooks.codex.manifest-mode-commit",
+        "hooks.codex.temperance-rail-announce"
+      ],
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:8b00793b312249665874c1483db48cd4977988545fd75ac4ebd38a5c75936507",
+          "mode": "0755"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     },
     {
       "id": "hooks.codex.gsd-command",
       "owner": "temperance-engine",
       "class": "COPY",
-      "source": "package/hooks/codex/GSDCommand.hook.ts",
-      "destination": { "root_token": "CODEX_HOME", "relative_path": "hooks/GSDCommand.hook.ts", "ownership": { "kind": "exclusive-path" } },
-      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
-      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "source": "package/hooks/codex/GsdCommand.hook.ts",
+      "destination": {
+        "root_token": "CODEX_HOME",
+        "relative_path": "hooks/GsdCommand.hook.ts",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "depends_on": [
+        "hooks.codex.manifest-mode-commit"
+      ],
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:a895d515238214d73f998d87bfa3c4f7e4286221594b39f79257aa7d2bb246eb",
+          "mode": "0755"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     },
     {
       "id": "hooks.codex.session-start",
       "owner": "temperance-engine",
       "class": "COPY",
-      "source": "package/hooks/codex/SessionStart.hook.ts",
-      "destination": { "root_token": "CODEX_HOME", "relative_path": "hooks/SessionStart.hook.ts", "ownership": { "kind": "exclusive-path" } },
-      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
-      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "source": "package/hooks/codex/SessionStartTe.hook.ts",
+      "destination": {
+        "root_token": "CODEX_HOME",
+        "relative_path": "hooks/SessionStartTe.hook.ts",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:60cf28e11332016b55e9e135c5278dbf46d7b2b9083734e779459718864c82d5",
+          "mode": "0755"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
+    },
+    {
+      "id": "hooks.codex.manifest-mode-commit",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/ManifestModeCommit.hook.ts",
+      "destination": {
+        "root_token": "CODEX_HOME",
+        "relative_path": "hooks/ManifestModeCommit.hook.ts",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:d1c6ee8867240f10bd9e662af5b28bf4dddec4aadd9a7c4dac5bf5d342aea39d",
+          "mode": "0755"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
+    },
+    {
+      "id": "hooks.codex.temperance-rail-announce",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/TemperanceRailAnnounce.hook.ts",
+      "destination": {
+        "root_token": "CODEX_HOME",
+        "relative_path": "hooks/TemperanceRailAnnounce.hook.ts",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:046f21838b532847e8f67217f1be5eb1b6c6bfe24c15df0bfcad947b38d51555",
+          "mode": "0755"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     },
     {
       "id": "hooks.claude.prompt-processing",
       "owner": "temperance-engine",
       "class": "COPY",
       "source": "package/hooks/claude/PromptProcessing.hook.ts",
-      "destination": { "root_token": "CLAUDE_CONFIG_DIR", "relative_path": "hooks/PromptProcessing.hook.ts", "ownership": { "kind": "exclusive-path" } },
-      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
-      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "destination": {
+        "root_token": "CLAUDE_CONFIG_DIR",
+        "relative_path": "hooks/PromptProcessing.hook.ts",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:9dc835cdf59ce54732d8f769082dc0d9bcf3f999bf659be8074fb814980d5b0a",
+          "mode": "0644"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     }
   ]
 }

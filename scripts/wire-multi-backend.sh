@@ -457,7 +457,7 @@ revert() {
   [[ -L "$HOME/.local/bin/temperance-manifest" ]] && rm -f "$HOME/.local/bin/temperance-manifest" && log "Removed: ~/.local/bin/temperance-manifest"
   [[ -L "$HOME/.local/bin/temperance-opencode" ]] && rm -f "$HOME/.local/bin/temperance-opencode" && log "Removed: ~/.local/bin/temperance-opencode"
   [[ -L "$HOME/.local/bin/temperance-claude" ]] && rm -f "$HOME/.local/bin/temperance-claude" && log "Removed: ~/.local/bin/temperance-claude"
-  for router_file in classify-task.sh omniroute-portfolios.ts omniroute-portfolios.json; do
+  for router_file in classify-task.sh classify-task.ts task-classification.ts phase-resolution.ts routing-contract-cli.ts omniroute-portfolios.ts omniroute-portfolios.json; do
     [[ -L "$HOME/.claude/PAI/router/$router_file" ]] && rm -f "$HOME/.claude/PAI/router/$router_file" && log "Removed: ~/.claude/PAI/router/$router_file"
   done
   [[ -L "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh" ]] && rm -f "$HOME/.config/opencode/hooks/PromptProcessing.hook.sh" && log "Removed: OpenCode hook symlink"
@@ -502,7 +502,7 @@ install() {
   # enrichment hook (enrich/stages/routing.ts) resolves its
   # ../../router/classify-task.sh sibling instead of failing open to
   # task=balanced. (routing.ts also honors TEMPERANCE_ROUTER_DIR as an override.)
-  for router_file in classify-task.sh omniroute-portfolios.ts omniroute-portfolios.json; do
+  for router_file in classify-task.sh classify-task.ts task-classification.ts phase-resolution.ts routing-contract-cli.ts omniroute-portfolios.ts omniroute-portfolios.json; do
     symlink "$REPO_ROOT/package/router/$router_file" "$HOME/.claude/PAI/router/$router_file"
   done
   
