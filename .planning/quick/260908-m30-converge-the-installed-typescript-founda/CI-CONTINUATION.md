@@ -35,3 +35,5 @@ README continuity run34234011717 also correctly detected the changelog redaction
 The existing README generator emitted an unsupported `datatable` fence above20 rows and always labeled its command as a new NotebookLM pipeline run. Correct the source generator to retain the complete Markdown table and report the actual skip-regeneration command; preserve the JSON sidecar and source column.
 
 Clean-checkout run34234384883 now passes the installer suite and reaches signed-probe policy checks, where the spawned `rg` command is unavailable on the runner. Declare ripgrep beside jq in CI; preserve the policy assertions. README continuity passed atd7c7678.
+
+Run34234898934 reaches the Claude launcher suite, whose last four checks still inspect profiles in the operator's real home. Make the test use four disposable tokenless profiles and pass that home only to mocked launcher invocations. Assert their bytes stay identical and no canary persists. This preserves token non-persistence verification without certifying or reading installed profiles.
