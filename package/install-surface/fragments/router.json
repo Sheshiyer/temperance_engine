@@ -36,6 +36,9 @@
         ],
         "required": true
       },
+      "depends_on": [
+        "router.gsd-backup-helper"
+      ],
       "verification": {
         "method": "sha256",
         "expected": {
@@ -181,6 +184,80 @@
             "temperance-workflows.ts": "0644"
           }
         }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
+    },
+    {
+      "id": "router.enrichment-runtime-dependency",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/router/task-classification.ts",
+      "destination": {
+        "root_token": "TEMPERANCE_STATE",
+        "relative_path": "runtime/router/task-classification.ts",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "verification": {
+        "method": "sha256"
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
+    },
+    {
+      "id": "router.gsd-backup-helper",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/bin/te-backup-if-changed",
+      "destination": {
+        "root_token": "TEMPERANCE_STATE",
+        "relative_path": "bin/te-backup-if-changed",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "verification": {
+        "method": "sha256"
       },
       "rollback": {
         "policy": "restore-backup"

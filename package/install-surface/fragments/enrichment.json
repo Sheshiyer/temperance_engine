@@ -36,6 +36,9 @@
         ],
         "required": true
       },
+      "depends_on": [
+        "router.enrichment-runtime-dependency"
+      ],
       "verification": {
         "method": "sha256",
         "expected": {

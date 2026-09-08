@@ -1,3 +1,4 @@
+import { classifyTask } from '../../router/task-classification';
 // package/enrich/stages/routing.ts -- SP0 enrichment stage (owner: unit-routing).
 // Emits: "routing: backends=<list> | task=<type> | portfolio=<name> | preferred=<backend>:<model> | skill=temperance-parallel-dispatch"
 // The trailing "| skill=..." segment is only appended when backends are available
@@ -12,25 +13,6 @@ import { homedir } from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/** Resolve the shared classifier script (package/router/classify-task.sh).
- *  The sibling-relative path holds when enrich runs from the repo OR from an
- *  install that co-locates `router/` next to `enrich/`. When enrich is installed
- *  somewhere that does NOT co-locate the router (e.g. ~/.claude/PAI/enrich with no
- *  sibling router/), set TEMPERANCE_ROUTER_DIR to the dir containing
- *  classify-task.sh. First existing candidate wins; if none exists we return the
- *  sibling path anyway so execFileSync fails cleanly into the fail-open default. */
-function resolveClassifyScript(): string {
-  const candidates: string[] = [];
-  const envDir = process.env.TEMPERANCE_ROUTER_DIR;
-  if (envDir) candidates.push(join(envDir, 'classify-task.sh'));
-  candidates.push(join(__dirname, '..', '..', 'router', 'classify-task.sh'));
-  candidates.push(join(homedir(), '.temperance_engine', 'router', 'classify-task.sh'));
-  for (const c of candidates) {
-    if (existsSync(c)) return c;
-  }
-  return candidates[candidates.length - 1];
-}
 
 /** Resolve the pure task-type -> OmniRoute portfolio resolver.  This is kept
  * as a subprocess boundary so an installed enrichment tree can remain
@@ -82,14 +64,15 @@ const SKILL_POINTER = 'temperance-parallel-dispatch';
 /** Defer task-type + preferred model to the single source of truth
  *  (package/router/classify-task.sh). Fail-open to balanced on any error. */
 function classifyViaShared(prompt: string): { taskType: string; preferred: string } {
-  try {
-    const out = execFileSync(resolveClassifyScript(), [prompt], { encoding: 'utf8' }).trim();
-    const [taskType, preferred] = out.split('\t');
-    if (taskType && preferred) return { taskType, preferred };
-  } catch {
-    /* fall through to fail-open default */
+  const override = process.env.TEMPERANCE_ROUTER_DIR;
+  if (override) {
+    try {
+      const out = execFileSync(join(override, 'classify-task.sh'), [prompt], { encoding: 'utf8', timeout: 1500 }).trim();
+      const [taskType, preferred] = out.split('\t');
+      if (taskType && preferred) return { taskType, preferred };
+    } catch { /* Optional external adapter unavailable; canonical policy remains local. */ }
   }
-  return { taskType: 'balanced', preferred: 'command-code:claude-sonnet-5' };
+  return classifyTask(prompt);
 }
 
 function portfolioViaShared(taskType: string): { requested: string; source: string } {
@@ -119,7 +102,9 @@ export const routing: Stage = (ctx) => {
     }
     const prompt = ctx.input?.prompt || '';
     const { taskType, preferred } = classifyViaShared(prompt);
-    const portfolio = portfolioViaShared(taskType);
+    const portfolio = preferred.startsWith('combo:noesis-')
+      ? { requested: preferred.slice('combo:'.length), source: 'classifier' }
+      : portfolioViaShared(taskType);
     return {
       line: `routing: backends=${backends.join(',')} | task=${taskType} | portfolio=${portfolio.requested} | portfolio_source=${portfolio.source} | preferred=${preferred} | skill=${SKILL_POINTER}`,
       degraded: false,
