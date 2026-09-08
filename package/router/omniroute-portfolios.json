@@ -1,16 +1,16 @@
 {
   "version": 1,
   "compatibility_model": "temperance-coding",
-  "required_portfolios": ["te-algorithm", "te-fast", "te-build", "te-reason", "te-validate", "te-creative"],
+  "required_portfolios": ["noesis-full", "noesis-fast", "noesis-build", "noesis-observe", "noesis-verify", "noesis-creative"],
   "task_type_portfolios": {
-    "fast": "te-fast",
-    "long-horizon": "te-build",
-    "reasoning": "te-reason",
-    "validation": "te-validate",
-    "creative": "te-creative",
-    "balanced": "te-build"
+    "fast": "noesis-fast",
+    "long-horizon": "noesis-build",
+    "reasoning": "noesis-observe",
+    "validation": "noesis-verify",
+    "creative": "noesis-creative",
+    "balanced": "noesis-fast"
   },
-  "reserved_portfolios": ["te-batch", "te-vision", "te-write", "te-write-critique", "te-write-research", "te-write-media", "te-orchestrate", "te-free-burst", "te-review", "te-swarm-s"],
+  "reserved_portfolios": ["noesis-swarm", "noesis-vision", "noesis-write", "noesis-write-critique", "noesis-research", "noesis-media", "noesis-full", "noesis-free-burst", "noesis-review"],
   "fallback_policy": "package/router/omniroute-fallback-policy.json",
   "enforcement": "shadow"
 }

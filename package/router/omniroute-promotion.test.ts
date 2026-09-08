@@ -14,7 +14,7 @@ const VALIDATION_OPTIONS = { nowMs: NOW, signing_key: SIGNING_KEY, runtime_versi
 function receipt(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   const unsigned = {
     schema_version: 1,
-    portfolio: "te-fast",
+    portfolio: "noesis-fast",
     suite_id: "suite-fast-v1",
     run_id: "run-20260722-001",
     run_status: "completed",
@@ -49,7 +49,7 @@ describe("validatePromotionReceipt", () => {
   test("rejects absent, malformed, and wrong-portfolio receipts", () => {
     expect(validatePromotionReceipt(null, VALIDATION_OPTIONS).authorized).toBe(false);
     expect(validatePromotionReceipt({ schema_version: 1 }, VALIDATION_OPTIONS).authorized).toBe(false);
-    expect(validatePromotionReceipt(receipt({ portfolio: "te-build" }), VALIDATION_OPTIONS).reasons).toContain(
+    expect(validatePromotionReceipt(receipt({ portfolio: "noesis-build" }), VALIDATION_OPTIONS).reasons).toContain(
       "portfolio-not-allowlisted",
     );
   });

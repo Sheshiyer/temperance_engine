@@ -35,8 +35,8 @@ check "configured portfolio count is reported" "5" \
   "$(jq -r '.catalog.configured_portfolios | length' <<< "$ready")"
 check "available portfolio count is reported" "2" \
   "$(jq -r '.catalog.available_portfolios | length' <<< "$ready")"
-check "missing portfolio includes te-build" "true" \
-  "$(jq -r '.catalog.missing_portfolios | index("te-build") != null' <<< "$ready")"
+check "missing portfolio includes noesis-build" "true" \
+  "$(jq -r '.catalog.missing_portfolios | index("noesis-build") != null' <<< "$ready")"
 check "telemetry evidence is reported" "true" \
   "$(jq -r '.telemetry.available' <<< "$ready")"
 check "telemetry request count is reported" "12" \
