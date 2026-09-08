@@ -1,0 +1,1290 @@
+{
+  "schema": "temperance.alchemy-stage-hub-map.v3",
+  "doctrine": "noesis-6.3.0",
+  "stages": [
+    "♄ OBSERVE",
+    "☿ THINK",
+    "☉ PLAN",
+    "♃ BUILD",
+    "♂ EXECUTE",
+    "♀ VERIFY",
+    "☽ LEARN"
+  ],
+  "combo_map_version": "2026-08-29-coordinator-contract",
+  "coordinator_lane": "noesis-orchestrator",
+  "skill_index_pointer": "~/.agents/skill-clusters/skill-index.json",
+  "plugin_contract_ref": ".planning/PLAN-alchemical-phase-agents-plugin-first-2026-08-26.md",
+  "cluster_agents": {
+    "kind": "plugin-contract-v1",
+    "count": 45,
+    "kosha_distribution": {
+      "PRANAMAYA": 4,
+      "VIJNANAMAYA": 24,
+      "ANNAMAYA": 6,
+      "MANOMAYA": 8,
+      "ANANDAMAYA": 3
+    },
+    "convention": "One custom agent per cluster orchestrator; structural depth bound (maxTurns=2, disallowedTools contains Task); spoke selection owned by agent, not parent.",
+    "invocation": "Task(subagent_type=\"<Name>\", prompt=\"...\")",
+    "agents": {
+      "AgenticOps": {
+        "cluster": "agentic-ops",
+        "path": "~/.claude/agents/clusters/AgenticOpsOrchestrator.md",
+        "kosha": "PRANAMAYA",
+        "layer": "vital",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/agentic-ops-orchestrator/SKILL.md"
+      },
+      "AiAgentsMeta": {
+        "cluster": "ai-agents-meta",
+        "path": "~/.claude/agents/clusters/AiAgentsMetaOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/mvp-roadmap-orchestrator/SKILL.md",
+        "sibling_orchestrators": [
+          "arch-orchestrator",
+          "mvp-roadmap-orchestrator"
+        ]
+      },
+      "Astro": {
+        "cluster": "astro",
+        "path": "~/.claude/agents/clusters/AstroOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/astro-orchestrator/SKILL.md"
+      },
+      "BackendArchitecture": {
+        "cluster": "backend-architecture",
+        "path": "~/.claude/agents/clusters/BackendArchitectureOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/backend-architecture-orchestrator/SKILL.md"
+      },
+      "BlockchainWeb3": {
+        "cluster": "blockchain-web3",
+        "path": "~/.claude/agents/clusters/BlockchainWeb3Orchestrator.md",
+        "kosha": "ANNAMAYA",
+        "layer": "physical",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/blockchain-web3-orchestrator/SKILL.md"
+      },
+      "BrowserAutomation": {
+        "cluster": "browser-automation",
+        "path": "~/.claude/agents/clusters/BrowserAutomationOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/browser-automation-orchestrator/SKILL.md"
+      },
+      "BusinessContent": {
+        "cluster": "business-content",
+        "path": "~/.claude/agents/clusters/BusinessContentOrchestrator.md",
+        "kosha": "MANOMAYA",
+        "layer": "memory",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/business-content-orchestrator/SKILL.md"
+      },
+      "Cli": {
+        "cluster": "cli",
+        "path": "~/.claude/agents/clusters/CliOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/cli-orchestrator/SKILL.md"
+      },
+      "Cloudflare": {
+        "cluster": "cloudflare",
+        "path": "~/.claude/agents/clusters/CloudflareOrchestrator.md",
+        "kosha": "ANNAMAYA",
+        "layer": "physical",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/cloudflare-orchestrator/SKILL.md"
+      },
+      "Conductor": {
+        "cluster": "conductor",
+        "path": "~/.claude/agents/clusters/ConductorOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/conductor-orchestrator/SKILL.md"
+      },
+      "CreativeFrontend": {
+        "cluster": "creative-frontend",
+        "path": "~/.claude/agents/clusters/CreativeFrontendOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/creative-frontend-orchestrator/SKILL.md"
+      },
+      "DatabasesData": {
+        "cluster": "databases-data",
+        "path": "~/.claude/agents/clusters/DatabasesDataOrchestrator.md",
+        "kosha": "ANNAMAYA",
+        "layer": "physical",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/databases-data-orchestrator/SKILL.md"
+      },
+      "Design": {
+        "cluster": "design",
+        "path": "~/.claude/agents/clusters/DesignOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/design-orchestrator/SKILL.md"
+      },
+      "DevopsInfra": {
+        "cluster": "devops-infra",
+        "path": "~/.claude/agents/clusters/DevopsInfraOrchestrator.md",
+        "kosha": "ANNAMAYA",
+        "layer": "physical",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/devops-infra-orchestrator/SKILL.md"
+      },
+      "Documents": {
+        "cluster": "documents",
+        "path": "~/.claude/agents/clusters/DocumentsOrchestrator.md",
+        "kosha": "MANOMAYA",
+        "layer": "memory",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/documents-orchestrator/SKILL.md"
+      },
+      "Electron": {
+        "cluster": "electron",
+        "path": "~/.claude/agents/clusters/ElectronOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/electron-orchestrator/SKILL.md"
+      },
+      "ExpleeMaster": {
+        "cluster": "explee-master",
+        "path": "~/.claude/agents/clusters/ExpleeMasterOrchestrator.md",
+        "kosha": "ANANDAMAYA",
+        "layer": "purpose",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/explee-master-orchestrator/SKILL.md"
+      },
+      "Expo": {
+        "cluster": "expo",
+        "path": "~/.claude/agents/clusters/ExpoOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/expo-orchestrator/SKILL.md"
+      },
+      "ExtraLanguages": {
+        "cluster": "extra-languages",
+        "path": "~/.claude/agents/clusters/ExtraLanguagesOrchestrator.md",
+        "kosha": "ANANDAMAYA",
+        "layer": "purpose",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/extra-languages-orchestrator/SKILL.md"
+      },
+      "FrontendWeb": {
+        "cluster": "frontend-web",
+        "path": "~/.claude/agents/clusters/FrontendWebOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/frontend-web-orchestrator/SKILL.md"
+      },
+      "GitPrOps": {
+        "cluster": "git-pr-ops",
+        "path": "~/.claude/agents/clusters/GitPrOpsOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/github-next-wave-orchestrator/SKILL.md",
+        "sibling_orchestrators": [
+          "github-next-wave-orchestrator"
+        ]
+      },
+      "GrowthContent": {
+        "cluster": "growth-content",
+        "path": "~/.claude/agents/clusters/GrowthContentOrchestrator.md",
+        "kosha": "MANOMAYA",
+        "layer": "memory",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/growth-content-orchestrator/SKILL.md"
+      },
+      "GrowthSalesCro": {
+        "cluster": "growth-sales-cro",
+        "path": "~/.claude/agents/clusters/GrowthSalesCroOrchestrator.md",
+        "kosha": "MANOMAYA",
+        "layer": "memory",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/growth-sales-cro-orchestrator/SKILL.md"
+      },
+      "GrowthSeo": {
+        "cluster": "growth-seo",
+        "path": "~/.claude/agents/clusters/GrowthSeoOrchestrator.md",
+        "kosha": "MANOMAYA",
+        "layer": "memory",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/growth-seo-orchestrator/SKILL.md"
+      },
+      "Healthcare": {
+        "cluster": "healthcare",
+        "path": "~/.claude/agents/clusters/HealthcareOrchestrator.md",
+        "kosha": "PRANAMAYA",
+        "layer": "vital",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/healthcare-orchestrator/SKILL.md"
+      },
+      "Jvm": {
+        "cluster": "jvm",
+        "path": "~/.claude/agents/clusters/JvmOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/jvm-orchestrator/SKILL.md"
+      },
+      "MediaGen": {
+        "cluster": "media-gen",
+        "path": "~/.claude/agents/clusters/MediaGenOrchestrator.md",
+        "kosha": "ANANDAMAYA",
+        "layer": "purpose",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/media-gen-orchestrator/SKILL.md"
+      },
+      "MobileFlutter": {
+        "cluster": "mobile-flutter",
+        "path": "~/.claude/agents/clusters/MobileFlutterOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/mobile-flutter-orchestrator/SKILL.md"
+      },
+      "NativeIos": {
+        "cluster": "native-ios",
+        "path": "~/.claude/agents/clusters/NativeIosOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/native-ios-orchestrator/SKILL.md"
+      },
+      "PhpLaravel": {
+        "cluster": "php-laravel",
+        "path": "~/.claude/agents/clusters/PhpLaravelOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/php-laravel-orchestrator/SKILL.md"
+      },
+      "ProductGuides": {
+        "cluster": "product-guides",
+        "path": "~/.claude/agents/clusters/ProductGuidesOrchestrator.md",
+        "kosha": "MANOMAYA",
+        "layer": "memory",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/product-guides-orchestrator/SKILL.md"
+      },
+      "PythonBackend": {
+        "cluster": "python-backend",
+        "path": "~/.claude/agents/clusters/PythonBackendOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/python-backend-orchestrator/SKILL.md"
+      },
+      "QualityEval": {
+        "cluster": "quality-eval",
+        "path": "~/.claude/agents/clusters/QualityEvalOrchestrator.md",
+        "kosha": "PRANAMAYA",
+        "layer": "vital",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/quality-eval-orchestrator/SKILL.md"
+      },
+      "Raycast": {
+        "cluster": "raycast",
+        "path": "~/.claude/agents/clusters/RaycastOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/raycast-orchestrator/SKILL.md"
+      },
+      "ReactNative": {
+        "cluster": "react-native",
+        "path": "~/.claude/agents/clusters/ReactNativeOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/react-native-orchestrator/SKILL.md"
+      },
+      "ResearchKnowledge": {
+        "cluster": "research-knowledge",
+        "path": "~/.claude/agents/clusters/ResearchKnowledgeOrchestrator.md",
+        "kosha": "MANOMAYA",
+        "layer": "memory",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/research-knowledge-orchestrator/SKILL.md"
+      },
+      "Rust": {
+        "cluster": "rust",
+        "path": "~/.claude/agents/clusters/RustOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/rust-orchestrator/SKILL.md"
+      },
+      "Security": {
+        "cluster": "security",
+        "path": "~/.claude/agents/clusters/SecurityOrchestrator.md",
+        "kosha": "PRANAMAYA",
+        "layer": "vital",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/security-orchestrator/SKILL.md"
+      },
+      "Selemene": {
+        "cluster": "selemene",
+        "path": "~/.claude/agents/clusters/SelemeneOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/selemene-orchestrator/SKILL.md"
+      },
+      "SocialMedia": {
+        "cluster": "social-media",
+        "path": "~/.claude/agents/clusters/SocialMediaOrchestrator.md",
+        "kosha": "MANOMAYA",
+        "layer": "memory",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/social-media-orchestrator/SKILL.md",
+        "sibling_orchestrators": [
+          "social-intake-orchestrator"
+        ]
+      },
+      "Supabase": {
+        "cluster": "supabase",
+        "path": "~/.claude/agents/clusters/SupabaseOrchestrator.md",
+        "kosha": "ANNAMAYA",
+        "layer": "physical",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/supabase-orchestrator/SKILL.md"
+      },
+      "Superset": {
+        "cluster": "superset",
+        "path": "~/.claude/agents/clusters/SupersetOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/superset-orchestrator/SKILL.md"
+      },
+      "SupplyChain": {
+        "cluster": "supply-chain",
+        "path": "~/.claude/agents/clusters/SupplyChainOrchestrator.md",
+        "kosha": "ANNAMAYA",
+        "layer": "physical",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/supply-chain-orchestrator/SKILL.md"
+      },
+      "SystemsLanguages": {
+        "cluster": "systems-languages",
+        "path": "~/.claude/agents/clusters/SystemsLanguagesOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/systems-languages-orchestrator/SKILL.md"
+      },
+      "Tauri": {
+        "cluster": "tauri",
+        "path": "~/.claude/agents/clusters/TauriOrchestrator.md",
+        "kosha": "VIJNANAMAYA",
+        "layer": "intellect",
+        "model": "sonnet",
+        "maxTurns": 2,
+        "distribution": "task-fit",
+        "source_orchestrator": "~/.agents/skill-clusters/skills/tauri-orchestrator/SKILL.md"
+      }
+    },
+    "sibling_convention": "Some clusters bundle multiple *-orchestrator skills. The cluster agent is sourced from the primary one but can Read + follow any sibling orchestrator SKILL as a spoke within its single turn. Enumerated in sibling_orchestrators per-agent."
+  },
+  "stages_detail": {
+    "observe": {
+      "sigil": "♄",
+      "alchemy": "NIGREDO",
+      "combo": "noesis-observe",
+      "mode": "ALGORITHM",
+      "mcp_policy": {
+        "required": ["filesystem.read"],
+        "allowed": ["filesystem.read", "git.read", "research.web", "project.read"]
+      },
+      "primary_hubs": [
+        {
+          "name": "agentic-ops-orchestrator",
+          "cluster": "agentic-ops",
+          "tier": "active",
+          "why": "surface triage across 16 specialists (email, repo, tracker, billing, docs)"
+        },
+        {
+          "name": "research-knowledge-orchestrator",
+          "cluster": "research-knowledge",
+          "tier": "active",
+          "why": "current-web research, scholarly eval, codebase onboarding"
+        },
+        {
+          "name": "devops-infra-orchestrator",
+          "cluster": "devops-infra",
+          "tier": "active",
+          "why": "read-only-by-default container/compose/network diagnostics"
+        },
+        {
+          "name": "superset-orchestrator",
+          "cluster": "superset",
+          "tier": "active",
+          "why": "operator workspaces, fleet, Railway"
+        }
+      ],
+      "cores": [
+        "agentic-ops-core",
+        "research-knowledge-core",
+        "superset-core"
+      ],
+      "rationale": "OBSERVE is read-only; the right tool is one of three orchestrators that know how to scan a surface without mutating it.",
+      "agent": {
+        "name": "Observe",
+        "path": "~/.claude/agents/Observe.md",
+        "kosha": "MANOMAYA",
+        "maxTurns": 1
+      }
+    },
+    "think": {
+      "sigil": "☿",
+      "alchemy": "ALBEDO",
+      "combo": "noesis-observe",
+      "combo_alt": "noesis-council",
+      "mode": "ALGORITHM",
+      "mcp_policy": {
+        "required": ["filesystem.read"],
+        "allowed": ["filesystem.read", "git.read", "research.web", "project.read"]
+      },
+      "primary_hubs": [
+        {
+          "name": "ai-agents-meta-orchestrator",
+          "cluster": "ai-agents-meta",
+          "tier": "active",
+          "why": "agent engineering, prompt optimization, autonomy grant, eval gates"
+        },
+        {
+          "name": "conductor-orchestrator",
+          "cluster": "conductor",
+          "tier": "active",
+          "why": "closed spec→build→review loop"
+        },
+        {
+          "name": "research-knowledge-orchestrator",
+          "cluster": "research-knowledge",
+          "tier": "active",
+          "why": "multi-source synthesis"
+        },
+        {
+          "name": "design-orchestrator",
+          "cluster": "design",
+          "tier": "active",
+          "why": "research-first methodology (when think is about visual/UX)"
+        }
+      ],
+      "cores": [
+        "ai-agents-meta-core",
+        "conductor-core",
+        "research-knowledge-core"
+      ],
+      "rationale": "THINK is multi-angle exploration. ai-agents-meta owns meta reasoning; conductor owns closed-loop dispatch; research-knowledge owns synthesis.",
+      "agent": {
+        "name": "Think",
+        "path": "~/.claude/agents/Think.md",
+        "kosha": "VIJNANAMAYA",
+        "maxTurns": 3
+      }
+    },
+    "plan": {
+      "sigil": "☉",
+      "alchemy": "CITRINITAS",
+      "combo": "noesis-plan",
+      "mode": "ALGORITHM",
+      "mcp_policy": {
+        "required": ["filesystem.read", "git.read"],
+        "allowed": ["filesystem.read", "git.read", "research.web", "project.read", "github.read"]
+      },
+      "primary_hubs": [
+        {
+          "name": "ai-agents-meta-orchestrator",
+          "cluster": "ai-agents-meta",
+          "tier": "active",
+          "why": "multi-session build planning, agent chain decomposition"
+        },
+        {
+          "name": "superset-orchestrator",
+          "cluster": "superset",
+          "tier": "active",
+          "why": "workspace setup, fleet config, parallel coordination"
+        },
+        {
+          "name": "backend-architecture-orchestrator",
+          "cluster": "backend-architecture",
+          "tier": "active",
+          "why": "REST/HTTP/MCP design, hexagonal boundaries"
+        },
+        {
+          "name": "frontend-web-orchestrator",
+          "cluster": "frontend-web",
+          "tier": "active",
+          "why": "framework choice, build tooling, hydration boundary"
+        }
+      ],
+      "cores": [
+        "backend-architecture-core",
+        "frontend-web-core",
+        "ai-agents-meta-core"
+      ],
+      "rationale": "PLAN locks architecture decisions. Four orchestrators cover: agent plan, infra plan, backend plan, frontend plan.",
+      "agent": {
+        "name": "Plan",
+        "path": "~/.claude/agents/Plan.md",
+        "kosha": "VIJNANAMAYA",
+        "maxTurns": 5
+      }
+    },
+    "build": {
+      "sigil": "♃",
+      "alchemy": "CITRINITAS",
+      "combo": "noesis-build",
+      "mode": "ALGORITHM",
+      "mcp_policy": {
+        "required": ["filesystem.read", "filesystem.write", "git.read", "git.write"],
+        "allowed": ["filesystem.read", "filesystem.write", "git.read", "git.write", "browser.test", "project.read"]
+      },
+      "primary_hubs": [
+        {
+          "name": "backend-architecture-orchestrator",
+          "cluster": "backend-architecture",
+          "tier": "active",
+          "why": "NestJS/Hono/MCP spokes"
+        },
+        {
+          "name": "frontend-web-orchestrator",
+          "cluster": "frontend-web",
+          "tier": "active",
+          "why": "React/Next/Vue/Svelte spokes"
+        },
+        {
+          "name": "python-backend-orchestrator",
+          "cluster": "python-backend",
+          "tier": "active",
+          "why": "Django/FastAPI/ML spokes"
+        },
+        {
+          "name": "tauri-orchestrator",
+          "cluster": "tauri",
+          "tier": "active",
+          "why": "desktop & mobile Rust + web (40 spokes)"
+        },
+        {
+          "name": "supabase-orchestrator",
+          "cluster": "supabase",
+          "tier": "active",
+          "why": "DB+Auth+Storage+Realtime+Edge"
+        },
+        {
+          "name": "cloudflare-orchestrator",
+          "cluster": "cloudflare",
+          "tier": "active",
+          "why": "Workers/Pages/D1/R2/KV/DO"
+        },
+        {
+          "name": "databases-data-orchestrator",
+          "cluster": "databases-data",
+          "tier": "active",
+          "why": "Postgres/MySQL/Prisma/Redis/ClickHouse"
+        },
+        {
+          "name": "git-pr-ops-orchestrator",
+          "cluster": "git-pr-ops",
+          "tier": "active",
+          "why": "branch prep, push, PR creation"
+        }
+      ],
+      "cores": [
+        "backend-architecture-core",
+        "frontend-web-core",
+        "python-backend-core",
+        "git-pr-ops-core"
+      ],
+      "rationale": "BUILD is stack-specific. Hub selection is deterministic from project stack tags. Polyglot projects activate multiple hubs.",
+      "agent": {
+        "name": "Build",
+        "path": "~/.claude/agents/Build.md",
+        "kosha": "ANNAMAYA",
+        "maxTurns": 20
+      }
+    },
+    "execute": {
+      "sigil": "♂",
+      "alchemy": "RUBEDO",
+      "combo": "noesis-execute",
+      "mode": "ALGORITHM",
+      "mcp_policy": {
+        "required": ["filesystem.read", "filesystem.write", "git.read", "git.write", "supervisor.claim"],
+        "allowed": ["filesystem.read", "filesystem.write", "git.read", "git.write", "browser.test", "github.write", "supervisor.claim", "superset.terminal"]
+      },
+      "primary_hubs": [
+        {
+          "name": "superset-orchestrator",
+          "cluster": "superset",
+          "tier": "active",
+          "why": "workspace fleet, parallel agents, terminal control, worktrees"
+        },
+        {
+          "name": "superset-orchestrate",
+          "cluster": "superset",
+          "tier": "active",
+          "why": "coordinate multiple terminals"
+        },
+        {
+          "name": "superset-automate",
+          "cluster": "superset",
+          "tier": "active",
+          "why": "recurring agent schedule"
+        },
+        {
+          "name": "git-pr-ops-orchestrator",
+          "cluster": "git-pr-ops",
+          "tier": "active",
+          "why": "push + merge (force-with-lease, never auto-merge main)"
+        }
+      ],
+      "cores": [
+        "superset-core",
+        "git-pr-ops-core"
+      ],
+      "rationale": "EXECUTE is fleet dispatch. Superset cluster owns operator-side multi-agent coordination. Execute-lock: Superset + Claude, NOT Codex App.",
+      "agent": {
+        "name": "Execute",
+        "path": "~/.claude/agents/Execute.md",
+        "kosha": "PRANAMAYA",
+        "maxTurns": 30
+      }
+    },
+    "verify": {
+      "sigil": "♀",
+      "alchemy": "RUBEDO",
+      "combo": "noesis-verify",
+      "mode": "ALGORITHM",
+      "mcp_policy": {
+        "required": ["filesystem.read", "git.read"],
+        "allowed": ["filesystem.read", "git.read", "browser.test", "research.web", "security.scan", "project.read"]
+      },
+      "primary_hubs": [
+        {
+          "name": "quality-eval-orchestrator",
+          "cluster": "quality-eval",
+          "tier": "active",
+          "why": "eval-driven dev, TDD, head-to-head benchmarking, AI-regression"
+        },
+        {
+          "name": "browser-automation-orchestrator",
+          "cluster": "browser-automation",
+          "tier": "active",
+          "why": "Playwright debug-first, web+desktop UI verification"
+        },
+        {
+          "name": "security-orchestrator",
+          "cluster": "security",
+          "tier": "active",
+          "why": "defensive code review, agent-config audit, source-asset scan"
+        },
+        {
+          "name": "conductor-orchestrator",
+          "cluster": "conductor",
+          "tier": "active",
+          "why": "review stage of the closed loop"
+        }
+      ],
+      "cores": [
+        "quality-eval-core",
+        "browser-automation-core",
+        "security-core",
+        "conductor-core"
+      ],
+      "rationale": "VERIFY is the proof stage. quality-eval owns test/eval methodology; browser-automation owns end-to-end UI; security owns trust-boundary checks.",
+      "agent": {
+        "name": "Verify",
+        "path": "~/.claude/agents/Verify.md",
+        "kosha": "VIJNANAMAYA",
+        "maxTurns": 3
+      }
+    },
+    "learn": {
+      "sigil": "☽",
+      "alchemy": "ALBEDO",
+      "combo": "noesis-observe",
+      "combo_alt": "noesis-research",
+      "mode": "NATIVE",
+      "mode_alt": "ALGORITHM",
+      "mcp_policy": {
+        "required": ["filesystem.read"],
+        "allowed": ["filesystem.read", "git.read", "project.read", "memory.write"]
+      },
+      "primary_hubs": [
+        {
+          "name": "ai-agents-meta-orchestrator",
+          "cluster": "ai-agents-meta",
+          "tier": "active",
+          "why": "agent audit, debug, optimize"
+        },
+        {
+          "name": "research-knowledge-orchestrator",
+          "cluster": "research-knowledge",
+          "tier": "active",
+          "why": "knowledge consolidation"
+        },
+        {
+          "name": "conductor-orchestrator",
+          "cluster": "conductor",
+          "tier": "active",
+          "why": "close-loop step (improve + review + ship)"
+        },
+        {
+          "name": "selemene-orchestrator",
+          "cluster": "selemene",
+          "tier": "active",
+          "why": "narrative witness readings (rare path)"
+        }
+      ],
+      "cores": [
+        "ai-agents-meta-core",
+        "conductor-core",
+        "selemene-core"
+      ],
+      "rationale": "LEARN is synthesis + reflection. ai-agents-meta audits the agent loop; research-knowledge consolidates evidence; conductor ships the lesson.",
+      "agent": {
+        "name": "Learn",
+        "path": "~/.claude/agents/Learn.md",
+        "kosha": "ANANDAMAYA",
+        "maxTurns": 5
+      }
+    }
+  },
+  "stack_binding": {
+    "default_hub": "backend-architecture-orchestrator",
+    "rules": [
+      {
+        "tag": "astro",
+        "build": "astro-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "next",
+        "build": "frontend-web-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "vite",
+        "build": "frontend-web-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "tauri",
+        "build": "tauri-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "electron",
+        "build": "electron-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "expo",
+        "build": "expo-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "react-native",
+        "build": "react-native-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "native-ios",
+        "build": "native-ios-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "swiftui",
+        "build": "native-ios-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "flutter",
+        "build": "mobile-flutter-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "rust",
+        "build": "rust-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "django",
+        "build": "python-backend-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "fastapi",
+        "build": "python-backend-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "python",
+        "build": "python-backend-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "nestjs",
+        "build": "backend-architecture-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "hono",
+        "build": "backend-architecture-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "mcp-server",
+        "build": "backend-architecture-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "supabase",
+        "build": "supabase-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "cloudflare",
+        "build": "cloudflare-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "postgres",
+        "build": "databases-data-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "prisma",
+        "build": "databases-data-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "redis",
+        "build": "databases-data-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "cambium",
+        "build": "conductor-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "cli",
+        "build": "cli-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "raycast",
+        "build": "raycast-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "design-system",
+        "build": "design-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "figma",
+        "build": "design-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "motion",
+        "build": "creative-frontend-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "gsap",
+        "build": "creative-frontend-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "remotion",
+        "build": "creative-frontend-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "seo",
+        "build": "growth-seo-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "aeo",
+        "build": "growth-seo-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "geo",
+        "build": "growth-seo-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "marketing",
+        "build": "growth-content-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "cro",
+        "build": "growth-sales-cro-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "social",
+        "build": "social-media-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "pr",
+        "build": "git-pr-ops-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "evidence",
+        "build": "product-guides-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "guide",
+        "build": "product-guides-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "video",
+        "build": "product-guides-orchestrator",
+        "execute": "superset-orchestrate"
+      },
+      {
+        "tag": "docs",
+        "build": "documents-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "pdf",
+        "build": "documents-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "search",
+        "build": "explee-master-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "gtm",
+        "build": "explee-master-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "web3",
+        "build": "blockchain-web3-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "java",
+        "build": "jvm-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "kotlin",
+        "build": "jvm-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "php",
+        "build": "php-laravel-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "laravel",
+        "build": "php-laravel-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "healthcare",
+        "build": "healthcare-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "media",
+        "build": "media-gen-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "image-gen",
+        "build": "media-gen-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "video-gen",
+        "build": "media-gen-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "systems",
+        "build": "systems-languages-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "supply-chain",
+        "build": "supply-chain-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      },
+      {
+        "tag": "extra-languages",
+        "build": "extra-languages-orchestrator",
+        "execute": "superset-orchestrate",
+        "tier": "deferred-activate"
+      }
+    ]
+  },
+  "gsd_command_stage_map": {
+    "observe": [
+      "new-project",
+      "discovery-phase",
+      "map-codebase",
+      "plant-seed",
+      "profile-user",
+      "doctor",
+      "forensics",
+      "diagnose-issues",
+      "list-phase-assumptions",
+      "do"
+    ],
+    "think": [
+      "discuss-phase",
+      "discuss-phase-assumptions",
+      "list-phase-assumptions",
+      "discovery-phase",
+      "audit-milestone",
+      "audit-uat",
+      "forensics",
+      "diagnose-issues"
+    ],
+    "plan": [
+      "new-milestone",
+      "plan-phase",
+      "add-phase",
+      "insert-phase",
+      "remove-phase",
+      "plan-milestone-gaps",
+      "ui-phase",
+      "new-workspace",
+      "research-phase",
+      "goal",
+      "loop"
+    ],
+    "build": [
+      "quick",
+      "execute-phase",
+      "execute-plan",
+      "add-tests"
+    ],
+    "execute": [
+      "execute-phase",
+      "execute-plan",
+      "autonomous",
+      "pr-branch",
+      "node-repair",
+      "ship"
+    ],
+    "verify": [
+      "verify-phase",
+      "validate-phase",
+      "verify-work",
+      "review",
+      "ui-review",
+      "audit-milestone",
+      "audit-uat",
+      "add-tests"
+    ],
+    "learn": [
+      "complete-milestone",
+      "milestone-summary",
+      "transition",
+      "session-report",
+      "resume-project",
+      "pause-work",
+      "gsd-help",
+      "next"
+    ]
+  },
+  "hook_stage_map": {
+    "PromptProcessing.hook.ts": "observe",
+    "ISASync.hook.ts": "plan",
+    "CheckpointPerISC.hook.ts": "build",
+    "PromptArchive.hook.ts": "learn",
+    "ProfileDrivenInjector.hook.ts": "all",
+    "AlgorithmTracker.hook.ts": "all",
+    "BuildCLAUDE.ts": "build",
+    "TeActivation.hook.ts": "all",
+    "DaemonHealth.hook.ts": "execute"
+  },
+  "native_pai_skills": {
+    "core": "all",
+    "pai": "all",
+    "using-superpowers": "all",
+    "ISA": [
+      "plan",
+      "learn"
+    ],
+    "chronicle": "think",
+    "skill-creator": "build",
+    "skill-installer": "build",
+    "find-skills": "observe",
+    "temperance-engine": "observe",
+    "temperance-algorithm": "all",
+    "temperance-native": "all",
+    "temperance-parallel-dispatch": "execute"
+  },
+  "updated": "2026-08-26",
+  "kosha_layers": {
+    "ANNAMAYA": {
+      "sanskrit": "अन्नमय",
+      "meaning": "physical/food/substrate",
+      "temperance": "provider_connections, model_capabilities, tool schemas"
+    },
+    "PRANAMAYA": {
+      "sanskrit": "प्राणमय",
+      "meaning": "vital/breath/telemetry",
+      "temperance": "usage_history, LaunchAgents, hooks, live signals"
+    },
+    "MANOMAYA": {
+      "sanskrit": "मनोमय",
+      "meaning": "mind/memory/recall",
+      "temperance": "state/*.json, MEMORY, atlas, compression pipeline"
+    },
+    "VIJNANAMAYA": {
+      "sanskrit": "विज्ञानमय",
+      "meaning": "wisdom/discernment",
+      "temperance": "~/.claude/agents, judgment agents, reasoning"
+    },
+    "ANANDAMAYA": {
+      "sanskrit": "आनन्दमय",
+      "meaning": "bliss/purpose/identity",
+      "temperance": "ISA.md, PROJECT.md, acceptance ledger"
+    }
+  }
+}
