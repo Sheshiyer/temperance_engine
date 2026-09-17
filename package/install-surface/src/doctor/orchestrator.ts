@@ -70,7 +70,7 @@ export interface RunDoctorOptions {
   runners?: Partial<Record<DoctorSectionId, DoctorSectionRunner>>;
 }
 
-function unavailableSection(id: DoctorSectionId, reasonCode: string): DoctorSection {
+function unavailableSection(id: DoctorSection["id"], reasonCode: string): DoctorSection {
   return {
     id,
     condition: "UNAVAILABLE",
@@ -170,7 +170,7 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorReport
     baseContext,
     options.timeouts?.[id] ?? SECTION_TIMEOUTS_MS[id],
   )));
-  sections.sort((left, right) => DOCTOR_SECTION_ORDER.indexOf(left.id) - DOCTOR_SECTION_ORDER.indexOf(right.id));
+  sections.sort((left, right) => DOCTOR_SECTION_ORDER.indexOf(left.id as DoctorSectionId) - DOCTOR_SECTION_ORDER.indexOf(right.id as DoctorSectionId));
   const overall = aggregate(sections);
   const report: DoctorReportV1 = {
     schema: DOCTOR_SCHEMA,
@@ -226,8 +226,8 @@ export async function runDoctorV2(options: RunDoctorV2Options): Promise<DoctorRe
     },
     io,
     inventory: {
-      lockObject: { schema: "temperance.install-surface.lock.v1", schema_uri: "", version: { major: 1, minor: 0 }, records: [] },
-      canonicalBytes: new Uint8Array(),
+      lockObject: { schema: "temperance.install-surface.lock.v1", schema_uri: "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1", version: { major: 1, minor: 0 }, records: [] },
+      canonicalBytes: "",
       digest: options.inventory.digest,
       semanticIds: [],
     },
@@ -246,7 +246,7 @@ export async function runDoctorV2(options: RunDoctorV2Options): Promise<DoctorRe
     if (!runner) throw new Error(`V2_SECTION_RUNNER_MISSING: ${id}`);
     return runBoundedV2(id, runner, baseContext, options.timeouts?.[id] ?? defaultTimeouts[id]);
   }));
-  sections.sort((left, right) => V2_DOCTOR_SECTION_ORDER.indexOf(left.id) - V2_DOCTOR_SECTION_ORDER.indexOf(right.id));
+  sections.sort((left, right) => V2_DOCTOR_SECTION_ORDER.indexOf(left.id as V2_SectionId) - V2_DOCTOR_SECTION_ORDER.indexOf(right.id as V2_SectionId));
   const overall = aggregate(sections);
   const report: DoctorReportV2 = {
     schema: V2_DOCTOR_SCHEMA,

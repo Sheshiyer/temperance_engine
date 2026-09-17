@@ -20,6 +20,7 @@ run bun test package/enrich
 run bun test package/adapters/command-code/context-sources-line.test.ts
 run bash tests/command-code-context-sources.sh
 run bun test package/router/routing-policy.test.ts
+run bun test package/router/v4-cutover-plan.test.ts
 run bun test package/router/omniroute-portfolios.test.ts
 run bun test package/router/omniroute-native-control-plane.test.ts
 run bun test package/router/omniroute-context-preview.test.ts

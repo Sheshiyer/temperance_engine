@@ -1,0 +1,241 @@
+import { createHash } from "node:crypto";
+import { readFile, stat } from "node:fs/promises";
+import { isAbsolute, join, normalize } from "node:path";
+
+const MAX_RESPONSE_BYTES = 4_194_304;
+const MAX_REQUEST_BYTES = 1_048_576;
+const CLI_TOKEN_SALT = "9r-cli-auth";
+const CLI_TOKEN_HEADER = "x-9r-cli-token";
+const CLI_TOOLS = new Set(["claude", "codex", "droid", "openclaw"]);
+
+export type NineRouterCliTool = "claude" | "codex" | "droid" | "openclaw";
+export interface NineRouterProviderSummary { id: string; name: string; provider: string; active: boolean | null; }
+export interface NineRouterComboSummary { id: string; alias: string; model_count: number; }
+export interface NineRouterCatalogSnapshot { providers: NineRouterProviderSummary[]; combos: NineRouterComboSummary[]; }
+export interface NineRouterCreatedObject { id: string; name: string; }
+export interface NineRouterGatewayKeyReceipt { id: string; name: string; captured: true; }
+
+export interface NineRouterApiIO {
+  readFile(path: string): Promise<string>;
+  mode(path: string): Promise<number>;
+  fetch(url: string, init: RequestInit): Promise<Response>;
+}
+
+const nodeNineRouterApiIO: NineRouterApiIO = {
+  readFile: (path) => readFile(path, "utf8"),
+  mode: async (path) => (await stat(path)).mode & 0o777,
+  fetch: (url, init) => fetch(url, init),
+};
+
+export class NineRouterApiError extends Error {
+  constructor(public readonly code: string) {
+    super(code);
+    this.name = "NineRouterApiError";
+  }
+}
+
+function canonicalAbsolute(value: string): boolean {
+  return value.length > 1 && isAbsolute(value) && normalize(value) === value && !value.includes("\0");
+}
+
+function validateBaseUrl(value: string): string {
+  let url: URL;
+  try { url = new URL(value); } catch { throw new NineRouterApiError("NINE_ROUTER_BASE_URL_INVALID"); }
+  const host = url.hostname.replace(/^\[|\]$/gu, "");
+  if (url.protocol !== "http:" || !["127.0.0.1", "::1", "localhost"].includes(host)) {
+    throw new NineRouterApiError("NINE_ROUTER_BASE_URL_NOT_LOOPBACK");
+  }
+  if (url.username || url.password || url.search || url.hash || (url.pathname !== "/" && url.pathname !== "")) {
+    throw new NineRouterApiError("NINE_ROUTER_BASE_URL_INVALID");
+  }
+  if ((url.port || "80") !== "20128") throw new NineRouterApiError("NINE_ROUTER_BASE_URL_PORT_INVALID");
+  return `${url.protocol}//${url.host}`;
+}
+
+function record(value: unknown, code: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new NineRouterApiError(code);
+  return value as Record<string, unknown>;
+}
+
+function textField(value: unknown, code: string, maxLength = 256): string {
+  if (typeof value !== "string" || value.trim() !== value || value.length < 1 || value.length > maxLength || value.includes("\0")) {
+    throw new NineRouterApiError(code);
+  }
+  return value;
+}
+
+function responseArray(value: unknown, field: string): unknown[] {
+  const root = record(value, "NINE_ROUTER_RESPONSE_INVALID");
+  const direct = root[field];
+  if (Array.isArray(direct)) return direct;
+  const data = root.data && typeof root.data === "object" && !Array.isArray(root.data) ? root.data as Record<string, unknown> : undefined;
+  if (Array.isArray(data?.[field])) return data[field] as unknown[];
+  throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID");
+}
+
+function createdRecord(value: unknown, nested: string): Record<string, unknown> {
+  const root = record(value, "NINE_ROUTER_RESPONSE_INVALID");
+  const data = root.data && typeof root.data === "object" && !Array.isArray(root.data) ? root.data as Record<string, unknown> : root;
+  const candidate = data[nested];
+  return candidate && typeof candidate === "object" && !Array.isArray(candidate) ? candidate as Record<string, unknown> : data;
+}
+
+function safeId(value: unknown): string {
+  const id = textField(value, "NINE_ROUTER_RESPONSE_INVALID", 512);
+  if (!/^[A-Za-z0-9._-]+$/u.test(id)) throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID");
+  return id;
+}
+
+function endpointAllowed(method: string, path: string): boolean {
+  if (method === "GET" && ["/api/providers", "/api/combos", "/api/keys", "/v1/models"].includes(path)) return true;
+  if ((method === "GET" || method === "POST") && /^\/api\/cli-tools\/(claude|codex|droid|openclaw)-settings$/u.test(path)) return true;
+  if (method === "POST" && ["/api/providers", "/api/combos", "/api/keys"].includes(path)) return true;
+  return method === "DELETE" && /^\/api\/keys\/[A-Za-z0-9._-]{1,512}$/u.test(path);
+}
+
+function redactCredentialFields(value: unknown, depth = 0): unknown {
+  if (depth > 16) throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID");
+  if (Array.isArray(value)) return value.map((item) => redactCredentialFields(item, depth + 1));
+  if (!value || typeof value !== "object") return value;
+  const source = value as Record<string, unknown>;
+  const blocked = /(?:api.?key|authorization|credential|password|secret|token)/iu;
+  return Object.fromEntries(Object.entries(source)
+    .filter(([key]) => !blocked.test(key))
+    .map(([key, item]) => [key, redactCredentialFields(item, depth + 1)]));
+}
+
+function secretFreeObject(value: unknown): Record<string, unknown> {
+  return record(redactCredentialFields(value), "NINE_ROUTER_RESPONSE_INVALID");
+}
+
+export class NineRouterApiClient {
+  private readonly dataDirectory: string;
+  private readonly baseUrl: string;
+  private readonly io: NineRouterApiIO;
+
+  constructor(options: { dataDirectory: string; baseUrl?: string; io?: NineRouterApiIO }) {
+    if (!canonicalAbsolute(options.dataDirectory)) throw new NineRouterApiError("NINE_ROUTER_DATA_DIR_INVALID");
+    this.dataDirectory = options.dataDirectory;
+    this.baseUrl = validateBaseUrl(options.baseUrl ?? "http://127.0.0.1:20128");
+    this.io = options.io ?? nodeNineRouterApiIO;
+  }
+
+  private async deriveCliToken(): Promise<string> {
+    const secretPath = join(this.dataDirectory, "auth", "cli-secret");
+    let machineId: string;
+    let secret: string;
+    try {
+      [machineId, secret] = await Promise.all([
+        this.io.readFile(join(this.dataDirectory, "machine-id")),
+        this.io.readFile(secretPath),
+      ]);
+    } catch {
+      throw new NineRouterApiError("NINE_ROUTER_AUTH_METADATA_MISSING");
+    }
+    if ((await this.io.mode(secretPath)) !== 0o600) throw new NineRouterApiError("NINE_ROUTER_CLI_SECRET_MODE_UNSAFE");
+    machineId = machineId.trim();
+    secret = secret.trim();
+    if (!machineId || !secret || machineId.length > 4096 || secret.length > 4096) {
+      throw new NineRouterApiError("NINE_ROUTER_AUTH_METADATA_INVALID");
+    }
+    return createHash("sha256").update(machineId + CLI_TOKEN_SALT + secret).digest("hex").slice(0, 16);
+  }
+
+  private async request(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<unknown> {
+    if (!endpointAllowed(method, path)) throw new NineRouterApiError("NINE_ROUTER_ENDPOINT_NOT_ALLOWED");
+    const encoded = body === undefined ? undefined : JSON.stringify(body);
+    if (encoded !== undefined && Buffer.byteLength(encoded, "utf8") > MAX_REQUEST_BYTES) {
+      throw new NineRouterApiError("NINE_ROUTER_REQUEST_TOO_LARGE");
+    }
+    const token = await this.deriveCliToken();
+    let response: Response;
+    try {
+      response = await this.io.fetch(`${this.baseUrl}${path}`, {
+        method,
+        headers: { "content-type": "application/json", [CLI_TOKEN_HEADER]: token },
+        body: encoded,
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch {
+      throw new NineRouterApiError("NINE_ROUTER_API_UNAVAILABLE");
+    }
+    const length = Number(response.headers.get("content-length") ?? "0");
+    if (Number.isFinite(length) && length > MAX_RESPONSE_BYTES) throw new NineRouterApiError("NINE_ROUTER_RESPONSE_TOO_LARGE");
+    const responseText = await response.text();
+    if (Buffer.byteLength(responseText, "utf8") > MAX_RESPONSE_BYTES) throw new NineRouterApiError("NINE_ROUTER_RESPONSE_TOO_LARGE");
+    if (!response.ok) throw new NineRouterApiError(`NINE_ROUTER_API_HTTP_${response.status}`);
+    try { return responseText ? JSON.parse(responseText) : {}; } catch { throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID"); }
+  }
+
+  async readCatalog(): Promise<NineRouterCatalogSnapshot> {
+    const [providerResponse, comboResponse] = await Promise.all([
+      this.request("GET", "/api/providers"),
+      this.request("GET", "/api/combos"),
+    ]);
+    const providers = responseArray(providerResponse, "connections").map((value): NineRouterProviderSummary => {
+      const item = record(value, "NINE_ROUTER_RESPONSE_INVALID");
+      return {
+        id: safeId(item.id),
+        name: textField(item.name, "NINE_ROUTER_RESPONSE_INVALID"),
+        provider: textField(item.provider, "NINE_ROUTER_RESPONSE_INVALID"),
+        active: typeof item.isActive === "boolean" ? item.isActive : typeof item.is_active === "boolean" ? item.is_active : null,
+      };
+    });
+    const combos = responseArray(comboResponse, "combos").map((value): NineRouterComboSummary => {
+      const item = record(value, "NINE_ROUTER_RESPONSE_INVALID");
+      const models = Array.isArray(item.models) ? item.models : [];
+      return { id: safeId(item.id), alias: textField(item.name, "NINE_ROUTER_RESPONSE_INVALID"), model_count: models.length };
+    });
+    return { providers, combos };
+  }
+
+  async createProviderConnection(input: { provider: string; name: string; apiKey: string }): Promise<NineRouterCreatedObject> {
+    const provider = textField(input.provider, "NINE_ROUTER_PROVIDER_INVALID", 128);
+    const name = textField(input.name, "NINE_ROUTER_PROVIDER_NAME_INVALID");
+    const apiKey = textField(input.apiKey, "NINE_ROUTER_PROVIDER_CREDENTIAL_INVALID", 16_384);
+    const value = createdRecord(await this.request("POST", "/api/providers", { provider, name, apiKey }), "connection");
+    return { id: safeId(value.id), name: typeof value.name === "string" ? textField(value.name, "NINE_ROUTER_RESPONSE_INVALID") : name };
+  }
+
+  async createCombo(input: { name: string; models: readonly Record<string, unknown>[] }): Promise<NineRouterCreatedObject> {
+    const name = textField(input.name, "NINE_ROUTER_COMBO_NAME_INVALID");
+    if (input.models.length < 1 || input.models.length > 256) throw new NineRouterApiError("NINE_ROUTER_COMBO_MODELS_INVALID");
+    const serialized = JSON.stringify(input.models);
+    if (/(?:api.?key|authorization|credential|password|secret|token)/iu.test(serialized)) {
+      throw new NineRouterApiError("NINE_ROUTER_COMBO_SECRET_FIELD_FORBIDDEN");
+    }
+    const value = createdRecord(await this.request("POST", "/api/combos", { name, models: input.models }), "combo");
+    return { id: safeId(value.id), name: typeof value.name === "string" ? textField(value.name, "NINE_ROUTER_RESPONSE_INVALID") : name };
+  }
+
+  async createGatewayKey(name: string, capture: (secret: string) => Promise<void>): Promise<NineRouterGatewayKeyReceipt> {
+    const requestedName = textField(name, "NINE_ROUTER_KEY_NAME_INVALID");
+    const value = createdRecord(await this.request("POST", "/api/keys", { name: requestedName }), "key");
+    const id = safeId(value.id);
+    const secret = textField(value.key, "NINE_ROUTER_RESPONSE_INVALID", 16_384);
+    try {
+      await capture(secret);
+    } catch {
+      try { await this.request("DELETE", `/api/keys/${encodeURIComponent(id)}`); } catch { /* Preserve capture failure. */ }
+      throw new NineRouterApiError("NINE_ROUTER_KEY_CAPTURE_FAILED");
+    }
+    return { id, name: typeof value.name === "string" ? textField(value.name, "NINE_ROUTER_RESPONSE_INVALID") : requestedName, captured: true };
+  }
+
+  async readCliToolSettings(tool: NineRouterCliTool): Promise<Record<string, unknown>> {
+    if (!CLI_TOOLS.has(tool)) throw new NineRouterApiError("NINE_ROUTER_CLI_TOOL_INVALID");
+    const value = await this.request("GET", `/api/cli-tools/${tool}-settings`);
+    const root = record(value, "NINE_ROUTER_RESPONSE_INVALID");
+    const data = root.data && typeof root.data === "object" && !Array.isArray(root.data) ? root.data : root;
+    return secretFreeObject(data);
+  }
+
+  async applyCliToolSettings(tool: NineRouterCliTool, settings: Record<string, unknown>): Promise<Record<string, unknown>> {
+    if (!CLI_TOOLS.has(tool)) throw new NineRouterApiError("NINE_ROUTER_CLI_TOOL_INVALID");
+    if (/(?:api.?key|authorization|credential|password|secret|token)/iu.test(JSON.stringify(settings))) {
+      throw new NineRouterApiError("NINE_ROUTER_CLI_SETTINGS_SECRET_FIELD_FORBIDDEN");
+    }
+    const value = await this.request("POST", `/api/cli-tools/${tool}-settings`, settings);
+    return secretFreeObject(createdRecord(value, "settings"));
+  }
+}

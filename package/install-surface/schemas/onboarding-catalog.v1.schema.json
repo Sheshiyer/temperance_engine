@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thoughtseed.space/schemas/temperance/onboarding/catalog/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "modules"],
+  "properties": {
+    "schema": { "const": "temperance.onboarding.catalog.v1" },
+    "version": { "$ref": "#/$defs/version" },
+    "modules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/module" },
+      "maxItems": 512
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major", "minor"],
+      "properties": { "major": { "const": 1 }, "minor": { "const": 0 } }
+    },
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$", "maxLength": 128 },
+    "variable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "maxLength": 128 },
+    "versionRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exact"],
+      "properties": {
+        "exact": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "argv": { "type": "array", "items": { "type": "string", "maxLength": 256 }, "maxItems": 16 },
+        "pattern": { "type": "string", "maxLength": 256 }
+      }
+    },
+    "binaryCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "executable"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "binary" },
+        "executable": { "type": "string", "pattern": "^[A-Za-z0-9._+-]+$", "maxLength": 128 },
+        "version": { "$ref": "#/$defs/versionRequirement" }
+      }
+    },
+    "applicationCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "bundle_id"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "application" },
+        "bundle_id": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$", "maxLength": 256 }
+      }
+    },
+    "mountCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "mount_path_variable"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "mount" },
+        "mount_path_variable": { "$ref": "#/$defs/variable" },
+        "expected_uuid_variable": { "$ref": "#/$defs/variable" },
+        "required_relative_path_variable": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "pathCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "path_variable", "path_type", "access"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "path" },
+        "path_variable": { "$ref": "#/$defs/variable" },
+        "path_type": { "enum": ["file", "directory"] },
+        "access": { "enum": ["exists", "readable", "writable"] }
+      }
+    },
+    "secretCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "secret_reference"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "keychain-secret" },
+        "secret_reference": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "aliasCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "alias"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "routing-alias" },
+        "alias": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "httpCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "url_variable"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "http-health" },
+        "url_variable": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "nineRouterManagementCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "data_dir_variable"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "9router-management" },
+        "data_dir_variable": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "capability": {
+      "oneOf": [
+        { "$ref": "#/$defs/binaryCapability" },
+        { "$ref": "#/$defs/applicationCapability" },
+        { "$ref": "#/$defs/mountCapability" },
+        { "$ref": "#/$defs/pathCapability" },
+        { "$ref": "#/$defs/secretCapability" },
+        { "$ref": "#/$defs/aliasCapability" },
+        { "$ref": "#/$defs/httpCapability" },
+        { "$ref": "#/$defs/nineRouterManagementCapability" }
+      ]
+    },
+    "guidedCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "kind", "argv"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "kind": { "const": "command" },
+        "argv": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 512 }, "minItems": 1, "maxItems": 32 },
+        "environment": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/variable" },
+          "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "maxProperties": 32
+        }
+      }
+    },
+    "guidedUrl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "kind", "url"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "kind": { "const": "open-url" },
+        "url": { "type": "string", "pattern": "^https?://", "maxLength": 2048 }
+      }
+    },
+    "stateTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_relative_path", "to_relative_path", "policy", "copy_legacy_state"],
+      "properties": {
+        "from_relative_path": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?!/)" },
+        "to_relative_path": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?!/)" },
+        "policy": { "const": "fresh-rebuild" },
+        "copy_legacy_state": { "const": false }
+      }
+    },
+    "runtimeContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "launch_agent_label", "forbidden_launch_agent_label", "listen_host", "listen_port", "data_dir_variable", "node_executable_variable", "cli_entrypoint_variable", "path_variable", "log_directory_variable", "argv", "run_at_load", "keep_alive", "management_auth", "api_contract", "cleanup_path_divergence"],
+      "properties": {
+        "owner": { "const": "temperance" },
+        "launch_agent_label": { "const": "com.temperance.engine.9router" },
+        "forbidden_launch_agent_label": { "const": "com.9router.autostart" },
+        "listen_host": { "const": "127.0.0.1" },
+        "listen_port": { "const": 20128 },
+        "data_dir_variable": { "const": "NINE_ROUTER_DATA_DIR" },
+        "node_executable_variable": { "const": "NINE_ROUTER_NODE_EXECUTABLE" },
+        "cli_entrypoint_variable": { "const": "NINE_ROUTER_CLI_ENTRYPOINT" },
+        "path_variable": { "const": "NINE_ROUTER_PATH" },
+        "log_directory_variable": { "const": "NINE_ROUTER_LOG_DIR" },
+        "argv": {
+          "type": "array",
+          "prefixItems": [{ "const": "--tray" }, { "const": "--host" }, { "const": "127.0.0.1" }, { "const": "--no-browser" }, { "const": "--skip-update" }],
+          "minItems": 5,
+          "maxItems": 5
+        },
+        "run_at_load": { "const": true },
+        "keep_alive": { "const": true },
+        "management_auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["header", "derivation", "machine_id_relative_path", "secret_relative_path", "secret_mode", "persist_derived_token"],
+          "properties": {
+            "header": { "const": "x-9r-cli-token" },
+            "derivation": { "const": "data-dir-machine-secret" },
+            "machine_id_relative_path": { "const": "machine-id" },
+            "secret_relative_path": { "const": "auth/cli-secret" },
+            "secret_mode": { "const": "0600" },
+            "persist_derived_token": { "const": false }
+          }
+        },
+        "api_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["keys", "cli_tool_settings", "cli_tools", "providers", "provider_create_fields", "combos", "combo_create_fields", "gateway_key_policy"],
+          "properties": {
+            "keys": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["collection", "item"],
+              "properties": { "collection": { "const": "/api/keys" }, "item": { "const": "/api/keys/{id}" } }
+            },
+            "cli_tool_settings": { "const": "/api/cli-tools/{tool}-settings" },
+            "cli_tools": {
+              "type": "array",
+              "prefixItems": [{ "const": "claude" }, { "const": "codex" }, { "const": "droid" }, { "const": "openclaw" }],
+              "minItems": 4,
+              "maxItems": 4
+            },
+            "providers": { "const": "/api/providers" },
+            "provider_create_fields": {
+              "type": "array",
+              "prefixItems": [{ "const": "provider" }, { "const": "name" }, { "const": "apiKey" }],
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "combos": { "const": "/api/combos" },
+            "combo_create_fields": {
+              "type": "array",
+              "prefixItems": [{ "const": "name" }, { "const": "models" }],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "gateway_key_policy": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["capture", "profile_storage", "receipt_storage"],
+              "properties": {
+                "capture": { "const": "one-time-to-keychain" },
+                "profile_storage": { "const": "reference-only" },
+                "receipt_storage": { "const": "redacted" }
+              }
+            }
+          }
+        },
+        "cleanup_path_divergence": { "const": "doctor-required" }
+      }
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "summary", "preselection", "depends_on", "requires", "guided_installs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "preselection": { "enum": ["selected", "available", "off"] },
+        "depends_on": { "type": "array", "items": { "$ref": "#/$defs/identifier" }, "uniqueItems": true, "maxItems": 64 },
+        "requires": { "type": "array", "items": { "$ref": "#/$defs/capability" }, "maxItems": 64 },
+        "guided_installs": { "type": "array", "items": { "oneOf": [{ "$ref": "#/$defs/guidedCommand" }, { "$ref": "#/$defs/guidedUrl" }] }, "maxItems": 16 },
+        "state_transition": { "$ref": "#/$defs/stateTransition" },
+        "runtime_contract": { "$ref": "#/$defs/runtimeContract" }
+      }
+    }
+  }
+}

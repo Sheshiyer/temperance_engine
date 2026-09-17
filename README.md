@@ -360,9 +360,9 @@ Cursor's current rules documentation covers Project, Team, and User Rules plus `
 
 Start at **[docs/README.md](docs/README.md)** (map) or **[docs/index.html](docs/index.html)** (themed library).
 
-Live glove: [QUICKSTART.md](QUICKSTART.md) · [VERSION](VERSION) · [CHANGELOG.md](CHANGELOG.md) · [docs/release-control.md](docs/release-control.md) · [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) · [docs/gsd-manifest-spine.md](docs/gsd-manifest-spine.md) · [docs/gsd-goal-handoff.md](docs/gsd-goal-handoff.md) · [docs/pai-flow.md](docs/pai-flow.md) · [docs/architecture.md](docs/architecture.md)
+Live glove: [QUICKSTART.md](QUICKSTART.md) · [VERSION](VERSION) · [CHANGELOG.md](CHANGELOG.md) · [V4 hand-in-glove architecture](docs/V4-HAND-IN-GLOVE-ARCHITECTURE.md) · [docs/release-control.md](docs/release-control.md) · [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) · [docs/gsd-manifest-spine.md](docs/gsd-manifest-spine.md) · [docs/gsd-goal-handoff.md](docs/gsd-goal-handoff.md) · [docs/pai-flow.md](docs/pai-flow.md) · [docs/architecture.md](docs/architecture.md)
 
-Routing (tests pin these files): [docs/omniroute-runtime.md](docs/omniroute-runtime.md) · [docs/omniroute-integration.md](docs/omniroute-integration.md) · [docs/omniroute-connections.md](docs/omniroute-connections.md) · [docs/omniroute-fleet.md](docs/omniroute-fleet.md)
+Legacy OmniRoute routing references (historical migration input; tests still pin these files): [docs/omniroute-runtime.md](docs/omniroute-runtime.md) · [docs/omniroute-integration.md](docs/omniroute-integration.md) · [docs/omniroute-connections.md](docs/omniroute-connections.md) · [docs/omniroute-fleet.md](docs/omniroute-fleet.md)
 
 Retired stubs (do not expand): [docs/parallel-dispatch.md](docs/parallel-dispatch.md) · [docs/multi-surface-architecture.md](docs/multi-surface-architecture.md)
 

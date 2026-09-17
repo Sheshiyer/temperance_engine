@@ -479,7 +479,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
       if (step.mode === "uninstall") {
         // Uninstall: remove the destination file
         try {
-          await io.rm(destPath, { force: true });
+          await io.rm(destPath, { recursive: false, force: true });
         } catch {
           // File doesn't exist — idempotent
         }

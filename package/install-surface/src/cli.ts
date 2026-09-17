@@ -13,6 +13,20 @@ import { createPlan, type PlanOptions, type LifecycleVerb } from "./lifecycle/pl
 import { executePlan, rollbackTransaction } from "./lifecycle/executor.ts";
 import { readReceipt, listReceipts } from "./lifecycle/receipts.ts";
 import type { LifecycleIO } from "./lifecycle/journal.ts";
+import type { OnboardingCatalogV1, OnboardingProfileV1 } from "./onboarding/contracts.ts";
+import { composeOnboardingProfile } from "./onboarding/composition.ts";
+import {
+  validateHostBindingV1,
+  validateHostProfileV1,
+  validateProjectCapsuleV1,
+} from "./onboarding/contract-schema.ts";
+import { createCoreOnboardingCatalog, createCoreOnboardingProfile } from "./onboarding/core-catalog.ts";
+import { projectOnboardingDoctorSection } from "./onboarding/doctor.ts";
+import { createOnboardingPlan } from "./onboarding/planner.ts";
+import { validateOnboardingCatalog, validateOnboardingProfile } from "./onboarding/schema.ts";
+import { createSystemProbeAdapter } from "./onboarding/system-adapter.ts";
+import { renderOnboardingText } from "./onboarding/presentation.ts";
+import type { HostBindingV1, HostProfileV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
 
 const packageRoot = resolve(import.meta.dir, "..");
 const repositoryRoot = resolve(packageRoot, "../..");
@@ -22,7 +36,7 @@ const lockPath = resolve(packageRoot, "install-surface-manifest.lock.json");
 // ─── Lifecycle IO (real filesystem) ──────────────────────────────────────────
 
 const lifecycleIO: LifecycleIO = {
-  mkdir: async (path, opts) => mkdirSync(path, opts),
+  mkdir: async (path, opts) => { mkdirSync(path, opts); },
   writeFile: async (path, data) => {
     const { writeFileSync } = await import("node:fs");
     writeFileSync(path, data, "utf8");
@@ -219,8 +233,108 @@ function parseLifecycleArgs(args: string[]): {
   return { profile, dryRun, force, select, json };
 }
 
+function parseOnboardingArgs(args: string[]): {
+  catalogPath?: string;
+  profilePath?: string;
+  hostProfilePath?: string;
+  hostBindingPath?: string;
+  projectCapsulesPath?: string;
+  selections?: Set<string>;
+  json: boolean;
+  tui: boolean;
+  doctor: boolean;
+} {
+  let catalogPath: string | undefined;
+  let profilePath: string | undefined;
+  let hostProfilePath: string | undefined;
+  let hostBindingPath: string | undefined;
+  let projectCapsulesPath: string | undefined;
+  let selections: Set<string> | undefined;
+  let json = false;
+  let tui = false;
+  let doctor = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === "--catalog") catalogPath = args[index += 1];
+    else if (argument === "--profile-file" || argument === "--profile") profilePath = args[index += 1];
+    else if (argument === "--host-profile-file" || argument === "--host-profile") hostProfilePath = args[index += 1];
+    else if (argument === "--host-binding-file" || argument === "--host-binding") hostBindingPath = args[index += 1];
+    else if (argument === "--project-capsules") projectCapsulesPath = args[index += 1];
+    else if (argument === "--select") selections = new Set((args[index += 1] ?? "").split(",").filter(Boolean));
+    else if (argument === "--json") json = true;
+    else if (argument === "--tui") tui = true;
+    else if (argument === "--doctor") doctor = true;
+    else throw new Error("ONBOARDING_ARGUMENT_INVALID");
+  }
+  const usesComposedProfile = Boolean(hostProfilePath || hostBindingPath);
+  if (
+    (json && tui)
+    || (Boolean(profilePath) && usesComposedProfile)
+    || (usesComposedProfile && (!hostProfilePath || !hostBindingPath))
+    || (Boolean(projectCapsulesPath) && !usesComposedProfile)
+  ) {
+    throw new Error("ONBOARDING_ARGUMENT_INVALID");
+  }
+  return { catalogPath, profilePath, hostProfilePath, hostBindingPath, projectCapsulesPath, selections, json, tui, doctor };
+}
+
+function loadOnboardingJson<T>(path: string, validate: (value: unknown) => value is T, code: string): T {
+  const value: unknown = JSON.parse(readFileSync(resolve(path), "utf8"));
+  if (!validate(value)) throw new Error(code);
+  return value;
+}
+
+function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
+  if (!path) return [];
+  const value: unknown = JSON.parse(readFileSync(resolve(path), "utf8"));
+  if (!Array.isArray(value) || value.length > 1024 || !value.every(validateProjectCapsuleV1)) {
+    throw new Error("PROJECT_CAPSULES_INVALID");
+  }
+  return value;
+}
+
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "onboard") {
+    try {
+      const args = parseOnboardingArgs(process.argv.slice(3));
+      const catalog = args.catalogPath
+        ? loadOnboardingJson<OnboardingCatalogV1>(args.catalogPath, validateOnboardingCatalog, "ONBOARDING_CATALOG_INVALID")
+        : createCoreOnboardingCatalog();
+      const profile = args.profilePath
+        ? loadOnboardingJson<OnboardingProfileV1>(args.profilePath, validateOnboardingProfile, "ONBOARDING_PROFILE_INVALID")
+        : args.hostProfilePath
+          ? composeOnboardingProfile(
+            loadOnboardingJson<HostProfileV1>(args.hostProfilePath!, validateHostProfileV1, "HOST_PROFILE_INVALID"),
+            loadOnboardingJson<HostBindingV1>(args.hostBindingPath!, validateHostBindingV1, "HOST_BINDING_INVALID"),
+            { projectCapsules: loadProjectCapsules(args.projectCapsulesPath) },
+          )
+          : createCoreOnboardingProfile();
+      const plan = await createOnboardingPlan({
+        catalog,
+        profile,
+        adapter: createSystemProbeAdapter(),
+        selections: args.selections,
+      });
+      if (args.doctor) {
+        const section = projectOnboardingDoctorSection(plan);
+        process.stdout.write(args.json ? canonical(section) : renderOnboardingText(plan));
+        process.exitCode = section.condition === "PASS" || section.condition === "WARN" ? 0 : 1;
+      } else if (args.tui || (!args.json && process.stdin.isTTY && process.stdout.isTTY)) {
+        if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("ONBOARDING_TUI_REQUIRES_TTY");
+        const { runOnboardingTui } = await import("./onboarding/tui.ts");
+        await runOnboardingTui(plan);
+        process.exitCode = 0;
+      } else {
+        process.stdout.write(args.json ? canonical(plan) : renderOnboardingText(plan));
+        process.exitCode = 0;
+      }
+    } catch (error) {
+      process.stderr.write(`temperance onboard: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
   if (command === "compile") {
     printReceipt(compileRepositoryFragments());
     return;
@@ -402,6 +516,8 @@ async function main(): Promise<void> {
   process.stderr.write(`usage: temperance <command> [options]
 
 Commands:
+  onboard [--profile P | --host-profile P --host-binding B] [--catalog C] [--json|--doctor]
+                                   Open generic TUI by default; Noesis is an explicit overlay
   compile                          Compile fragments and print receipt
   write-lock                       Compile and write lock file
   doctor [--section S] [--json]    Run doctor checks

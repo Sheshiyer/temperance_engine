@@ -3,6 +3,11 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
+if test "${1:-}" = "cutover-plan"; then
+  shift
+  exec bun run "$ROOT_DIR/scripts/v4-cutover-plan.ts" "$@"
+fi
+
 for argument in "$@"; do
   case "$argument" in
     --record|--repair-duplicates)
