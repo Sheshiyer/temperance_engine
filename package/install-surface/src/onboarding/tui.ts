@@ -8,6 +8,7 @@ import { createOnboardingViewModel, type OnboardingViewPage, type OnboardingView
 import { approveProjectCandidates } from "./project-discovery.ts";
 import { verifyOnboardingPlanDigest } from "./planner.ts";
 import type { ProjectCapsuleV1 } from "./public-contracts.ts";
+import { isSimpleConfirmationKey } from "./simple-confirmation.ts";
 export { createOnboardingViewModel, renderOnboardingText } from "./presentation.ts";
 
 export interface OnboardingTuiOptions {
@@ -107,7 +108,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
   let confirmable = canConfirmOnboardingPlan(currentPlan);
   let confirmed = false;
   let confirmedAt: string | undefined;
-  const footer = new TextRenderable(renderer, { height: 1, content: `←/→ pages · ↑/↓ inspect · space request/unrequest module · o authorize OAuth provider · a select project · s save capsules · ${confirmable ? "c confirm review" : "resolve holds before confirmation"} · q/esc close`, fg: "#88c0d0" });
+  const footer = new TextRenderable(renderer, { height: 1, content: `←/→ pages · ↑/↓ inspect · space request/unrequest module · o authorize OAuth provider · a select project · s save capsules · ${confirmable ? "enter/y confirm review" : "resolve holds before confirmation"} · q/esc close`, fg: "#88c0d0" });
   root.add(header); root.add(tabs); root.add(content); root.add(footer); renderer.root.add(root); tabs.focus(); renderer.start();
   let saveProjectCapsules = false;
   let routingAuthorizationProviderId: string | undefined;
@@ -181,7 +182,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
         saveProjectCapsules = true;
         finish();
       }
-      if (key.name === "c" && currentPage.id === "review") {
+      if (isSimpleConfirmationKey(key.name) && currentPage.id === "review") {
         if (!confirmable) {
           detail.content = `Confirmation refused for ${currentPlan.plan_digest}.\n\nResolve every blocking hold, then re-probe and review the new digest.`;
           footer.content = "Blocked plans cannot be confirmed · q/esc close";

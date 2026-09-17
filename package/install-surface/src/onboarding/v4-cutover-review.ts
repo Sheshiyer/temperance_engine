@@ -11,6 +11,7 @@ import {
 } from "../../../router/v4-cutover-plan.ts";
 import { hostIdentityMatches } from "./host-identity.ts";
 import type { HostIdentityBindingV1 } from "./public-contracts.ts";
+import { isSimpleConfirmationKey } from "./simple-confirmation.ts";
 
 export interface V4CutoverViewRow {
   id: string;
@@ -159,7 +160,7 @@ export function advanceV4CutoverConfirmation(
 }
 
 export function isV4CutoverConfirmationKey(keyName: string): boolean {
-  return keyName === "enter" || keyName === "return" || keyName.toLowerCase() === "y";
+  return isSimpleConfirmationKey(keyName);
 }
 
 export function advanceV4CutoverConfirmationFromKey(

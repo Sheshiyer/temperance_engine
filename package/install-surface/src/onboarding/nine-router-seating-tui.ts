@@ -16,6 +16,7 @@ import {
   toggleNineRouterSeatModel,
   type NineRouterSeatingDraft,
 } from "./nine-router-seating.ts";
+import { isSimpleConfirmationKey } from "./simple-confirmation.ts";
 
 export interface NineRouterSeatingTuiOptions {
   requiredAliases: readonly string[];
@@ -90,7 +91,7 @@ export async function runNineRouterSeatingTui(options: NineRouterSeatingTuiOptio
   const detail = new TextRenderable(renderer, { content: view.detail, fg: "#d8dee9" });
   detailBox.add(detail);
   content.add(aliases); content.add(modelsBox); content.add(detailBox);
-  const footer = new TextRenderable(renderer, { height: 1, content: "←/→ switch pane · ↑/↓ choose · space toggle · [/] reorder · c continue · q cancel", fg: "#88c0d0" });
+  const footer = new TextRenderable(renderer, { height: 1, content: "←/→ switch pane · ↑/↓ choose · space toggle · [/] reorder · enter/y continue · q cancel", fg: "#88c0d0" });
   root.add(header); root.add(content); root.add(footer); renderer.root.add(root); aliases.focus(); renderer.start();
 
   let focused: "aliases" | "models" = "aliases";
@@ -105,7 +106,7 @@ export async function runNineRouterSeatingTui(options: NineRouterSeatingTuiOptio
     if (!currentModel || !draft.choices.some(({ id }) => id === currentModel)) currentModel = draft.choices[0]?.id;
     const modelIndex = Math.max(0, draft.choices.findIndex(({ id }) => id === currentModel));
     if (models.options.length > 0) models.setSelectedIndex(modelIndex);
-    footer.content = `←/→ switch pane · ↑/↓ choose · space toggle · [/] reorder · ${view.confirmable ? "c continue" : "seat every alias"} · q cancel`;
+    footer.content = `←/→ switch pane · ↑/↓ choose · space toggle · [/] reorder · ${view.confirmable ? "enter/y continue" : "seat every alias"} · q cancel`;
   };
   aliases.on(SelectRenderableEvents.SELECTION_CHANGED, (_index: number, option: SelectOption) => {
     if (typeof option?.value !== "string") return;
@@ -138,7 +139,7 @@ export async function runNineRouterSeatingTui(options: NineRouterSeatingTuiOptio
           refresh();
         }
       }
-      if (key.name === "c") {
+      if (isSimpleConfirmationKey(key.name)) {
         if (!canConfirmNineRouterSeating(draft)) {
           detail.content = `${view.detail}\n\nEvery semantic alias needs at least one live provider model.`;
           return;
