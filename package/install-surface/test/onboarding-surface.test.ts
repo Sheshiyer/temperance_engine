@@ -87,6 +87,21 @@ describe("onboarding presentation", () => {
     const overview = createOnboardingViewModel(withMadara).pages.find(({ id }) => id === "overview");
     expect(overview?.rows.find(({ id }) => id === "mount")?.title).toBe("Madara: absent · read-only degraded");
   });
+
+  test("shows discovered projects as pending rather than enrolled", () => {
+    const withCandidate: OnboardingPlanV1 = {
+      ...plan,
+      project_candidates: [{
+        schema: "temperance.project-capsule.v1", version: { major: 1, minor: 0 }, id: "portfolio.cambium",
+        repository_identity: "github.com/example/cambium", root_variable: "PROJECT_ROOT", relative_path: "cambium",
+        access: "read-only", approved: false, discovery_source: "portfolio", display_name: "Cambium", path_present: true,
+      }],
+    };
+    const projects = createOnboardingViewModel(withCandidate).pages.find(({ id }) => id === "projects");
+    expect(projects?.rows).toEqual([expect.objectContaining({
+      id: "portfolio.cambium", status: "not-selected", title: "Cambium · pending approval",
+    })]);
+  });
 });
 
 test("CLI onboarding is JSON-capable and read-only by default", async () => {

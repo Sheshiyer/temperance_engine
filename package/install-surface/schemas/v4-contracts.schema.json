@@ -15,7 +15,34 @@
         "variables": { "type": "array", "maxItems": 512, "items": { "type": "object", "additionalProperties": false, "required": ["name", "kind", "required"], "properties": { "name": { "$ref": "#/$defs/variable" }, "kind": { "enum": ["string", "absolute-path", "url", "volume-uuid"] }, "required": { "type": "boolean" } } } },
         "secret_references": { "type": "array", "maxItems": 128, "items": { "type": "object", "additionalProperties": false, "required": ["name", "required"], "properties": { "name": { "$ref": "#/$defs/variable" }, "required": { "type": "boolean" } } } },
         "preselected_modules": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
-        "required_routing_aliases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } }
+        "required_routing_aliases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "project_discovery": {
+          "type": "array", "maxItems": 64,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object", "additionalProperties": false,
+                "required": ["id", "kind", "root_variable", "require_git", "access"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/identifier" }, "kind": { "const": "directory-children" },
+                  "root_variable": { "$ref": "#/$defs/variable" }, "root_prefix_variable": { "$ref": "#/$defs/variable" },
+                  "require_git": { "type": "boolean" }, "access": { "enum": ["read-only", "read-write"] }
+                }
+              },
+              {
+                "type": "object", "additionalProperties": false,
+                "required": ["id", "kind", "source_root_variable", "source_relative_path", "project_root_variable", "access"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/identifier" }, "kind": { "const": "json-project-map" },
+                  "source_root_variable": { "$ref": "#/$defs/variable" },
+                  "source_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
+                  "project_root_variable": { "$ref": "#/$defs/variable" }, "project_root_prefix_variable": { "$ref": "#/$defs/variable" },
+                  "access": { "enum": ["read-only", "read-write"] }
+                }
+              }
+            ]
+          }
+        }
       }
     },
     "hostBinding": {

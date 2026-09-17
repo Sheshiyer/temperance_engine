@@ -26,6 +26,7 @@ import { createOnboardingPlan } from "./onboarding/planner.ts";
 import { validateOnboardingCatalog, validateOnboardingProfile } from "./onboarding/schema.ts";
 import { createSystemProbeAdapter } from "./onboarding/system-adapter.ts";
 import { renderOnboardingText } from "./onboarding/presentation.ts";
+import { discoverProjectCandidates } from "./onboarding/project-discovery.ts";
 import type { HostBindingV1, HostProfileV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
 
 const packageRoot = resolve(import.meta.dir, "..");
@@ -239,6 +240,7 @@ function parseOnboardingArgs(args: string[]): {
   hostProfilePath?: string;
   hostBindingPath?: string;
   projectCapsulesPath?: string;
+  projectCapsulesOutPath?: string;
   selections?: Set<string>;
   json: boolean;
   tui: boolean;
@@ -249,6 +251,7 @@ function parseOnboardingArgs(args: string[]): {
   let hostProfilePath: string | undefined;
   let hostBindingPath: string | undefined;
   let projectCapsulesPath: string | undefined;
+  let projectCapsulesOutPath: string | undefined;
   let selections: Set<string> | undefined;
   let json = false;
   let tui = false;
@@ -260,6 +263,7 @@ function parseOnboardingArgs(args: string[]): {
     else if (argument === "--host-profile-file" || argument === "--host-profile") hostProfilePath = args[index += 1];
     else if (argument === "--host-binding-file" || argument === "--host-binding") hostBindingPath = args[index += 1];
     else if (argument === "--project-capsules") projectCapsulesPath = args[index += 1];
+    else if (argument === "--project-capsules-out") projectCapsulesOutPath = args[index += 1];
     else if (argument === "--select") selections = new Set((args[index += 1] ?? "").split(",").filter(Boolean));
     else if (argument === "--json") json = true;
     else if (argument === "--tui") tui = true;
@@ -272,10 +276,11 @@ function parseOnboardingArgs(args: string[]): {
     || (Boolean(profilePath) && usesComposedProfile)
     || (usesComposedProfile && (!hostProfilePath || !hostBindingPath))
     || (Boolean(projectCapsulesPath) && !usesComposedProfile)
+    || (Boolean(projectCapsulesOutPath) && (!usesComposedProfile || !tui || json || doctor))
   ) {
     throw new Error("ONBOARDING_ARGUMENT_INVALID");
   }
-  return { catalogPath, profilePath, hostProfilePath, hostBindingPath, projectCapsulesPath, selections, json, tui, doctor };
+  return { catalogPath, profilePath, hostProfilePath, hostBindingPath, projectCapsulesPath, projectCapsulesOutPath, selections, json, tui, doctor };
 }
 
 function loadOnboardingJson<T>(path: string, validate: (value: unknown) => value is T, code: string): T {
@@ -301,20 +306,32 @@ async function main(): Promise<void> {
       const catalog = args.catalogPath
         ? loadOnboardingJson<OnboardingCatalogV1>(args.catalogPath, validateOnboardingCatalog, "ONBOARDING_CATALOG_INVALID")
         : createCoreOnboardingCatalog();
+      const hostProfile = args.hostProfilePath
+        ? loadOnboardingJson<HostProfileV1>(args.hostProfilePath, validateHostProfileV1, "HOST_PROFILE_INVALID")
+        : undefined;
+      const hostBinding = args.hostBindingPath
+        ? loadOnboardingJson<HostBindingV1>(args.hostBindingPath, validateHostBindingV1, "HOST_BINDING_INVALID")
+        : undefined;
+      const projectCapsules = loadProjectCapsules(args.projectCapsulesPath);
       const profile = args.profilePath
         ? loadOnboardingJson<OnboardingProfileV1>(args.profilePath, validateOnboardingProfile, "ONBOARDING_PROFILE_INVALID")
-        : args.hostProfilePath
+        : hostProfile
           ? composeOnboardingProfile(
-            loadOnboardingJson<HostProfileV1>(args.hostProfilePath!, validateHostProfileV1, "HOST_PROFILE_INVALID"),
-            loadOnboardingJson<HostBindingV1>(args.hostBindingPath!, validateHostBindingV1, "HOST_BINDING_INVALID"),
-            { projectCapsules: loadProjectCapsules(args.projectCapsulesPath) },
+            hostProfile,
+            hostBinding!,
+            { projectCapsules },
           )
           : createCoreOnboardingProfile();
+      const discovery = hostProfile && hostBinding
+        ? discoverProjectCandidates(hostProfile, hostBinding)
+        : { candidates: [], findings: [] };
       const plan = await createOnboardingPlan({
         catalog,
         profile,
         adapter: createSystemProbeAdapter(),
         selections: args.selections,
+        projectCandidates: discovery.candidates,
+        projectDiscoveryFindings: discovery.findings,
       });
       if (args.doctor) {
         const section = projectOnboardingDoctorSection(plan);
@@ -323,7 +340,15 @@ async function main(): Promise<void> {
       } else if (args.tui || (!args.json && process.stdin.isTTY && process.stdout.isTTY)) {
         if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("ONBOARDING_TUI_REQUIRES_TTY");
         const { runOnboardingTui } = await import("./onboarding/tui.ts");
-        await runOnboardingTui(plan);
+        const result = await runOnboardingTui(plan, {
+          existingProjectCapsules: projectCapsules,
+          allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
+        });
+        if (result.save_project_capsules) {
+          const output = resolve(args.projectCapsulesOutPath!);
+          mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
+          await lifecycleIO.writeFileAtomic!(output, `${canonical(result.project_capsules)}\n`, { mode: 0o600 });
+        }
         process.exitCode = 0;
       } else {
         process.stdout.write(args.json ? canonical(plan) : renderOnboardingText(plan));
@@ -518,6 +543,8 @@ async function main(): Promise<void> {
 Commands:
   onboard [--profile P | --host-profile P --host-binding B] [--catalog C] [--json|--doctor]
                                    Open generic TUI by default; Noesis is an explicit overlay
+          [--project-capsules P --project-capsules-out P --tui]
+                                   Review advisory candidates and explicitly save capsules
   compile                          Compile fragments and print receipt
   write-lock                       Compile and write lock file
   doctor [--section S] [--json]    Run doctor checks

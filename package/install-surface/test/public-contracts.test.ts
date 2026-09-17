@@ -45,6 +45,28 @@ describe("V4 public contracts", () => {
     expect(validateHostBindingV1({ ...binding, secret_references: { GATEWAY_KEY: { value: "plaintext" } } })).toBe(false);
   });
 
+  test("validates portable project discovery declarations without host paths", () => {
+    const profile: HostProfileV1 = {
+      schema: HOST_PROFILE_SCHEMA,
+      version: { major: 1, minor: 0 },
+      id: "discovery-profile",
+      variables: [
+        { name: "MAP_ROOT", kind: "absolute-path", required: true },
+        { name: "PROJECT_ROOT", kind: "absolute-path", required: true },
+      ],
+      secret_references: [], preselected_modules: [], required_routing_aliases: [],
+      project_discovery: [{
+        id: "project-map", kind: "json-project-map", source_root_variable: "MAP_ROOT",
+        source_relative_path: "maps/projects.json", project_root_variable: "PROJECT_ROOT", access: "read-only",
+      }],
+    };
+    expect(validateHostProfileV1(profile)).toBe(true);
+    expect(validateHostProfileV1({
+      ...profile,
+      project_discovery: [{ ...profile.project_discovery![0], source_relative_path: "../outside.json" }],
+    })).toBe(false);
+  });
+
   test("runtime-validates ModuleDescriptorV2 with the full admission state enum", () => {
     const descriptor: ModuleDescriptorV2 = {
       schema: MODULE_DESCRIPTOR_SCHEMA,

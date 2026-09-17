@@ -15,6 +15,8 @@ import {
   type OnboardingProfileV1,
 } from "./contracts.ts";
 import { validateOnboardingCatalog, validateOnboardingProfile } from "./schema.ts";
+import type { ProjectCandidateV1 } from "./public-contracts.ts";
+import type { ProjectDiscoveryFinding } from "./project-discovery.ts";
 
 export interface CreateOnboardingPlanOptions {
   catalog: OnboardingCatalogV1;
@@ -23,6 +25,8 @@ export interface CreateOnboardingPlanOptions {
   selections?: ReadonlySet<string>;
   dryRun?: boolean;
   signal?: AbortSignal;
+  projectCandidates?: readonly ProjectCandidateV1[];
+  projectDiscoveryFindings?: readonly ProjectDiscoveryFinding[];
 }
 
 function remediationFor(probe: CapabilityProbe): string[] {
@@ -219,6 +223,8 @@ export async function createOnboardingPlan(options: CreateOnboardingPlanOptions)
     operating_mode: mountDegraded ? "read-only-degraded" : modules.some((module) => module.status === "blocked") ? "blocked" : "ready",
     install_order: topologicalEligible(options.catalog.modules, eligible),
     project_enrollments: options.profile.project_enrollments.map(({ id, approved, access }) => ({ id, approved, access })),
+    project_candidates: [...(options.projectCandidates ?? [])],
+    project_discovery_findings: [...(options.projectDiscoveryFindings ?? [])],
     modules,
   };
   return {

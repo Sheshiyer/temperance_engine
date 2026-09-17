@@ -1,3 +1,5 @@
+import type { ProjectCandidateV1 } from "./public-contracts.ts";
+
 export const ONBOARDING_CATALOG_SCHEMA = "temperance.onboarding.catalog.v1" as const;
 export const ONBOARDING_PROFILE_SCHEMA = "temperance.onboarding.profile.v1" as const;
 export const ONBOARDING_PLAN_SCHEMA = "temperance.onboarding.plan.v1" as const;
@@ -245,6 +247,8 @@ export interface OnboardingPlanV1 {
   operating_mode: "ready" | "blocked" | "read-only-degraded";
   install_order: string[];
   project_enrollments?: Array<Pick<ProjectEnrollment, "id" | "approved" | "access">>;
+  project_candidates?: ProjectCandidateV1[];
+  project_discovery_findings?: Array<{ source_id: string; code: string; message: string }>;
   modules: OnboardingModuleResolution[];
   plan_digest: `sha256:${string}`;
 }

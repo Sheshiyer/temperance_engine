@@ -42,6 +42,20 @@ export function createOnboardingViewModel(plan: OnboardingPlanV1): OnboardingVie
   const projects: OnboardingViewRow[] = (plan.project_enrollments ?? []).map((project) => ({
     id: project.id, title: `${project.id} · ${project.approved ? "approved" : "pending approval"}`, status: project.approved ? "eligible" : "not-selected", blocked_reasons: [], guidance: [project.access],
   }));
+  projects.push(...(plan.project_candidates ?? []).map((project) => ({
+    id: project.id,
+    title: `${project.display_name} · pending approval${project.path_present ? "" : " · path unavailable"}`,
+    status: "not-selected" as const,
+    blocked_reasons: [],
+    guidance: [project.access, `repository: ${project.repository_identity}`, `source: ${project.discovery_source}`],
+  })));
+  projects.push(...(plan.project_discovery_findings ?? []).map((finding) => ({
+    id: `finding.${finding.source_id}.${finding.code.toLowerCase()}`,
+    title: `${finding.source_id} · ${finding.message}`,
+    status: "blocked" as const,
+    blocked_reasons: [finding.code],
+    guidance: [],
+  })));
   const integrations = rows.filter((row) => row.blocked_reasons.some((reason) => reason.includes("APPLICATION")) || row.id.startsWith("integration."));
   const review: OnboardingViewRow[] = [{
     id: "operation-plan", title: `Operation plan · ${plan.install_order.length} modules`, status: plan.operating_mode === "blocked" ? "blocked" : "eligible",

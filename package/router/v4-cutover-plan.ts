@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readdirSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join, resolve } from "node:path";
+import { extname, isAbsolute, join, relative, resolve } from "node:path";
 
 export const V4_CUTOVER_PLAN_SCHEMA = "temperance.v4-cutover-plan.v1" as const;
 export const ROUTER_PACKAGE = "9router" as const;
@@ -59,6 +59,14 @@ export interface CutoverAction {
   reason: string;
 }
 
+export interface MigrationFinding {
+  code: "LEGACY_PROJECT_ROOT_REFERENCE";
+  managed_path_id: "runtime";
+  relative_path: string;
+  occurrence_count: number;
+  remediation: string;
+}
+
 export interface V4CutoverPlan {
   schema: typeof V4_CUTOVER_PLAN_SCHEMA;
   generated_at: string;
@@ -73,6 +81,7 @@ export interface V4CutoverPlan {
   launch_agents: LaunchAgentObservation[];
   binaries: BinaryObservation[];
   router_port: PortObservation;
+  migration_findings: MigrationFinding[];
   actions: CutoverAction[];
   activation_blocked: boolean;
   blocking_reasons: string[];
@@ -118,6 +127,38 @@ function fileCount(root: string): number {
     }
   }
   return count;
+}
+
+function legacyProjectRootFindings(runtimeRoot: string): MigrationFinding[] {
+  if (!existsSync(runtimeRoot) || !lstatSync(runtimeRoot).isDirectory()) return [];
+  const allowed = new Set([".json", ".md", ".mjs", ".sh", ".toml", ".ts", ".yaml", ".yml"]);
+  const findings: MigrationFinding[] = [];
+  const queue = [runtimeRoot];
+  while (queue.length > 0) {
+    const directory = queue.shift()!;
+    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+      const entryPath = join(directory, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        queue.push(entryPath);
+        continue;
+      }
+      if (!entry.isFile() || !allowed.has(extname(entry.name).toLowerCase())) continue;
+      const stat = lstatSync(entryPath);
+      if (stat.size > 1_048_576) continue;
+      const text = readFileSync(entryPath, "utf8");
+      const occurrence_count = text.match(/twc-vault\/01-Projects/gu)?.length ?? 0;
+      if (occurrence_count === 0) continue;
+      findings.push({
+        code: "LEGACY_PROJECT_ROOT_REFERENCE",
+        managed_path_id: "runtime",
+        relative_path: relative(runtimeRoot, entryPath),
+        occurrence_count,
+        remediation: "Migrate this managed runtime reference to a bound V4 project root before activation.",
+      });
+    }
+  }
+  return findings.sort((left, right) => left.relative_path.localeCompare(right.relative_path));
 }
 
 function pathKind(target: string): ManagedPathObservation["observed"] {
@@ -230,6 +271,7 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
   ];
 
   const router_port = inspectPort(20128);
+  const migration_findings = legacyProjectRootFindings(join(homeDirectory, ".temperance_engine"));
   const blocking_reasons: string[] = [];
   if (router_port.owner === "unknown") blocking_reasons.push("ROUTER_PORT_OWNED_BY_UNMANAGED_PROCESS");
   if (router_port.owner === "unsupported") blocking_reasons.push("ROUTER_PORT_INSPECTION_UNSUPPORTED");
@@ -254,7 +296,7 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
     { order: 120, id: "activate-replacement-router", effect: "activate", target: "router-port:20128", required: true, status: blocking_reasons.length ? "blocked" : "manual", reason: blocking_reasons.length ? blocking_reasons.join(",") : "Activation follows install and doctor verification." },
   ];
 
-  const digestScope = { schema: V4_CUTOVER_PLAN_SCHEMA, target: { package: ROUTER_PACKAGE, version: ROUTER_VERSION }, paths, launch_agents, binaries, router_port, actions };
+  const digestScope = { schema: V4_CUTOVER_PLAN_SCHEMA, target: { package: ROUTER_PACKAGE, version: ROUTER_VERSION }, paths, launch_agents, binaries, router_port, migration_findings, actions };
   return {
     schema: V4_CUTOVER_PLAN_SCHEMA,
     generated_at: now().toISOString(),
@@ -265,6 +307,7 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
     launch_agents,
     binaries,
     router_port,
+    migration_findings,
     actions,
     activation_blocked: blocking_reasons.length > 0,
     blocking_reasons,

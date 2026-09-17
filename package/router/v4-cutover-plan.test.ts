@@ -31,6 +31,7 @@ describe("V4 cutover plan", () => {
     mkdirSync(join(home, ".omniroute"), { recursive: true });
     mkdirSync(join(home, ".9router"), { recursive: true });
     writeFileSync(join(home, ".temperance_engine", "runtime.ts"), "export {};\n");
+    writeFileSync(join(home, ".temperance_engine", "legacy-path.ts"), 'const old = "twc-vault/01-Projects/thoughtseed";\n');
     writeFileSync(join(home, ".omniroute", "state.db"), "not-a-real-db\n");
     mkdirSync(launchAgents, { recursive: true });
     for (const filename of MANAGED_LAUNCH_AGENTS) {
@@ -56,10 +57,18 @@ describe("V4 cutover plan", () => {
       { package: "9router", path: "/managed/bin/9router", version: "0.5.69", disposition: "install-exact" },
     ]);
     expect(plan.router_port.owner).toBe("legacy-omniroute");
+    expect(plan.migration_findings).toEqual([{
+      code: "LEGACY_PROJECT_ROOT_REFERENCE",
+      managed_path_id: "runtime",
+      relative_path: "legacy-path.ts",
+      occurrence_count: 1,
+      remediation: "Migrate this managed runtime reference to a bound V4 project root before activation.",
+    }]);
     expect(plan.activation_blocked).toBe(false);
     expect(plan.actions.map(({ order }) => order)).toEqual([...plan.actions.map(({ order }) => order)].sort((a, b) => a - b));
     expect(plan.policy).toEqual({ runnable_backup: false, secret_values_recorded: false, destructive_execution_authorized: false });
     expect(JSON.stringify(plan)).not.toContain("SUPER_SECRET_VALUE_MUST_NOT_ESCAPE");
+    expect(JSON.stringify(plan.migration_findings)).not.toContain(home);
     expect(plan.plan_digest).toMatch(/^sha256:[a-f0-9]{64}$/u);
   });
 

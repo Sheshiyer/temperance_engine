@@ -8,6 +8,25 @@ export const OPERATION_RECEIPT_SCHEMA = "temperance.operation-receipt.v1" as con
 
 export type ModuleAdmissionState = "unavailable" | "detected" | "configured" | "healthy" | "enabled";
 
+export type ProjectDiscoverySpecV1 =
+  | {
+    id: string;
+    kind: "directory-children";
+    root_variable: string;
+    root_prefix_variable?: string;
+    require_git: boolean;
+    access: "read-only" | "read-write";
+  }
+  | {
+    id: string;
+    kind: "json-project-map";
+    source_root_variable: string;
+    source_relative_path: string;
+    project_root_variable: string;
+    project_root_prefix_variable?: string;
+    access: "read-only" | "read-write";
+  };
+
 export interface HostProfileV1 {
   schema: typeof HOST_PROFILE_SCHEMA;
   version: { major: 1; minor: 0 };
@@ -16,6 +35,7 @@ export interface HostProfileV1 {
   secret_references: Array<{ name: string; required: boolean }>;
   preselected_modules: string[];
   required_routing_aliases: string[];
+  project_discovery?: ProjectDiscoverySpecV1[];
 }
 
 export interface HostBindingV1 {
@@ -49,6 +69,13 @@ export interface ProjectCapsuleV1 {
   relative_path: string;
   access: "read-only" | "read-write";
   approved: boolean;
+}
+
+export interface ProjectCandidateV1 extends ProjectCapsuleV1 {
+  approved: false;
+  discovery_source: string;
+  display_name: string;
+  path_present: boolean;
 }
 
 export interface OperationReceiptV1 {
