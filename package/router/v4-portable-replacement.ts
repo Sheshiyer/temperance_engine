@@ -22,7 +22,9 @@ const CUTOVER_TESTS = [
   "package/router/v4-cutover-plan.test.ts",
   "package/router/v4-cutover-executor.test.ts",
   "package/router/v4-cutover-journal.test.ts",
+  "package/router/v4-macos-cutover-runtime.test.ts",
   "package/router/v4-macos-host-adapter.test.ts",
+  "package/router/v4-macos-replacement-services.test.ts",
   "package/router/v4-portable-replacement.test.ts",
   "package/router/v4-replacement-proof.test.ts",
 ] as const;
@@ -52,11 +54,16 @@ export interface PortableV4ServiceInput {
   path: string;
 }
 
+export type PortableV4ServiceVerification = Pick<
+  V4CutoverVerification,
+  "router_version" | "listener_owner" | "listener_port" | "loopback_only" | "doctor_passed"
+>;
+
 /** Host service wiring is injected; portable source and package work stays here. */
 export interface PortableV4ReplacementServices {
   install(input: PortableV4ServiceInput, signal: AbortSignal): Promise<void>;
   activate(input: PortableV4ServiceInput, signal: AbortSignal): Promise<void>;
-  verify(input: PortableV4ServiceInput, signal: AbortSignal): Promise<V4CutoverVerification>;
+  verify(input: PortableV4ServiceInput, signal: AbortSignal): Promise<PortableV4ServiceVerification>;
 }
 
 export interface PortableV4ReplacementOptions {
@@ -345,7 +352,11 @@ export class PortableV4ReplacementLifecycle implements V4ReplacementLifecycle {
   async verify(signal: AbortSignal): Promise<V4CutoverVerification> {
     if (!this.routerInstalled) throw new V4CutoverExecutionError("REPLACEMENT_VERIFICATION_NOT_READY");
     await this.assertRouterPackages();
-    return this.options.services.verify({ ...this.serviceInput }, signal);
+    return {
+      ...await this.options.services.verify({ ...this.serviceInput }, signal),
+      legacy_state_absent: false,
+      legacy_launch_agents_absent: false,
+    };
   }
 
   async discardStage(_signal: AbortSignal): Promise<void> {
@@ -365,6 +376,13 @@ export class PortableV4ReplacementLifecycle implements V4ReplacementLifecycle {
     await this.installRouter(ROUTER_VERSION, signal);
     await this.installLaunchAgents(signal);
     await this.activate(signal);
-    await this.verify(signal);
+    const verification = await this.verify(signal);
+    if (verification.router_version !== ROUTER_VERSION
+      || verification.listener_owner !== "replacement-9router"
+      || verification.listener_port !== 20128
+      || verification.loopback_only !== true
+      || verification.doctor_passed !== true) {
+      throw new V4CutoverExecutionError("REPLACEMENT_RECOVERY_VERIFICATION_FAILED");
+    }
   }
 }

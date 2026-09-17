@@ -182,6 +182,25 @@ blocked. Native Node versions below 22 fail capability preflight instead of
 silently selecting a different native dependency. Service creation,
 activation, and live doctor readback remain injected host responsibilities.
 
+On macOS, `MacOsV4ReplacementServices` owns only the fresh
+`com.temperance.engine.9router` service. It atomically publishes the exact
+secret-free plist, restarts that exact launchd label, and refuses conflicting,
+symlinked, or hard-linked service files. The service enters through an explicit
+`env -i` boundary and restores only its reviewed `PATH` and `DATA_DIR`, so
+credentials or legacy router variables inherited by the user's launchd domain
+cannot propagate into 9Router. Verification reads the pinned package
+metadata without executing the router binary, proves every port-20128 listener
+is loopback-only and descended from the launchd service PID, then invokes the
+injected doctor probe. A process name, open port, or successful bootstrap is
+not sufficient evidence by itself.
+
+`createMacOsV4CutoverRuntime` is the non-mutating composition root joining the
+portable lifecycle, the fresh service owner, the bounded legacy scrub adapter,
+and the durable journal. Staging and receipts live below the user's macOS
+Application Support directory, outside `~/.temperance_engine`, so replacing
+the runtime cannot delete its own recovery source or audit trail. Construction
+does not create those directories, inspect Keychain values, or start services.
+
 No runnable legacy backup survives successful activation. Recovery is a fresh
 install from reviewed source plus redacted receipts, not reactivation of stale
 executables or credentials.

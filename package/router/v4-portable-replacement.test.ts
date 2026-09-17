@@ -4,13 +4,14 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { createV4ReplacementProof, type V4CutoverVerification } from "./v4-cutover-executor.ts";
+import { createV4ReplacementProof } from "./v4-cutover-executor.ts";
 import {
   PortableV4ReplacementLifecycle,
   V4_ROUTER_RUNTIME_DEPENDENCIES,
   nodePortableV4ReplacementIO,
   type PortableV4ReplacementIO,
   type PortableV4ReplacementServices,
+  type PortableV4ServiceVerification,
   type PortableV4ServiceInput,
 } from "./v4-portable-replacement.ts";
 import { ROUTER_VERSION } from "./v4-cutover-plan.ts";
@@ -69,7 +70,7 @@ function writePackage(root: string, name: string, version: string): void {
   writeFileSync(join(packageRoot, "package.json"), `${JSON.stringify({ name, version })}\n`);
 }
 
-function createHarness(options: { wrongRouterVersion?: boolean; nodeMajor?: number } = {}) {
+function createHarness(options: { wrongRouterVersion?: boolean; nodeMajor?: number; doctorPassed?: boolean } = {}) {
   const root = mkdtempSync(join(tmpdir(), "temperance-v4-portable-"));
   roots.push(root);
   const { source, proof } = createSourceRepository(root);
@@ -103,19 +104,17 @@ function createHarness(options: { wrongRouterVersion?: boolean; nodeMajor?: numb
   };
   const serviceCalls: string[] = [];
   const inputs: PortableV4ServiceInput[] = [];
-  const verification: V4CutoverVerification = {
+  const serviceVerification: PortableV4ServiceVerification = {
     router_version: ROUTER_VERSION,
     listener_owner: "replacement-9router",
     listener_port: 20128,
     loopback_only: true,
-    legacy_state_absent: true,
-    legacy_launch_agents_absent: true,
-    doctor_passed: true,
+    doctor_passed: options.doctorPassed ?? true,
   };
   const services: PortableV4ReplacementServices = {
     install: async (input) => { serviceCalls.push("install"); inputs.push(input); },
     activate: async (input) => { serviceCalls.push("activate"); inputs.push(input); },
-    verify: async (input) => { serviceCalls.push("verify"); inputs.push(input); return verification; },
+    verify: async (input) => { serviceCalls.push("verify"); inputs.push(input); return serviceVerification; },
   };
   const lifecycle = new PortableV4ReplacementLifecycle({
     sourceRepository: source,
@@ -131,7 +130,7 @@ function createHarness(options: { wrongRouterVersion?: boolean; nodeMajor?: numb
     platform: "darwin",
     architecture: "arm64",
   });
-  return { root, source, staging, runtime, data, proof, calls, serviceCalls, inputs, lifecycle, verification };
+  return { root, source, staging, runtime, data, proof, calls, serviceCalls, inputs, lifecycle, serviceVerification };
 }
 
 describe("portable V4 replacement lifecycle", () => {
@@ -146,7 +145,11 @@ describe("portable V4 replacement lifecycle", () => {
     await context.lifecycle.installRouter(ROUTER_VERSION, signal);
     await context.lifecycle.installLaunchAgents(signal);
     await context.lifecycle.activate(signal);
-    expect(await context.lifecycle.verify(signal)).toEqual(context.verification);
+    expect(await context.lifecycle.verify(signal)).toEqual({
+      ...context.serviceVerification,
+      legacy_state_absent: false,
+      legacy_launch_agents_absent: false,
+    });
 
     expect(await Bun.file(join(context.runtime, "VERSION")).text()).toBe("0.5.4\n");
     expect(readdirSync(context.staging)).toEqual([]);
@@ -197,5 +200,12 @@ describe("portable V4 replacement lifecycle", () => {
     expect(await Bun.file(join(context.runtime, "VERSION")).text()).toBe("0.5.4\n");
     expect(context.calls.filter((argv) => argv[0] === "git" && argv[1] === "archive").length).toBe(2);
     expect(context.calls.flat().some((value) => /omniroute/u.test(value))).toBe(false);
+  });
+
+  test("refuses to report fresh recovery when live verification is unhealthy", async () => {
+    const context = createHarness({ doctorPassed: false });
+    await expect(context.lifecycle.recover(context.proof, new AbortController().signal))
+      .rejects.toThrow("REPLACEMENT_RECOVERY_VERIFICATION_FAILED");
+    expect(context.serviceCalls).toEqual(["install", "activate", "verify"]);
   });
 });

@@ -53,10 +53,10 @@ export interface V4CutoverVerification {
   router_version: typeof ROUTER_VERSION;
   listener_owner: "replacement-9router";
   listener_port: 20128;
-  loopback_only: true;
-  legacy_state_absent: true;
-  legacy_launch_agents_absent: true;
-  doctor_passed: true;
+  loopback_only: boolean;
+  legacy_state_absent: boolean;
+  legacy_launch_agents_absent: boolean;
+  doctor_passed: boolean;
 }
 
 export interface V4CutoverJournalEvent {
