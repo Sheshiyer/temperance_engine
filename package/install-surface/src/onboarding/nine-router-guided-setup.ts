@@ -15,6 +15,7 @@ import type {
   NineRouterGatewayKeySummary,
 } from "./nine-router-api.ts";
 import type { OnboardingEffector, ResolvedExecutable } from "./operation-executor.ts";
+import { NINE_ROUTER_PROVIDER_CAPABILITIES } from "./nine-router-provider-capabilities.ts";
 import { NINE_ROUTER_GUIDED_SETUP_SCHEMA, type NineRouterGuidedSetupV1 } from "./public-contracts.ts";
 export { NINE_ROUTER_GUIDED_SETUP_SCHEMA, type NineRouterGuidedSetupV1 } from "./public-contracts.ts";
 
@@ -47,6 +48,9 @@ export class NineRouterGuidedSetupError extends Error {
 
 const SAFE_ID = /^[a-z0-9][a-z0-9._-]{0,127}$/u;
 const REFERENCE_ID = /^[A-Za-z][A-Za-z0-9._-]{0,127}$/u;
+const API_KEY_PROVIDER_IDS = new Set(
+  NINE_ROUTER_PROVIDER_CAPABILITIES.filter(({ auth_kind }) => auth_kind === "api-key").map(({ id }) => id),
+);
 
 function text(value: string, code: string, maxLength = 256): string {
   if (!value || value.length > maxLength || value.trim() !== value || value.includes("\0") || /[\r\n]/u.test(value)) {
@@ -73,7 +77,7 @@ function validateDesiredState(desired: NineRouterGuidedSetupV1, profile: Onboard
   if (!validateNineRouterGuidedSetupV1(desired) || desired.schema !== NINE_ROUTER_GUIDED_SETUP_SCHEMA) {
     throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_SCHEMA_INVALID");
   }
-  if (desired.providers.length < 1 || desired.providers.length > 64) {
+  if (desired.providers.length > 64) {
     throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_PROVIDERS_INVALID");
   }
   if (desired.combos.length < 1 || desired.combos.length > 128) {
@@ -102,6 +106,9 @@ function validateDesiredState(desired: NineRouterGuidedSetupV1, profile: Onboard
     referenceId(provider.credential_reference_id, "NINE_ROUTER_SETUP_CREDENTIAL_REFERENCE_INVALID");
     if (!profile.secret_references[provider.credential_reference_id]) {
       throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_CREDENTIAL_REFERENCE_MISSING");
+    }
+    if (!API_KEY_PROVIDER_IDS.has(provider.provider)) {
+      throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_PROVIDER_AUTH_KIND_INVALID");
     }
   }
   unique(desired.providers.map(({ selection_id }) => selection_id), "NINE_ROUTER_SETUP_SELECTION_DUPLICATE");
@@ -159,7 +166,7 @@ function assertFreshState(
   if (gatewayKeys.some(({ name }) => name === desired.gateway_key.name)) {
     throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_GATEWAY_KEY_CONFLICT");
   }
-  if (catalog.providers.length > 0 || catalog.combos.length > 0 || gatewayKeys.length > 0) {
+  if (catalog.combos.length > 0 || gatewayKeys.length > 0) {
     throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_STATE_NOT_EMPTY");
   }
 }
@@ -266,8 +273,9 @@ export function createNineRouterGuidedSetupPlanInput(
 }
 
 /**
- * Creates only fresh 9Router objects. It never edits pre-existing provider or
- * combo state, making reverse deletion a complete rollback for this effector.
+ * Creates only reviewed 9Router objects. Existing provider connections are
+ * read-only inputs so 9Router-owned OAuth can precede this transaction. Existing
+ * combos and gateway keys remain conflicts; rollback deletes only created IDs.
  */
 export function createNineRouterGuidedSetupEffector(options: {
   desired: NineRouterGuidedSetupV1;

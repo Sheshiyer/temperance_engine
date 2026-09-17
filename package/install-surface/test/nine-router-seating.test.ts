@@ -93,6 +93,17 @@ describe("9router semantic seat drafting", () => {
     });
   });
 
+  test("compiles OAuth-owned live providers without inventing API-key provider intent", () => {
+    let draft = createNineRouterSeatingDraft(["noesis-build"], liveModels);
+    draft = toggleNineRouterSeatModel(draft, "noesis-build", "cx/gpt-codex");
+    expect(compileNineRouterGuidedSetup({
+      schema: "temperance.9router-setup-intent.v1",
+      version: { major: 1, minor: 0 },
+      providers: [],
+      gateway_key: { name: "Temperance", secret_reference_id: "NINE_ROUTER_GATEWAY_KEY" },
+    }, draft).providers).toEqual([]);
+  });
+
   test("rejects ambiguous, duplicate, malformed, and undeclared inputs", () => {
     expect(() => createNineRouterSeatingDraft(["Noesis Build"], liveModels)).toThrow(NineRouterSeatingError);
     expect(() => createNineRouterSeatingDraft(["noesis-build", "noesis-build"], liveModels)).toThrow("NINE_ROUTER_SEATING_ALIAS_DUPLICATE");

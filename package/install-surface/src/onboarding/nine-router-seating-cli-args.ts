@@ -3,6 +3,8 @@ export interface NineRouterSeatingCliArgs {
   hostBindingPath: string;
   intentPath?: string;
   outputPath?: string;
+  gatewayReferenceId?: string;
+  gatewayKeyName?: string;
   json: boolean;
   tui: boolean;
 }
@@ -12,6 +14,8 @@ export function parseNineRouterSeatingArgs(args: readonly string[]): NineRouterS
   let hostBindingPath: string | undefined;
   let intentPath: string | undefined;
   let outputPath: string | undefined;
+  let gatewayReferenceId: string | undefined;
+  let gatewayKeyName: string | undefined;
   let json = false;
   let tui = false;
   for (let index = 0; index < args.length; index += 1) {
@@ -26,14 +30,22 @@ export function parseNineRouterSeatingArgs(args: readonly string[]): NineRouterS
     else if (argument === "--host-binding") hostBindingPath = takeValue();
     else if (argument === "--intent") intentPath = takeValue();
     else if (argument === "--output") outputPath = takeValue();
+    else if (argument === "--gateway-reference") gatewayReferenceId = takeValue();
+    else if (argument === "--gateway-name") gatewayKeyName = takeValue();
     else if (argument === "--json") json = true;
     else if (argument === "--tui") tui = true;
     else throw new Error("NINE_ROUTER_SEATING_ARGUMENT_INVALID");
   }
+  const directGatewayIntent = Boolean(gatewayReferenceId);
   if (!hostProfilePath || !hostBindingPath || (json && tui)
-    || (json && Boolean(intentPath || outputPath))
-    || (!json && (!intentPath || !outputPath))) {
+    || (json && Boolean(intentPath || outputPath || gatewayReferenceId || gatewayKeyName))
+    || (!json && (!outputPath || Boolean(intentPath) === directGatewayIntent))
+    || (Boolean(gatewayKeyName) && !directGatewayIntent)) {
     throw new Error("NINE_ROUTER_SEATING_ARGUMENT_INVALID");
   }
-  return { hostProfilePath, hostBindingPath, intentPath, outputPath, json, tui };
+  return {
+    hostProfilePath, hostBindingPath, intentPath, outputPath, gatewayReferenceId,
+    gatewayKeyName: directGatewayIntent ? (gatewayKeyName ?? "Temperance") : undefined,
+    json, tui,
+  };
 }

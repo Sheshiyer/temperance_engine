@@ -166,6 +166,7 @@ describe("V4 public contracts", () => {
       gateway_key: { name: "Temperance", secret_reference_id: "GATEWAY_KEY" },
     };
     expect(validateNineRouterSetupIntentV1(intent)).toBe(true);
+    expect(validateNineRouterSetupIntentV1({ ...intent, providers: [] })).toBe(true);
     expect(validateNineRouterSetupIntentV1({ ...intent, providers: [{ ...intent.providers[0], apiKey: "forbidden" }] })).toBe(false);
     const setup: NineRouterGuidedSetupV1 = {
       schema: NINE_ROUTER_GUIDED_SETUP_SCHEMA,
@@ -176,6 +177,7 @@ describe("V4 public contracts", () => {
       gateway_key: { name: "Temperance", secret_reference_id: "GATEWAY_KEY" },
     };
     expect(validateNineRouterGuidedSetupV1(setup)).toBe(true);
+    expect(validateNineRouterGuidedSetupV1({ ...setup, providers: [] })).toBe(true);
     expect(validateNineRouterGuidedSetupV1({ ...setup, combos: [{ alias: "noesis-build", models: [{ provider: "anthropic" }] }] })).toBe(false);
     expect(validateNineRouterGuidedSetupV1({ ...setup, gateway_key: { ...setup.gateway_key, value: "forbidden" } })).toBe(false);
   });

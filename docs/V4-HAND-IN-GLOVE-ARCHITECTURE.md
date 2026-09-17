@@ -106,9 +106,11 @@ declare only required aliases.
 Provider intent may be prepared separately as
 `temperance.9router-setup-intent.v1`. It contains provider identifiers,
 connection labels, credential-reference identifiers, and the gateway-key
-reference—never credential values or concrete combo membership. The portable
-runtime does not prescribe provider families; a personal or organizational
-operator supplies this private intent.
+reference—never credential values or concrete combo membership. Its provider
+array contains only new API-key connections and may be empty when every chosen
+provider was authenticated through 9Router's OAuth flow. The portable runtime
+does not prescribe which provider families are selected; a personal or
+organizational operator supplies this private intent.
 
 `temperance router-seat` is the read-only bridge from that intent to concrete
 membership. JSON mode reports the provider-only choices obtained from the
@@ -131,6 +133,25 @@ capability. Its output is still only an input to a newly compiled onboarding
 plan; it cannot authorize repair. If the live provider catalog is empty, every
 alias is displayed as held with `LIVE_PROVIDER_MODELS_UNAVAILABLE` rather than
 offering invented or copied model choices.
+
+For an OAuth-only provider set, `router-seat` can synthesize the empty-provider
+intent from one declared gateway-key reference. This removes the need for a
+hand-authored placeholder provider file without claiming the OAuth flow:
+
+```bash
+temperance router-seat \
+  --host-profile "${HOST_PROFILE_PATH}" \
+  --host-binding "${HOST_BINDING_PATH}" \
+  --gateway-reference NINE_ROUTER_GATEWAY_KEY \
+  --output "${ROUTER_SETUP_PATH}" \
+  --tui
+```
+
+The later reviewed transaction accepts existing provider connections as
+read-only catalog inputs, but still refuses any pre-existing combo or gateway
+key. Rollback deletes only the combos, key, and optional API-key connections
+whose exact IDs were created by that transaction; it never deletes an existing
+OAuth connection.
 
 The setup input is validated before review. Its canonical digest and exact
 secret-free provider, combo, model, alias, and gateway-key-reference details

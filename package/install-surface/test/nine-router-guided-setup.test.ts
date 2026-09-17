@@ -58,6 +58,7 @@ class MemoryApi implements NineRouterGuidedSetupApi {
   distortReadback = false;
   failAfterCreate: "provider" | "combo" | "gateway" | undefined;
   availableModelKind: "provider" | "combo" | "absent" = "provider";
+  availableModelsOverride: Array<{ id: string; owner: string; kind: "provider" | "combo" }> | undefined;
 
   async readCatalog(): Promise<NineRouterCatalogSnapshot> {
     this.calls.push("read-catalog");
@@ -78,6 +79,7 @@ class MemoryApi implements NineRouterGuidedSetupApi {
 
   async readAvailableModels() {
     this.calls.push("read-available-models");
+    if (this.availableModelsOverride) return structuredClone(this.availableModelsOverride);
     return this.availableModelKind === "absent"
       ? []
       : [{ id: "anthropic/claude-build", owner: "anthropic", kind: this.availableModelKind }];
@@ -221,6 +223,28 @@ describe("fresh 9router guided setup", () => {
     expect(JSON.stringify({ result, apiCalls: api.calls, keychainCalls: keychain.calls })).not.toContain("new-gateway-secret");
   });
 
+  test("uses existing OAuth providers without owning or deleting their connections", async () => {
+    const api = new MemoryApi();
+    api.providers.push({ id: "oauth-codex", name: "Codex OAuth", provider: "codex", active: true });
+    api.availableModelsOverride = [{ id: "cx/gpt-codex", owner: "cx", kind: "provider" }];
+    const oauthDesired: NineRouterGuidedSetupV1 = {
+      ...desired,
+      providers: [],
+      combos: [{ alias: "noesis-build", models: ["cx/gpt-codex"] }],
+    };
+    const keychain = memoryKeychain();
+    const effector = createNineRouterGuidedSetupEffector({ desired: oauthDesired, profile, api, keychain, executable });
+    await effector.apply(new AbortController().signal);
+    expect(api.providers).toEqual([{ id: "oauth-codex", name: "Codex OAuth", provider: "codex", active: true }]);
+    expect(api.calls).not.toContain("create-provider:codex:Codex OAuth:[redacted]");
+    expect(keychain.calls).not.toContain("read:temperance.provider/primary");
+    await effector.rollback(new AbortController().signal);
+    expect(api.providers).toEqual([{ id: "oauth-codex", name: "Codex OAuth", provider: "codex", active: true }]);
+    expect(api.calls.some((call) => call.startsWith("delete-provider:"))).toBe(false);
+    expect(api.combos).toEqual([]);
+    expect(api.keys).toEqual([]);
+  });
+
   test("rolls back gateway, combo, provider, and Keychain state in reverse creation order", async () => {
     const api = new MemoryApi();
     const keychain = memoryKeychain("previous-gateway-secret");
@@ -306,10 +330,9 @@ describe("fresh 9router guided setup", () => {
     })).toThrow("NINE_ROUTER_SETUP_REQUIRED_ALIAS_UNBOUND");
   });
 
-  test("rejects any unrelated pre-existing 9router state before reading Keychain", async () => {
-    for (const state of ["provider", "combo", "key"] as const) {
+  test("rejects pre-existing combos and gateway keys before reading Keychain", async () => {
+    for (const state of ["combo", "key"] as const) {
       const api = new MemoryApi();
-      if (state === "provider") api.providers.push({ id: "unrelated-provider", name: "Other", provider: "openai", active: true });
       if (state === "combo") api.combos.push({ id: "unrelated-combo", alias: "other", model_count: 1 });
       if (state === "key") api.keys.push({ id: "unrelated-key", name: "Other" });
       const keychain = memoryKeychain();
@@ -318,6 +341,24 @@ describe("fresh 9router guided setup", () => {
       expect(api.calls).toEqual(["read-catalog", "read-gateway-keys"]);
       expect(keychain.calls).toEqual([]);
     }
+  });
+
+  test("rejects OAuth provider IDs in API-key creation intent", () => {
+    expect(() => createNineRouterGuidedSetupEffector({
+      desired: {
+        ...desired,
+        providers: [{
+          selection_id: "codex",
+          provider: "codex",
+          connection_name: "Codex OAuth",
+          credential_reference_id: "PROVIDER_PRIMARY",
+        }],
+      },
+      profile,
+      api: new MemoryApi(),
+      keychain: memoryKeychain(),
+      executable,
+    })).toThrow("NINE_ROUTER_SETUP_PROVIDER_AUTH_KIND_INVALID");
   });
 
   test("repair rejects missing or mismatched confirmation before any API mutation", async () => {
