@@ -135,8 +135,8 @@
             "v4-macos-host-adapter.ts": "sha256:79e76679e17857a28ab79c4cfff8fced713d9f50be30d272384fd02c8e01e6e9",
             "v4-macos-replacement-services.test.ts": "sha256:f16717435b95f129819698017faea8a9f8e2c06bde73c6a52ed4b8533665eaf7",
             "v4-macos-replacement-services.ts": "sha256:14a2092f5997ca476177eb37caeaa509fd64e86e445d56eafe47a73910a93ca2",
-            "v4-portable-replacement.test.ts": "sha256:a80f9cb86bce766bcf65c3848fdd2b1feb1335312b0d7b532152c6f92a97541d",
-            "v4-portable-replacement.ts": "sha256:da20749f230555443a9bda9a80c0e33967b89dbf2d1dee6332c4d4e53f5de75a",
+            "v4-portable-replacement.test.ts": "sha256:dcc92b0ea9b26fc7e71d1a53fe597a00fa80f41bc0509324b8fef66021eea9e2",
+            "v4-portable-replacement.ts": "sha256:83cc93320b6c189aca8eba53349c457b15f1ee047bdff67099034e69652af5b8",
             "v4-replacement-proof.test.ts": "sha256:413ca7b3ca4dffed92a105303cbb429422481d6c55f753c99081f04b69d8f13b",
             "v4-replacement-proof.ts": "sha256:abfce593ae0115086573d1e7321a17b95f58a6a2a998c803e2a41df83e5ace6b"
           },
