@@ -455,6 +455,7 @@ async function main(): Promise<void> {
             declaredSecretReferenceIds: routerSetup
               ? routerSetup.providers.map(({ credential_reference_id }) => credential_reference_id).filter((id) => id !== gatewayReferenceId)
               : [],
+            providerPreferences: hostProfile?.routing_provider_preferences,
           });
           const { runOnboardingTui } = await import("./onboarding/tui.ts");
           const result = await runOnboardingTui(activePlan, {

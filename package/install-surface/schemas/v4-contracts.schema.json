@@ -27,6 +27,17 @@
         "secret_references": { "type": "array", "maxItems": 128, "items": { "type": "object", "additionalProperties": false, "required": ["name", "required"], "properties": { "name": { "$ref": "#/$defs/variable" }, "required": { "type": "boolean" } } } },
         "preselected_modules": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
         "required_routing_aliases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "routing_provider_preferences": {
+          "type": "array", "maxItems": 64,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["provider", "tier"],
+            "properties": {
+              "provider": { "$ref": "#/$defs/identifier" },
+              "tier": { "enum": ["recommended", "optional"] }
+            }
+          }
+        },
         "project_discovery": {
           "type": "array", "maxItems": 64,
           "items": {

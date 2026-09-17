@@ -37,6 +37,30 @@ describe("version-bound 9router provider capabilities", () => {
     expect(surface.live_model_count).toBe(1);
   });
 
+  test("orders a personal recommended set without hiding or auto-authorizing any provider", () => {
+    const surface = createNineRouterRoutingSurface({
+      routerVersion: "0.5.75",
+      requiredAliases: [],
+      providerPreferences: [
+        { provider: "codex", tier: "recommended" },
+        { provider: "claude", tier: "recommended" },
+        { provider: "gemini-cli", tier: "optional" },
+        { provider: "github", tier: "optional" },
+      ],
+    });
+    expect(surface.provider_options.slice(0, 4).map(({ id, preference, state }) => ({ id, preference, state }))).toEqual([
+      { id: "codex", preference: "recommended", state: "held" },
+      { id: "claude", preference: "recommended", state: "held" },
+      { id: "gemini-cli", preference: "optional", state: "held" },
+      { id: "github", preference: "optional", state: "held" },
+    ]);
+    expect(surface.provider_options).toHaveLength(15);
+    expect(() => createNineRouterRoutingSurface({
+      routerVersion: "0.5.75", requiredAliases: [],
+      providerPreferences: [{ provider: "not-a-9router-provider", tier: "recommended" }],
+    })).toThrow("NINE_ROUTER_PROVIDER_PREFERENCE_INVALID");
+  });
+
   test("fails closed across router-version drift and an empty live catalog", () => {
     const drifted = createNineRouterRoutingSurface({
       routerVersion: "0.5.76",

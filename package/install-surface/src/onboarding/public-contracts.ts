@@ -49,6 +49,7 @@ export interface HostProfileV1 {
   secret_references: Array<{ name: string; required: boolean }>;
   preselected_modules: string[];
   required_routing_aliases: string[];
+  routing_provider_preferences?: Array<{ provider: string; tier: "recommended" | "optional" }>;
   project_discovery?: ProjectDiscoverySpecV1[];
 }
 

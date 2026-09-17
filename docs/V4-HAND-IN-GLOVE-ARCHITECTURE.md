@@ -75,6 +75,12 @@ they can be enabled. The adapter contains no model identifiers, credentials,
 tokens, quotas, connection state, or combo membership, and every row fails
 closed when the observed package version differs from `0.5.75`.
 
+An optional portable host-profile preference list may order those same fifteen
+rows and label each listed provider `recommended` or `optional`. It is display
+policy only: it cannot hide an unlisted provider, select a provider, start
+authorization, create a connection, or claim availability. Unknown or duplicate
+provider preferences fail closed against the exact-version capability table.
+
 OAuth token custody remains wholly owned by 9Router. The exact-version
 management adapter may broker the operator interaction through 9Router's
 loopback authorization-code and device-code endpoints, but it never mints,

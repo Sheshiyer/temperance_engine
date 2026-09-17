@@ -13,6 +13,7 @@ export interface NineRouterProviderCapability {
 }
 
 export interface NineRouterProviderOption extends NineRouterProviderCapability {
+  preference: "recommended" | "optional" | "available";
   state: "connected" | "held";
   connection_ids: string[];
   hold_reason?:
@@ -59,9 +60,11 @@ function heldOption(
   capability: NineRouterProviderCapability,
   compatible: boolean,
   declaredSecretReferenceIds: readonly string[],
+  preference: NineRouterProviderOption["preference"],
 ): NineRouterProviderOption {
   if (!compatible) return {
     ...capability,
+    preference,
     state: "held",
     connection_ids: [],
     hold_reason: "NINE_ROUTER_PROVIDER_CATALOG_VERSION_MISMATCH",
@@ -73,6 +76,7 @@ function heldOption(
       : "PROVIDER_CREDENTIAL_REFERENCE_SELECTION_REQUIRED";
     return {
       ...capability,
+      preference,
       state: "held",
       connection_ids: [],
       hold_reason: holdReason,
@@ -87,6 +91,7 @@ function heldOption(
   const device = capability.auth_kind === "oauth-device-code";
   return {
     ...capability,
+    preference,
     state: "held",
     connection_ids: [],
     hold_reason: device ? "NINE_ROUTER_DEVICE_AUTH_REQUIRED" : "NINE_ROUTER_OAUTH_REQUIRED",
@@ -105,20 +110,33 @@ export function createNineRouterRoutingSurface(options: {
   catalog?: NineRouterCatalogSnapshot;
   availableModels?: readonly NineRouterAvailableModel[];
   declaredSecretReferenceIds?: readonly string[];
+  providerPreferences?: readonly { provider: string; tier: "recommended" | "optional" }[];
 }): NineRouterRoutingSurface {
   const compatible = options.routerVersion === NINE_ROUTER_PROVIDER_CAPABILITY_VERSION;
   const declaredSecretReferenceIds = [...new Set(options.declaredSecretReferenceIds ?? [])].sort();
+  const preferenceIds = (options.providerPreferences ?? []).map(({ provider }) => provider);
+  if (new Set(preferenceIds).size !== preferenceIds.length
+    || preferenceIds.some((provider) => !NINE_ROUTER_PROVIDER_CAPABILITIES.some(({ id }) => id === provider))) {
+    throw new Error("NINE_ROUTER_PROVIDER_PREFERENCE_INVALID");
+  }
+  const preferences = new Map((options.providerPreferences ?? []).map(({ provider, tier }, index) => [provider, { tier, index }]));
   const providerOptions = NINE_ROUTER_PROVIDER_CAPABILITIES.map((capability): NineRouterProviderOption => {
+    const preference = preferences.get(capability.id)?.tier ?? "available";
     const connections = compatible
       ? (options.catalog?.providers ?? []).filter(({ provider }) => provider === capability.id)
       : [];
-    if (connections.length === 0) return heldOption(capability, compatible, declaredSecretReferenceIds);
+    if (connections.length === 0) return heldOption(capability, compatible, declaredSecretReferenceIds, preference);
     return {
       ...capability,
+      preference,
       state: "connected",
       connection_ids: connections.map(({ id }) => id).sort(),
       guidance: [`${connections.length} live 9Router connection${connections.length === 1 ? "" : "s"} available for catalog refresh.`],
     };
+  }).sort((left, right) => {
+    const leftRank = preferences.get(left.id)?.index ?? Number.MAX_SAFE_INTEGER;
+    const rightRank = preferences.get(right.id)?.index ?? Number.MAX_SAFE_INTEGER;
+    return leftRank - rightRank;
   });
   const models = compatible ? [...(options.availableModels ?? [])] : [];
   const draft = options.requiredAliases.length > 0

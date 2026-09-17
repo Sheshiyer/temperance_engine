@@ -70,10 +70,21 @@ describe("onboarding presentation", () => {
       },
       availableModels: [{ id: "cx/gpt-codex", owner: "cx", kind: "provider" }],
       declaredSecretReferenceIds: ["PROVIDER_OPENAI"],
+      providerPreferences: [
+        { provider: "codex", tier: "recommended" },
+        { provider: "claude", tier: "recommended" },
+        { provider: "gemini-cli", tier: "optional" },
+        { provider: "github", tier: "optional" },
+      ],
     });
     const page = createOnboardingViewModel(plan, routing).pages.find(({ id }) => id === "routing");
     expect(page?.rows).toHaveLength(17);
-    expect(page?.rows.find(({ id }) => id === "provider.codex")).toMatchObject({ status: "eligible", blocked_reasons: [] });
+    expect(page?.rows.slice(0, 4).map(({ id }) => id)).toEqual([
+      "provider.codex", "provider.claude", "provider.gemini-cli", "provider.github",
+    ]);
+    expect(page?.rows.find(({ id }) => id === "provider.codex")).toMatchObject({
+      status: "eligible", blocked_reasons: [], title: "OpenAI Codex · oauth-authorization-code · recommended",
+    });
     expect(page?.rows.find(({ id }) => id === "provider.openai")).toMatchObject({
       status: "blocked", blocked_reasons: ["PROVIDER_CREDENTIAL_REFERENCE_SELECTION_REQUIRED"],
     });

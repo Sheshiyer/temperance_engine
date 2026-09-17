@@ -38,7 +38,7 @@ function routingRows(surface?: NineRouterRoutingSurface): OnboardingViewRow[] {
   }];
   const providers = surface.provider_options.map((provider): OnboardingViewRow => ({
     id: `provider.${provider.id}`,
-    title: `${provider.display_name} · ${provider.auth_kind}`,
+    title: `${provider.display_name} · ${provider.auth_kind} · ${provider.preference}`,
     status: provider.state === "connected" ? "eligible" : "blocked",
     blocked_reasons: provider.hold_reason ? [provider.hold_reason] : [],
     guidance: [`9router provider id: ${provider.id}`, `model prefix: ${provider.alias}`, ...provider.guidance],

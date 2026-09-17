@@ -35,6 +35,10 @@ describe("V4 public contracts", () => {
       secret_references: [{ name: "GATEWAY_KEY", required: true }],
       preselected_modules: ["provider.9router"],
       required_routing_aliases: ["coding.primary"],
+      routing_provider_preferences: [
+        { provider: "codex", tier: "recommended" },
+        { provider: "github", tier: "optional" },
+      ],
     };
     const binding: HostBindingV1 = {
       schema: HOST_BINDING_SCHEMA,
@@ -49,6 +53,13 @@ describe("V4 public contracts", () => {
       volume_bindings: [{ id: "projects", mount_path_variable: "PROJECT_VOLUME", volume_uuid: "EXAMPLE-UUID" }],
     };
     expect(validateHostProfileV1(profile)).toBe(true);
+    expect(validateHostProfileV1({
+      ...profile,
+      routing_provider_preferences: [
+        { provider: "codex", tier: "recommended" },
+        { provider: "codex", tier: "optional" },
+      ],
+    })).toBe(false);
     expect(validateHostBindingV1(binding)).toBe(true);
     expect(validateHostBindingV1({ ...binding, host_identity: { ...binding.host_identity!, chip_model: "unknown" } })).toBe(false);
     expect(validateHostBindingV1({ ...binding, secret_references: { GATEWAY_KEY: { value: "plaintext" } } })).toBe(false);

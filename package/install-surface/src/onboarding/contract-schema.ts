@@ -14,7 +14,11 @@ const validators = {
 function bounded<T>(value: unknown, validator: ValidateFunction<T>): value is T {
   try { const encoded = JSON.stringify(value); return typeof encoded === "string" && Buffer.byteLength(encoded, "utf8") <= 4_194_304 && validator(value); } catch { return false; }
 }
-export const validateHostProfileV1 = (value: unknown): value is HostProfileV1 => bounded(value, validators.hostProfile);
+export const validateHostProfileV1 = (value: unknown): value is HostProfileV1 => {
+  if (!bounded(value, validators.hostProfile)) return false;
+  const preferences = value.routing_provider_preferences ?? [];
+  return new Set(preferences.map(({ provider }) => provider)).size === preferences.length;
+};
 export const validateHostBindingV1 = (value: unknown): value is HostBindingV1 => bounded(value, validators.hostBinding);
 export const validateModuleDescriptorV2 = (value: unknown): value is ModuleDescriptorV2 => bounded(value, validators.moduleDescriptor);
 export const validateProjectCapsuleV1 = (value: unknown): value is ProjectCapsuleV1 => bounded(value, validators.projectCapsule);
