@@ -27,7 +27,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 ## What It Installs
 
 - PAI instruction templates for OpenCode, Cursor, and portable `AGENTS.md` use.
-- **OmniRoute-backed agent routing** via `temperance-route` — Temperance classifies work, Codex supplies the tool loop, and OmniRoute owns the live model catalog and provider failover; direct CLIs remain outage fallbacks.
+- **9router-backed agent routing** via `temperance-route` — Temperance classifies work and presents dependency-aware provider setup, while 9router exclusively owns live models, connections, combos, and failover.
 - **Enrichment context** with automatic task classification — every prompt gets a `<temperance-context>` block with routing hints.
 - Optional templates **and compose UPS hooks** for Claude Code and Codex when a user opts in (`--with-claude` / `--with-codex` / `--with-spine`). `/gsd:*` binds PAI mode; a native card only on a bare first prompt with no saved mode.
 - **Optional Kimi surface** — kimi-cli and the Kimi desktop app opt into the governed `temperance/temperance-auto` lane via `scripts/configure-kimi-relay.sh`, with enrichment injected relay-side and the repo skills discoverable in Kimi's skill scopes (see [`docs/kimi-surface.md`](docs/kimi-surface.md)).
@@ -41,7 +41,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 
 | Capability | What it does |
 |---|---|
-| **OmniRoute agent gateway** | Mandatory local client auth, exact model-by-model wire gates, native non-Codex Claude rails, an optional Spark compatibility rail, and Sol-free worker dispatch. |
+| **9router agent gateway** | Exact `9router@0.5.75` pin, dependency-aware provider onboarding, live-only model seating, and one exclusive routing authority. |
 | **Automatic task classification** | Classifies prompts as fast/long-horizon/reasoning/validation/creative and recommends optimal model. |
 | Guarded PAI templates | Installs `NOESIS`-style instruction surfaces without copying private memory. |
 | Pulse compatibility | Provides a tiny local `/notify` and `/healthz` endpoint for phase events. |

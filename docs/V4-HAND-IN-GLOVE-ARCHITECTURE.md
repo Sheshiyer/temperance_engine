@@ -56,7 +56,8 @@ OmniRoute as a second authority.
 - The initial package pin is exactly `9router@0.5.75`.
 - Provider connections are discovered through `/api/providers`; live model and
   combo dropdown choices are discovered through `/v1/models`. Temperance does
-  not duplicate 9Router's internal provider-type or model registry.
+  not duplicate 9Router's model registry or treat adapter metadata as routing
+  state.
 - 9Router owns provider connections, concrete combo membership, ordering,
   quotas, and fallback.
 - Temperance and Noesis select and validate semantic combo aliases only.
@@ -65,6 +66,21 @@ OmniRoute as a second authority.
 - Legacy `.omniroute`, `.omnirouter`, OmniRoute executables, scheduled combo
   writers, and OmniRoute LaunchAgents are cutover inputs and are absent after
   activation.
+
+The onboarding Routing page carries one deliberately narrow, version-bound
+capability adapter for exact `9router@0.5.75`. It presents all fifteen built-in
+provider families and whether each uses an API key, authorization-code OAuth,
+or device-code OAuth. This lets the planner hold impossible selections before
+they can be enabled. The adapter contains no model identifiers, credentials,
+tokens, quotas, connection state, or combo membership, and every row fails
+closed when the observed package version differs from `0.5.75`.
+
+OAuth remains wholly owned by 9Router. The TUI explains which 9Router flow must
+be completed and then waits for `/api/providers` readback; Temperance never
+mints, imports, or persists an OAuth token. API-key providers remain held until
+a private host binding declares a macOS Keychain reference and reviewed private
+provider intent selects it. The concrete model selector is populated only from
+the live `/v1/models` response.
 
 9Router's bundled macOS autostart is not the Temperance service contract. In
 0.5.75 it uses the package's network-exposed default host and does not bind the

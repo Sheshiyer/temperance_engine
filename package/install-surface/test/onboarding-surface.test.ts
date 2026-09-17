@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { ONBOARDING_CATALOG_SCHEMA, ONBOARDING_PROFILE_SCHEMA, type OnboardingPlanV1 } from "../src/onboarding/contracts.ts";
 import { createOnboardingReceipt } from "../src/onboarding/receipt.ts";
 import { createOnboardingViewModel, renderOnboardingText } from "../src/onboarding/presentation.ts";
+import { createNineRouterRoutingSurface } from "../src/onboarding/nine-router-provider-capabilities.ts";
 import { canConfirmOnboardingPlan, selectedOnboardingModuleIds, toggleOnboardingModuleSelection } from "../src/onboarding/tui.ts";
 import { parseOnboardingArgs } from "../src/onboarding/cli-args.ts";
 
@@ -50,13 +51,34 @@ describe("onboarding presentation", () => {
   test("renders status, holds, and guided repair from one view model", () => {
     const view = createOnboardingViewModel(plan);
     expect(view.summary).toContain("1 eligible");
-    expect(view.pages.map((page) => page.id)).toEqual(["overview", "modules", "projects", "integrations", "review"]);
+    expect(view.pages.map((page) => page.id)).toEqual(["overview", "modules", "routing", "projects", "integrations", "review"]);
     expect(view.confirmation).toBe("required");
     expect(view.rows.find((row) => row.id === "blocked")?.blocked_reasons).toEqual(["APPLICATION_MISSING"]);
     const text = renderOnboardingText(plan);
     expect(text).toContain("APPLICATION_MISSING");
     expect(text).toContain("Install app");
     expect(text).toContain("READ-ONLY PLAN");
+  });
+
+  test("shows every version-bound provider and semantic alias with honest holds", () => {
+    const routing = createNineRouterRoutingSurface({
+      routerVersion: "0.5.75",
+      requiredAliases: ["noesis-plan", "noesis-build"],
+      catalog: {
+        providers: [{ id: "connected-codex", name: "Codex", provider: "codex", active: true }],
+        combos: [],
+      },
+      availableModels: [{ id: "cx/gpt-codex", owner: "cx", kind: "provider" }],
+      declaredSecretReferenceIds: ["PROVIDER_OPENAI"],
+    });
+    const page = createOnboardingViewModel(plan, routing).pages.find(({ id }) => id === "routing");
+    expect(page?.rows).toHaveLength(17);
+    expect(page?.rows.find(({ id }) => id === "provider.codex")).toMatchObject({ status: "eligible", blocked_reasons: [] });
+    expect(page?.rows.find(({ id }) => id === "provider.openai")).toMatchObject({
+      status: "blocked", blocked_reasons: ["PROVIDER_CREDENTIAL_REFERENCE_SELECTION_REQUIRED"],
+    });
+    expect(page?.rows.find(({ id }) => id === "alias.noesis-plan")).toMatchObject({ status: "not-selected" });
+    expect(renderOnboardingText(plan, routing)).toContain("ROUTING");
   });
 
   test("receipt stores only secret reference identifiers and no profile values", () => {

@@ -34,7 +34,8 @@ import { parseOnboardingArgs } from "./onboarding/cli-args.ts";
 import { parseHostBindingInitArgs } from "./onboarding/host-binding-init-cli-args.ts";
 import { createHostBinding, writePrivateHostBinding } from "./onboarding/host-binding-init.ts";
 import { MacOsKeychainAdapter } from "./onboarding/keychain-adapter.ts";
-import { NineRouterApiClient } from "./onboarding/nine-router-api.ts";
+import { NineRouterApiClient, type NineRouterAvailableModel, type NineRouterCatalogSnapshot } from "./onboarding/nine-router-api.ts";
+import { createNineRouterRoutingSurface, NINE_ROUTER_PROVIDER_CAPABILITY_VERSION } from "./onboarding/nine-router-provider-capabilities.ts";
 import { compileNineRouterGuidedSetup, createNineRouterSeatingDraft } from "./onboarding/nine-router-seating.ts";
 import { parseNineRouterSeatingArgs } from "./onboarding/nine-router-seating-cli-args.ts";
 import { writePrivateNineRouterSetup } from "./onboarding/nine-router-setup-writer.ts";
@@ -429,11 +430,34 @@ async function main(): Promise<void> {
         process.exitCode = section.condition === "PASS" || section.condition === "WARN" ? 0 : 1;
       } else if (args.tui || (!args.json && process.stdin.isTTY && process.stdout.isTTY)) {
         if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("ONBOARDING_TUI_REQUIRES_TTY");
+        let routingCatalog: NineRouterCatalogSnapshot | undefined;
+        let routingModels: NineRouterAvailableModel[] | undefined;
+        const routerDataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
+        const routerHealthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
+        if (routerDataDirectory && routerHealthUrl) {
+          try {
+            const routingApi = new NineRouterApiClient({ dataDirectory: routerDataDirectory, baseUrl: new URL(routerHealthUrl).origin });
+            [routingCatalog, routingModels] = await Promise.all([routingApi.readCatalog(), routingApi.readAvailableModels()]);
+          } catch { /* Routing page remains dependency-smart and held when live management is unavailable. */ }
+        }
+        const gatewayReferenceId = routerSetup?.gateway_key.secret_reference_id;
+        const routerVersionHeld = plan.modules.find(({ id }) => id === "provider.9router")?.holds
+          .some(({ reason_code }) => reason_code === "BINARY_MISSING" || reason_code === "VERSION_MISMATCH") ?? true;
+        const routing = createNineRouterRoutingSurface({
+          routerVersion: routerVersionHeld ? "unavailable-or-mismatched" : NINE_ROUTER_PROVIDER_CAPABILITY_VERSION,
+          requiredAliases: hostProfile?.required_routing_aliases ?? profile.routing_aliases.map(({ combo }) => combo),
+          catalog: routingCatalog,
+          availableModels: routingModels,
+          declaredSecretReferenceIds: routerSetup
+            ? routerSetup.providers.map(({ credential_reference_id }) => credential_reference_id).filter((id) => id !== gatewayReferenceId)
+            : [],
+        });
         const { runOnboardingTui } = await import("./onboarding/tui.ts");
         const result = await runOnboardingTui(plan, {
           existingProjectCapsules: projectCapsules,
           allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
           replanModuleSelections: args.apply ? undefined : buildPlan,
+          routing,
         });
         if (result.save_project_capsules) {
           const output = resolve(args.projectCapsulesOutPath!);

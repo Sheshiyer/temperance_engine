@@ -3,6 +3,7 @@ import {
   TextRenderable, createCliRenderer, type SelectOption, type TabSelectOption,
 } from "@opentui/core";
 import type { OnboardingPlanV1 } from "./contracts.ts";
+import type { NineRouterRoutingSurface } from "./nine-router-provider-capabilities.ts";
 import { createOnboardingViewModel, type OnboardingViewPage, type OnboardingViewRow } from "./presentation.ts";
 import { approveProjectCandidates } from "./project-discovery.ts";
 import { verifyOnboardingPlanDigest } from "./planner.ts";
@@ -13,6 +14,7 @@ export interface OnboardingTuiOptions {
   existingProjectCapsules?: readonly ProjectCapsuleV1[];
   allowProjectCapsuleSave?: boolean;
   replanModuleSelections?: (selections: ReadonlySet<string>) => Promise<OnboardingPlanV1>;
+  routing?: NineRouterRoutingSurface;
   now?: () => Date;
 }
 
@@ -55,7 +57,7 @@ function detailsFor(row: OnboardingViewRow): string {
 
 export async function runOnboardingTui(plan: OnboardingPlanV1, options: OnboardingTuiOptions = {}): Promise<OnboardingTuiResult> {
   let currentPlan = plan;
-  let view = createOnboardingViewModel(currentPlan);
+  let view = createOnboardingViewModel(currentPlan, options.routing);
   const renderer = await createCliRenderer({ exitOnCtrlC: true, clearOnShutdown: true, useMouse: true });
   const root = new BoxRenderable(renderer, { id: "onboarding-root", width: "100%", height: "100%", flexDirection: "column", backgroundColor: "#0b1020", padding: 1, gap: 1 });
   const header = new BoxRenderable(renderer, { width: "100%", height: 5, border: true, borderStyle: "rounded", borderColor: view.mode === "ready" ? "#59d499" : view.mode === "read-only-degraded" ? "#f4bf75" : "#ef6b73", title: view.title, paddingX: 1 });
@@ -126,7 +128,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
           }
           currentPlan = nextPlan;
           selectedModuleIds = returnedSelections;
-          view = createOnboardingViewModel(currentPlan);
+          view = createOnboardingViewModel(currentPlan, options.routing);
           confirmable = canConfirmOnboardingPlan(currentPlan);
           headerText.content = `${view.dry_run ? "READ-ONLY PLAN" : "COMMIT PLAN"} · ${view.summary}\nProfile: ${view.profile_id} · Mode: ${view.mode} · ${currentPlan.plan_digest.slice(0, 24)}…`;
           const page = view.pages.find(({ id }) => id === currentPage.id) ?? view.pages[0]!;

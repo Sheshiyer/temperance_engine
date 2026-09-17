@@ -1,6 +1,7 @@
 import type { OnboardingPlanV1 } from "./contracts.ts";
+import type { NineRouterRoutingSurface } from "./nine-router-provider-capabilities.ts";
 
-export type OnboardingPageId = "overview" | "modules" | "projects" | "integrations" | "review";
+export type OnboardingPageId = "overview" | "modules" | "routing" | "projects" | "integrations" | "review";
 export interface OnboardingViewRow { id: string; title: string; status: "eligible" | "blocked" | "not-selected"; blocked_reasons: string[]; guidance: string[]; }
 export interface OnboardingViewPage { id: OnboardingPageId; title: string; rows: OnboardingViewRow[]; }
 export interface OnboardingViewModel {
@@ -27,7 +28,34 @@ function moduleRows(plan: OnboardingPlanV1): OnboardingViewRow[] {
   }));
 }
 
-export function createOnboardingViewModel(plan: OnboardingPlanV1): OnboardingViewModel {
+function routingRows(surface?: NineRouterRoutingSurface): OnboardingViewRow[] {
+  if (!surface) return [{
+    id: "routing.unbound",
+    title: "9Router provider and alias fitting unavailable",
+    status: "blocked",
+    blocked_reasons: ["HOST_PROFILE_NOT_SELECTED"],
+    guidance: ["Select a portable host profile and private host binding to inspect provider and semantic-alias options."],
+  }];
+  const providers = surface.provider_options.map((provider): OnboardingViewRow => ({
+    id: `provider.${provider.id}`,
+    title: `${provider.display_name} · ${provider.auth_kind}`,
+    status: provider.state === "connected" ? "eligible" : "blocked",
+    blocked_reasons: provider.hold_reason ? [provider.hold_reason] : [],
+    guidance: [`9router provider id: ${provider.id}`, `model prefix: ${provider.alias}`, ...provider.guidance],
+  }));
+  const aliases = surface.alias_seats.map((seat): OnboardingViewRow => ({
+    id: `alias.${seat.alias}`,
+    title: `${seat.alias} · ${seat.state}`,
+    status: seat.state === "ready" ? "eligible" : seat.state === "held" ? "blocked" : "not-selected",
+    blocked_reasons: seat.hold_reason ? [seat.hold_reason] : [],
+    guidance: seat.state === "held"
+      ? ["Admit a provider in 9Router, refresh the live model catalog, then seat this alias."]
+      : [`${surface.live_model_count} live provider model choices available through router-seat.`],
+  }));
+  return [...providers, ...aliases];
+}
+
+export function createOnboardingViewModel(plan: OnboardingPlanV1, routing?: NineRouterRoutingSurface): OnboardingViewModel {
   const rows = moduleRows(plan);
   const eligible = rows.filter((module) => module.status === "eligible").length;
   const blocked = rows.filter((module) => module.status === "blocked").length;
@@ -96,14 +124,15 @@ export function createOnboardingViewModel(plan: OnboardingPlanV1): OnboardingVie
     dry_run: plan.dry_run, profile_id: plan.profile_id, rows, confirmation: "required",
     pages: [
       { id: "overview", title: "Overview", rows: overview }, { id: "modules", title: "Modules", rows },
+      { id: "routing", title: "Routing", rows: routingRows(routing) },
       { id: "projects", title: "Projects", rows: projects }, { id: "integrations", title: "Integrations", rows: integrations },
       { id: "review", title: "Review", rows: review },
     ],
   };
 }
 
-export function renderOnboardingText(plan: OnboardingPlanV1): string {
-  const view = createOnboardingViewModel(plan);
+export function renderOnboardingText(plan: OnboardingPlanV1, routing?: NineRouterRoutingSurface): string {
+  const view = createOnboardingViewModel(plan, routing);
   const lines = [`${view.title} · ${view.dry_run ? "READ-ONLY PLAN" : "COMMIT PLAN"}`, `profile: ${view.profile_id}`, `mode: ${view.mode}`, `summary: ${view.summary}`, `digest: ${plan.plan_digest}`, "MODULES"];
   for (const row of view.rows) {
     lines.push(`  [${row.status.toUpperCase()}] ${row.id} · ${row.title}`);
@@ -113,6 +142,12 @@ export function renderOnboardingText(plan: OnboardingPlanV1): string {
   for (const input of plan.configuration_inputs ?? []) {
     lines.push(`CONFIGURATION ${input.id} · ${input.digest}`);
     for (const detail of input.details) lines.push(`  ${detail}`);
+  }
+  lines.push("ROUTING");
+  for (const row of view.pages.find(({ id }) => id === "routing")?.rows ?? []) {
+    lines.push(`  [${row.status.toUpperCase()}] ${row.id} · ${row.title}`);
+    for (const reason of row.blocked_reasons) lines.push(`    hold: ${reason}`);
+    for (const guidance of row.guidance) lines.push(`    guided: ${guidance}`);
   }
   lines.push("Review confirmation is required. No changes were made by this planning command.");
   return `${lines.join("\n")}\n`;
