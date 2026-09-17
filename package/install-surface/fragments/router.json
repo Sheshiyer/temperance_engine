@@ -120,7 +120,9 @@
             "temperance-swarm-dispatch.mjs": "sha256:9182047b1330b715e70f7f9ec2c77c12c837e33264d3d44f8460b9025bf04d4f",
             "temperance-workflows.json": "sha256:9d7e76793e334c57bcbeb4400a73098e5b8744bdde356dd5a65f99f31b209f77",
             "temperance-workflows.test.ts": "sha256:1aabe457147c1b5ab62665f49de66a058648f2bbd88830f4784d844ee7ce9228",
-            "temperance-workflows.ts": "sha256:9a837c9ab3bd3a1e513d0d6f75d6c2dce3494e9f32fca47c0cf69e7cad06afd0"
+            "temperance-workflows.ts": "sha256:9a837c9ab3bd3a1e513d0d6f75d6c2dce3494e9f32fca47c0cf69e7cad06afd0",
+            "v4-cutover-plan.test.ts": "sha256:857c3d769b7a0485d22e6479c397b721f57f14d63427358158b60da3ee22d77d",
+            "v4-cutover-plan.ts": "sha256:ae7ace74949672887ad6f652474c20b72a84d42ff2dfe04d3532c8b261776583"
           },
           "modes": {
             "alchemy-stage-hub-map.json": "0644",
@@ -199,7 +201,9 @@
             "temperance-swarm-dispatch.mjs": "0644",
             "temperance-workflows.json": "0644",
             "temperance-workflows.test.ts": "0644",
-            "temperance-workflows.ts": "0644"
+            "temperance-workflows.ts": "0644",
+            "v4-cutover-plan.test.ts": "0644",
+            "v4-cutover-plan.ts": "0644"
           }
         }
       },
