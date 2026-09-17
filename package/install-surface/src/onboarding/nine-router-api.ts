@@ -11,7 +11,7 @@ const CLI_TOOLS = new Set(["claude", "codex", "droid", "openclaw"]);
 export type NineRouterCliTool = "claude" | "codex" | "droid" | "openclaw";
 export interface NineRouterProviderSummary { id: string; name: string; provider: string; active: boolean | null; }
 export interface NineRouterComboSummary { id: string; alias: string; model_count: number; }
-export interface NineRouterComboDetail { id: string; alias: string; models: Record<string, unknown>[]; }
+export interface NineRouterComboDetail { id: string; alias: string; models: string[]; }
 export interface NineRouterAvailableModel { id: string; owner: string; kind: "provider" | "combo"; }
 export interface NineRouterCatalogSnapshot { providers: NineRouterProviderSummary[]; combos: NineRouterComboSummary[]; }
 export interface NineRouterCreatedObject { id: string; name: string; }
@@ -65,6 +65,12 @@ function textField(value: unknown, code: string, maxLength = 256): string {
     throw new NineRouterApiError(code);
   }
   return value;
+}
+
+function modelId(value: unknown, code: string): string {
+  const id = textField(value, code, 512);
+  if (/[\u0000-\u001f\u007f]/u.test(id)) throw new NineRouterApiError(code);
+  return id;
 }
 
 function responseArray(value: unknown, field: string): unknown[] {
@@ -217,7 +223,7 @@ export class NineRouterApiClient {
     return responseArray(await this.request("GET", "/v1/models"), "data")
       .map((value): NineRouterAvailableModel => {
         const item = record(value, "NINE_ROUTER_RESPONSE_INVALID");
-        const id = textField(item.id, "NINE_ROUTER_RESPONSE_INVALID", 512);
+        const id = modelId(item.id, "NINE_ROUTER_RESPONSE_INVALID");
         const owner = textField(item.owned_by, "NINE_ROUTER_RESPONSE_INVALID", 256);
         if (/[\u0000-\u001f\u007f]/u.test(id) || /[\u0000-\u001f\u007f]/u.test(owner)) {
           throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID");
@@ -239,11 +245,12 @@ export class NineRouterApiClient {
     await this.request("DELETE", `/api/providers/${safeId(id)}`);
   }
 
-  async createCombo(input: { name: string; models: readonly Record<string, unknown>[] }): Promise<NineRouterCreatedObject> {
+  async createCombo(input: { name: string; models: readonly string[] }): Promise<NineRouterCreatedObject> {
     const name = textField(input.name, "NINE_ROUTER_COMBO_NAME_INVALID");
     if (input.models.length < 1 || input.models.length > 256) throw new NineRouterApiError("NINE_ROUTER_COMBO_MODELS_INVALID");
-    assertNoCredentialFields(input.models);
-    const value = createdRecord(await this.request("POST", "/api/combos", { name, models: input.models }), "combo");
+    const models = input.models.map((model) => modelId(model, "NINE_ROUTER_COMBO_MODELS_INVALID"));
+    if (new Set(models).size !== models.length) throw new NineRouterApiError("NINE_ROUTER_COMBO_MODELS_INVALID");
+    const value = createdRecord(await this.request("POST", "/api/combos", { name, models }), "combo");
     return { id: safeId(value.id), name: typeof value.name === "string" ? textField(value.name, "NINE_ROUTER_RESPONSE_INVALID") : name };
   }
 
@@ -253,7 +260,7 @@ export class NineRouterApiClient {
     return {
       id: safeId(value.id),
       alias: textField(value.name, "NINE_ROUTER_RESPONSE_INVALID"),
-      models: value.models.map((model) => secretFreeObject(model)),
+      models: value.models.map((model) => modelId(model, "NINE_ROUTER_RESPONSE_INVALID")),
     };
   }
 

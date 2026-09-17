@@ -44,7 +44,7 @@ const desired: NineRouterGuidedSetupV1 = {
     connection_name: "Primary Anthropic",
     credential_reference_id: "PROVIDER_PRIMARY",
   }],
-  combos: [{ alias: "noesis-build", models: [{ provider: "anthropic", model: "claude-build" }] }],
+  combos: [{ alias: "noesis-build", models: ["anthropic/claude-build"] }],
   required_aliases: ["noesis-build"],
   gateway_key: { name: "Temperance", secret_reference_id: "GATEWAY_KEY" },
 };
@@ -53,10 +53,11 @@ class MemoryApi implements NineRouterGuidedSetupApi {
   readonly calls: string[] = [];
   readonly providers: NineRouterCatalogSnapshot["providers"] = [];
   readonly combos: NineRouterCatalogSnapshot["combos"] = [];
-  readonly comboModels = new Map<string, Record<string, unknown>[]>();
+  readonly comboModels = new Map<string, string[]>();
   readonly keys: Array<{ id: string; name: string }> = [];
   distortReadback = false;
   failAfterCreate: "provider" | "combo" | "gateway" | undefined;
+  availableModelKind: "provider" | "combo" | "absent" = "provider";
 
   async readCatalog(): Promise<NineRouterCatalogSnapshot> {
     this.calls.push("read-catalog");
@@ -75,13 +76,20 @@ class MemoryApi implements NineRouterGuidedSetupApi {
     return created;
   }
 
+  async readAvailableModels() {
+    this.calls.push("read-available-models");
+    return this.availableModelKind === "absent"
+      ? []
+      : [{ id: "anthropic/claude-build", owner: "anthropic", kind: this.availableModelKind }];
+  }
+
   async deleteProviderConnection(id: string): Promise<void> {
     this.calls.push(`delete-provider:${id}`);
     const index = this.providers.findIndex((provider) => provider.id === id);
     if (index >= 0) this.providers.splice(index, 1);
   }
 
-  async createCombo(input: { name: string; models: readonly Record<string, unknown>[] }) {
+  async createCombo(input: { name: string; models: readonly string[] }) {
     this.calls.push(`create-combo:${input.name}:${input.models.length}`);
     const created = { id: `combo-${this.combos.length + 1}`, name: input.name };
     this.combos.push({ id: created.id, alias: input.name, model_count: input.models.length });
@@ -163,7 +171,7 @@ describe("fresh 9router guided setup", () => {
     const input = createNineRouterGuidedSetupPlanInput(desired, profile);
     const changed = createNineRouterGuidedSetupPlanInput({
       ...desired,
-      combos: [{ alias: "noesis-build", models: [{ provider: "anthropic", model: "different-model" }] }],
+      combos: [{ alias: "noesis-build", models: ["anthropic/different-model"] }],
     }, profile);
     const changedAlias = createNineRouterGuidedSetupPlanInput(desired, {
       ...profile,
@@ -184,7 +192,7 @@ describe("fresh 9router guided setup", () => {
     expect(input.digest).not.toBe(changedAlias.digest);
     expect(input.digest).not.toBe(changedBinding.digest);
     expect(input.digest).not.toBe(changedReference.digest);
-    expect(input.details.some((detail) => detail.startsWith("combo noesis-build:") && detail.includes('"model": "claude-build"'))).toBe(true);
+    expect(input.details.some((detail) => detail.startsWith("combo noesis-build:") && detail.includes('"anthropic/claude-build"'))).toBe(true);
     expect(JSON.stringify(input)).not.toContain("provider-secret");
     expect(JSON.stringify(input)).not.toContain("new-gateway-secret");
   });
@@ -202,6 +210,7 @@ describe("fresh 9router guided setup", () => {
       "read-catalog",
       "read-gateway-keys",
       "create-provider:anthropic:Primary Anthropic:[redacted]",
+      "read-available-models",
       "create-combo:noesis-build:1",
       "create-gateway-key:Temperance",
       "read-catalog",
@@ -238,6 +247,25 @@ describe("fresh 9router guided setup", () => {
     expect(keychain.values.has("temperance.gateway/default")).toBe(false);
   });
 
+  test("rejects absent and combo-kind live choices before combo creation", async () => {
+    for (const availableModelKind of ["absent", "combo"] as const) {
+      const api = new MemoryApi();
+      api.availableModelKind = availableModelKind;
+      const keychain = memoryKeychain();
+      const effector = createNineRouterGuidedSetupEffector({ desired, profile, api, keychain, executable });
+      await expect(effector.apply(new AbortController().signal)).rejects.toThrow("NINE_ROUTER_SETUP_MODEL_UNAVAILABLE");
+      expect(api.calls).toEqual([
+        "read-catalog",
+        "read-gateway-keys",
+        "create-provider:anthropic:Primary Anthropic:[redacted]",
+        "read-available-models",
+      ]);
+      await effector.rollback(new AbortController().signal);
+      expect(api.providers).toEqual([]);
+      expect(api.combos).toEqual([]);
+    }
+  });
+
   test("recovers created identities from malformed success responses before rollback", async () => {
     for (const failAfterCreate of ["provider", "combo", "gateway"] as const) {
       const api = new MemoryApi();
@@ -253,7 +281,7 @@ describe("fresh 9router guided setup", () => {
     }
   });
 
-  test("rejects conflicts and credential-shaped combo fields before any setup mutation", async () => {
+  test("rejects conflicts and malformed combo model identifiers before any setup mutation", async () => {
     const api = new MemoryApi();
     api.combos.push({ id: "existing", alias: "noesis-build", model_count: 1 });
     const keychain = memoryKeychain();
@@ -263,7 +291,7 @@ describe("fresh 9router guided setup", () => {
     expect(keychain.calls).toEqual([]);
 
     expect(() => createNineRouterGuidedSetupEffector({
-      desired: { ...desired, combos: [{ alias: "noesis-build", models: [{ provider: "anthropic", apiKey: "forbidden" }] }] },
+      desired: { ...desired, combos: [{ alias: "noesis-build", models: ["bad\nmodel"] }] },
       profile,
       api: new MemoryApi(),
       keychain,
@@ -319,7 +347,7 @@ describe("fresh 9router guided setup", () => {
     await expect(executeConfirmedNineRouterRepair(common)).rejects.toThrow("NINE_ROUTER_REPAIR_CONFIRMATION_REQUIRED");
     await expect(executeConfirmedNineRouterRepair({
       ...common,
-      desired: { ...desired, combos: [{ alias: "noesis-build", models: [{ provider: "anthropic", model: "different-model" }] }] },
+      desired: { ...desired, combos: [{ alias: "noesis-build", models: ["anthropic/different-model"] }] },
       confirmation: { confirmed: true, plan_digest: plan.plan_digest, confirmed_at: "2026-09-17T00:00:01.000Z" },
     })).rejects.toThrow("NINE_ROUTER_REPAIR_CONFIGURATION_MISMATCH");
     expect(api.calls).toEqual([]);

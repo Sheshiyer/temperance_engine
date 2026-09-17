@@ -161,11 +161,12 @@ describe("V4 public contracts", () => {
       schema: NINE_ROUTER_GUIDED_SETUP_SCHEMA,
       version: { major: 1, minor: 0 },
       providers: [{ selection_id: "primary", provider: "anthropic", connection_name: "Primary", credential_reference_id: "PROVIDER_PRIMARY" }],
-      combos: [{ alias: "noesis-build", models: [{ provider: "anthropic", model: "claude-build" }] }],
+      combos: [{ alias: "noesis-build", models: ["anthropic/claude-build"] }],
       required_aliases: ["noesis-build"],
       gateway_key: { name: "Temperance", secret_reference_id: "GATEWAY_KEY" },
     };
     expect(validateNineRouterGuidedSetupV1(setup)).toBe(true);
+    expect(validateNineRouterGuidedSetupV1({ ...setup, combos: [{ alias: "noesis-build", models: [{ provider: "anthropic" }] }] })).toBe(false);
     expect(validateNineRouterGuidedSetupV1({ ...setup, gateway_key: { ...setup.gateway_key, value: "forbidden" } })).toBe(false);
   });
 });

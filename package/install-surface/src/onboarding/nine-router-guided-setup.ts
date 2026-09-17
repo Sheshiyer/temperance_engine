@@ -7,6 +7,7 @@ import { validateNineRouterGuidedSetupV1 } from "./contract-schema.ts";
 import type { MacOsKeychainAdapter } from "./keychain-adapter.ts";
 import type {
   NineRouterApiClient,
+  NineRouterAvailableModel,
   NineRouterCatalogSnapshot,
   NineRouterComboDetail,
   NineRouterCreatedObject,
@@ -19,9 +20,10 @@ export { NINE_ROUTER_GUIDED_SETUP_SCHEMA, type NineRouterGuidedSetupV1 } from ".
 
 export interface NineRouterGuidedSetupApi {
   readCatalog(): Promise<NineRouterCatalogSnapshot>;
+  readAvailableModels(): Promise<NineRouterAvailableModel[]>;
   createProviderConnection(input: { provider: string; name: string; apiKey: string }): Promise<NineRouterCreatedObject>;
   deleteProviderConnection(id: string): Promise<void>;
-  createCombo(input: { name: string; models: readonly Record<string, unknown>[] }): Promise<NineRouterCreatedObject>;
+  createCombo(input: { name: string; models: readonly string[] }): Promise<NineRouterCreatedObject>;
   readCombo(id: string): Promise<NineRouterComboDetail>;
   deleteCombo(id: string): Promise<void>;
   createGatewayKey(name: string, capture: (secret: string) => Promise<void>): Promise<NineRouterGatewayKeyReceipt>;
@@ -43,7 +45,6 @@ export class NineRouterGuidedSetupError extends Error {
   }
 }
 
-const SECRET_FIELD = /(?:api.?key|authorization|credential|password|secret|token)/iu;
 const SAFE_ID = /^[a-z0-9][a-z0-9._-]{0,127}$/u;
 const REFERENCE_ID = /^[A-Za-z][A-Za-z0-9._-]{0,127}$/u;
 
@@ -62,23 +63,6 @@ function safeId(value: string, code: string): string {
 function referenceId(value: string, code: string): string {
   if (!REFERENCE_ID.test(value)) throw new NineRouterGuidedSetupError(code);
   return value;
-}
-
-function assertSecretFree(value: unknown, depth = 0): void {
-  if (depth > 16) throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODELS_TOO_DEEP");
-  if (typeof value === "string" && /[\u0000-\u001f\u007f]/u.test(value)) {
-    throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODEL_CONTROL_CHARACTER");
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) assertSecretFree(item, depth + 1);
-    return;
-  }
-  if (!value || typeof value !== "object") return;
-  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-    if (/[\u0000-\u001f\u007f]/u.test(key)) throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODEL_CONTROL_CHARACTER");
-    if (SECRET_FIELD.test(key)) throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_SECRET_FIELD_FORBIDDEN");
-    assertSecretFree(item, depth + 1);
-  }
 }
 
 function unique(values: readonly string[], code: string): void {
@@ -128,16 +112,11 @@ function validateDesiredState(desired: NineRouterGuidedSetupV1, profile: Onboard
     if (combo.models.length < 1 || combo.models.length > 256) {
       throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODELS_INVALID");
     }
-    if (combo.models.some((model) => !model || typeof model !== "object" || Array.isArray(model))) {
-      throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODEL_INVALID");
+    for (const model of combo.models) text(model, "NINE_ROUTER_SETUP_MODEL_INVALID", 512);
+    if (combo.models.some((model) => /[\u0000-\u001f\u007f]/u.test(model))) {
+      throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODEL_CONTROL_CHARACTER");
     }
-    assertSecretFree(combo.models);
-    let encoded: string;
-    try { encoded = JSON.stringify(combo.models); }
-    catch { throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODELS_INVALID"); }
-    if (Buffer.byteLength(encoded, "utf8") > 1_048_576) {
-      throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODELS_TOO_LARGE");
-    }
+    unique(combo.models, "NINE_ROUTER_SETUP_MODEL_DUPLICATE");
   }
   unique(desired.combos.map(({ alias }) => alias), "NINE_ROUTER_SETUP_ALIAS_DUPLICATE");
   for (const alias of desired.required_aliases) {
@@ -346,6 +325,14 @@ export function createNineRouterGuidedSetupEffector(options: {
           } catch { /* Preserve the original create failure. */ }
           throw error;
         }
+      }
+      assertNotAborted(signal);
+      const availableModels = await options.api.readAvailableModels();
+      const availableProviderModelIds = new Set(availableModels
+        .filter(({ kind }) => kind === "provider")
+        .map(({ id }) => id));
+      if (desired.combos.some(({ models }) => models.some((model) => !availableProviderModelIds.has(model)))) {
+        throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_MODEL_UNAVAILABLE");
       }
       for (const combo of desired.combos) {
         assertNotAborted(signal);

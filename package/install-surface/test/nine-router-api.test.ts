@@ -23,7 +23,7 @@ describe("9router management adapter", () => {
       dataDirectory: "/example/.9router",
       io: mockIo({
         "GET /api/providers": { connections: [{ id: "p1", name: "Primary", provider: "anthropic", isActive: true, apiKey: "must-not-return" }] },
-        "GET /api/combos": { combos: [{ id: "c1", name: "noesis-plan", models: [{ providerId: "p1", modelId: "m1" }] }] },
+        "GET /api/combos": { combos: [{ id: "c1", name: "noesis-plan", models: ["anthropic/m1"] }] },
       }, observed),
     });
     const catalog = await client.readCatalog();
@@ -36,17 +36,17 @@ describe("9router management adapter", () => {
     expect(JSON.stringify(catalog)).not.toContain("must-not-return");
   });
 
-  test("reads exact combo membership while redacting credential-shaped response fields", async () => {
+  test("reads exact ordered string membership from an upstream combo", async () => {
     const client = new NineRouterApiClient({
       dataDirectory: "/example/.9router",
       io: mockIo({
         "GET /api/combos/combo-1": {
-          combo: { id: "combo-1", name: "noesis-build", models: [{ provider: "anthropic", model: "claude-build", accessToken: "hidden" }] },
+          combo: { id: "combo-1", name: "noesis-build", models: ["anthropic/claude-build"] },
         },
       }, []),
     });
     expect(await client.readCombo("combo-1")).toEqual({
-      id: "combo-1", alias: "noesis-build", models: [{ provider: "anthropic", model: "claude-build" }],
+      id: "combo-1", alias: "noesis-build", models: ["anthropic/claude-build"],
     });
   });
 
@@ -115,18 +115,21 @@ describe("9router management adapter", () => {
     ]);
   });
 
-  test("fails closed for remote URLs, unsafe secret modes, and credential fields in combos", async () => {
+  test("fails closed for remote URLs, unsafe secret modes, and malformed combo model identifiers", async () => {
     expect(() => new NineRouterApiClient({ dataDirectory: "/example/.9router", baseUrl: "https://router.example.com:20128" })).toThrow("NINE_ROUTER_BASE_URL_NOT_LOOPBACK");
     const unsafeIo = mockIo({}, []);
     unsafeIo.mode = async () => 0o644;
     const unsafe = new NineRouterApiClient({ dataDirectory: "/example/.9router", io: unsafeIo });
     await expect(unsafe.readCatalog()).rejects.toEqual(expect.objectContaining({ code: "NINE_ROUTER_CLI_SECRET_MODE_UNSAFE" }));
+    const observed: Array<{ url: string; init: RequestInit }> = [];
     const client = new NineRouterApiClient({
       dataDirectory: "/example/.9router",
-      io: mockIo({ "POST /api/combos": { combo: { id: "combo-safe", name: "noesis-plan" } } }, []),
+      io: mockIo({ "POST /api/combos": { combo: { id: "combo-safe", name: "noesis-plan" } } }, observed),
     });
-    await expect(client.createCombo({ name: "noesis-plan", models: [{ providerId: "p1", apiKey: "forbidden" }] })).rejects.toBeInstanceOf(NineRouterApiError);
-    await expect(client.createCombo({ name: "noesis-plan", models: [{ provider: "example", model: "token-efficient-model" }] })).resolves.toEqual(expect.objectContaining({ name: "noesis-plan" }));
+    await expect(client.createCombo({ name: "noesis-plan", models: ["bad\nmodel"] })).rejects.toBeInstanceOf(NineRouterApiError);
+    await expect(client.createCombo({ name: "noesis-plan", models: ["example/model", "example/model"] })).rejects.toBeInstanceOf(NineRouterApiError);
+    await expect(client.createCombo({ name: "noesis-plan", models: ["example/token-efficient-model"] })).resolves.toEqual(expect.objectContaining({ name: "noesis-plan" }));
+    expect(JSON.parse(String(observed[0]?.init.body))).toEqual({ name: "noesis-plan", models: ["example/token-efficient-model"] });
   });
 
   test("strips credential-shaped CLI settings fields from API readback", async () => {

@@ -132,7 +132,7 @@ export interface NineRouterGuidedSetupV1 {
   }>;
   combos: Array<{
     alias: string;
-    models: Array<Record<string, unknown>>;
+    models: string[];
   }>;
   required_aliases: string[];
   gateway_key: {

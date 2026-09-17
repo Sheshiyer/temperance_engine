@@ -82,8 +82,10 @@ stores only its Keychain reference.
 
 Provider and combo choices live in a private
 `temperance.9router-guided-setup.v1` input. Provider entries name Keychain
-references, never credential values. Combo entries are concrete because
-9Router owns membership; Noesis continues to declare only required aliases.
+references, never credential values. Combo membership is an ordered array of
+9Router model identifier strings, matching the exact `0.5.75` wire contract;
+it is not an array of provider configuration objects. Noesis continues to
+declare only required aliases.
 
 The setup input is validated before review. Its canonical digest and exact
 secret-free provider, combo, model, alias, and gateway-key-reference details
@@ -105,10 +107,13 @@ temperance onboard \
 The TUI must display `COMMIT PLAN`, the bound configuration input, and the
 final plan digest. Host mutation starts only after confirmation of that exact
 digest. The effector resolves provider credentials from Keychain in memory,
-creates fresh provider connections, combos, and one gateway key through the
-local API, captures the gateway key into Keychain, and verifies provider,
-combo, alias, model-count, and key metadata through API readback. It does not
-edit pre-existing provider or combo objects.
+creates fresh provider connections, then reads `/v1/models` and proves every
+requested member is a live provider model before it creates any combo. Combo
+models are kept in reviewed order; combo-kind choices are refused to prevent
+implicit nesting or cycles. The effector then creates one gateway key through
+the local API, captures it into Keychain, and verifies provider, combo, alias,
+exact ordered membership, model-count, and key metadata through API readback.
+It does not edit pre-existing provider or combo objects.
 
 If any create, capture, readback, receipt, or later operation step fails, the
 executor deletes newly created keys, combos, and providers in reverse order
