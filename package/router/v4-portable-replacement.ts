@@ -21,6 +21,7 @@ export const V4_ROUTER_RUNTIME_DEPENDENCIES = {
 const CUTOVER_TESTS = [
   "package/router/v4-cutover-plan.test.ts",
   "package/router/v4-cutover-executor.test.ts",
+  "package/router/v4-cutover-apply.test.ts",
   "package/router/v4-cutover-journal.test.ts",
   "package/router/v4-macos-cutover-runtime.test.ts",
   "package/router/v4-macos-host-adapter.test.ts",

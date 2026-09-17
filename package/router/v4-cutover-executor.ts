@@ -211,6 +211,7 @@ export function createV4CutoverReview(plan: V4CutoverPlan, proof: V4ReplacementP
     details: [
       `reviewed cutover plan: ${plan.plan_digest}`,
       `reviewed replacement proof: ${proof.proof_digest}`,
+      `host: ${plan.host.hardware_model} · ${plan.host.chip_model} · ${plan.host.architecture} · uid ${String(plan.host.user_id)}`,
       `Temperance revision: ${proof.temperance_revision}`,
       `Temperance tree: ${proof.temperance_tree}`,
       `router replacement: ${ROUTER_PACKAGE}@${ROUTER_VERSION}`,

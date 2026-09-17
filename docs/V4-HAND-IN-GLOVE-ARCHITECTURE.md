@@ -118,7 +118,9 @@ tunneling, and dependent organs remain held with actionable reasons.
 The cutover planner is read-only. It inventories only allowlisted paths and
 labels, never reads LaunchAgent contents, never follows symlinks while counting
 managed files, and does not authorize destructive execution. Its stable digest
-binds the reviewed scope.
+binds the reviewed scope and the observed macOS hardware model, Apple chip,
+architecture, and local user ID. A review produced on one Mac cannot authorize
+another Mac.
 
 Activation is ordered:
 
@@ -209,6 +211,28 @@ requires two presses on the confirmation page—first arm, then confirm—and em
 only a short-lived digest-bound confirmation. Review and confirmation perform
 no host mutation; the destructive executor must independently re-observe an
 identical plan before opening its journal.
+
+Live admission is a separate command and never occurs inside the review TUI:
+
+```bash
+temperance cutover-apply \
+  --plan "${CUTOVER_PLAN_PATH}" \
+  --proof "${REPLACEMENT_PROOF_PATH}" \
+  --confirmation "${CUTOVER_CONFIRMATION_PATH}" \
+  --host-binding "${HOST_BINDING_PATH}" \
+  --legacy-credential-reference LEGACY_OMNIROUTE_GATEWAY_KEY \
+  --source-repository "${TEMPERANCE_SOURCE_REPOSITORY}"
+```
+
+Every argument is mandatory. The command consumes, but cannot manufacture, the
+external confirmation and private host binding. It resolves only a named macOS
+Keychain reference, rejects runtime paths that do not match the reviewed home,
+requires the exact `.9router` data root and runtime-owned 9Router entrypoint,
+and accepts only an unauthenticated `127.0.0.1:20128` doctor URL. Before the
+runtime composition root is constructed it compares the current Mac identity
+with the reviewed identity; the executor then independently regenerates the
+entire plan before writing its journal. The command emits only the redacted
+receipt.
 
 No runnable legacy backup survives successful activation. Recovery is a fresh
 install from reviewed source plus redacted receipts, not reactivation of stale

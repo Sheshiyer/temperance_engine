@@ -39,6 +39,13 @@ function plan(overrides: { inspectPort?: () => ReturnType<NonNullable<Parameters
     findBinary: () => null,
     readVersion: () => null,
     inspectPort: overrides.inspectPort ?? (() => ({ port: 20128, owner: "free" as const })),
+    observeHost: () => ({
+      platform: "darwin",
+      hardware_model: "Mac16,11",
+      chip_model: "Apple M4",
+      architecture: "arm64",
+      user_id: process.getuid?.() ?? 501,
+    }),
   });
 }
 

@@ -61,6 +61,13 @@ function fixture(): { home: string; launchAgents: string; plan: V4CutoverPlan } 
       loopback_only: true,
       managed_service_label: "com.temperance.engine.omniroute",
     }),
+    observeHost: () => ({
+      platform: "darwin" as const,
+      hardware_model: "Mac16,11",
+      chip_model: "Apple M4",
+      architecture: "arm64",
+      user_id: process.getuid?.() ?? 501,
+    }),
   };
   return { home, launchAgents, plan: createV4CutoverPlan(options) };
 }

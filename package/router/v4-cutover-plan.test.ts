@@ -9,12 +9,25 @@ import {
   ROUTER_VERSION,
   V4_CUTOVER_PLAN_SCHEMA,
   calculateV4CutoverPlanDigest,
-  createV4CutoverPlan,
+  createV4CutoverPlan as createRawV4CutoverPlan,
   resolveManagedRouterPortObservation,
   verifyV4CutoverPlanDigest,
+  type V4CutoverHostObservation,
+  type V4CutoverPlanOptions,
 } from "./v4-cutover-plan.ts";
 
 const temporaryRoots: string[] = [];
+const TEST_HOST: V4CutoverHostObservation = {
+  platform: "darwin",
+  hardware_model: "Mac16,11",
+  chip_model: "Apple M4",
+  architecture: "arm64",
+  user_id: process.getuid?.() ?? 501,
+};
+
+function createV4CutoverPlan(options: V4CutoverPlanOptions = {}) {
+  return createRawV4CutoverPlan({ ...options, observeHost: options.observeHost ?? (() => TEST_HOST) });
+}
 
 function fixtureRoot(): string {
   const root = mkdtempSync(resolve(tmpdir(), "temperance-v4-cutover-"));
@@ -60,6 +73,7 @@ describe("V4 cutover plan", () => {
     });
 
     expect(plan.schema).toBe(V4_CUTOVER_PLAN_SCHEMA);
+    expect(plan.host).toEqual(TEST_HOST);
     expect(plan.target).toEqual({ package: "9router", version: ROUTER_VERSION });
     expect(plan.paths.map(({ id }) => id)).toEqual(["runtime", "legacy-omniroute", "legacy-omnirouter", "router-state"]);
     expect(plan.launch_agents).toHaveLength(MANAGED_LAUNCH_AGENTS.length);
@@ -212,6 +226,24 @@ describe("V4 cutover plan", () => {
       }),
     });
     expect(first.plan_digest).toBe(second.plan_digest);
+  });
+
+  test("binds confirmation scope to the observed Mac identity", () => {
+    const home = fixtureRoot();
+    const options = {
+      homeDirectory: home,
+      platform: "darwin" as const,
+      findBinary: () => null,
+      readVersion: () => null,
+      inspectPort: (port: number) => ({ port, owner: "free" as const }),
+    };
+    const first = createV4CutoverPlan(options);
+    const second = createV4CutoverPlan({
+      ...options,
+      observeHost: () => ({ ...TEST_HOST, hardware_model: "Mac15,12", chip_model: "Apple M3" }),
+    });
+    expect(first.plan_digest).not.toBe(second.plan_digest);
+    expect(verifyV4CutoverPlanDigest(second)).toBe(true);
   });
 
   test("always reinstalls the exact router during a full rebuild", () => {

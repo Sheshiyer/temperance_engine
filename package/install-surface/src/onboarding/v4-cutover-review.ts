@@ -54,6 +54,7 @@ export function createV4CutoverViewModel(plan: V4CutoverPlan, proof: V4Replaceme
       status: blocked ? "blocked" : "ready",
       details: [
         "Fresh replacement; no runnable legacy backup survives activation.",
+        `Host: ${plan.host.hardware_model} · ${plan.host.chip_model} · ${plan.host.architecture} · uid ${String(plan.host.user_id)}`,
         `Plan: ${plan.plan_digest}`,
         `Proof: ${proof.proof_digest}`,
         ...(review ? [`Operation: ${review.operation_digest}`] : []),

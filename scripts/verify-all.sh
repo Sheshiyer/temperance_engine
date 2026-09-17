@@ -23,6 +23,7 @@ run bun test package/router/routing-policy.test.ts
 run bun test \
   package/router/v4-cutover-plan.test.ts \
   package/router/v4-cutover-executor.test.ts \
+  package/router/v4-cutover-apply.test.ts \
   package/router/v4-cutover-journal.test.ts \
   package/router/v4-macos-cutover-runtime.test.ts \
   package/router/v4-macos-host-adapter.test.ts \

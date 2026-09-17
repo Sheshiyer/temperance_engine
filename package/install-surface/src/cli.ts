@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, mkdirSync } from "node:fs";
 import { randomBytes } from "node:crypto";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 import { canonical } from "./canonical-json.ts";
@@ -36,8 +37,9 @@ import { executeConfirmedNineRouterRepair } from "./onboarding/nine-router-repai
 import { createFileOperationReceiptSink } from "./onboarding/operation-executor.ts";
 import type { HostBindingV1, HostProfileV1, NineRouterGuidedSetupV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
 import { parseV4CutoverReviewArgs } from "./onboarding/v4-cutover-cli-args.ts";
+import { parseV4CutoverApplyArgs } from "./onboarding/v4-cutover-apply-cli-args.ts";
 import type { V4CutoverPlan } from "../../router/v4-cutover-plan.ts";
-import type { V4ReplacementProof } from "../../router/v4-cutover-executor.ts";
+import type { V4CutoverConfirmation, V4ReplacementProof } from "../../router/v4-cutover-executor.ts";
 
 const packageRoot = resolve(import.meta.dir, "..");
 const repositoryRoot = resolve(packageRoot, "../..");
@@ -261,6 +263,54 @@ function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
 
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "cutover-apply") {
+    try {
+      const args = parseV4CutoverApplyArgs(process.argv.slice(3));
+      const plan = JSON.parse(readFileSync(resolve(args.planPath), "utf8")) as V4CutoverPlan;
+      const proof = JSON.parse(readFileSync(resolve(args.proofPath), "utf8")) as V4ReplacementProof;
+      const confirmation = JSON.parse(readFileSync(resolve(args.confirmationPath), "utf8")) as V4CutoverConfirmation;
+      const hostBinding = loadOnboardingJson<HostBindingV1>(
+        args.hostBindingPath,
+        validateHostBindingV1,
+        "HOST_BINDING_INVALID",
+      );
+      const credentialReference = hostBinding.secret_references[args.legacyCredentialReferenceId];
+      if (!credentialReference) throw new Error("CUTOVER_APPLY_KEYCHAIN_REFERENCE_MISSING");
+      const executable = (name: "env" | "bun" | "git" | "tar"): string => {
+        const path = Bun.which(name);
+        if (!path) throw new Error(`CUTOVER_APPLY_${name.toUpperCase()}_MISSING`);
+        return path;
+      };
+      const { applyV4Cutover } = await import("../../router/v4-cutover-apply.ts");
+      const receipt = await applyV4Cutover({
+        plan,
+        proof,
+        confirmation,
+        binding: {
+          home_directory: homedir(),
+          source_repository: resolve(args.sourceRepository),
+          env_executable: executable("env"),
+          node_executable: hostBinding.variables.NINE_ROUTER_NODE_EXECUTABLE ?? "",
+          executable_path: hostBinding.variables.NINE_ROUTER_PATH ?? "",
+          bun_executable: executable("bun"),
+          git_executable: executable("git"),
+          tar_executable: executable("tar"),
+          data_directory: hostBinding.variables.NINE_ROUTER_DATA_DIR ?? "",
+          log_directory: hostBinding.variables.NINE_ROUTER_LOG_DIR ?? "",
+          cli_entrypoint: hostBinding.variables.NINE_ROUTER_CLI_ENTRYPOINT ?? "",
+          health_url: hostBinding.variables.NINE_ROUTER_HEALTH_URL ?? "",
+          legacy_credential_reference_id: args.legacyCredentialReferenceId,
+          legacy_credential_reference: credentialReference,
+        },
+      });
+      process.stdout.write(`${canonical(receipt)}\n`);
+      process.exitCode = receipt.status === "committed" ? 0 : 1;
+    } catch (error) {
+      process.stderr.write(`temperance cutover-apply: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
   if (command === "cutover-review") {
     try {
       const args = parseV4CutoverReviewArgs(process.argv.slice(3));
@@ -562,6 +612,9 @@ Commands:
                                    Confirm and apply one digest-bound 9Router repair transaction
   cutover-review --plan P --proof R [--tui|--json]
                                    Review plan + clean proof; TUI confirmation never mutates host state
+  cutover-apply --plan P --proof R --confirmation C --host-binding B
+          --legacy-credential-reference ID --source-repository S
+                                   Consume external confirmation and perform destructive V4 cutover
   compile                          Compile fragments and print receipt
   write-lock                       Compile and write lock file
   doctor [--section S] [--json]    Run doctor checks

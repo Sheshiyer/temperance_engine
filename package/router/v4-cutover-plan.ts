@@ -22,6 +22,29 @@ export const MANAGED_LAUNCH_AGENT_LABELS = MANAGED_LAUNCH_AGENTS.map(
 
 export type RouterPortOwner = "free" | "legacy-omniroute" | "replacement-9router" | "unknown" | "unsupported";
 
+export interface V4CutoverHostObservation {
+  platform: NodeJS.Platform;
+  hardware_model: string;
+  chip_model: string;
+  architecture: string;
+  user_id: number | null;
+}
+
+const NODE_PLATFORMS = new Set<NodeJS.Platform>([
+  "aix", "android", "darwin", "freebsd", "haiku", "linux", "openbsd", "sunos", "win32", "cygwin", "netbsd",
+]);
+
+export function validateV4CutoverHostObservation(value: unknown): value is V4CutoverHostObservation {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const host = value as Record<string, unknown>;
+  return Object.keys(host).sort().join(",") === "architecture,chip_model,hardware_model,platform,user_id"
+    && typeof host.platform === "string" && NODE_PLATFORMS.has(host.platform as NodeJS.Platform)
+    && typeof host.hardware_model === "string" && safeHostValue(host.hardware_model) === host.hardware_model
+    && typeof host.chip_model === "string" && safeHostValue(host.chip_model) === host.chip_model
+    && typeof host.architecture === "string" && safeHostValue(host.architecture) === host.architecture
+    && (host.user_id === null || (Number.isInteger(host.user_id) && Number(host.user_id) >= 0));
+}
+
 export interface ManagedRouterServiceObservation {
   label: string;
   owner: Extract<RouterPortOwner, "legacy-omniroute" | "replacement-9router">;
@@ -84,6 +107,7 @@ export interface V4CutoverPlan {
   schema: typeof V4_CUTOVER_PLAN_SCHEMA;
   generated_at: string;
   read_only: true;
+  host: V4CutoverHostObservation;
   target: { package: typeof ROUTER_PACKAGE; version: typeof ROUTER_VERSION };
   policy: {
     runnable_backup: false;
@@ -109,10 +133,11 @@ export interface V4CutoverPlanOptions {
   findBinary?: (name: string) => string | null;
   readVersion?: (binary: string) => string | null;
   inspectPort?: (port: number) => PortObservation;
+  observeHost?: () => V4CutoverHostObservation;
 }
 
 type V4CutoverDigestScope = Pick<V4CutoverPlan,
-  "schema" | "target" | "paths" | "launch_agents" | "binaries" | "router_port" | "migration_findings" | "actions"
+  "schema" | "host" | "target" | "paths" | "launch_agents" | "binaries" | "router_port" | "migration_findings" | "actions"
 >;
 
 function canonical(value: unknown): string {
@@ -139,6 +164,7 @@ export function calculateV4CutoverPlanDigest(plan: V4CutoverDigestScope): `sha25
   };
   return sha256({
     schema: plan.schema,
+    host: plan.host,
     target: plan.target,
     paths: plan.paths,
     launch_agents: plan.launch_agents,
@@ -149,8 +175,35 @@ export function calculateV4CutoverPlanDigest(plan: V4CutoverDigestScope): `sha25
   });
 }
 
+function safeHostValue(value: string): string {
+  const normalized = value.trim();
+  return normalized.length > 0
+    && normalized.length <= 128
+    && /^[A-Za-z0-9][A-Za-z0-9 (),._+-]*$/u.test(normalized)
+    ? normalized
+    : "unknown";
+}
+
+function sysctlValue(name: string): string {
+  const executable = Bun.which("sysctl");
+  if (!executable) return "unknown";
+  const result = Bun.spawnSync([executable, "-n", name], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+  return result.exitCode === 0 ? safeHostValue(result.stdout.toString()) : "unknown";
+}
+
+export function observeV4CutoverHost(platform: NodeJS.Platform = process.platform): V4CutoverHostObservation {
+  return {
+    platform,
+    hardware_model: platform === "darwin" ? sysctlValue("hw.model") : "unknown",
+    chip_model: platform === "darwin" ? sysctlValue("machdep.cpu.brand_string") : "unknown",
+    architecture: safeHostValue(process.arch),
+    user_id: process.getuid?.() ?? null,
+  };
+}
+
 export function verifyV4CutoverPlanDigest(plan: V4CutoverPlan): boolean {
   return /^sha256:[0-9a-f]{64}$/u.test(plan.plan_digest)
+    && validateV4CutoverHostObservation(plan.host)
     && plan.plan_digest === calculateV4CutoverPlanDigest(plan);
 }
 
@@ -374,6 +427,7 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
   const findBinary = options.findBinary ?? ((name: string) => Bun.which(name));
   const readVersion = options.readVersion ?? defaultReadVersion;
   const inspectPort = options.inspectPort ?? defaultInspectPort;
+  const host = (options.observeHost ?? (() => observeV4CutoverHost(platform)))();
 
   const paths: ManagedPathObservation[] = [
     observePath("runtime", join(homeDirectory, ".temperance_engine"), "replace"),
@@ -433,6 +487,14 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
     blocking_reasons.push("ROUTER_LISTENER_NOT_LOOPBACK_ONLY");
   }
   if (platform !== "darwin") blocking_reasons.push("LAUNCH_AGENT_CUTOVER_UNSUPPORTED_ON_PLATFORM");
+  if (host.platform !== platform
+    || host.hardware_model === "unknown"
+    || host.chip_model === "unknown"
+    || host.architecture === "unknown"
+    || !Number.isInteger(host.user_id)
+    || (host.user_id ?? 0) <= 0) {
+    blocking_reasons.push("HOST_IDENTITY_UNAVAILABLE");
+  }
 
   const legacyAgentsPresent = launch_agents.some((entry) => entry.observed !== "absent");
   const legacyStatePresent = paths.some((entry) => entry.id.startsWith("legacy-") && entry.observed !== "absent");
@@ -452,11 +514,12 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
     { order: 120, id: "activate-replacement-router", effect: "activate", target: "router-port:20128", required: true, status: blocking_reasons.length ? "blocked" : "manual", reason: blocking_reasons.length ? blocking_reasons.join(",") : "Activation follows install and doctor verification." },
   ];
 
-  const digestScope = { schema: V4_CUTOVER_PLAN_SCHEMA, target: { package: ROUTER_PACKAGE, version: ROUTER_VERSION }, paths, launch_agents, binaries, router_port, migration_findings, actions };
+  const digestScope = { schema: V4_CUTOVER_PLAN_SCHEMA, host, target: { package: ROUTER_PACKAGE, version: ROUTER_VERSION }, paths, launch_agents, binaries, router_port, migration_findings, actions };
   return {
     schema: V4_CUTOVER_PLAN_SCHEMA,
     generated_at: now().toISOString(),
     read_only: true,
+    host,
     target: { package: ROUTER_PACKAGE, version: ROUTER_VERSION },
     policy: { runnable_backup: false, secret_values_recorded: false, destructive_execution_authorized: false },
     paths,
