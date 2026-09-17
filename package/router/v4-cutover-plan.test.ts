@@ -8,7 +8,9 @@ import {
   MANAGED_LAUNCH_AGENTS,
   ROUTER_VERSION,
   V4_CUTOVER_PLAN_SCHEMA,
+  calculateV4CutoverPlanDigest,
   createV4CutoverPlan,
+  verifyV4CutoverPlanDigest,
 } from "./v4-cutover-plan.ts";
 
 const temporaryRoots: string[] = [];
@@ -70,6 +72,9 @@ describe("V4 cutover plan", () => {
     expect(JSON.stringify(plan)).not.toContain("SUPER_SECRET_VALUE_MUST_NOT_ESCAPE");
     expect(JSON.stringify(plan.migration_findings)).not.toContain(home);
     expect(plan.plan_digest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(verifyV4CutoverPlanDigest(plan)).toBe(true);
+    expect(calculateV4CutoverPlanDigest(plan)).toBe(plan.plan_digest);
+    expect(plan.actions.slice(0, 2).map(({ id }) => id)).toEqual(["verify-isolated-replacement", "capture-redacted-inventory"]);
   });
 
   test("fails closed when an unmanaged process owns the replacement port", () => {
@@ -113,6 +118,20 @@ describe("V4 cutover plan", () => {
     const second = createV4CutoverPlan({ ...options, now: () => new Date("2026-09-18T00:00:00.000Z") });
     expect(first.generated_at).not.toBe(second.generated_at);
     expect(first.plan_digest).toBe(second.plan_digest);
+  });
+
+  test("always reinstalls the exact router during a full rebuild", () => {
+    const home = fixtureRoot();
+    const plan = createV4CutoverPlan({
+      homeDirectory: home,
+      platform: "darwin",
+      findBinary: (name) => `/managed/bin/${name}`,
+      readVersion: (binary) => binary.endsWith("/9router") ? `9router ${ROUTER_VERSION}` : "omniroute 3.8.49",
+      inspectPort: (port) => ({ port, owner: "replacement-9router", pid: 75, process: "9router", listener_host: "127.0.0.1", loopback_only: true }),
+    });
+    expect(plan.binaries.find(({ package: name }) => name === "9router")?.disposition).toBe("install-exact");
+    expect(plan.actions.find(({ id }) => id === "install-exact-router")).toMatchObject({ required: true, status: "ready" });
+    expect(plan.actions.find(({ id }) => id === "stop-router-port-owner")).toMatchObject({ required: true, status: "ready" });
   });
 
   test("does not follow symlinks while counting managed files", () => {

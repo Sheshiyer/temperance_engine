@@ -98,6 +98,10 @@ export interface V4CutoverPlanOptions {
   inspectPort?: (port: number) => PortObservation;
 }
 
+type V4CutoverDigestScope = Pick<V4CutoverPlan,
+  "schema" | "target" | "paths" | "launch_agents" | "binaries" | "router_port" | "migration_findings" | "actions"
+>;
+
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value !== null && typeof value === "object") {
@@ -109,6 +113,24 @@ function canonical(value: unknown): string {
 
 function sha256(value: unknown): `sha256:${string}` {
   return `sha256:${createHash("sha256").update(canonical(value)).digest("hex")}`;
+}
+
+export function calculateV4CutoverPlanDigest(plan: V4CutoverDigestScope): `sha256:${string}` {
+  return sha256({
+    schema: plan.schema,
+    target: plan.target,
+    paths: plan.paths,
+    launch_agents: plan.launch_agents,
+    binaries: plan.binaries,
+    router_port: plan.router_port,
+    migration_findings: plan.migration_findings,
+    actions: plan.actions,
+  });
+}
+
+export function verifyV4CutoverPlanDigest(plan: V4CutoverPlan): boolean {
+  return /^sha256:[0-9a-f]{64}$/u.test(plan.plan_digest)
+    && plan.plan_digest === calculateV4CutoverPlanDigest(plan);
 }
 
 function fileCount(root: string): number {
@@ -266,7 +288,7 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
       package: ROUTER_PACKAGE,
       path: routerPath,
       version: routerVersion,
-      disposition: routerVersion === ROUTER_VERSION ? "keep-exact" : "install-exact",
+      disposition: "install-exact",
     },
   ];
 
@@ -280,11 +302,11 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
 
   const legacyAgentsPresent = launch_agents.some((entry) => entry.observed !== "absent");
   const legacyStatePresent = paths.some((entry) => entry.id.startsWith("legacy-") && entry.observed !== "absent");
-  const routerNeedsInstall = binaries.find((entry) => entry.package === ROUTER_PACKAGE)?.disposition === "install-exact";
+  const routerNeedsInstall = true;
   const actions: CutoverAction[] = [
-    { order: 10, id: "capture-redacted-inventory", effect: "observe", target: "managed-cutover-scope", required: true, status: "ready", reason: "Inventory records metadata only; file contents and credential values are excluded." },
-    { order: 20, id: "verify-isolated-replacement", effect: "verify", target: "reviewed-source-worktree", required: true, status: "manual", reason: "Replacement tests and dry-run receipts must pass before any live service is stopped." },
-    { order: 30, id: "stop-legacy-router", effect: "stop", target: "router-port:20128", required: router_port.owner === "legacy-omniroute", status: router_port.owner === "legacy-omniroute" ? "ready" : router_port.owner === "unknown" ? "blocked" : "not-needed", reason: `Observed owner: ${router_port.owner}.` },
+    { order: 10, id: "verify-isolated-replacement", effect: "verify", target: "reviewed-source-worktree", required: true, status: "manual", reason: "Replacement tests and dry-run receipts must pass before any live service is stopped." },
+    { order: 20, id: "capture-redacted-inventory", effect: "observe", target: "managed-cutover-scope", required: true, status: "ready", reason: "Inventory records metadata only; file contents and credential values are excluded." },
+    { order: 30, id: "stop-router-port-owner", effect: "stop", target: "router-port:20128", required: router_port.owner === "legacy-omniroute" || router_port.owner === "replacement-9router", status: router_port.owner === "legacy-omniroute" || router_port.owner === "replacement-9router" ? "ready" : router_port.owner === "unknown" ? "blocked" : "not-needed", reason: `Observed owner: ${router_port.owner}.` },
     { order: 40, id: "unload-managed-launch-agents", effect: "stop", target: launchAgentsDirectory, required: legacyAgentsPresent, status: legacyAgentsPresent ? "ready" : "not-needed", reason: "Only the six allowlisted legacy and replacement labels are in scope." },
     { order: 50, id: "revoke-legacy-gateway-credential", effect: "revoke", target: "macos-keychain-reference", required: true, status: "manual", reason: "Secret value is intentionally absent from this plan." },
     { order: 60, id: "remove-legacy-router-state", effect: "remove", target: "legacy-router-state", required: legacyStatePresent, status: legacyStatePresent ? "ready" : "not-needed", reason: "Delete only the exact observed .omniroute/.omnirouter targets." },
@@ -311,7 +333,7 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
     actions,
     activation_blocked: blocking_reasons.length > 0,
     blocking_reasons,
-    plan_digest: sha256(digestScope),
+    plan_digest: calculateV4CutoverPlanDigest(digestScope),
   };
 }
 

@@ -132,6 +132,36 @@ Activation is ordered:
 8. read back provider, combo, client, project, and doctor state;
 9. prove degraded, active, and cold-start behavior.
 
+The destructive executor accepts neither a naked cutover plan nor a source
+checkout by itself. A replacement proof binds the full Temperance commit and
+tree, the exact `9router@0.5.75` target, a staged-artifact digest, and digests
+of the isolated install-surface and cutover-contract verification runs. The
+TUI confirmation binds the cutover-plan digest and replacement-proof digest
+into one short-lived operation digest. A changed host observation, replacement
+artifact, source tree, or expired confirmation refuses execution before the
+durable journal begins.
+
+A proof can be emitted only from a clean committed checkout:
+
+```bash
+bun scripts/v4-replacement-proof.ts > "${REPLACEMENT_PROOF_PATH}"
+```
+
+The generator hashes `git archive HEAD`, runs the complete install-surface
+verification, and runs the cutover planner, executor, journal, and proof
+contract suites. Failed command output is not copied into the proof or its
+error message.
+
+The executor stages the fresh replacement before stopping anything. Failures
+before credential revocation restore stopped services and discard even a
+partially staged replacement. Credential revocation is the irreversible
+boundary: after it, failures recover only from the already verified fresh
+replacement. They never restore legacy bytes. The journal records action IDs,
+digests, timestamps, and redacted failure codes; final receipts contain no
+absolute host paths or credential values. Failure to finalize the receipt
+after successful live readback is surfaced without tearing down the verified
+replacement.
+
 No runnable legacy backup survives successful activation. Recovery is a fresh
 install from reviewed source plus redacted receipts, not reactivation of stale
 executables or credentials.
