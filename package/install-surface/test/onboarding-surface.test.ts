@@ -7,7 +7,7 @@ import { ONBOARDING_CATALOG_SCHEMA, ONBOARDING_PROFILE_SCHEMA, type OnboardingPl
 import { createOnboardingReceipt } from "../src/onboarding/receipt.ts";
 import { createOnboardingViewModel, renderOnboardingText } from "../src/onboarding/presentation.ts";
 import { createNineRouterRoutingSurface } from "../src/onboarding/nine-router-provider-capabilities.ts";
-import { canConfirmOnboardingPlan, selectedOnboardingModuleIds, toggleOnboardingModuleSelection } from "../src/onboarding/tui.ts";
+import { actionableRoutingProvider, canConfirmOnboardingPlan, selectedOnboardingModuleIds, toggleOnboardingModuleSelection } from "../src/onboarding/tui.ts";
 import { parseOnboardingArgs } from "../src/onboarding/cli-args.ts";
 
 const roots: string[] = [];
@@ -79,6 +79,11 @@ describe("onboarding presentation", () => {
     });
     expect(page?.rows.find(({ id }) => id === "alias.noesis-plan")).toMatchObject({ status: "not-selected" });
     expect(renderOnboardingText(plan, routing)).toContain("ROUTING");
+    expect(actionableRoutingProvider(routing, "provider.claude")).toBe("claude");
+    expect(actionableRoutingProvider(routing, "provider.github")).toBe("github");
+    expect(actionableRoutingProvider(routing, "provider.openai")).toBeUndefined();
+    expect(actionableRoutingProvider(routing, "provider.codex")).toBeUndefined();
+    expect(actionableRoutingProvider({ ...routing, compatible: false }, "provider.claude")).toBeUndefined();
   });
 
   test("receipt stores only secret reference identifiers and no profile values", () => {

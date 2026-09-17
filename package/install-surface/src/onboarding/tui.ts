@@ -15,6 +15,7 @@ export interface OnboardingTuiOptions {
   allowProjectCapsuleSave?: boolean;
   replanModuleSelections?: (selections: ReadonlySet<string>) => Promise<OnboardingPlanV1>;
   routing?: NineRouterRoutingSurface;
+  allowRoutingAuthorization?: boolean;
   now?: () => Date;
 }
 
@@ -25,6 +26,7 @@ export interface OnboardingTuiResult {
   selected_module_ids: string[];
   save_project_capsules: boolean;
   project_capsules: ProjectCapsuleV1[];
+  routing_authorization_provider_id?: string;
 }
 
 export function canConfirmOnboardingPlan(plan: OnboardingPlanV1): boolean {
@@ -45,6 +47,16 @@ export function toggleOnboardingModuleSelection(
   if (next.has(moduleId)) next.delete(moduleId);
   else next.add(moduleId);
   return next;
+}
+
+export function actionableRoutingProvider(
+  surface: NineRouterRoutingSurface | undefined,
+  rowId: string | undefined,
+): string | undefined {
+  if (!surface?.compatible || !rowId?.startsWith("provider.")) return undefined;
+  const providerId = rowId.slice("provider.".length);
+  const provider = surface.provider_options.find(({ id }) => id === providerId);
+  return provider && provider.state === "held" && provider.auth_kind !== "api-key" ? provider.id : undefined;
 }
 
 function detailsFor(row: OnboardingViewRow): string {
@@ -95,9 +107,10 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
   let confirmable = canConfirmOnboardingPlan(currentPlan);
   let confirmed = false;
   let confirmedAt: string | undefined;
-  const footer = new TextRenderable(renderer, { height: 1, content: `←/→ pages · ↑/↓ inspect · space request/unrequest module · a select project · s save capsules · ${confirmable ? "c confirm review" : "resolve holds before confirmation"} · q/esc close`, fg: "#88c0d0" });
+  const footer = new TextRenderable(renderer, { height: 1, content: `←/→ pages · ↑/↓ inspect · space request/unrequest module · o authorize OAuth provider · a select project · s save capsules · ${confirmable ? "c confirm review" : "resolve holds before confirmation"} · q/esc close`, fg: "#88c0d0" });
   root.add(header); root.add(tabs); root.add(content); root.add(footer); renderer.root.add(root); tabs.focus(); renderer.start();
   let saveProjectCapsules = false;
+  let routingAuthorizationProviderId: string | undefined;
   let closed = false;
   let replanning = false;
   await new Promise<void>((resolve) => {
@@ -140,6 +153,19 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
           footer.content = "Module selection unchanged · q/esc close";
         }).finally(() => { replanning = false; });
       }
+      if (key.name === "o" && currentPage.id === "routing" && !replanning) {
+        const providerId = actionableRoutingProvider(options.routing, currentRowId);
+        if (!providerId) {
+          detail.content = "This row has no OAuth action.\n\nConnected providers are read-only; API-key providers require a declared Keychain reference; incompatible 9Router versions remain held.";
+          return;
+        }
+        if (!options.allowRoutingAuthorization) {
+          detail.content = `${providerId}\n\nOAuth interaction is unavailable until exact 9router@0.5.75 is healthy through the selected private host binding.`;
+          return;
+        }
+        routingAuthorizationProviderId = providerId;
+        finish();
+      }
       if (key.name === "a" && currentPage.id === "projects" && currentRowId && candidateIds.has(currentRowId)) {
         if (selectedCandidateIds.has(currentRowId)) selectedCandidateIds.delete(currentRowId);
         else selectedCandidateIds.add(currentRowId);
@@ -177,5 +203,6 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
     project_capsules: saveProjectCapsules
       ? approveProjectCandidates(options.existingProjectCapsules ?? [], currentPlan.project_candidates ?? [], selectedCandidateIds)
       : [...(options.existingProjectCapsules ?? [])],
+    ...(routingAuthorizationProviderId ? { routing_authorization_provider_id: routingAuthorizationProviderId } : {}),
   };
 }

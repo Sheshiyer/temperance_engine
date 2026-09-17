@@ -430,60 +430,77 @@ async function main(): Promise<void> {
         process.exitCode = section.condition === "PASS" || section.condition === "WARN" ? 0 : 1;
       } else if (args.tui || (!args.json && process.stdin.isTTY && process.stdout.isTTY)) {
         if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("ONBOARDING_TUI_REQUIRES_TTY");
-        let routingCatalog: NineRouterCatalogSnapshot | undefined;
-        let routingModels: NineRouterAvailableModel[] | undefined;
-        const routerDataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
-        const routerHealthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
-        if (routerDataDirectory && routerHealthUrl) {
-          try {
-            const routingApi = new NineRouterApiClient({ dataDirectory: routerDataDirectory, baseUrl: new URL(routerHealthUrl).origin });
-            [routingCatalog, routingModels] = await Promise.all([routingApi.readCatalog(), routingApi.readAvailableModels()]);
-          } catch { /* Routing page remains dependency-smart and held when live management is unavailable. */ }
-        }
-        const gatewayReferenceId = routerSetup?.gateway_key.secret_reference_id;
-        const routerVersionHeld = plan.modules.find(({ id }) => id === "provider.9router")?.holds
-          .some(({ reason_code }) => reason_code === "BINARY_MISSING" || reason_code === "VERSION_MISMATCH") ?? true;
-        const routing = createNineRouterRoutingSurface({
-          routerVersion: routerVersionHeld ? "unavailable-or-mismatched" : NINE_ROUTER_PROVIDER_CAPABILITY_VERSION,
-          requiredAliases: hostProfile?.required_routing_aliases ?? profile.routing_aliases.map(({ combo }) => combo),
-          catalog: routingCatalog,
-          availableModels: routingModels,
-          declaredSecretReferenceIds: routerSetup
-            ? routerSetup.providers.map(({ credential_reference_id }) => credential_reference_id).filter((id) => id !== gatewayReferenceId)
-            : [],
-        });
-        const { runOnboardingTui } = await import("./onboarding/tui.ts");
-        const result = await runOnboardingTui(plan, {
-          existingProjectCapsules: projectCapsules,
-          allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
-          replanModuleSelections: args.apply ? undefined : buildPlan,
-          routing,
-        });
-        if (result.save_project_capsules) {
-          const output = resolve(args.projectCapsulesOutPath!);
-          mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
-          await lifecycleIO.writeFileAtomic!(output, `${canonical(result.project_capsules)}\n`, { mode: 0o600 });
-        }
-        if (args.apply && result.confirmed) {
-          if (!result.confirmed_at || !routerSetup) throw new Error("NINE_ROUTER_REPAIR_CONFIRMATION_INVALID");
-          const dataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
-          const healthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
-          const entrypoint = profile.variables.NINE_ROUTER_CLI_ENTRYPOINT;
-          if (!dataDirectory || !healthUrl || !entrypoint) throw new Error("NINE_ROUTER_REPAIR_BINDING_INCOMPLETE");
-          const receipt = await executeConfirmedNineRouterRepair({
-            plan,
-            profile,
-            confirmation: { confirmed: true, plan_digest: result.plan_digest, confirmed_at: result.confirmed_at },
-            desired: routerSetup,
-            api: new NineRouterApiClient({ dataDirectory, baseUrl: new URL(healthUrl).origin }),
-            keychain: new MacOsKeychainAdapter(),
-            executable: { id: "9router", path: entrypoint, version: "0.5.75" },
-            receiptSink: createFileOperationReceiptSink(resolve(args.receiptDirectory!)),
+        let activePlan = plan;
+        while (true) {
+          let routingApi: NineRouterApiClient | undefined;
+          let routingCatalog: NineRouterCatalogSnapshot | undefined;
+          let routingModels: NineRouterAvailableModel[] | undefined;
+          const routerDataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
+          const routerHealthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
+          if (routerDataDirectory && routerHealthUrl) {
+            try {
+              const candidate = new NineRouterApiClient({ dataDirectory: routerDataDirectory, baseUrl: new URL(routerHealthUrl).origin });
+              [routingCatalog, routingModels] = await Promise.all([candidate.readCatalog(), candidate.readAvailableModels()]);
+              routingApi = candidate;
+            } catch { /* Routing page remains dependency-smart and held when live management is unavailable. */ }
+          }
+          const gatewayReferenceId = routerSetup?.gateway_key.secret_reference_id;
+          const routerVersionHeld = activePlan.modules.find(({ id }) => id === "provider.9router")?.holds
+            .some(({ reason_code }) => reason_code === "BINARY_MISSING" || reason_code === "VERSION_MISMATCH") ?? true;
+          const routing = createNineRouterRoutingSurface({
+            routerVersion: routerVersionHeld ? "unavailable-or-mismatched" : NINE_ROUTER_PROVIDER_CAPABILITY_VERSION,
+            requiredAliases: hostProfile?.required_routing_aliases ?? profile.routing_aliases.map(({ combo }) => combo),
+            catalog: routingCatalog,
+            availableModels: routingModels,
+            declaredSecretReferenceIds: routerSetup
+              ? routerSetup.providers.map(({ credential_reference_id }) => credential_reference_id).filter((id) => id !== gatewayReferenceId)
+              : [],
           });
-          process.stdout.write(`${canonical(receipt)}\n`);
-          process.exitCode = receipt.status === "committed" ? 0 : 1;
-        } else {
-          process.exitCode = 0;
+          const { runOnboardingTui } = await import("./onboarding/tui.ts");
+          const result = await runOnboardingTui(activePlan, {
+            existingProjectCapsules: projectCapsules,
+            allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
+            replanModuleSelections: args.apply ? undefined : buildPlan,
+            routing,
+            allowRoutingAuthorization: !args.apply && routing.compatible && Boolean(routingApi),
+          });
+          if (result.routing_authorization_provider_id) {
+            if (args.apply || !routingApi || !routing.compatible) throw new Error("NINE_ROUTER_OAUTH_ACTION_UNAVAILABLE");
+            const { runNineRouterOAuthTui } = await import("./onboarding/nine-router-oauth-tui.ts");
+            await runNineRouterOAuthTui({
+              providerId: result.routing_authorization_provider_id,
+              api: routingApi,
+            });
+            activePlan = await buildPlan(new Set(result.selected_module_ids));
+            continue;
+          }
+          if (result.save_project_capsules) {
+            const output = resolve(args.projectCapsulesOutPath!);
+            mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
+            await lifecycleIO.writeFileAtomic!(output, `${canonical(result.project_capsules)}\n`, { mode: 0o600 });
+          }
+          if (args.apply && result.confirmed) {
+            if (!result.confirmed_at || !routerSetup) throw new Error("NINE_ROUTER_REPAIR_CONFIRMATION_INVALID");
+            const dataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
+            const healthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
+            const entrypoint = profile.variables.NINE_ROUTER_CLI_ENTRYPOINT;
+            if (!dataDirectory || !healthUrl || !entrypoint) throw new Error("NINE_ROUTER_REPAIR_BINDING_INCOMPLETE");
+            const receipt = await executeConfirmedNineRouterRepair({
+              plan: activePlan,
+              profile,
+              confirmation: { confirmed: true, plan_digest: result.plan_digest, confirmed_at: result.confirmed_at },
+              desired: routerSetup,
+              api: new NineRouterApiClient({ dataDirectory, baseUrl: new URL(healthUrl).origin }),
+              keychain: new MacOsKeychainAdapter(),
+              executable: { id: "9router", path: entrypoint, version: "0.5.75" },
+              receiptSink: createFileOperationReceiptSink(resolve(args.receiptDirectory!)),
+            });
+            process.stdout.write(`${canonical(receipt)}\n`);
+            process.exitCode = receipt.status === "committed" ? 0 : 1;
+          } else {
+            process.exitCode = 0;
+          }
+          break;
         }
       } else {
         process.stdout.write(args.json ? canonical(plan) : renderOnboardingText(plan));

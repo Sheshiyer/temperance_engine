@@ -87,7 +87,19 @@ callbacks must match the provider's exact loopback origin and path plus the
 generated state. A device poll performs one request and returns only `pending`
 or `connected`, leaving timing, cancellation, and retry bounds to the TUI
 controller. The adapter does not open a browser or write the clipboard without
-a future explicit UI action.
+an explicit UI action.
+
+On the onboarding Routing page, `o` is available only on a held OAuth provider
+when exact `9router@0.5.75` is healthy through the selected private host
+binding. The main renderer closes before the bounded authorization renderer
+starts, then onboarding is rebuilt from fresh probes when it returns.
+Authorization-code flows display the provider URL and accept one full,
+state-bound callback URL in a transient input. Device-code flows display the
+verification URL and user code, and `p` performs one interval-limited poll; no
+automatic timer runs. Success is displayed only after a fresh
+`/api/providers` readback contains an active-or-unknown connection for the
+selected provider. Repair mode cannot launch OAuth because it must preserve the
+already reviewed transaction scope.
 
 After 9Router reports success, onboarding refreshes `/api/providers`; that
 readback, not the OAuth response, is the connection authority. API-key
