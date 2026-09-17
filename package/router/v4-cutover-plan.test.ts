@@ -163,6 +163,31 @@ describe("V4 cutover plan", () => {
     expect(plan.blocking_reasons).toContain("MULTIPLE_MANAGED_ROUTER_SERVICES_LOADED");
   });
 
+  test("recognizes a generic node listener through its managed launch service", () => {
+    expect(resolveManagedRouterPortObservation(
+      {
+        port: 20128,
+        owner: "unknown",
+        pid: 96872,
+        process: "node",
+        listener_host: "127.0.0.1",
+        loopback_only: true,
+        listener_present: true,
+      },
+      [{ label: "com.temperance.engine.9router", owner: "replacement-9router", pid: 96856 }],
+      "com.temperance.engine.9router",
+    )).toEqual({
+      port: 20128,
+      owner: "replacement-9router",
+      pid: 96872,
+      process: "node",
+      listener_host: "127.0.0.1",
+      loopback_only: true,
+      listener_present: true,
+      managed_service_label: "com.temperance.engine.9router",
+    });
+  });
+
   test("fails closed when 9router is listening beyond loopback", () => {
     const home = fixtureRoot();
     const plan = createV4CutoverPlan({

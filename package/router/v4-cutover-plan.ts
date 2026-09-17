@@ -338,12 +338,19 @@ export function resolveManagedRouterPortObservation(
       conflicting_service_labels: conflicts,
     };
   }
-  const associated = listenerServiceLabel && loaded.some(({ label }) => label === listenerServiceLabel)
-    ? listenerServiceLabel
+  const associatedService = listenerServiceLabel
+    ? loaded.find(({ label }) => label === listenerServiceLabel)
+    : undefined;
+  const owner = listener.owner === "unknown" && associatedService
+    ? associatedService.owner
+    : listener.owner;
+  const associated = associatedService && associatedService.owner === owner
+    ? associatedService.label
     : undefined;
   return {
     ...listener,
-    listener_present: listener.owner !== "free" && listener.owner !== "unsupported",
+    owner,
+    listener_present: owner !== "free" && owner !== "unsupported",
     ...(associated ? { managed_service_label: associated } : {}),
     ...(conflicts ? { conflicting_service_labels: conflicts } : {}),
   };
@@ -375,9 +382,7 @@ function defaultInspectPort(port: number): PortObservation {
     : fingerprint.includes("9router")
       ? "replacement-9router"
       : "unknown";
-  const managed_service_label = owner === "legacy-omniroute" || owner === "replacement-9router"
-    ? managedServiceForProcess(pid, services)
-    : undefined;
+  const managed_service_label = managedServiceForProcess(pid, services);
   return resolveManagedRouterPortObservation({
     port,
     owner,
