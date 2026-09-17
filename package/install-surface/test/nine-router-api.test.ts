@@ -50,6 +50,35 @@ describe("9router management adapter", () => {
     });
   });
 
+  test("reads live model dropdown choices from 9router without a copied provider catalog", async () => {
+    const client = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({
+        "GET /v1/models": {
+          object: "list",
+          data: [
+            { id: "noesis-build", owned_by: "combo", ignored: "value" },
+            { id: "cc/claude-sonnet", owned_by: "cc", apiKey: "must-not-return" },
+            { id: "cx/gpt-codex", owned_by: "cx" },
+          ],
+        },
+      }, []),
+    });
+    expect(await client.readAvailableModels()).toEqual([
+      { id: "noesis-build", owner: "combo", kind: "combo" },
+      { id: "cc/claude-sonnet", owner: "cc", kind: "provider" },
+      { id: "cx/gpt-codex", owner: "cx", kind: "provider" },
+    ]);
+  });
+
+  test("rejects malformed live model choices instead of rendering unsafe dropdown text", async () => {
+    const client = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({ "GET /v1/models": { data: [{ id: "bad\nmodel", owned_by: "cc" }] } }, []),
+    });
+    await expect(client.readAvailableModels()).rejects.toThrow("NINE_ROUTER_RESPONSE_INVALID");
+  });
+
   test("captures a new gateway key once and never returns the secret", async () => {
     const observed: Array<{ url: string; init: RequestInit }> = [];
     let captured = "";

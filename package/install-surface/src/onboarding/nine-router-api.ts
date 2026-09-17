@@ -12,6 +12,7 @@ export type NineRouterCliTool = "claude" | "codex" | "droid" | "openclaw";
 export interface NineRouterProviderSummary { id: string; name: string; provider: string; active: boolean | null; }
 export interface NineRouterComboSummary { id: string; alias: string; model_count: number; }
 export interface NineRouterComboDetail { id: string; alias: string; models: Record<string, unknown>[]; }
+export interface NineRouterAvailableModel { id: string; owner: string; kind: "provider" | "combo"; }
 export interface NineRouterCatalogSnapshot { providers: NineRouterProviderSummary[]; combos: NineRouterComboSummary[]; }
 export interface NineRouterCreatedObject { id: string; name: string; }
 export interface NineRouterGatewayKeySummary { id: string; name: string; }
@@ -205,6 +206,25 @@ export class NineRouterApiClient {
       return { id: safeId(item.id), alias: textField(item.name, "NINE_ROUTER_RESPONSE_INVALID"), model_count: models.length };
     });
     return { providers, combos };
+  }
+
+  /**
+   * Reads 9Router's OpenAI-compatible catalog after provider admission.
+   * This is the authoritative dropdown surface: the adapter deliberately does
+   * not copy 9Router's private provider/model registry into Temperance policy.
+   */
+  async readAvailableModels(): Promise<NineRouterAvailableModel[]> {
+    return responseArray(await this.request("GET", "/v1/models"), "data")
+      .map((value): NineRouterAvailableModel => {
+        const item = record(value, "NINE_ROUTER_RESPONSE_INVALID");
+        const id = textField(item.id, "NINE_ROUTER_RESPONSE_INVALID", 512);
+        const owner = textField(item.owned_by, "NINE_ROUTER_RESPONSE_INVALID", 256);
+        if (/[\u0000-\u001f\u007f]/u.test(id) || /[\u0000-\u001f\u007f]/u.test(owner)) {
+          throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID");
+        }
+        return { id, owner, kind: owner === "combo" ? "combo" : "provider" };
+      })
+      .sort((left, right) => left.kind.localeCompare(right.kind) || left.owner.localeCompare(right.owner) || left.id.localeCompare(right.id));
   }
 
   async createProviderConnection(input: { provider: string; name: string; apiKey: string }): Promise<NineRouterCreatedObject> {

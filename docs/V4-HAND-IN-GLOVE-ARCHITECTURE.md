@@ -54,6 +54,9 @@ unavailable project is rendered as held and remains impossible to approve.
 OmniRoute as a second authority.
 
 - The initial package pin is exactly `9router@0.5.75`.
+- Provider connections are discovered through `/api/providers`; live model and
+  combo dropdown choices are discovered through `/v1/models`. Temperance does
+  not duplicate 9Router's internal provider-type or model registry.
 - 9Router owns provider connections, concrete combo membership, ordering,
   quotas, and fallback.
 - Temperance and Noesis select and validate semantic combo aliases only.
