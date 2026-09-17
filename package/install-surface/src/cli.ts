@@ -20,6 +20,7 @@ import {
   validateHostBindingV1,
   validateHostProfileV1,
   validateNineRouterGuidedSetupV1,
+  validateNineRouterSetupIntentV1,
   validateProjectCapsuleV1,
 } from "./onboarding/contract-schema.ts";
 import { createCoreOnboardingCatalog, createCoreOnboardingProfile } from "./onboarding/core-catalog.ts";
@@ -34,10 +35,13 @@ import { parseHostBindingInitArgs } from "./onboarding/host-binding-init-cli-arg
 import { createHostBinding, writePrivateHostBinding } from "./onboarding/host-binding-init.ts";
 import { MacOsKeychainAdapter } from "./onboarding/keychain-adapter.ts";
 import { NineRouterApiClient } from "./onboarding/nine-router-api.ts";
+import { compileNineRouterGuidedSetup, createNineRouterSeatingDraft } from "./onboarding/nine-router-seating.ts";
+import { parseNineRouterSeatingArgs } from "./onboarding/nine-router-seating-cli-args.ts";
+import { writePrivateNineRouterSetup } from "./onboarding/nine-router-setup-writer.ts";
 import { createNineRouterGuidedSetupPlanInput, prepareNineRouterGuidedSetupCatalog } from "./onboarding/nine-router-guided-setup.ts";
 import { executeConfirmedNineRouterRepair } from "./onboarding/nine-router-repair.ts";
 import { createFileOperationReceiptSink } from "./onboarding/operation-executor.ts";
-import type { HostBindingV1, HostProfileV1, NineRouterGuidedSetupV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
+import type { HostBindingV1, HostProfileV1, NineRouterGuidedSetupV1, NineRouterSetupIntentV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
 import { parseV4CutoverReviewArgs } from "./onboarding/v4-cutover-cli-args.ts";
 import { parseV4CutoverApplyArgs } from "./onboarding/v4-cutover-apply-cli-args.ts";
 import { hostIdentityMatches, observeHostIdentity } from "./onboarding/host-identity.ts";
@@ -467,6 +471,62 @@ async function main(): Promise<void> {
     }
     return;
   }
+  if (command === "router-seat") {
+    try {
+      const args = parseNineRouterSeatingArgs(process.argv.slice(3));
+      const hostProfile = loadOnboardingJson<HostProfileV1>(args.hostProfilePath, validateHostProfileV1, "HOST_PROFILE_INVALID");
+      const hostBinding = loadOnboardingJson<HostBindingV1>(args.hostBindingPath, validateHostBindingV1, "HOST_BINDING_INVALID");
+      const profile = composeOnboardingProfile(hostProfile, hostBinding);
+      const dataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
+      const healthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
+      if (!dataDirectory || !healthUrl) throw new Error("NINE_ROUTER_SEATING_BINDING_INCOMPLETE");
+      const api = new NineRouterApiClient({ dataDirectory, baseUrl: new URL(healthUrl).origin });
+      const availableModels = await api.readAvailableModels();
+      const draft = createNineRouterSeatingDraft(hostProfile.required_routing_aliases, availableModels);
+      if (args.json) {
+        process.stdout.write(`${canonical({
+          mode: "read-only",
+          profile_id: profile.id,
+          source: "9router-live-model-catalog",
+          ...draft,
+        })}\n`);
+      } else {
+        if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("NINE_ROUTER_SEATING_TUI_REQUIRES_TTY");
+        const intent = loadOnboardingJson<NineRouterSetupIntentV1>(args.intentPath!, validateNineRouterSetupIntentV1, "NINE_ROUTER_SETUP_INTENT_INVALID");
+        const { runNineRouterSeatingTui } = await import("./onboarding/nine-router-seating-tui.ts");
+        const result = await runNineRouterSeatingTui({
+          requiredAliases: hostProfile.required_routing_aliases,
+          availableModels,
+        });
+        if (result.confirmed) {
+          const setup = compileNineRouterGuidedSetup(intent, createNineRouterSeatingDraft(
+            hostProfile.required_routing_aliases,
+            availableModels,
+            Object.fromEntries(result.combos.map(({ alias, models }) => [alias, models])),
+          ));
+          if (!validateNineRouterGuidedSetupV1(setup)) throw new Error("NINE_ROUTER_SETUP_INVALID");
+          const configuration = createNineRouterGuidedSetupPlanInput(setup, profile);
+          writePrivateNineRouterSetup(args.outputPath!, setup);
+          process.stdout.write(`${canonical({
+            confirmed: true,
+            confirmed_at: result.confirmed_at,
+            setup_schema: setup.schema,
+            configuration_digest: configuration.digest,
+            provider_selection_ids: setup.providers.map(({ selection_id }) => selection_id),
+            aliases: setup.required_aliases,
+            written: true,
+          })}\n`);
+        } else {
+          process.stdout.write(`${canonical({ confirmed: false, written: false })}\n`);
+        }
+      }
+      process.exitCode = 0;
+    } catch (error) {
+      process.stderr.write(`temperance router-seat: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
   if (command === "compile") {
     printReceipt(compileRepositoryFragments());
     return;
@@ -652,6 +712,10 @@ Commands:
           [--set NAME VALUE] [--secret-reference NAME SERVICE ACCOUNT]
           [--alias ALIAS COMBO] [--volume ID MOUNT_VAR UUID_VAR UUID]
                                    Create one owner-only binding for this exact host
+  router-seat --host-profile P --host-binding B --json
+                                   Inspect live provider models without changing host state
+  router-seat --host-profile P --host-binding B --intent I --output O [--tui]
+                                   Select ordered semantic seats and write one owner-only setup input
   onboard [--profile P | --host-profile P --host-binding B] [--catalog C] [--json|--doctor]
                                    Open generic TUI by default; Noesis is an explicit overlay
           [--project-capsules P --project-capsules-out P --tui]

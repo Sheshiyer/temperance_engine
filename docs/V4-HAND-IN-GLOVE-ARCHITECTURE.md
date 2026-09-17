@@ -87,6 +87,35 @@ references, never credential values. Combo membership is an ordered array of
 it is not an array of provider configuration objects. Noesis continues to
 declare only required aliases.
 
+Provider intent may be prepared separately as
+`temperance.9router-setup-intent.v1`. It contains provider identifiers,
+connection labels, credential-reference identifiers, and the gateway-key
+reference—never credential values or concrete combo membership. The portable
+runtime does not prescribe provider families; a personal or organizational
+operator supplies this private intent.
+
+`temperance router-seat` is the read-only bridge from that intent to concrete
+membership. JSON mode reports the provider-only choices obtained from the
+selected 9Router `/v1/models` endpoint. OpenTUI mode presents every semantic
+alias from the portable host profile alongside those live choices, supports
+ordered multi-selection, refuses combo-kind rows, and writes one new mode-0600
+guided-setup input only after every alias has at least one seat:
+
+```bash
+temperance router-seat \
+  --host-profile "${HOST_PROFILE_PATH}" \
+  --host-binding "${HOST_BINDING_PATH}" \
+  --intent "${ROUTER_INTENT_PATH}" \
+  --output "${ROUTER_SETUP_PATH}" \
+  --tui
+```
+
+The seating TUI has no API-write, Keychain-write, project-write, or overwrite
+capability. Its output is still only an input to a newly compiled onboarding
+plan; it cannot authorize repair. If the live provider catalog is empty, every
+alias is displayed as held with `LIVE_PROVIDER_MODELS_UNAVAILABLE` rather than
+offering invented or copied model choices.
+
 The setup input is validated before review. Its canonical digest and exact
 secret-free provider, combo, model, alias, and gateway-key-reference details
 are embedded in the onboarding plan. Changing any seat after review changes

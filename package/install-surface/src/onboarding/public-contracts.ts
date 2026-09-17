@@ -6,6 +6,7 @@ export const MODULE_DESCRIPTOR_SCHEMA = "temperance.module-descriptor.v2" as con
 export const PROJECT_CAPSULE_SCHEMA = "temperance.project-capsule.v1" as const;
 export const OPERATION_RECEIPT_SCHEMA = "temperance.operation-receipt.v1" as const;
 export const NINE_ROUTER_GUIDED_SETUP_SCHEMA = "temperance.9router-guided-setup.v1" as const;
+export const NINE_ROUTER_SETUP_INTENT_SCHEMA = "temperance.9router-setup-intent.v1" as const;
 
 export type ModuleAdmissionState = "unavailable" | "detected" | "configured" | "healthy" | "enabled";
 
@@ -121,22 +122,33 @@ export interface OperationReceiptV1 {
   finished_at: string;
 }
 
-export interface NineRouterGuidedSetupV1 {
-  schema: typeof NINE_ROUTER_GUIDED_SETUP_SCHEMA;
-  version: { major: 1; minor: 0 };
-  providers: Array<{
+export interface NineRouterProviderSelectionV1 {
     selection_id: string;
     provider: string;
     connection_name: string;
     credential_reference_id: string;
-  }>;
+}
+
+export interface NineRouterGatewayKeyIntentV1 {
+  name: string;
+  secret_reference_id: string;
+}
+
+export interface NineRouterSetupIntentV1 {
+  schema: typeof NINE_ROUTER_SETUP_INTENT_SCHEMA;
+  version: { major: 1; minor: 0 };
+  providers: NineRouterProviderSelectionV1[];
+  gateway_key: NineRouterGatewayKeyIntentV1;
+}
+
+export interface NineRouterGuidedSetupV1 {
+  schema: typeof NINE_ROUTER_GUIDED_SETUP_SCHEMA;
+  version: { major: 1; minor: 0 };
+  providers: NineRouterProviderSelectionV1[];
   combos: Array<{
     alias: string;
     models: string[];
   }>;
   required_aliases: string[];
-  gateway_key: {
-    name: string;
-    secret_reference_id: string;
-  };
+  gateway_key: NineRouterGatewayKeyIntentV1;
 }

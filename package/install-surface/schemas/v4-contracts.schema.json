@@ -111,6 +111,34 @@
         "access": { "enum": ["read-only", "read-write"] }, "approved": { "type": "boolean" }
       }
     },
+    "nineRouterProviderSelection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["selection_id", "provider", "connection_name", "credential_reference_id"],
+      "properties": {
+        "selection_id": { "$ref": "#/$defs/identifier" },
+        "provider": { "$ref": "#/$defs/identifier" },
+        "connection_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "credential_reference_id": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "nineRouterGatewayKeyIntent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "secret_reference_id"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "secret_reference_id": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "nineRouterSetupIntent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "providers", "gateway_key"],
+      "properties": {
+        "schema": { "const": "temperance.9router-setup-intent.v1" },
+        "version": { "$ref": "#/$defs/version1" },
+        "providers": { "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/nineRouterProviderSelection" } },
+        "gateway_key": { "$ref": "#/$defs/nineRouterGatewayKeyIntent" }
+      }
+    },
     "nineRouterGuidedSetup": {
       "type": "object", "additionalProperties": false,
       "required": ["schema", "version", "providers", "combos", "required_aliases", "gateway_key"],
@@ -119,16 +147,7 @@
         "version": { "$ref": "#/$defs/version1" },
         "providers": {
           "type": "array", "minItems": 1, "maxItems": 64,
-          "items": {
-            "type": "object", "additionalProperties": false,
-            "required": ["selection_id", "provider", "connection_name", "credential_reference_id"],
-            "properties": {
-              "selection_id": { "$ref": "#/$defs/identifier" },
-              "provider": { "$ref": "#/$defs/identifier" },
-              "connection_name": { "type": "string", "minLength": 1, "maxLength": 256 },
-              "credential_reference_id": { "$ref": "#/$defs/variable" }
-            }
-          }
+          "items": { "$ref": "#/$defs/nineRouterProviderSelection" }
         },
         "combos": {
           "type": "array", "minItems": 1, "maxItems": 128,
@@ -145,14 +164,7 @@
           }
         },
         "required_aliases": { "type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
-        "gateway_key": {
-          "type": "object", "additionalProperties": false,
-          "required": ["name", "secret_reference_id"],
-          "properties": {
-            "name": { "type": "string", "minLength": 1, "maxLength": 256 },
-            "secret_reference_id": { "$ref": "#/$defs/variable" }
-          }
-        }
+        "gateway_key": { "$ref": "#/$defs/nineRouterGatewayKeyIntent" }
       }
     },
     "operationReceipt": {

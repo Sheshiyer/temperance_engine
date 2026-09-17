@@ -5,6 +5,7 @@ import {
   HOST_PROFILE_SCHEMA,
   MODULE_DESCRIPTOR_SCHEMA,
   NINE_ROUTER_GUIDED_SETUP_SCHEMA,
+  NINE_ROUTER_SETUP_INTENT_SCHEMA,
   OPERATION_RECEIPT_SCHEMA,
   PROJECT_CAPSULE_SCHEMA,
   type HostBindingV1,
@@ -19,6 +20,7 @@ import {
   validateHostProfileV1,
   validateModuleDescriptorV2,
   validateNineRouterGuidedSetupV1,
+  validateNineRouterSetupIntentV1,
   validateOperationReceiptV1,
   validateProjectCapsuleV1,
 } from "../src/onboarding/contract-schema.ts";
@@ -157,6 +159,14 @@ describe("V4 public contracts", () => {
   });
 
   test("runtime-validates private 9router setup without secret values", () => {
+    const intent = {
+      schema: NINE_ROUTER_SETUP_INTENT_SCHEMA,
+      version: { major: 1, minor: 0 },
+      providers: [{ selection_id: "primary", provider: "anthropic", connection_name: "Primary", credential_reference_id: "PROVIDER_PRIMARY" }],
+      gateway_key: { name: "Temperance", secret_reference_id: "GATEWAY_KEY" },
+    };
+    expect(validateNineRouterSetupIntentV1(intent)).toBe(true);
+    expect(validateNineRouterSetupIntentV1({ ...intent, providers: [{ ...intent.providers[0], apiKey: "forbidden" }] })).toBe(false);
     const setup: NineRouterGuidedSetupV1 = {
       schema: NINE_ROUTER_GUIDED_SETUP_SCHEMA,
       version: { major: 1, minor: 0 },
