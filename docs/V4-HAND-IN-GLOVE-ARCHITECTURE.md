@@ -355,8 +355,8 @@ does not create those directories, inspect Keychain values, or start services.
 commitment boundary. JSON mode exposes the same review model as the dedicated
 OpenTUI: the exact plan, clean replacement proof, managed paths, LaunchAgents,
 ordered actions, activation holds, and combined operation digest. The TUI
-requires two presses on the confirmation page—first arm, then confirm—and emits
-only a short-lived digest-bound confirmation. Review and confirmation perform
+requires one explicit `Enter` or `y` on the Confirm page and emits only a
+short-lived digest-bound confirmation. Review and confirmation perform
 no host mutation; the destructive executor must independently re-observe an
 identical plan before opening its journal. The private binding records the
 intended machine identity for that installation; a portable Noesis profile is

@@ -13,6 +13,7 @@ import {
 } from "../../router/v4-cutover-plan.ts";
 import {
   advanceV4CutoverConfirmation,
+  advanceV4CutoverConfirmationFromKey,
   createV4CutoverViewModel,
 } from "../src/onboarding/v4-cutover-review.ts";
 import type { HostBindingV1, HostIdentityBindingV1 } from "../src/onboarding/public-contracts.ts";
@@ -68,16 +69,14 @@ function plan(overrides: { inspectPort?: () => ReturnType<NonNullable<Parameters
 }
 
 describe("V4 cutover review surface", () => {
-  test("binds a two-step confirmation to the exact plan and proof", () => {
+  test("binds a one-step confirmation to the exact plan and proof", () => {
     const reviewedPlan = plan();
     const view = createV4CutoverViewModel(reviewedPlan, proof(), intendedHost(reviewedPlan.host));
     expect(view.readiness).toBe("ready");
     expect(view.pages.map(({ id }) => id)).toEqual(["overview", "actions", "managed-state", "confirmation"]);
     expect(view.pages.find(({ id }) => id === "confirmation")?.rows[0]?.details.join("\n"))
-      .toContain("First confirmation arms this exact operation digest");
-    const armed = advanceV4CutoverConfirmation(view, { status: "unarmed" });
-    expect(armed.status).toBe("armed");
-    const confirmed = advanceV4CutoverConfirmation(view, armed, () => new Date("2026-09-17T01:02:03.000Z"));
+      .toContain("Press Enter or y once on this Confirm page");
+    const confirmed = advanceV4CutoverConfirmation(view, { status: "unconfirmed" }, () => new Date("2026-09-17T01:02:03.000Z"));
     expect(confirmed).toEqual({
       status: "confirmed",
       confirmation: {
@@ -88,7 +87,21 @@ describe("V4 cutover review surface", () => {
     });
   });
 
-  test("renders activation holds but refuses to arm them", () => {
+  test("accepts one Enter or y only on the Confirm page", () => {
+    const reviewedPlan = plan();
+    const view = createV4CutoverViewModel(reviewedPlan, proof(), intendedHost(reviewedPlan.host));
+    const unconfirmed = { status: "unconfirmed" } as const;
+    const now = () => new Date("2026-09-17T01:02:03.000Z");
+
+    expect(advanceV4CutoverConfirmationFromKey(view, "overview", "enter", unconfirmed, now)).toEqual(unconfirmed);
+    expect(advanceV4CutoverConfirmationFromKey(view, "confirmation", "c", unconfirmed, now)).toEqual(unconfirmed);
+    expect(advanceV4CutoverConfirmationFromKey(view, "confirmation", "enter", unconfirmed, now).status).toBe("confirmed");
+    expect(advanceV4CutoverConfirmationFromKey(view, "confirmation", "return", unconfirmed, now).status).toBe("confirmed");
+    expect(advanceV4CutoverConfirmationFromKey(view, "confirmation", "y", unconfirmed, now).status).toBe("confirmed");
+    expect(advanceV4CutoverConfirmationFromKey(view, "confirmation", "Y", unconfirmed, now).status).toBe("confirmed");
+  });
+
+  test("renders activation holds but refuses to confirm them", () => {
     const blockedPlan = plan({
       inspectPort: () => ({ port: 20128, owner: "unknown", pid: 999, process: "foreign" }),
     });
@@ -96,7 +109,9 @@ describe("V4 cutover review surface", () => {
     expect(view.readiness).toBe("blocked");
     expect(view.operation_digest).toBeUndefined();
     expect(view.blocking_reasons).toContain("ROUTER_PORT_OWNED_BY_UNMANAGED_PROCESS");
-    expect(() => advanceV4CutoverConfirmation(view, { status: "unarmed" })).toThrow("CUTOVER_CONFIRMATION_BLOCKED");
+    expect(() => advanceV4CutoverConfirmation(view, { status: "unconfirmed" })).toThrow("CUTOVER_CONFIRMATION_BLOCKED");
+    expect(() => advanceV4CutoverConfirmationFromKey(view, "confirmation", "y", { status: "unconfirmed" }))
+      .toThrow("CUTOVER_CONFIRMATION_BLOCKED");
   });
 
   test("rejects proof or plan drift before rendering", () => {

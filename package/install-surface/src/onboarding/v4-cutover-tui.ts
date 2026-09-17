@@ -13,7 +13,7 @@ import {
 
 import type { V4CutoverConfirmation } from "../../../router/v4-cutover-executor.ts";
 import {
-  advanceV4CutoverConfirmation,
+  advanceV4CutoverConfirmationFromKey,
   type V4CutoverConfirmationState,
   type V4CutoverViewModel,
   type V4CutoverViewPage,
@@ -82,7 +82,7 @@ export async function runV4CutoverTui(
   content.add(detailBox);
   const footer = new TextRenderable(renderer, {
     height: 1,
-    content: `←/→ pages · ↑/↓ inspect · ${ready ? "confirm page: c twice" : "resolve holds and regenerate plan"} · q/esc close`,
+    content: `←/→ pages · ↑/↓ inspect · ${ready ? "Confirm page: Enter/y once" : "resolve holds and regenerate plan"} · q/esc close`,
     fg: "#88c0d0",
   });
   root.add(header);
@@ -92,24 +92,22 @@ export async function runV4CutoverTui(
   renderer.root.add(root);
   tabs.focus();
   renderer.start();
-  let state: V4CutoverConfirmationState = { status: "unarmed" };
+  let state: V4CutoverConfirmationState = { status: "unconfirmed" };
   let confirmation: V4CutoverConfirmation | undefined;
   await new Promise<void>((resolve) => {
     let finished = false;
     const finish = (): void => { if (finished) return; finished = true; renderer.destroy(); resolve(); };
     renderer.once(CliRenderEvents.DESTROY, () => { if (finished) return; finished = true; resolve(); });
     renderer.keyInput.on("keypress", (key) => {
-      if (key.name === "q" || key.name === "escape") finish();
-      if (key.name !== "c" || page.id !== "confirmation") return;
+      if (key.name === "q" || key.name === "escape") {
+        finish();
+        return;
+      }
       try {
-        state = advanceV4CutoverConfirmation(view, state, options.now);
-        if (state.status === "armed") {
-          detail.content = `ARMED\n\nOperation: ${state.operation_digest}\n\nPress c again to confirm this exact destructive operation. No host state has changed.`;
-          footer.content = "ARMED · press c again to confirm · q/esc cancel";
-        } else if (state.status === "confirmed") {
+        state = advanceV4CutoverConfirmationFromKey(view, page.id, key.name, state, options.now);
+        if (state.status === "confirmed") {
           confirmation = state.confirmation;
-          detail.content = `CONFIRMED\n\nOperation: ${state.confirmation.operation_digest}\nConfirmed: ${state.confirmation.confirmed_at}\n\nNo host state changed; the executor must consume this exact fresh confirmation.`;
-          footer.content = "Confirmation captured · q/esc close";
+          finish();
         }
       } catch (error) {
         detail.content = error instanceof Error ? error.message : "CUTOVER_CONFIRMATION_FAILED";

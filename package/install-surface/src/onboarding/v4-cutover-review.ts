@@ -36,8 +36,7 @@ export interface V4CutoverViewModel {
 }
 
 export type V4CutoverConfirmationState =
-  | { status: "unarmed" }
-  | { status: "armed"; operation_digest: V4CutoverReview["operation_digest"] }
+  | { status: "unconfirmed" }
   | { status: "confirmed"; confirmation: V4CutoverConfirmation };
 
 function assertInputs(plan: V4CutoverPlan, proof: V4ReplacementProof, expectedHost: HostIdentityBindingV1): void {
@@ -114,11 +113,11 @@ export function createV4CutoverViewModel(
   const confirmation: V4CutoverViewRow[] = review
     ? [{
       id: "operation-digest",
-      title: "Two-step destructive confirmation",
+      title: "Explicit destructive confirmation",
       status: "ready",
       details: [
         ...review.details,
-        "First confirmation arms this exact operation digest; the second confirms it.",
+        "Press Enter or y once on this Confirm page to confirm this exact operation digest.",
         "Fresh observation must still match before any journal or mutation begins.",
       ],
     }]
@@ -151,12 +150,25 @@ export function advanceV4CutoverConfirmation(
 ): V4CutoverConfirmationState {
   if (view.readiness !== "ready" || !view.operation_digest) throw new Error("CUTOVER_CONFIRMATION_BLOCKED");
   if (state.status === "confirmed") return state;
-  if (state.status === "unarmed") return { status: "armed", operation_digest: view.operation_digest };
-  if (state.operation_digest !== view.operation_digest) throw new Error("CUTOVER_CONFIRMATION_DIGEST_DRIFTED");
   const confirmed_at = now().toISOString();
   if (!Number.isFinite(Date.parse(confirmed_at))) throw new Error("CUTOVER_CONFIRMATION_TIME_INVALID");
   return {
     status: "confirmed",
     confirmation: { confirmed: true, operation_digest: view.operation_digest, confirmed_at },
   };
+}
+
+export function isV4CutoverConfirmationKey(keyName: string): boolean {
+  return keyName === "enter" || keyName === "return" || keyName.toLowerCase() === "y";
+}
+
+export function advanceV4CutoverConfirmationFromKey(
+  view: V4CutoverViewModel,
+  pageId: V4CutoverViewPage["id"],
+  keyName: string,
+  state: V4CutoverConfirmationState,
+  now: () => Date = () => new Date(),
+): V4CutoverConfirmationState {
+  if (pageId !== "confirmation" || !isV4CutoverConfirmationKey(keyName)) return state;
+  return advanceV4CutoverConfirmation(view, state, now);
 }
