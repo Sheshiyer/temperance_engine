@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { extname, isAbsolute, join, relative, resolve } from "node:path";
 
@@ -16,7 +16,17 @@ export const MANAGED_LAUNCH_AGENTS = [
   "space.thoughtseed.omniroute-env.plist",
 ] as const;
 
+export const MANAGED_LAUNCH_AGENT_LABELS = MANAGED_LAUNCH_AGENTS.map(
+  (filename) => filename.slice(0, -".plist".length),
+) as readonly string[];
+
 export type RouterPortOwner = "free" | "legacy-omniroute" | "replacement-9router" | "unknown" | "unsupported";
+
+export interface ManagedRouterServiceObservation {
+  label: string;
+  owner: Extract<RouterPortOwner, "legacy-omniroute" | "replacement-9router">;
+  pid?: number;
+}
 
 export interface PortObservation {
   port: number;
@@ -25,6 +35,9 @@ export interface PortObservation {
   process?: string;
   listener_host?: string | null;
   loopback_only?: boolean | null;
+  listener_present?: boolean;
+  managed_service_label?: string;
+  conflicting_service_labels?: string[];
 }
 
 export interface ManagedPathObservation {
@@ -116,13 +129,21 @@ function sha256(value: unknown): `sha256:${string}` {
 }
 
 export function calculateV4CutoverPlanDigest(plan: V4CutoverDigestScope): `sha256:${string}` {
+  const routerPort = {
+    port: plan.router_port.port,
+    owner: plan.router_port.owner,
+    managed_service_label: plan.router_port.managed_service_label ?? null,
+    conflicting_service_labels: [...(plan.router_port.conflicting_service_labels ?? [])].sort(),
+    listener_host: plan.router_port.owner === "replacement-9router" ? plan.router_port.listener_host ?? null : null,
+    loopback_only: plan.router_port.owner === "replacement-9router" ? plan.router_port.loopback_only ?? null : null,
+  };
   return sha256({
     schema: plan.schema,
     target: plan.target,
     paths: plan.paths,
     launch_agents: plan.launch_agents,
     binaries: plan.binaries,
-    router_port: plan.router_port,
+    router_port: routerPort,
     migration_findings: plan.migration_findings,
     actions: plan.actions,
   });
@@ -204,21 +225,89 @@ function sanitizeVersion(value: string | null): string | null {
 }
 
 function defaultReadVersion(binary: string): string | null {
-  const result = Bun.spawnSync([binary, "--version"], { stdout: "pipe", stderr: "pipe" });
-  return sanitizeVersion(`${result.stdout.toString()}\n${result.stderr.toString()}`);
+  let candidate: string;
+  try { candidate = realpathSync(binary); }
+  catch { return null; }
+  candidate = resolve(candidate, "..");
+  for (let depth = 0; depth < 6; depth += 1) {
+    const metadata = join(candidate, "package.json");
+    try {
+      const parsed = JSON.parse(readFileSync(metadata, "utf8")) as { version?: unknown };
+      if (typeof parsed.version === "string") return sanitizeVersion(parsed.version);
+    } catch { /* Keep walking toward the package root. */ }
+    const parent = resolve(candidate, "..");
+    if (parent === candidate) break;
+    candidate = parent;
+  }
+  return null;
+}
+
+const ROUTER_SERVICE_OWNERS = new Map<string, ManagedRouterServiceObservation["owner"]>([
+  ["com.9router.autostart", "replacement-9router"],
+  ["com.temperance.engine.9router", "replacement-9router"],
+  ["com.temperance.engine.omniroute", "legacy-omniroute"],
+]);
+
+function loadedManagedRouterServices(): ManagedRouterServiceObservation[] {
+  const domain = `gui/${process.getuid?.() ?? 0}`;
+  const services: ManagedRouterServiceObservation[] = [];
+  for (const [label, owner] of ROUTER_SERVICE_OWNERS) {
+    const service = Bun.spawnSync(["launchctl", "print", `${domain}/${label}`], { stdout: "pipe", stderr: "pipe" });
+    if (service.exitCode !== 0) continue;
+    const pid = Number(service.stdout.toString().match(/^\s*pid\s*=\s*(\d+)\s*$/mu)?.[1]);
+    services.push({ label, owner, ...(Number.isInteger(pid) && pid > 1 ? { pid } : {}) });
+  }
+  return services.sort((left, right) => left.label.localeCompare(right.label));
+}
+
+export function resolveManagedRouterPortObservation(
+  listener: PortObservation,
+  services: readonly ManagedRouterServiceObservation[],
+  listenerServiceLabel?: string,
+): PortObservation {
+  const loaded = services
+    .filter(({ label }) => ROUTER_SERVICE_OWNERS.has(label))
+    .sort((left, right) => left.label.localeCompare(right.label));
+  const conflicts = loaded.length > 1 ? loaded.map(({ label }) => label) : undefined;
+  if (listener.owner === "free" && loaded.length === 1) {
+    return {
+      port: listener.port,
+      owner: loaded[0]!.owner,
+      listener_present: false,
+      managed_service_label: loaded[0]!.label,
+    };
+  }
+  if (listener.owner === "free" && conflicts) {
+    return {
+      port: listener.port,
+      owner: "unknown",
+      listener_present: false,
+      conflicting_service_labels: conflicts,
+    };
+  }
+  const associated = listenerServiceLabel && loaded.some(({ label }) => label === listenerServiceLabel)
+    ? listenerServiceLabel
+    : undefined;
+  return {
+    ...listener,
+    listener_present: listener.owner !== "free" && listener.owner !== "unsupported",
+    ...(associated ? { managed_service_label: associated } : {}),
+    ...(conflicts ? { conflicting_service_labels: conflicts } : {}),
+  };
 }
 
 function defaultInspectPort(port: number): PortObservation {
   if (process.platform !== "darwin" && process.platform !== "linux") {
     return { port, owner: "unsupported" };
   }
+  const services = process.platform === "darwin" ? loadedManagedRouterServices() : [];
   const result = Bun.spawnSync(["lsof", "-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-Fpcn"], {
     stdout: "pipe",
     stderr: "pipe",
   });
   const output = result.stdout.toString();
   const pidMatch = output.match(/^p(\d+)$/mu);
-  if (!pidMatch) return { port, owner: "free" };
+  if (!pidMatch) return resolveManagedRouterPortObservation({ port, owner: "free", listener_present: false }, services);
   const pid = Number(pidMatch[1]);
   const command = output.match(/^c(.+)$/mu)?.[1] ?? "unknown";
   const listener = output.match(/^n(.+)$/mu)?.[1] ?? null;
@@ -233,7 +322,35 @@ function defaultInspectPort(port: number): PortObservation {
     : fingerprint.includes("9router")
       ? "replacement-9router"
       : "unknown";
-  return { port, owner, pid, process: command.slice(0, 128), listener_host, loopback_only };
+  const managed_service_label = owner === "legacy-omniroute" || owner === "replacement-9router"
+    ? managedServiceForProcess(pid, services)
+    : undefined;
+  return resolveManagedRouterPortObservation({
+    port,
+    owner,
+    pid,
+    process: command.slice(0, 128),
+    listener_host,
+    loopback_only,
+    listener_present: true,
+  }, services, managed_service_label);
+}
+
+function managedServiceForProcess(pid: number, services: readonly ManagedRouterServiceObservation[]): string | undefined {
+  const ancestry = new Set<number>();
+  let candidate = pid;
+  for (let depth = 0; depth < 32 && candidate > 1 && !ancestry.has(candidate); depth += 1) {
+    ancestry.add(candidate);
+    const parent = Bun.spawnSync(["ps", "-p", String(candidate), "-o", "ppid="], { stdout: "pipe", stderr: "pipe" });
+    if (parent.exitCode !== 0) break;
+    const parsed = Number(parent.stdout.toString().trim());
+    if (!Number.isInteger(parsed) || parsed <= 1) break;
+    candidate = parsed;
+  }
+  for (const service of services) {
+    if (service.pid !== undefined && ancestry.has(service.pid)) return service.label;
+  }
+  return undefined;
 }
 
 function observePath(
@@ -295,9 +412,26 @@ export function createV4CutoverPlan(options: V4CutoverPlanOptions = {}): V4Cutov
   const router_port = inspectPort(20128);
   const migration_findings = legacyProjectRootFindings(join(homeDirectory, ".temperance_engine"));
   const blocking_reasons: string[] = [];
+  for (const path of paths) {
+    if (path.observed === "symlink" || path.observed === "other") {
+      blocking_reasons.push(`MANAGED_PATH_TYPE_UNSAFE:${path.id}`);
+    }
+  }
+  for (const agent of launch_agents) {
+    if (agent.observed === "symlink" || agent.observed === "other") {
+      blocking_reasons.push(`LAUNCH_AGENT_TYPE_UNSAFE:${agent.label}`);
+    }
+  }
   if (router_port.owner === "unknown") blocking_reasons.push("ROUTER_PORT_OWNED_BY_UNMANAGED_PROCESS");
   if (router_port.owner === "unsupported") blocking_reasons.push("ROUTER_PORT_INSPECTION_UNSUPPORTED");
-  if (router_port.owner === "replacement-9router" && router_port.loopback_only !== true) blocking_reasons.push("ROUTER_LISTENER_NOT_LOOPBACK_ONLY");
+  if ((router_port.conflicting_service_labels?.length ?? 0) > 1) blocking_reasons.push("MULTIPLE_MANAGED_ROUTER_SERVICES_LOADED");
+  if ((router_port.owner === "legacy-omniroute" || router_port.owner === "replacement-9router")
+    && !MANAGED_LAUNCH_AGENT_LABELS.includes(router_port.managed_service_label ?? "")) {
+    blocking_reasons.push("ROUTER_PORT_OWNER_NOT_MANAGED_SERVICE");
+  }
+  if (router_port.owner === "replacement-9router" && router_port.listener_present !== false && router_port.loopback_only !== true) {
+    blocking_reasons.push("ROUTER_LISTENER_NOT_LOOPBACK_ONLY");
+  }
   if (platform !== "darwin") blocking_reasons.push("LAUNCH_AGENT_CUTOVER_UNSUPPORTED_ON_PLATFORM");
 
   const legacyAgentsPresent = launch_agents.some((entry) => entry.observed !== "absent");

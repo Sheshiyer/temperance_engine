@@ -162,6 +162,14 @@ absolute host paths or credential values. Failure to finalize the receipt
 after successful live readback is surfaced without tearing down the verified
 replacement.
 
+The portable cutover executor contains no macOS path, launchd, or Keychain
+policy. `MacOsV4CutoverAdapter` is the bounded host layer: it may control only
+the reviewed LaunchAgent allowlist, exact legacy state roots, Keychain
+references, and a package symlink whose resolved `package.json` identifies
+`omniroute`. Portable source staging and replacement installation remain
+behind `V4ReplacementLifecycle`, so Noesis policy and Madara bindings cannot
+become host-mutation authority.
+
 No runnable legacy backup survives successful activation. Recovery is a fresh
 install from reviewed source plus redacted receipts, not reactivation of stale
 executables or credentials.

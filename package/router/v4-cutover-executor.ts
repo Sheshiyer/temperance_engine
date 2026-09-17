@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   ROUTER_PACKAGE,
   ROUTER_VERSION,
+  MANAGED_LAUNCH_AGENT_LABELS,
   V4_CUTOVER_PLAN_SCHEMA,
   verifyV4CutoverPlanDigest,
   type BinaryObservation,
@@ -180,6 +181,7 @@ export function verifyV4ReplacementProof(value: unknown): value is V4Replacement
 }
 
 function assertReviewedPlan(plan: V4CutoverPlan): void {
+  const routerOwnsPort = plan.router_port.owner === "legacy-omniroute" || plan.router_port.owner === "replacement-9router";
   if (plan.schema !== V4_CUTOVER_PLAN_SCHEMA
     || plan.read_only !== true
     || plan.target.package !== ROUTER_PACKAGE
@@ -187,6 +189,7 @@ function assertReviewedPlan(plan: V4CutoverPlan): void {
     || plan.policy.runnable_backup !== false
     || plan.policy.secret_values_recorded !== false
     || plan.policy.destructive_execution_authorized !== false
+    || (routerOwnsPort && !MANAGED_LAUNCH_AGENT_LABELS.includes(plan.router_port.managed_service_label ?? ""))
     || plan.activation_blocked
     || !verifyV4CutoverPlanDigest(plan)) {
     throw new V4CutoverExecutionError("CUTOVER_PLAN_NOT_EXECUTABLE");

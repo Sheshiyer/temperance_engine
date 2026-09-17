@@ -52,7 +52,15 @@ function fixture(): { home: string; launchAgents: string; plan: V4CutoverPlan } 
     now: () => NOW,
     findBinary: (name: string) => `/managed/bin/${name}`,
     readVersion: (binary: string) => binary.endsWith("/9router") ? "9router 0.5.69" : "omniroute 3.8.49",
-    inspectPort: (port: number): PortObservation => ({ port, owner: "legacy-omniroute", pid: 1438, process: "node", listener_host: "127.0.0.1", loopback_only: true }),
+    inspectPort: (port: number): PortObservation => ({
+      port,
+      owner: "legacy-omniroute",
+      pid: 1438,
+      process: "node",
+      listener_host: "127.0.0.1",
+      loopback_only: true,
+      managed_service_label: "com.temperance.engine.omniroute",
+    }),
   };
   return { home, launchAgents, plan: createV4CutoverPlan(options) };
 }

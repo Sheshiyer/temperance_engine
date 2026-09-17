@@ -10,6 +10,7 @@ import {
   V4_CUTOVER_PLAN_SCHEMA,
   calculateV4CutoverPlanDigest,
   createV4CutoverPlan,
+  resolveManagedRouterPortObservation,
   verifyV4CutoverPlanDigest,
 } from "./v4-cutover-plan.ts";
 
@@ -47,7 +48,15 @@ describe("V4 cutover plan", () => {
       now: () => new Date("2026-09-17T00:00:00.000Z"),
       findBinary: (name) => `/managed/bin/${name}`,
       readVersion: (binary) => binary.endsWith("/9router") ? "9router 0.5.69" : "omniroute 3.8.49",
-      inspectPort: (port) => ({ port, owner: "legacy-omniroute", pid: 1438, process: "node", listener_host: "127.0.0.1", loopback_only: true }),
+      inspectPort: (port) => ({
+        port,
+        owner: "legacy-omniroute",
+        pid: 1438,
+        process: "node",
+        listener_host: "127.0.0.1",
+        loopback_only: true,
+        managed_service_label: "com.temperance.engine.omniroute",
+      }),
     });
 
     expect(plan.schema).toBe(V4_CUTOVER_PLAN_SCHEMA);
@@ -92,6 +101,54 @@ describe("V4 cutover plan", () => {
     expect(plan.actions.find(({ id }) => id === "activate-replacement-router")?.status).toBe("blocked");
   });
 
+  test("fails closed when a router-like listener has no managed service owner", () => {
+    const home = fixtureRoot();
+    const plan = createV4CutoverPlan({
+      homeDirectory: home,
+      platform: "darwin",
+      findBinary: () => null,
+      readVersion: () => null,
+      inspectPort: (port) => ({
+        port,
+        owner: "legacy-omniroute",
+        pid: 42,
+        process: "omniroute",
+        listener_host: "127.0.0.1",
+        loopback_only: true,
+      }),
+    });
+
+    expect(plan.activation_blocked).toBe(true);
+    expect(plan.blocking_reasons).toContain("ROUTER_PORT_OWNER_NOT_MANAGED_SERVICE");
+  });
+
+  test("stabilizes a restarting managed router and blocks dual loaded services", () => {
+    expect(resolveManagedRouterPortObservation(
+      { port: 20128, owner: "free", listener_present: false },
+      [{ label: "com.temperance.engine.omniroute", owner: "legacy-omniroute" }],
+    )).toEqual({
+      port: 20128,
+      owner: "legacy-omniroute",
+      listener_present: false,
+      managed_service_label: "com.temperance.engine.omniroute",
+    });
+    const home = fixtureRoot();
+    const plan = createV4CutoverPlan({
+      homeDirectory: home,
+      platform: "darwin",
+      findBinary: () => null,
+      readVersion: () => null,
+      inspectPort: (port) => resolveManagedRouterPortObservation(
+        { port, owner: "free", listener_present: false },
+        [
+          { label: "com.temperance.engine.omniroute", owner: "legacy-omniroute" },
+          { label: "com.temperance.engine.9router", owner: "replacement-9router" },
+        ],
+      ),
+    });
+    expect(plan.blocking_reasons).toContain("MULTIPLE_MANAGED_ROUTER_SERVICES_LOADED");
+  });
+
   test("fails closed when 9router is listening beyond loopback", () => {
     const home = fixtureRoot();
     const plan = createV4CutoverPlan({
@@ -120,6 +177,43 @@ describe("V4 cutover plan", () => {
     expect(first.plan_digest).toBe(second.plan_digest);
   });
 
+  test("plan confirmation digest excludes volatile managed child process identity", () => {
+    const home = fixtureRoot();
+    const common = {
+      homeDirectory: home,
+      platform: "darwin" as const,
+      findBinary: () => null,
+      readVersion: () => null,
+    };
+    const first = createV4CutoverPlan({
+      ...common,
+      inspectPort: (port) => ({
+        port,
+        owner: "legacy-omniroute",
+        pid: 101,
+        process: "node-a",
+        listener_host: "127.0.0.1",
+        loopback_only: true,
+        listener_present: true,
+        managed_service_label: "com.temperance.engine.omniroute",
+      }),
+    });
+    const second = createV4CutoverPlan({
+      ...common,
+      inspectPort: (port) => ({
+        port,
+        owner: "legacy-omniroute",
+        pid: 202,
+        process: "node-b",
+        listener_host: null,
+        loopback_only: null,
+        listener_present: false,
+        managed_service_label: "com.temperance.engine.omniroute",
+      }),
+    });
+    expect(first.plan_digest).toBe(second.plan_digest);
+  });
+
   test("always reinstalls the exact router during a full rebuild", () => {
     const home = fixtureRoot();
     const plan = createV4CutoverPlan({
@@ -127,11 +221,38 @@ describe("V4 cutover plan", () => {
       platform: "darwin",
       findBinary: (name) => `/managed/bin/${name}`,
       readVersion: (binary) => binary.endsWith("/9router") ? `9router ${ROUTER_VERSION}` : "omniroute 3.8.49",
-      inspectPort: (port) => ({ port, owner: "replacement-9router", pid: 75, process: "9router", listener_host: "127.0.0.1", loopback_only: true }),
+      inspectPort: (port) => ({
+        port,
+        owner: "replacement-9router",
+        pid: 75,
+        process: "9router",
+        listener_host: "127.0.0.1",
+        loopback_only: true,
+        managed_service_label: "com.temperance.engine.9router",
+      }),
     });
     expect(plan.binaries.find(({ package: name }) => name === "9router")?.disposition).toBe("install-exact");
     expect(plan.actions.find(({ id }) => id === "install-exact-router")).toMatchObject({ required: true, status: "ready" });
     expect(plan.actions.find(({ id }) => id === "stop-router-port-owner")).toMatchObject({ required: true, status: "ready" });
+  });
+
+  test("reads package metadata without executing a router binary", () => {
+    const home = fixtureRoot();
+    const prefix = join(home, "prefix");
+    const packageRoot = join(prefix, "lib", "node_modules", "9router");
+    const binaryDirectory = join(prefix, "bin");
+    mkdirSync(packageRoot, { recursive: true });
+    mkdirSync(binaryDirectory, { recursive: true });
+    writeFileSync(join(packageRoot, "package.json"), JSON.stringify({ name: "9router", version: "0.5.75" }));
+    writeFileSync(join(packageRoot, "cli.js"), "throw new Error('must never execute');\n");
+    symlinkSync(join("..", "lib", "node_modules", "9router", "cli.js"), join(binaryDirectory, "9router"));
+    const plan = createV4CutoverPlan({
+      homeDirectory: home,
+      platform: "darwin",
+      findBinary: (name) => name === "9router" ? join(binaryDirectory, "9router") : null,
+      inspectPort: (port) => ({ port, owner: "free" }),
+    });
+    expect(plan.binaries.find(({ package: name }) => name === "9router")?.version).toBe("0.5.75");
   });
 
   test("does not follow symlinks while counting managed files", () => {
@@ -148,6 +269,22 @@ describe("V4 cutover plan", () => {
       inspectPort: (port) => ({ port, owner: "free" }),
     });
     expect(plan.paths.find(({ id }) => id === "legacy-omniroute")?.file_count).toBe(0);
+    expect(plan.activation_blocked).toBe(false);
+  });
+
+  test("blocks a symlink at a managed root before destructive execution", () => {
+    const home = fixtureRoot();
+    const outside = fixtureRoot();
+    symlinkSync(outside, join(home, ".omniroute"));
+    const plan = createV4CutoverPlan({
+      homeDirectory: home,
+      platform: "darwin",
+      findBinary: () => null,
+      readVersion: () => null,
+      inspectPort: (port) => ({ port, owner: "free" }),
+    });
+    expect(plan.activation_blocked).toBe(true);
+    expect(plan.blocking_reasons).toContain("MANAGED_PATH_TYPE_UNSAFE:legacy-omniroute");
   });
 
   test("parses only the two read-only path overrides", () => {
