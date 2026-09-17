@@ -129,8 +129,10 @@
             "v4-cutover-plan.ts": "sha256:d4b537c1d733d8c1497cdc6619c95431205157411d15a3425d21377cc5a0de61",
             "v4-macos-host-adapter.test.ts": "sha256:7ad27443109f6d1a60abd27ab97fc0c12997c9a11f1a824b4f885ee305601f1a",
             "v4-macos-host-adapter.ts": "sha256:79e76679e17857a28ab79c4cfff8fced713d9f50be30d272384fd02c8e01e6e9",
+            "v4-portable-replacement.test.ts": "sha256:7d32fea9e158fc9e63802872310e1d5ab3e6fdb7f184a032f0981a15e74fe66d",
+            "v4-portable-replacement.ts": "sha256:6d46d6b9b0ceb506d4e659c75483aaa22671f7fe6a86fa026100858120e9e6f0",
             "v4-replacement-proof.test.ts": "sha256:413ca7b3ca4dffed92a105303cbb429422481d6c55f753c99081f04b69d8f13b",
-            "v4-replacement-proof.ts": "sha256:344fff5042a9663257fa49c3ffe5b18f4545fa16159eb6a8ba9e725fba39d4e0"
+            "v4-replacement-proof.ts": "sha256:956c67ce15c19bc0a945244b7cf89e81b40b8119aa0e39882bcc733b4f59f1e1"
           },
           "modes": {
             "alchemy-stage-hub-map.json": "0644",
@@ -218,6 +220,8 @@
             "v4-cutover-plan.ts": "0644",
             "v4-macos-host-adapter.test.ts": "0644",
             "v4-macos-host-adapter.ts": "0644",
+            "v4-portable-replacement.test.ts": "0644",
+            "v4-portable-replacement.ts": "0644",
             "v4-replacement-proof.test.ts": "0644",
             "v4-replacement-proof.ts": "0644"
           }
