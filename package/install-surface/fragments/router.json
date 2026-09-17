@@ -121,14 +121,16 @@
             "temperance-workflows.json": "sha256:9d7e76793e334c57bcbeb4400a73098e5b8744bdde356dd5a65f99f31b209f77",
             "temperance-workflows.test.ts": "sha256:1aabe457147c1b5ab62665f49de66a058648f2bbd88830f4784d844ee7ce9228",
             "temperance-workflows.ts": "sha256:9a837c9ab3bd3a1e513d0d6f75d6c2dce3494e9f32fca47c0cf69e7cad06afd0",
-            "v4-cutover-executor.test.ts": "sha256:cee613e07a27fd52560185f4347323a9f5c0460fe81ae24f9159b61ed1bad6dc",
-            "v4-cutover-executor.ts": "sha256:e41974756eed97bb2f456da9d6c750ccbad17b15c60dfe7b6022318b91250143",
+            "v4-cutover-executor.test.ts": "sha256:602bb9b441c9452806e033c2ff389c6690067415a6946947fed7072a54dd4693",
+            "v4-cutover-executor.ts": "sha256:46285df4add36bc58c10c0b26e87c860c284199ae37f19a401cfb413b3721389",
             "v4-cutover-journal.test.ts": "sha256:03b7c91a51ffa757244cd033c2d48db7ef240ad33cdf2922afd95aaa8ab1de3b",
             "v4-cutover-journal.ts": "sha256:03eccef9c34ed6d157bb659ca00c9aeca25b2fcb3a3d218d2d43a03220f50000",
-            "v4-cutover-plan.test.ts": "sha256:63c7b86bed1c9b914c93371b34f2d97f0449d1e0b33ee7654cc55b607553e576",
-            "v4-cutover-plan.ts": "sha256:b8901a13907e8a27e6d4fd0201dea0074c236d07c613aba43cd9eb048eecdac8",
+            "v4-cutover-plan.test.ts": "sha256:51807a5a825d28dfd5e2c44ca226962d5f5510a173317c83fa70c80e23cef028",
+            "v4-cutover-plan.ts": "sha256:d4b537c1d733d8c1497cdc6619c95431205157411d15a3425d21377cc5a0de61",
+            "v4-macos-host-adapter.test.ts": "sha256:7ad27443109f6d1a60abd27ab97fc0c12997c9a11f1a824b4f885ee305601f1a",
+            "v4-macos-host-adapter.ts": "sha256:79e76679e17857a28ab79c4cfff8fced713d9f50be30d272384fd02c8e01e6e9",
             "v4-replacement-proof.test.ts": "sha256:413ca7b3ca4dffed92a105303cbb429422481d6c55f753c99081f04b69d8f13b",
-            "v4-replacement-proof.ts": "sha256:a68c4d023c1ada74265b56278e0831a77962c2196a93aa984e0ea708e8711c76"
+            "v4-replacement-proof.ts": "sha256:344fff5042a9663257fa49c3ffe5b18f4545fa16159eb6a8ba9e725fba39d4e0"
           },
           "modes": {
             "alchemy-stage-hub-map.json": "0644",
@@ -214,6 +216,8 @@
             "v4-cutover-journal.ts": "0644",
             "v4-cutover-plan.test.ts": "0644",
             "v4-cutover-plan.ts": "0644",
+            "v4-macos-host-adapter.test.ts": "0644",
+            "v4-macos-host-adapter.ts": "0644",
             "v4-replacement-proof.test.ts": "0644",
             "v4-replacement-proof.ts": "0644"
           }
