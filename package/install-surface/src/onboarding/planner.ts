@@ -145,8 +145,13 @@ function topologicalEligible(modules: OnboardingModule[], eligible: Set<string>)
   return order;
 }
 
-function planDigest(plan: Omit<OnboardingPlanV1, "plan_digest" | "generated_at">): `sha256:${string}` {
+export function calculateOnboardingPlanDigest(plan: Omit<OnboardingPlanV1, "plan_digest" | "generated_at">): `sha256:${string}` {
   return `sha256:${createHash("sha256").update(canonical(plan), "utf8").digest("hex")}`;
+}
+
+export function verifyOnboardingPlanDigest(plan: OnboardingPlanV1): boolean {
+  const { generated_at: _generatedAt, plan_digest, ...digestScope } = plan;
+  return calculateOnboardingPlanDigest(digestScope) === plan_digest;
 }
 
 export async function createOnboardingPlan(options: CreateOnboardingPlanOptions): Promise<OnboardingPlanV1> {
@@ -230,6 +235,6 @@ export async function createOnboardingPlan(options: CreateOnboardingPlanOptions)
   return {
     ...base,
     generated_at: (options.adapter.now?.() ?? new Date()).toISOString(),
-    plan_digest: planDigest(base),
+    plan_digest: calculateOnboardingPlanDigest(base),
   };
 }

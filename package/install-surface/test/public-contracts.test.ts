@@ -103,6 +103,8 @@ describe("V4 public contracts", () => {
       module_ids: ["provider.9router"],
       secret_reference_ids: ["GATEWAY_KEY"],
       redacted_fields: ["gateway_key"],
+      resolved_executables: [{ id: "9router", path: "/managed/bin/9router", version: "0.5.75" }],
+      rollback_status: "not-required",
       started_at: "2026-01-01T00:00:00.000Z",
       finished_at: "2026-01-01T00:00:01.000Z",
     };

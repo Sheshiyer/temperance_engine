@@ -188,3 +188,82 @@ test("CLI composes a portable host profile with a private host binding", async (
   expect(output.modules.map(({ id }: { id: string }) => id)).toEqual(["provider.9router"]);
   expect(output.dry_run).toBe(true);
 }, 15_000);
+
+test("built CLI starts without Madara and preserves eligible local modules", async () => {
+  const packageRoot = resolve(import.meta.dir, "..");
+  const buildRoot = mkdtempSync(join(packageRoot, ".built-cli-smoke-"));
+  const fixtureRoot = mkdtempSync(join(tmpdir(), "temperance-no-madara-cli-"));
+  roots.push(buildRoot, fixtureRoot);
+
+  const build = Bun.spawn([
+    "bun", "build", "src/cli.ts", "--target=bun", `--outdir=${buildRoot}`, "--packages=external",
+  ], { cwd: packageRoot, stdout: "pipe", stderr: "pipe" });
+  const [buildCode, _buildStdout, buildStderr] = await Promise.all([
+    build.exited,
+    new Response(build.stdout).text(),
+    new Response(build.stderr).text(),
+  ]);
+  expect(buildCode, buildStderr).toBe(0);
+
+  const catalogPath = join(fixtureRoot, "catalog.json");
+  const hostProfilePath = join(fixtureRoot, "host-profile.json");
+  const hostBindingPath = join(fixtureRoot, "host-binding.json");
+  const absentMount = join(fixtureRoot, "not-mounted");
+  writeFileSync(catalogPath, JSON.stringify({
+    schema: ONBOARDING_CATALOG_SCHEMA,
+    version: { major: 1, minor: 0 },
+    modules: [
+      { id: "local-core", title: "Local core", summary: "offline-safe", preselection: "selected", depends_on: [], requires: [], guided_installs: [] },
+      {
+        id: "storage.madara", title: "Madara", summary: "external projects", preselection: "selected", depends_on: [],
+        requires: [{ id: "madara-volume", kind: "mount", mount_path_variable: "MADARA_ROOT", expected_uuid_variable: "MADARA_UUID" }],
+        guided_installs: [],
+      },
+    ],
+  }));
+  writeFileSync(hostProfilePath, JSON.stringify({
+    schema: "temperance.host-profile.v1",
+    version: { major: 1, minor: 0 },
+    id: "absent-madara-smoke",
+    variables: [
+      { name: "MADARA_ROOT", kind: "absolute-path", required: false },
+      { name: "MADARA_UUID", kind: "volume-uuid", required: false },
+    ],
+    secret_references: [],
+    preselected_modules: ["local-core", "storage.madara"],
+    required_routing_aliases: [],
+  }));
+  writeFileSync(hostBindingPath, JSON.stringify({
+    schema: "temperance.host-binding.v1",
+    version: { major: 1, minor: 0 },
+    profile_id: "absent-madara-smoke",
+    variables: { MADARA_ROOT: absentMount },
+    secret_references: {},
+    routing_aliases: [],
+    volume_bindings: [{
+      id: "madara", mount_path_variable: "MADARA_ROOT", volume_uuid_variable: "MADARA_UUID", volume_uuid: "ABSENT-0001",
+    }],
+  }));
+
+  const child = Bun.spawn([
+    "bun", join(buildRoot, "cli.js"), "onboard",
+    "--catalog", catalogPath,
+    "--host-profile", hostProfilePath,
+    "--host-binding", hostBindingPath,
+    "--json",
+  ], { cwd: packageRoot, stdout: "pipe", stderr: "pipe" });
+  const [code, stdout, stderr] = await Promise.all([
+    child.exited,
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+  ]);
+  expect(code).toBe(0);
+  expect(stderr).toBe("");
+  const output = JSON.parse(stdout);
+  expect(output.operating_mode).toBe("read-only-degraded");
+  expect(output.modules.find(({ id }: { id: string }) => id === "local-core")).toMatchObject({ status: "eligible" });
+  expect(output.modules.find(({ id }: { id: string }) => id === "storage.madara")).toMatchObject({
+    status: "blocked",
+    holds: [expect.objectContaining({ reason_code: "MOUNT_ABSENT" })],
+  });
+}, 30_000);

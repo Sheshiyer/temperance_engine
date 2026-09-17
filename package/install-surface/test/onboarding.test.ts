@@ -267,4 +267,23 @@ describe("shared onboarding planner", () => {
     expect(section.checks[0]?.reason_code).toBe("SECRET_REFERENCE_MISSING");
     expect(section.checks[0]?.evidence).toContain(plan.plan_digest);
   });
+
+  test("offline router health does not erase healthy local-core evidence", async () => {
+    const input = catalog({ modules: [
+      { id: "local-core", title: "Local core", summary: "offline-safe", preselection: "selected", depends_on: [], requires: [], guided_installs: [] },
+      {
+        id: "network-dependent", title: "Network dependent", summary: "gateway", preselection: "selected", depends_on: [],
+        requires: [{ id: "router-health", kind: "http-health", url_variable: "ROUTER_URL" }], guided_installs: [],
+      },
+    ] });
+    const plan = await createOnboardingPlan({
+      catalog: input,
+      profile: profile({ variables: { ROUTER_URL: "http://127.0.0.1:20128/v1/models" } }),
+      adapter: probe({ "router-health": { capability_id: "router-health", available: false, reason_code: "HTTP_UNAVAILABLE", evidence: [] } }),
+    });
+    const section = projectOnboardingDoctorSection(plan);
+    expect(section.condition).toBe("FAIL");
+    expect(section.checks.find((check) => check.destination === "module:local-core")).toMatchObject({ condition: "PASS", reason_code: "MODULE_ELIGIBLE" });
+    expect(section.checks.find((check) => check.destination === "module:network-dependent")).toMatchObject({ condition: "FAIL", reason_code: "HTTP_UNAVAILABLE" });
+  });
 });

@@ -87,6 +87,9 @@ export interface OperationReceiptV1 {
   module_ids: string[];
   secret_reference_ids: string[];
   redacted_fields: string[];
+  resolved_executables: Array<{ id: string; path: string; version: string }>;
+  rollback_status: "not-required" | "completed" | "failed";
+  failure_code?: string;
   started_at: string;
   finished_at: string;
 }
