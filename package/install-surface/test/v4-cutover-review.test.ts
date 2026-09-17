@@ -15,6 +15,24 @@ import {
   advanceV4CutoverConfirmation,
   createV4CutoverViewModel,
 } from "../src/onboarding/v4-cutover-review.ts";
+import type { HostBindingV1, HostIdentityBindingV1 } from "../src/onboarding/public-contracts.ts";
+
+function intendedHost(value = plan().host): HostIdentityBindingV1 {
+  return { ...value, user_id: value.user_id ?? 501 };
+}
+
+function hostBinding(host = intendedHost()): HostBindingV1 {
+  return {
+    schema: "temperance.host-binding.v1",
+    version: { major: 1, minor: 0 },
+    profile_id: "magenarayan-noesis-v4",
+    host_identity: host,
+    variables: {},
+    secret_references: {},
+    routing_aliases: [],
+    volume_bindings: [],
+  };
+}
 
 function proof(): V4ReplacementProof {
   return createV4ReplacementProof({
@@ -51,7 +69,8 @@ function plan(overrides: { inspectPort?: () => ReturnType<NonNullable<Parameters
 
 describe("V4 cutover review surface", () => {
   test("binds a two-step confirmation to the exact plan and proof", () => {
-    const view = createV4CutoverViewModel(plan(), proof());
+    const reviewedPlan = plan();
+    const view = createV4CutoverViewModel(reviewedPlan, proof(), intendedHost(reviewedPlan.host));
     expect(view.readiness).toBe("ready");
     expect(view.pages.map(({ id }) => id)).toEqual(["overview", "actions", "managed-state", "confirmation"]);
     expect(view.pages.find(({ id }) => id === "confirmation")?.rows[0]?.details.join("\n"))
@@ -73,7 +92,7 @@ describe("V4 cutover review surface", () => {
     const blockedPlan = plan({
       inspectPort: () => ({ port: 20128, owner: "unknown", pid: 999, process: "foreign" }),
     });
-    const view = createV4CutoverViewModel(blockedPlan, proof());
+    const view = createV4CutoverViewModel(blockedPlan, proof(), intendedHost(blockedPlan.host));
     expect(view.readiness).toBe("blocked");
     expect(view.operation_digest).toBeUndefined();
     expect(view.blocking_reasons).toContain("ROUTER_PORT_OWNED_BY_UNMANAGED_PROCESS");
@@ -83,10 +102,12 @@ describe("V4 cutover review surface", () => {
   test("rejects proof or plan drift before rendering", () => {
     const validPlan = plan();
     const validProof = proof();
-    expect(() => createV4CutoverViewModel({ ...validPlan, plan_digest: `sha256:${"0".repeat(64)}` }, validProof))
+    expect(() => createV4CutoverViewModel({ ...validPlan, plan_digest: `sha256:${"0".repeat(64)}` }, validProof, intendedHost(validPlan.host)))
       .toThrow("CUTOVER_REVIEW_PLAN_INVALID");
-    expect(() => createV4CutoverViewModel(validPlan, { ...validProof, proof_digest: `sha256:${"0".repeat(64)}` }))
+    expect(() => createV4CutoverViewModel(validPlan, { ...validProof, proof_digest: `sha256:${"0".repeat(64)}` }, intendedHost(validPlan.host)))
       .toThrow("CUTOVER_REVIEW_PROOF_INVALID");
+    expect(() => createV4CutoverViewModel(validPlan, validProof, { ...intendedHost(validPlan.host), chip_model: "Apple M3" }))
+      .toThrow("CUTOVER_REVIEW_INTENDED_HOST_MISMATCH");
   });
 
   test("is reachable from the CLI as a read-only JSON review", () => {
@@ -94,11 +115,14 @@ describe("V4 cutover review surface", () => {
     try {
       const planPath = join(root, "plan.json");
       const proofPath = join(root, "proof.json");
-      writeFileSync(planPath, JSON.stringify(plan()));
+      const hostBindingPath = join(root, "host-binding.json");
+      const reviewedPlan = plan();
+      writeFileSync(planPath, JSON.stringify(reviewedPlan));
       writeFileSync(proofPath, JSON.stringify(proof()));
+      writeFileSync(hostBindingPath, JSON.stringify(hostBinding(intendedHost(reviewedPlan.host))));
       const result = Bun.spawnSync([
         "bun", "run", "src/cli.ts", "cutover-review",
-        "--plan", planPath, "--proof", proofPath, "--json",
+        "--plan", planPath, "--proof", proofPath, "--host-binding", hostBindingPath, "--json",
       ], { cwd: resolve(import.meta.dir, ".."), stdout: "pipe", stderr: "pipe" });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout.toString()) as { readiness?: unknown; operation_digest?: unknown };

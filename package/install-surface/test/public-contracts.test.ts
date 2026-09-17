@@ -38,6 +38,9 @@ describe("V4 public contracts", () => {
       schema: HOST_BINDING_SCHEMA,
       version: { major: 1, minor: 0 },
       profile_id: "personal-overlay",
+      host_identity: {
+        platform: "darwin", hardware_model: "Mac16,11", chip_model: "Apple M4", architecture: "arm64", user_id: 501,
+      },
       variables: { PROJECT_ROOT: "/example/projects" },
       secret_references: { GATEWAY_KEY: { store: "macos-keychain", service: "temperance.gateway", account: "primary" } },
       routing_aliases: [{ alias: "coding.primary", combo: "coding-primary" }],
@@ -45,6 +48,7 @@ describe("V4 public contracts", () => {
     };
     expect(validateHostProfileV1(profile)).toBe(true);
     expect(validateHostBindingV1(binding)).toBe(true);
+    expect(validateHostBindingV1({ ...binding, host_identity: { ...binding.host_identity!, chip_model: "unknown" } })).toBe(false);
     expect(validateHostBindingV1({ ...binding, secret_references: { GATEWAY_KEY: { value: "plaintext" } } })).toBe(false);
   });
 
@@ -68,6 +72,18 @@ describe("V4 public contracts", () => {
       ...profile,
       project_discovery: [{ ...profile.project_discovery![0], source_relative_path: "../outside.json" }],
     })).toBe(false);
+    expect(validateHostProfileV1({
+      ...profile,
+      project_discovery: [{
+        id: "portfolio-map",
+        kind: "portfolio-root-map",
+        source_root_variable: "MAP_ROOT",
+        source_relative_path: "docs/portfolio-roots.v1.json",
+        repository_mapping_relative_path: "docs/github-repository-mapping-action-queue.v1.json",
+        project_root_variable: "PROJECT_ROOT",
+        access: "read-only",
+      }],
+    })).toBe(true);
   });
 
   test("runtime-validates ModuleDescriptorV2 with the full admission state enum", () => {

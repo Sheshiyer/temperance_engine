@@ -9,6 +9,8 @@ import {
   verifyV4CutoverPlanDigest,
   type V4CutoverPlan,
 } from "../../../router/v4-cutover-plan.ts";
+import { hostIdentityMatches } from "./host-identity.ts";
+import type { HostIdentityBindingV1 } from "./public-contracts.ts";
 
 export interface V4CutoverViewRow {
   id: string;
@@ -38,13 +40,20 @@ export type V4CutoverConfirmationState =
   | { status: "armed"; operation_digest: V4CutoverReview["operation_digest"] }
   | { status: "confirmed"; confirmation: V4CutoverConfirmation };
 
-function assertInputs(plan: V4CutoverPlan, proof: V4ReplacementProof): void {
+function assertInputs(plan: V4CutoverPlan, proof: V4ReplacementProof, expectedHost: HostIdentityBindingV1): void {
   if (!verifyV4CutoverPlanDigest(plan)) throw new Error("CUTOVER_REVIEW_PLAN_INVALID");
   if (!verifyV4ReplacementProof(proof)) throw new Error("CUTOVER_REVIEW_PROOF_INVALID");
+  if (!hostIdentityMatches(expectedHost, plan.host)) {
+    throw new Error("CUTOVER_REVIEW_INTENDED_HOST_MISMATCH");
+  }
 }
 
-export function createV4CutoverViewModel(plan: V4CutoverPlan, proof: V4ReplacementProof): V4CutoverViewModel {
-  assertInputs(plan, proof);
+export function createV4CutoverViewModel(
+  plan: V4CutoverPlan,
+  proof: V4ReplacementProof,
+  expectedHost: HostIdentityBindingV1,
+): V4CutoverViewModel {
+  assertInputs(plan, proof, expectedHost);
   const blocked = plan.activation_blocked || plan.blocking_reasons.length > 0;
   const review = blocked ? undefined : createV4CutoverReview(plan, proof);
   const overview: V4CutoverViewRow[] = [
@@ -55,6 +64,7 @@ export function createV4CutoverViewModel(plan: V4CutoverPlan, proof: V4Replaceme
       details: [
         "Fresh replacement; no runnable legacy backup survives activation.",
         `Host: ${plan.host.hardware_model} · ${plan.host.chip_model} · ${plan.host.architecture} · uid ${String(plan.host.user_id)}`,
+        "Private intended-host binding: exact match",
         `Plan: ${plan.plan_digest}`,
         `Proof: ${proof.proof_digest}`,
         ...(review ? [`Operation: ${review.operation_digest}`] : []),

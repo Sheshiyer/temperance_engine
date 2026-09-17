@@ -7,6 +7,17 @@
     "version1": { "type": "object", "additionalProperties": false, "required": ["major", "minor"], "properties": { "major": { "const": 1 }, "minor": { "const": 0 } } },
     "keychain": { "type": "object", "additionalProperties": false, "required": ["store", "service", "account"], "properties": { "store": { "const": "macos-keychain" }, "service": { "type": "string", "minLength": 1, "maxLength": 256 }, "account": { "type": "string", "minLength": 1, "maxLength": 256 } } },
     "alias": { "type": "object", "additionalProperties": false, "required": ["alias", "combo"], "properties": { "alias": { "$ref": "#/$defs/identifier" }, "combo": { "$ref": "#/$defs/identifier" } } },
+    "hostIdentity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["platform", "hardware_model", "chip_model", "architecture", "user_id"],
+      "properties": {
+        "platform": { "enum": ["aix", "android", "darwin", "freebsd", "haiku", "linux", "openbsd", "sunos", "win32", "cygwin", "netbsd"] },
+        "hardware_model": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?!unknown$)[A-Za-z0-9][A-Za-z0-9 (),._+-]*$" },
+        "chip_model": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?!unknown$)[A-Za-z0-9][A-Za-z0-9 (),._+-]*$" },
+        "architecture": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?!unknown$)[A-Za-z0-9][A-Za-z0-9 (),._+-]*$" },
+        "user_id": { "type": "integer", "minimum": 1, "maximum": 2147483647 }
+      }
+    },
     "hostProfile": {
       "type": "object", "additionalProperties": false,
       "required": ["schema", "version", "id", "variables", "secret_references", "preselected_modules", "required_routing_aliases"],
@@ -39,6 +50,18 @@
                   "project_root_variable": { "$ref": "#/$defs/variable" }, "project_root_prefix_variable": { "$ref": "#/$defs/variable" },
                   "access": { "enum": ["read-only", "read-write"] }
                 }
+              },
+              {
+                "type": "object", "additionalProperties": false,
+                "required": ["id", "kind", "source_root_variable", "source_relative_path", "project_root_variable", "access"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/identifier" }, "kind": { "const": "portfolio-root-map" },
+                  "source_root_variable": { "$ref": "#/$defs/variable" },
+                  "source_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
+                  "repository_mapping_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
+                  "project_root_variable": { "$ref": "#/$defs/variable" }, "project_root_prefix_variable": { "$ref": "#/$defs/variable" },
+                  "access": { "enum": ["read-only", "read-write"] }
+                }
               }
             ]
           }
@@ -50,6 +73,7 @@
       "required": ["schema", "version", "profile_id", "variables", "secret_references", "routing_aliases", "volume_bindings"],
       "properties": {
         "schema": { "const": "temperance.host-binding.v1" }, "version": { "$ref": "#/$defs/version1" }, "profile_id": { "$ref": "#/$defs/identifier" },
+        "host_identity": { "$ref": "#/$defs/hostIdentity" },
         "variables": { "type": "object", "propertyNames": { "$ref": "#/$defs/variable" }, "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 4096 } },
         "secret_references": { "type": "object", "propertyNames": { "$ref": "#/$defs/variable" }, "additionalProperties": { "$ref": "#/$defs/keychain" } },
         "routing_aliases": { "type": "array", "items": { "$ref": "#/$defs/alias" } },

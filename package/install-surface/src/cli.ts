@@ -38,6 +38,7 @@ import { createFileOperationReceiptSink } from "./onboarding/operation-executor.
 import type { HostBindingV1, HostProfileV1, NineRouterGuidedSetupV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
 import { parseV4CutoverReviewArgs } from "./onboarding/v4-cutover-cli-args.ts";
 import { parseV4CutoverApplyArgs } from "./onboarding/v4-cutover-apply-cli-args.ts";
+import { hostIdentityMatches } from "./onboarding/host-identity.ts";
 import type { V4CutoverPlan } from "../../router/v4-cutover-plan.ts";
 import type { V4CutoverConfirmation, V4ReplacementProof } from "../../router/v4-cutover-executor.ts";
 
@@ -276,6 +277,7 @@ async function main(): Promise<void> {
       );
       const credentialReference = hostBinding.secret_references[args.legacyCredentialReferenceId];
       if (!credentialReference) throw new Error("CUTOVER_APPLY_KEYCHAIN_REFERENCE_MISSING");
+      if (!hostBinding.host_identity) throw new Error("CUTOVER_APPLY_INTENDED_HOST_MISSING");
       const executable = (name: "env" | "bun" | "git" | "tar"): string => {
         const path = Bun.which(name);
         if (!path) throw new Error(`CUTOVER_APPLY_${name.toUpperCase()}_MISSING`);
@@ -288,6 +290,7 @@ async function main(): Promise<void> {
         confirmation,
         binding: {
           home_directory: homedir(),
+          expected_host: hostBinding.host_identity,
           source_repository: resolve(args.sourceRepository),
           env_executable: executable("env"),
           node_executable: hostBinding.variables.NINE_ROUTER_NODE_EXECUTABLE ?? "",
@@ -316,8 +319,17 @@ async function main(): Promise<void> {
       const args = parseV4CutoverReviewArgs(process.argv.slice(3));
       const plan = JSON.parse(readFileSync(resolve(args.planPath), "utf8")) as V4CutoverPlan;
       const proof = JSON.parse(readFileSync(resolve(args.proofPath), "utf8")) as V4ReplacementProof;
+      const hostBinding = loadOnboardingJson<HostBindingV1>(
+        args.hostBindingPath,
+        validateHostBindingV1,
+        "HOST_BINDING_INVALID",
+      );
+      if (!hostBinding.host_identity) throw new Error("CUTOVER_REVIEW_INTENDED_HOST_MISSING");
+      if (!hostIdentityMatches(hostBinding.host_identity, plan.host)) {
+        throw new Error("CUTOVER_REVIEW_INTENDED_HOST_MISMATCH");
+      }
       const { createV4CutoverViewModel } = await import("./onboarding/v4-cutover-review.ts");
-      const view = createV4CutoverViewModel(plan, proof);
+      const view = createV4CutoverViewModel(plan, proof, hostBinding.host_identity);
       if (args.json) {
         process.stdout.write(`${canonical(view)}\n`);
       } else {
@@ -610,7 +622,7 @@ Commands:
           --tui --repair --host-profile P --host-binding B --router-setup R
           --receipt-dir D --select provider.9router
                                    Confirm and apply one digest-bound 9Router repair transaction
-  cutover-review --plan P --proof R [--tui|--json]
+  cutover-review --plan P --proof R --host-binding B [--tui|--json]
                                    Review plan + clean proof; TUI confirmation never mutates host state
   cutover-apply --plan P --proof R --confirmation C --host-binding B
           --legacy-credential-reference ID --source-repository S

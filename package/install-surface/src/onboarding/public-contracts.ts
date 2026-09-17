@@ -26,6 +26,16 @@ export type ProjectDiscoverySpecV1 =
     project_root_variable: string;
     project_root_prefix_variable?: string;
     access: "read-only" | "read-write";
+  }
+  | {
+    id: string;
+    kind: "portfolio-root-map";
+    source_root_variable: string;
+    source_relative_path: string;
+    repository_mapping_relative_path?: string;
+    project_root_variable: string;
+    project_root_prefix_variable?: string;
+    access: "read-only" | "read-write";
   };
 
 export interface HostProfileV1 {
@@ -39,10 +49,19 @@ export interface HostProfileV1 {
   project_discovery?: ProjectDiscoverySpecV1[];
 }
 
+export interface HostIdentityBindingV1 {
+  platform: NodeJS.Platform;
+  hardware_model: string;
+  chip_model: string;
+  architecture: string;
+  user_id: number;
+}
+
 export interface HostBindingV1 {
   schema: typeof HOST_BINDING_SCHEMA;
   version: { major: 1; minor: 0 };
   profile_id: string;
+  host_identity?: HostIdentityBindingV1;
   variables: Record<string, string>;
   secret_references: Record<string, KeychainSecretReference>;
   routing_aliases: RoutingAlias[];
@@ -77,6 +96,11 @@ export interface ProjectCandidateV1 extends ProjectCapsuleV1 {
   discovery_source: string;
   display_name: string;
   path_present: boolean;
+  selectable?: boolean;
+  portfolio_id?: string;
+  mapping_status?: "repository-mapped" | "work-mapped" | "folder-only" | "path-missing";
+  work_ids?: string[];
+  repository_candidates?: string[];
 }
 
 export interface OperationReceiptV1 {

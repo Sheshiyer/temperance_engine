@@ -127,4 +127,81 @@ describe("advisory project discovery", () => {
     };
     expect(approveProjectCandidates([existing], [candidate], new Set([candidate.id]))).toHaveLength(2);
   });
+
+  test("presents every mapped portfolio folder and gates absent paths", () => {
+    const root = mkdtempSync(join(tmpdir(), "temperance-portfolio-map-"));
+    roots.push(root);
+    const cambium = join(root, "cambium");
+    const volume = join(root, "volume");
+    mkdirSync(join(cambium, "docs"), { recursive: true });
+    mkdirSync(join(volume, "2026", "Projects", "thoughtseed", "cambium"), { recursive: true });
+    mkdirSync(join(volume, "2026", "Projects", "tryambakam-noesis", "noesis"), { recursive: true });
+    writeFileSync(join(cambium, "docs", "portfolio-roots.v1.json"), JSON.stringify({
+      schema: "thoughtseed.portfolio-root-map.v1",
+      authority: "proposal-only",
+      portfolios: [
+        { portfolioId: "thoughtseed", folders: [
+          { folder: "cambium", workIds: ["sapling:cambium"], status: "mapping-proposal" },
+          { folder: "missing-project", workIds: ["sapling:missing"], status: "mapping-proposal" },
+        ] },
+        { portfolioId: "tryambakam-noesis", folders: [
+          { folder: "noesis", workIds: ["sapling:noesis"], status: "awaiting-ingestion" },
+        ] },
+      ],
+    }));
+    writeFileSync(join(cambium, "docs", "github-map.v1.json"), JSON.stringify({
+      schema: "thoughtseed.github-repository-mapping-action-queue.v1",
+      batches: [{
+        rows: [{ targetWorkId: "sapling:cambium", repository: "Sheshiyer/cambium" }],
+        clusters: [{ resolvedAssignments: [{ workId: "sapling:noesis", repositoryRefs: ["Sheshiyer/noesis-cambium/apps/docs"] }] }],
+      }],
+    }));
+    const profile: HostProfileV1 = {
+      schema: "temperance.host-profile.v1", version: { major: 1, minor: 0 }, id: "portfolio-map-test",
+      variables: [
+        { name: "CAMBIUM_ROOT", kind: "absolute-path", required: true },
+        { name: "VOLUME_ROOT", kind: "absolute-path", required: true },
+        { name: "PROJECTS_SUBTREE", kind: "string", required: true },
+      ],
+      secret_references: [], preselected_modules: [], required_routing_aliases: [],
+      project_discovery: [{
+        id: "portfolio-map", kind: "portfolio-root-map", source_root_variable: "CAMBIUM_ROOT",
+        source_relative_path: "docs/portfolio-roots.v1.json", repository_mapping_relative_path: "docs/github-map.v1.json",
+        project_root_variable: "VOLUME_ROOT", project_root_prefix_variable: "PROJECTS_SUBTREE", access: "read-only",
+      }],
+    };
+    const binding: HostBindingV1 = {
+      schema: "temperance.host-binding.v1", version: { major: 1, minor: 0 }, profile_id: profile.id,
+      variables: { CAMBIUM_ROOT: cambium, VOLUME_ROOT: volume, PROJECTS_SUBTREE: "2026/Projects" },
+      secret_references: {}, routing_aliases: [], volume_bindings: [],
+    };
+    const result = discoverProjectCandidates(profile, binding);
+    expect(result.findings).toEqual([]);
+    expect(result.candidates).toHaveLength(3);
+    expect(result.candidates.map(({ display_name }) => display_name).sort()).toEqual([
+      "thoughtseed/cambium", "thoughtseed/missing-project", "tryambakam-noesis/noesis",
+    ]);
+    expect(result.candidates.find(({ display_name }) => display_name === "thoughtseed/cambium")).toMatchObject({
+      selectable: true, mapping_status: "repository-mapped", repository_candidates: ["github.com/sheshiyer/cambium"],
+    });
+    expect(result.candidates.find(({ display_name }) => display_name === "tryambakam-noesis/noesis")).toMatchObject({
+      selectable: true, repository_candidates: ["github.com/sheshiyer/noesis-cambium"],
+    });
+    const missing = result.candidates.find(({ display_name }) => display_name === "thoughtseed/missing-project")!;
+    expect(missing).toMatchObject({ selectable: false, path_present: false, mapping_status: "path-missing" });
+    expect(() => approveProjectCandidates([], result.candidates, new Set([missing.id]))).toThrow("PROJECT_CANDIDATE_UNAVAILABLE");
+    const selected = result.candidates.find(({ display_name }) => display_name === "thoughtseed/cambium")!;
+    expect(approveProjectCandidates([], result.candidates, new Set([selected.id]))).toEqual([{
+      schema: "temperance.project-capsule.v1", version: { major: 1, minor: 0 }, id: selected.id,
+      repository_identity: "portfolio:thoughtseed:cambium", root_variable: "VOLUME_ROOT",
+      relative_path: "2026/Projects/thoughtseed/cambium", access: "read-only", approved: true,
+    }]);
+
+    writeFileSync(join(cambium, "docs", "github-map.v1.json"), "not-json");
+    const withoutRepositoryEvidence = discoverProjectCandidates(profile, binding);
+    expect(withoutRepositoryEvidence.candidates).toHaveLength(3);
+    expect(withoutRepositoryEvidence.findings).toEqual([expect.objectContaining({
+      code: "SOURCE_INVALID", message: expect.stringContaining("Repository mapping evidence"),
+    })]);
+  });
 });

@@ -104,6 +104,23 @@ describe("onboarding presentation", () => {
     })]);
   });
 
+  test("shows mapped repository evidence while blocking unavailable project paths", () => {
+    const withCandidate: OnboardingPlanV1 = {
+      ...plan,
+      project_candidates: [{
+        schema: "temperance.project-capsule.v1", version: { major: 1, minor: 0 }, id: "portfolio.missing",
+        repository_identity: "portfolio:thoughtseed:missing", root_variable: "PROJECT_ROOT", relative_path: "thoughtseed/missing",
+        access: "read-only", approved: false, discovery_source: "portfolio-map", display_name: "thoughtseed/missing",
+        path_present: false, selectable: false, portfolio_id: "thoughtseed", mapping_status: "path-missing",
+        work_ids: ["sapling:missing"], repository_candidates: ["github.com/example/missing"],
+      }],
+    };
+    const row = createOnboardingViewModel(withCandidate).pages.find(({ id }) => id === "projects")?.rows[0];
+    expect(row).toMatchObject({ status: "blocked", blocked_reasons: ["PROJECT_PATH_UNAVAILABLE"] });
+    expect(row?.title).toBe("thoughtseed/missing · unavailable");
+    expect(row?.guidance).toContain("repository candidate: github.com/example/missing");
+  });
+
   test("review displays the exact bound 9router configuration input", () => {
     const withConfiguration: OnboardingPlanV1 = {
       ...plan,

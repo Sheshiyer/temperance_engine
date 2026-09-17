@@ -28,6 +28,14 @@ Discovery never implies enrollment. Growth maps, portfolio scans, and Git
 remotes produce candidates only. A project capsule is created only after an
 explicit approval, and removing that capsule never deletes the repository.
 
+The optional `portfolio-root-map` discovery adapter keeps this boundary while
+presenting a richer selector. It reads a bounded Cambium portfolio-root map and
+optional repository-mapping queue, emits every mapped folder as a distinct
+candidate, and annotates it with portfolio, work-ID, and normalized GitHub
+repository evidence. A missing mapped path remains visible but cannot be
+selected. Repository evidence does not clone, fetch, validate credentials, or
+grant authority; saving a capsule still requires an explicit TUI selection.
+
 ## Router Authority
 
 `9router` is the successor package to OmniRoute. It is not installed beside
@@ -203,14 +211,17 @@ Application Support directory, outside `~/.temperance_engine`, so replacing
 the runtime cannot delete its own recovery source or audit trail. Construction
 does not create those directories, inspect Keychain values, or start services.
 
-`temperance cutover-review --plan <file> --proof <file>` is the source-to-host
+`temperance cutover-review --plan <file> --proof <file> --host-binding <file>` is the source-to-host
 commitment boundary. JSON mode exposes the same review model as the dedicated
 OpenTUI: the exact plan, clean replacement proof, managed paths, LaunchAgents,
 ordered actions, activation holds, and combined operation digest. The TUI
 requires two presses on the confirmation page—first arm, then confirm—and emits
 only a short-lived digest-bound confirmation. Review and confirmation perform
 no host mutation; the destructive executor must independently re-observe an
-identical plan before opening its journal.
+identical plan before opening its journal. The private binding records the
+intended machine identity for that installation; a portable Noesis profile is
+therefore reusable on another Mac, while a confirmation produced for one host
+cannot be applied to another.
 
 Live admission is a separate command and never occurs inside the review TUI:
 

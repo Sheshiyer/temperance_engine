@@ -62,6 +62,7 @@ function fixture() {
   const review = createV4CutoverReview(plan, proof);
   const binding: V4CutoverApplyBinding = {
     home_directory: home,
+    expected_host: HOST,
     source_repository: join(root, "source"),
     env_executable: join(root, "bin", "env"),
     node_executable: join(root, "bin", "node"),
@@ -160,6 +161,14 @@ describe("V4 cutover apply admission", () => {
       confirmation: context.confirmation,
       binding: context.binding,
     }, dependencies)).rejects.toThrow("CUTOVER_APPLY_HOST_DRIFTED");
+    expect(constructed).toBe(false);
+
+    await expect(applyV4Cutover({
+      plan: context.plan,
+      proof: context.proof,
+      confirmation: context.confirmation,
+      binding: { ...context.binding, expected_host: { ...HOST, hardware_model: "Mac15,12", chip_model: "Apple M3" } },
+    }, { ...dependencies, observeHost: () => HOST })).rejects.toThrow("CUTOVER_APPLY_INTENDED_HOST_MISMATCH");
     expect(constructed).toBe(false);
 
     await expect(applyV4Cutover({

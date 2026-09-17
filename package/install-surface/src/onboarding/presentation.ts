@@ -44,10 +44,17 @@ export function createOnboardingViewModel(plan: OnboardingPlanV1): OnboardingVie
   }));
   projects.push(...(plan.project_candidates ?? []).map((project) => ({
     id: project.id,
-    title: `${project.display_name} · pending approval${project.path_present ? "" : " · path unavailable"}`,
-    status: "not-selected" as const,
-    blocked_reasons: [],
-    guidance: [project.access, `repository: ${project.repository_identity}`, `source: ${project.discovery_source}`],
+    title: `${project.display_name} · ${project.selectable === false || !project.path_present ? "unavailable" : "pending approval"}`,
+    status: project.selectable === false || !project.path_present ? "blocked" as const : "not-selected" as const,
+    blocked_reasons: project.selectable === false || !project.path_present ? ["PROJECT_PATH_UNAVAILABLE"] : [],
+    guidance: [
+      project.access,
+      ...(project.portfolio_id ? [`portfolio: ${project.portfolio_id}`] : []),
+      ...(project.mapping_status ? [`mapping: ${project.mapping_status}`] : []),
+      ...(project.work_ids?.length ? [`work: ${project.work_ids.join(", ")}`] : []),
+      ...(project.repository_candidates?.length ? project.repository_candidates.map((repository) => `repository candidate: ${repository}`) : [`repository: ${project.repository_identity}`]),
+      `source: ${project.discovery_source}`,
+    ],
   })));
   projects.push(...(plan.project_discovery_findings ?? []).map((finding) => ({
     id: `finding.${finding.source_id}.${finding.code.toLowerCase()}`,

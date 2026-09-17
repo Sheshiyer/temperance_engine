@@ -49,7 +49,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
   detailBox.add(detail);
   let currentPage: OnboardingViewPage = view.pages[0]!;
   let currentRowId: string | undefined;
-  const candidateIds = new Set((plan.project_candidates ?? []).map((candidate) => candidate.id));
+  const candidateIds = new Set((plan.project_candidates ?? []).filter((candidate) => candidate.selectable !== false && candidate.path_present).map((candidate) => candidate.id));
   const selectedCandidateIds = new Set<string>();
   const showPage = (page: OnboardingViewPage): void => {
     currentPage = page;

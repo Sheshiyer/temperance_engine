@@ -32,6 +32,7 @@ const REFERENCE_ID = /^[A-Za-z][A-Za-z0-9._-]{0,127}$/u;
 
 export interface V4CutoverApplyBinding {
   home_directory: string;
+  expected_host: V4CutoverHostObservation;
   source_repository: string;
   env_executable: string;
   node_executable: string;
@@ -102,6 +103,11 @@ function assertBinding(plan: V4CutoverPlan, proof: V4ReplacementProof, confirmat
     || confirmation.operation_digest !== review.operation_digest
     || !Number.isFinite(Date.parse(confirmation.confirmed_at))) {
     throw new V4CutoverExecutionError("CUTOVER_APPLY_CONFIRMATION_INVALID");
+  }
+  if (!validateV4CutoverHostObservation(binding.expected_host)
+    || binding.expected_host.platform !== "darwin"
+    || canonical(binding.expected_host) !== canonical(plan.host)) {
+    throw new V4CutoverExecutionError("CUTOVER_APPLY_INTENDED_HOST_MISMATCH");
   }
   const paths = [
     binding.home_directory,
