@@ -207,7 +207,7 @@
         "api_contract": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["keys", "cli_tool_settings", "cli_tools", "providers", "provider_create_fields", "combos", "combo_create_fields", "gateway_key_policy"],
+          "required": ["keys", "cli_tool_settings", "cli_tools", "providers", "provider_item", "provider_create_fields", "combos", "combo_item", "combo_create_fields", "gateway_key_policy"],
           "properties": {
             "keys": {
               "type": "object",
@@ -223,6 +223,7 @@
               "maxItems": 4
             },
             "providers": { "const": "/api/providers" },
+            "provider_item": { "const": "/api/providers/{id}" },
             "provider_create_fields": {
               "type": "array",
               "prefixItems": [{ "const": "provider" }, { "const": "name" }, { "const": "apiKey" }],
@@ -230,6 +231,7 @@
               "maxItems": 3
             },
             "combos": { "const": "/api/combos" },
+            "combo_item": { "const": "/api/combos/{id}" },
             "combo_create_fields": {
               "type": "array",
               "prefixItems": [{ "const": "name" }, { "const": "models" }],

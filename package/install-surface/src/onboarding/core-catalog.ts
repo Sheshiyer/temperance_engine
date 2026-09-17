@@ -81,8 +81,10 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
           cli_tool_settings: "/api/cli-tools/{tool}-settings",
           cli_tools: ["claude", "codex", "droid", "openclaw"],
           providers: "/api/providers",
+          provider_item: "/api/providers/{id}",
           provider_create_fields: ["provider", "name", "apiKey"],
           combos: "/api/combos",
+          combo_item: "/api/combos/{id}",
           combo_create_fields: ["name", "models"],
           gateway_key_policy: {
             capture: "one-time-to-keychain",

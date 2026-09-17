@@ -7,6 +7,7 @@ import { ONBOARDING_CATALOG_SCHEMA, ONBOARDING_PROFILE_SCHEMA, type OnboardingPl
 import { createOnboardingReceipt } from "../src/onboarding/receipt.ts";
 import { createOnboardingViewModel, renderOnboardingText } from "../src/onboarding/presentation.ts";
 import { canConfirmOnboardingPlan } from "../src/onboarding/tui.ts";
+import { parseOnboardingArgs } from "../src/onboarding/cli-args.ts";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -102,6 +103,27 @@ describe("onboarding presentation", () => {
       id: "portfolio.cambium", status: "not-selected", title: "Cambium · pending approval",
     })]);
   });
+
+  test("review displays the exact bound 9router configuration input", () => {
+    const withConfiguration: OnboardingPlanV1 = {
+      ...plan,
+      configuration_inputs: [{
+        id: "9router-guided-setup",
+        digest: `sha256:${"b".repeat(64)}`,
+        details: ["provider primary: anthropic · Primary", "combo noesis-build: anthropic/claude-build"],
+      }],
+    };
+    const review = createOnboardingViewModel(withConfiguration).pages.find(({ id }) => id === "review");
+    expect(review?.rows.map(({ id }) => id)).toEqual([
+      "operation-plan",
+      "configuration.9router-guided-setup",
+      "configuration.9router-guided-setup.detail.1",
+      "configuration.9router-guided-setup.detail.2",
+    ]);
+    expect(review?.rows[1]?.guidance).toContain(`digest: sha256:${"b".repeat(64)}`);
+    expect(review?.rows[3]?.guidance).toEqual(["combo noesis-build: anthropic/claude-build"]);
+    expect(renderOnboardingText(withConfiguration)).toContain("CONFIGURATION 9router-guided-setup");
+  });
 });
 
 test("CLI onboarding is JSON-capable and read-only by default", async () => {
@@ -188,6 +210,36 @@ test("CLI composes a portable host profile with a private host binding", async (
   expect(output.modules.map(({ id }: { id: string }) => id)).toEqual(["provider.9router"]);
   expect(output.dry_run).toBe(true);
 }, 15_000);
+
+test("CLI repair mode requires TUI review, private bindings, exact scope, desired state, and receipts", () => {
+  expect(parseOnboardingArgs([
+    "--tui",
+    "--repair",
+    "--host-profile", "/private/host-profile.json",
+    "--host-binding", "/private/host-binding.json",
+    "--router-setup", "/private/9router-setup.json",
+    "--receipt-dir", "/private/receipts",
+    "--select", "provider.9router",
+  ])).toMatchObject({ apply: true, tui: true, selections: new Set(["provider.9router"]) });
+  expect(() => parseOnboardingArgs([
+    "--repair",
+    "--host-profile", "/private/host-profile.json",
+    "--host-binding", "/private/host-binding.json",
+    "--router-setup", "/private/9router-setup.json",
+    "--receipt-dir", "/private/receipts",
+    "--select", "provider.9router",
+  ])).toThrow("ONBOARDING_ARGUMENT_INVALID");
+  expect(() => parseOnboardingArgs([
+    "--tui",
+    "--repair",
+    "--host-profile", "/private/host-profile.json",
+    "--host-binding", "/private/host-binding.json",
+    "--router-setup", "/private/9router-setup.json",
+    "--receipt-dir", "/private/receipts",
+    "--select", "provider.9router,storage.madara",
+  ])).toThrow("ONBOARDING_ARGUMENT_INVALID");
+  expect(() => parseOnboardingArgs(["--tui", "--router-setup", "--receipt-dir", "/private/receipts"])).toThrow("ONBOARDING_ARGUMENT_INVALID");
+});
 
 test("built CLI starts without Madara and preserves eligible local modules", async () => {
   const packageRoot = resolve(import.meta.dir, "..");

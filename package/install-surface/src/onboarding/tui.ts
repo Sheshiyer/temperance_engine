@@ -11,10 +11,12 @@ export { createOnboardingViewModel, renderOnboardingText } from "./presentation.
 export interface OnboardingTuiOptions {
   existingProjectCapsules?: readonly ProjectCapsuleV1[];
   allowProjectCapsuleSave?: boolean;
+  now?: () => Date;
 }
 
 export interface OnboardingTuiResult {
   confirmed: boolean;
+  confirmed_at?: string;
   plan_digest: OnboardingPlanV1["plan_digest"];
   save_project_capsules: boolean;
   project_capsules: ProjectCapsuleV1[];
@@ -67,6 +69,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
   content.add(selector); content.add(detailBox);
   const confirmable = canConfirmOnboardingPlan(plan);
   let confirmed = false;
+  let confirmedAt: string | undefined;
   const footer = new TextRenderable(renderer, { height: 1, content: `←/→ pages · ↑/↓ inspect · a select project · s save capsules · ${confirmable ? "c confirm review" : "resolve holds before confirmation"} · q/esc close`, fg: "#88c0d0" });
   root.add(header); root.add(tabs); root.add(content); root.add(footer); renderer.root.add(root); tabs.focus(); renderer.start();
   let saveProjectCapsules = false;
@@ -98,6 +101,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
           return;
         }
         confirmed = true;
+        confirmedAt = (options.now?.() ?? new Date()).toISOString();
         detail.content = `Confirmation recorded for ${plan.plan_digest}.\n\nNo host state changed; a cutover executor must consume this exact digest.`;
         footer.content = "Confirmation recorded · q/esc close";
       }
@@ -105,6 +109,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
   });
   return {
     confirmed,
+    confirmed_at: confirmedAt,
     plan_digest: plan.plan_digest,
     save_project_capsules: saveProjectCapsules,
     project_capsules: saveProjectCapsules

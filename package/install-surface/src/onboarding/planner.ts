@@ -27,6 +27,7 @@ export interface CreateOnboardingPlanOptions {
   signal?: AbortSignal;
   projectCandidates?: readonly ProjectCandidateV1[];
   projectDiscoveryFindings?: readonly ProjectDiscoveryFinding[];
+  configurationInputs?: readonly NonNullable<OnboardingPlanV1["configuration_inputs"]>[number][];
 }
 
 function remediationFor(probe: CapabilityProbe): string[] {
@@ -157,6 +158,18 @@ export function verifyOnboardingPlanDigest(plan: OnboardingPlanV1): boolean {
 export async function createOnboardingPlan(options: CreateOnboardingPlanOptions): Promise<OnboardingPlanV1> {
   if (!validateOnboardingCatalog(options.catalog)) throw new Error("ONBOARDING_CATALOG_INVALID");
   if (!validateOnboardingProfile(options.profile)) throw new Error("ONBOARDING_PROFILE_INVALID");
+  const configurationInputs = [...(options.configurationInputs ?? [])];
+  if (new Set(configurationInputs.map(({ id }) => id)).size !== configurationInputs.length) {
+    throw new Error("ONBOARDING_CONFIGURATION_INPUT_DUPLICATE");
+  }
+  for (const input of configurationInputs) {
+    if (!/^[a-z0-9][a-z0-9._-]{0,127}$/u.test(input.id)
+      || !/^sha256:[0-9a-f]{64}$/u.test(input.digest)
+      || input.details.length > 1024
+      || input.details.some((detail) => !detail || detail.length > 16_384 || detail.includes("\0"))) {
+      throw new Error("ONBOARDING_CONFIGURATION_INPUT_INVALID");
+    }
+  }
 
   const chosen = selectedIds(options.catalog, options.profile, options.selections);
   const known = new Set(options.catalog.modules.map((module) => module.id));
@@ -230,6 +243,7 @@ export async function createOnboardingPlan(options: CreateOnboardingPlanOptions)
     project_enrollments: options.profile.project_enrollments.map(({ id, approved, access }) => ({ id, approved, access })),
     project_candidates: [...(options.projectCandidates ?? [])],
     project_discovery_findings: [...(options.projectDiscoveryFindings ?? [])],
+    ...(configurationInputs.length > 0 ? { configuration_inputs: structuredClone(configurationInputs) } : {}),
     modules,
   };
   return {

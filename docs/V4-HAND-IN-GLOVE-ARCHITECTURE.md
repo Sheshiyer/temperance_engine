@@ -55,6 +55,44 @@ into a profile, operation plan, log, or receipt. A gateway API key created for
 direct clients is captured once into macOS Keychain; durable configuration
 stores only its Keychain reference.
 
+### Guided router setup
+
+Provider and combo choices live in a private
+`temperance.9router-guided-setup.v1` input. Provider entries name Keychain
+references, never credential values. Combo entries are concrete because
+9Router owns membership; Noesis continues to declare only required aliases.
+
+The setup input is validated before review. Its canonical digest and exact
+secret-free provider, combo, model, alias, and gateway-key-reference details
+are embedded in the onboarding plan. Changing any seat after review changes
+the digest and invalidates confirmation.
+
+Repair is intentionally narrower than planning:
+
+```bash
+temperance onboard \
+  --tui --repair \
+  --host-profile "${HOST_PROFILE_PATH}" \
+  --host-binding "${HOST_BINDING_PATH}" \
+  --router-setup "${ROUTER_SETUP_PATH}" \
+  --receipt-dir "${TEMPERANCE_RECEIPT_DIR}" \
+  --select provider.9router
+```
+
+The TUI must display `COMMIT PLAN`, the bound configuration input, and the
+final plan digest. Host mutation starts only after confirmation of that exact
+digest. The effector resolves provider credentials from Keychain in memory,
+creates fresh provider connections, combos, and one gateway key through the
+local API, captures the gateway key into Keychain, and verifies provider,
+combo, alias, model-count, and key metadata through API readback. It does not
+edit pre-existing provider or combo objects.
+
+If any create, capture, readback, receipt, or later operation step fails, the
+executor deletes newly created keys, combos, and providers in reverse order
+and restores the prior Keychain value. Created identities are recovered by
+pre/post API difference when an upstream success response is malformed, so a
+bad response cannot silently strand an untracked object.
+
 ## Route Continuity
 
 A route context contains the admitted project, GSD step, phase, session, and

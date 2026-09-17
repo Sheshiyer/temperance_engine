@@ -60,8 +60,30 @@ export function createOnboardingViewModel(plan: OnboardingPlanV1): OnboardingVie
   const review: OnboardingViewRow[] = [{
     id: "operation-plan", title: `Operation plan · ${plan.install_order.length} modules`, status: plan.operating_mode === "blocked" ? "blocked" : "eligible",
     blocked_reasons: plan.modules.flatMap((module) => module.holds.map((hold) => `${module.id}:${hold.reason_code}`)),
-    guidance: [`order: ${plan.install_order.join(" → ") || "none"}`, `digest: ${plan.plan_digest}`, "confirmation required before any separate cutover execution"],
+    guidance: [
+      `order: ${plan.install_order.join(" → ") || "none"}`,
+      `digest: ${plan.plan_digest}`,
+      "confirmation required before any separate cutover execution",
+    ],
   }];
+  for (const input of plan.configuration_inputs ?? []) {
+    review.push({
+      id: `configuration.${input.id}`,
+      title: `Configuration input · ${input.id}`,
+      status: "eligible",
+      blocked_reasons: [],
+      guidance: [`digest: ${input.digest}`, `${input.details.length} exact detail${input.details.length === 1 ? "" : "s"} bound into the plan`],
+    });
+    for (const [index, item] of input.details.entries()) {
+      review.push({
+        id: `configuration.${input.id}.detail.${index + 1}`,
+        title: `${input.id} · detail ${index + 1} of ${input.details.length}`,
+        status: "eligible",
+        blocked_reasons: [],
+        guidance: [item],
+      });
+    }
+  }
   return {
     title: "Temperance V4 Onboarding", summary: `${eligible} eligible · ${blocked} blocked · ${available} available`, mode: plan.operating_mode,
     dry_run: plan.dry_run, profile_id: plan.profile_id, rows, confirmation: "required",
@@ -80,6 +102,10 @@ export function renderOnboardingText(plan: OnboardingPlanV1): string {
     lines.push(`  [${row.status.toUpperCase()}] ${row.id} · ${row.title}`);
     for (const reason of row.blocked_reasons) lines.push(`    hold: ${reason}`);
     for (const guidance of row.guidance) lines.push(`    guided: ${guidance}`);
+  }
+  for (const input of plan.configuration_inputs ?? []) {
+    lines.push(`CONFIGURATION ${input.id} · ${input.digest}`);
+    for (const detail of input.details) lines.push(`  ${detail}`);
   }
   lines.push("Review confirmation is required. No changes were made by this planning command.");
   return `${lines.join("\n")}\n`;

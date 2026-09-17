@@ -5,6 +5,7 @@ export const HOST_BINDING_SCHEMA = "temperance.host-binding.v1" as const;
 export const MODULE_DESCRIPTOR_SCHEMA = "temperance.module-descriptor.v2" as const;
 export const PROJECT_CAPSULE_SCHEMA = "temperance.project-capsule.v1" as const;
 export const OPERATION_RECEIPT_SCHEMA = "temperance.operation-receipt.v1" as const;
+export const NINE_ROUTER_GUIDED_SETUP_SCHEMA = "temperance.9router-guided-setup.v1" as const;
 
 export type ModuleAdmissionState = "unavailable" | "detected" | "configured" | "healthy" | "enabled";
 
@@ -92,4 +93,24 @@ export interface OperationReceiptV1 {
   failure_code?: string;
   started_at: string;
   finished_at: string;
+}
+
+export interface NineRouterGuidedSetupV1 {
+  schema: typeof NINE_ROUTER_GUIDED_SETUP_SCHEMA;
+  version: { major: 1; minor: 0 };
+  providers: Array<{
+    selection_id: string;
+    provider: string;
+    connection_name: string;
+    credential_reference_id: string;
+  }>;
+  combos: Array<{
+    alias: string;
+    models: Array<Record<string, unknown>>;
+  }>;
+  required_aliases: string[];
+  gateway_key: {
+    name: string;
+    secret_reference_id: string;
+  };
 }

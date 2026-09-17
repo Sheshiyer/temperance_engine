@@ -4,11 +4,13 @@ import {
   HOST_BINDING_SCHEMA,
   HOST_PROFILE_SCHEMA,
   MODULE_DESCRIPTOR_SCHEMA,
+  NINE_ROUTER_GUIDED_SETUP_SCHEMA,
   OPERATION_RECEIPT_SCHEMA,
   PROJECT_CAPSULE_SCHEMA,
   type HostBindingV1,
   type HostProfileV1,
   type ModuleDescriptorV2,
+  type NineRouterGuidedSetupV1,
   type OperationReceiptV1,
   type ProjectCapsuleV1,
 } from "../src/onboarding/public-contracts.ts";
@@ -16,6 +18,7 @@ import {
   validateHostBindingV1,
   validateHostProfileV1,
   validateModuleDescriptorV2,
+  validateNineRouterGuidedSetupV1,
   validateOperationReceiptV1,
   validateProjectCapsuleV1,
 } from "../src/onboarding/contract-schema.ts";
@@ -112,5 +115,18 @@ describe("V4 public contracts", () => {
     expect(validateProjectCapsuleV1({ ...capsule, relative_path: "../escape" })).toBe(false);
     expect(validateOperationReceiptV1(receipt)).toBe(true);
     expect(validateOperationReceiptV1({ ...receipt, gateway_key: "leaked" })).toBe(false);
+  });
+
+  test("runtime-validates private 9router setup without secret values", () => {
+    const setup: NineRouterGuidedSetupV1 = {
+      schema: NINE_ROUTER_GUIDED_SETUP_SCHEMA,
+      version: { major: 1, minor: 0 },
+      providers: [{ selection_id: "primary", provider: "anthropic", connection_name: "Primary", credential_reference_id: "PROVIDER_PRIMARY" }],
+      combos: [{ alias: "noesis-build", models: [{ provider: "anthropic", model: "claude-build" }] }],
+      required_aliases: ["noesis-build"],
+      gateway_key: { name: "Temperance", secret_reference_id: "GATEWAY_KEY" },
+    };
+    expect(validateNineRouterGuidedSetupV1(setup)).toBe(true);
+    expect(validateNineRouterGuidedSetupV1({ ...setup, gateway_key: { ...setup.gateway_key, value: "forbidden" } })).toBe(false);
   });
 });

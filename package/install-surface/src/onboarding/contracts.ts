@@ -119,8 +119,10 @@ export interface NineRouterRuntimeContract {
     cli_tool_settings: "/api/cli-tools/{tool}-settings";
     cli_tools: ["claude", "codex", "droid", "openclaw"];
     providers: "/api/providers";
+    provider_item: "/api/providers/{id}";
     provider_create_fields: ["provider", "name", "apiKey"];
     combos: "/api/combos";
+    combo_item: "/api/combos/{id}";
     combo_create_fields: ["name", "models"];
     gateway_key_policy: {
       capture: "one-time-to-keychain";
@@ -249,6 +251,11 @@ export interface OnboardingPlanV1 {
   project_enrollments?: Array<Pick<ProjectEnrollment, "id" | "approved" | "access">>;
   project_candidates?: ProjectCandidateV1[];
   project_discovery_findings?: Array<{ source_id: string; code: string; message: string }>;
+  configuration_inputs?: Array<{
+    id: string;
+    digest: `sha256:${string}`;
+    details: string[];
+  }>;
   modules: OnboardingModuleResolution[];
   plan_digest: `sha256:${string}`;
 }

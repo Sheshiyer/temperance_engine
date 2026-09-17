@@ -18,6 +18,7 @@ import { composeOnboardingProfile } from "./onboarding/composition.ts";
 import {
   validateHostBindingV1,
   validateHostProfileV1,
+  validateNineRouterGuidedSetupV1,
   validateProjectCapsuleV1,
 } from "./onboarding/contract-schema.ts";
 import { createCoreOnboardingCatalog, createCoreOnboardingProfile } from "./onboarding/core-catalog.ts";
@@ -27,7 +28,13 @@ import { validateOnboardingCatalog, validateOnboardingProfile } from "./onboardi
 import { createSystemProbeAdapter } from "./onboarding/system-adapter.ts";
 import { renderOnboardingText } from "./onboarding/presentation.ts";
 import { discoverProjectCandidates } from "./onboarding/project-discovery.ts";
-import type { HostBindingV1, HostProfileV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
+import { parseOnboardingArgs } from "./onboarding/cli-args.ts";
+import { MacOsKeychainAdapter } from "./onboarding/keychain-adapter.ts";
+import { NineRouterApiClient } from "./onboarding/nine-router-api.ts";
+import { createNineRouterGuidedSetupPlanInput, prepareNineRouterGuidedSetupCatalog } from "./onboarding/nine-router-guided-setup.ts";
+import { executeConfirmedNineRouterRepair } from "./onboarding/nine-router-repair.ts";
+import { createFileOperationReceiptSink } from "./onboarding/operation-executor.ts";
+import type { HostBindingV1, HostProfileV1, NineRouterGuidedSetupV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
 
 const packageRoot = resolve(import.meta.dir, "..");
 const repositoryRoot = resolve(packageRoot, "../..");
@@ -234,55 +241,6 @@ function parseLifecycleArgs(args: string[]): {
   return { profile, dryRun, force, select, json };
 }
 
-function parseOnboardingArgs(args: string[]): {
-  catalogPath?: string;
-  profilePath?: string;
-  hostProfilePath?: string;
-  hostBindingPath?: string;
-  projectCapsulesPath?: string;
-  projectCapsulesOutPath?: string;
-  selections?: Set<string>;
-  json: boolean;
-  tui: boolean;
-  doctor: boolean;
-} {
-  let catalogPath: string | undefined;
-  let profilePath: string | undefined;
-  let hostProfilePath: string | undefined;
-  let hostBindingPath: string | undefined;
-  let projectCapsulesPath: string | undefined;
-  let projectCapsulesOutPath: string | undefined;
-  let selections: Set<string> | undefined;
-  let json = false;
-  let tui = false;
-  let doctor = false;
-  for (let index = 0; index < args.length; index += 1) {
-    const argument = args[index];
-    if (argument === "--catalog") catalogPath = args[index += 1];
-    else if (argument === "--profile-file" || argument === "--profile") profilePath = args[index += 1];
-    else if (argument === "--host-profile-file" || argument === "--host-profile") hostProfilePath = args[index += 1];
-    else if (argument === "--host-binding-file" || argument === "--host-binding") hostBindingPath = args[index += 1];
-    else if (argument === "--project-capsules") projectCapsulesPath = args[index += 1];
-    else if (argument === "--project-capsules-out") projectCapsulesOutPath = args[index += 1];
-    else if (argument === "--select") selections = new Set((args[index += 1] ?? "").split(",").filter(Boolean));
-    else if (argument === "--json") json = true;
-    else if (argument === "--tui") tui = true;
-    else if (argument === "--doctor") doctor = true;
-    else throw new Error("ONBOARDING_ARGUMENT_INVALID");
-  }
-  const usesComposedProfile = Boolean(hostProfilePath || hostBindingPath);
-  if (
-    (json && tui)
-    || (Boolean(profilePath) && usesComposedProfile)
-    || (usesComposedProfile && (!hostProfilePath || !hostBindingPath))
-    || (Boolean(projectCapsulesPath) && !usesComposedProfile)
-    || (Boolean(projectCapsulesOutPath) && (!usesComposedProfile || !tui || json || doctor))
-  ) {
-    throw new Error("ONBOARDING_ARGUMENT_INVALID");
-  }
-  return { catalogPath, profilePath, hostProfilePath, hostBindingPath, projectCapsulesPath, projectCapsulesOutPath, selections, json, tui, doctor };
-}
-
 function loadOnboardingJson<T>(path: string, validate: (value: unknown) => value is T, code: string): T {
   const value: unknown = JSON.parse(readFileSync(resolve(path), "utf8"));
   if (!validate(value)) throw new Error(code);
@@ -322,17 +280,26 @@ async function main(): Promise<void> {
             { projectCapsules },
           )
           : createCoreOnboardingProfile();
+      const routerSetup = args.routerSetupPath
+        ? loadOnboardingJson<NineRouterGuidedSetupV1>(args.routerSetupPath, validateNineRouterGuidedSetupV1, "NINE_ROUTER_SETUP_INVALID")
+        : undefined;
+      const plannedCatalog = routerSetup ? prepareNineRouterGuidedSetupCatalog(catalog, routerSetup, profile) : catalog;
       const discovery = hostProfile && hostBinding
         ? discoverProjectCandidates(hostProfile, hostBinding)
         : { candidates: [], findings: [] };
       const plan = await createOnboardingPlan({
-        catalog,
+        catalog: plannedCatalog,
         profile,
         adapter: createSystemProbeAdapter(),
         selections: args.selections,
         projectCandidates: discovery.candidates,
         projectDiscoveryFindings: discovery.findings,
+        dryRun: !args.apply,
+        configurationInputs: routerSetup ? [createNineRouterGuidedSetupPlanInput(routerSetup, profile)] : [],
       });
+      if (args.apply && (plan.install_order.length !== 1 || plan.install_order[0] !== "provider.9router")) {
+        throw new Error("NINE_ROUTER_REPAIR_SCOPE_INVALID");
+      }
       if (args.doctor) {
         const section = projectOnboardingDoctorSection(plan);
         process.stdout.write(args.json ? canonical(section) : renderOnboardingText(plan));
@@ -349,7 +316,27 @@ async function main(): Promise<void> {
           mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
           await lifecycleIO.writeFileAtomic!(output, `${canonical(result.project_capsules)}\n`, { mode: 0o600 });
         }
-        process.exitCode = 0;
+        if (args.apply && result.confirmed) {
+          if (!result.confirmed_at || !routerSetup) throw new Error("NINE_ROUTER_REPAIR_CONFIRMATION_INVALID");
+          const dataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
+          const healthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
+          const entrypoint = profile.variables.NINE_ROUTER_CLI_ENTRYPOINT;
+          if (!dataDirectory || !healthUrl || !entrypoint) throw new Error("NINE_ROUTER_REPAIR_BINDING_INCOMPLETE");
+          const receipt = await executeConfirmedNineRouterRepair({
+            plan,
+            profile,
+            confirmation: { confirmed: true, plan_digest: result.plan_digest, confirmed_at: result.confirmed_at },
+            desired: routerSetup,
+            api: new NineRouterApiClient({ dataDirectory, baseUrl: new URL(healthUrl).origin }),
+            keychain: new MacOsKeychainAdapter(),
+            executable: { id: "9router", path: entrypoint, version: "0.5.75" },
+            receiptSink: createFileOperationReceiptSink(resolve(args.receiptDirectory!)),
+          });
+          process.stdout.write(`${canonical(receipt)}\n`);
+          process.exitCode = receipt.status === "committed" ? 0 : 1;
+        } else {
+          process.exitCode = 0;
+        }
       } else {
         process.stdout.write(args.json ? canonical(plan) : renderOnboardingText(plan));
         process.exitCode = 0;
@@ -545,6 +532,9 @@ Commands:
                                    Open generic TUI by default; Noesis is an explicit overlay
           [--project-capsules P --project-capsules-out P --tui]
                                    Review advisory candidates and explicitly save capsules
+          --tui --repair --host-profile P --host-binding B --router-setup R
+          --receipt-dir D --select provider.9router
+                                   Confirm and apply one digest-bound 9Router repair transaction
   compile                          Compile fragments and print receipt
   write-lock                       Compile and write lock file
   doctor [--section S] [--json]    Run doctor checks

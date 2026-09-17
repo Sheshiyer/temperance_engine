@@ -11,8 +11,10 @@ const CLI_TOOLS = new Set(["claude", "codex", "droid", "openclaw"]);
 export type NineRouterCliTool = "claude" | "codex" | "droid" | "openclaw";
 export interface NineRouterProviderSummary { id: string; name: string; provider: string; active: boolean | null; }
 export interface NineRouterComboSummary { id: string; alias: string; model_count: number; }
+export interface NineRouterComboDetail { id: string; alias: string; models: Record<string, unknown>[]; }
 export interface NineRouterCatalogSnapshot { providers: NineRouterProviderSummary[]; combos: NineRouterComboSummary[]; }
 export interface NineRouterCreatedObject { id: string; name: string; }
+export interface NineRouterGatewayKeySummary { id: string; name: string; }
 export interface NineRouterGatewayKeyReceipt { id: string; name: string; captured: true; }
 
 export interface NineRouterApiIO {
@@ -88,9 +90,10 @@ function safeId(value: unknown): string {
 
 function endpointAllowed(method: string, path: string): boolean {
   if (method === "GET" && ["/api/providers", "/api/combos", "/api/keys", "/v1/models"].includes(path)) return true;
+  if (method === "GET" && /^\/api\/combos\/[A-Za-z0-9._-]{1,512}$/u.test(path)) return true;
   if ((method === "GET" || method === "POST") && /^\/api\/cli-tools\/(claude|codex|droid|openclaw)-settings$/u.test(path)) return true;
   if (method === "POST" && ["/api/providers", "/api/combos", "/api/keys"].includes(path)) return true;
-  return method === "DELETE" && /^\/api\/keys\/[A-Za-z0-9._-]{1,512}$/u.test(path);
+  return method === "DELETE" && /^\/api\/(?:providers|combos|keys)\/[A-Za-z0-9._-]{1,512}$/u.test(path);
 }
 
 function redactCredentialFields(value: unknown, depth = 0): unknown {
@@ -106,6 +109,21 @@ function redactCredentialFields(value: unknown, depth = 0): unknown {
 
 function secretFreeObject(value: unknown): Record<string, unknown> {
   return record(redactCredentialFields(value), "NINE_ROUTER_RESPONSE_INVALID");
+}
+
+function assertNoCredentialFields(value: unknown, depth = 0): void {
+  if (depth > 16) throw new NineRouterApiError("NINE_ROUTER_REQUEST_INVALID");
+  if (Array.isArray(value)) {
+    for (const item of value) assertNoCredentialFields(item, depth + 1);
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (/(?:api.?key|authorization|credential|password|secret|token)/iu.test(key)) {
+      throw new NineRouterApiError("NINE_ROUTER_REQUEST_SECRET_FIELD_FORBIDDEN");
+    }
+    assertNoCredentialFields(item, depth + 1);
+  }
 }
 
 export class NineRouterApiClient {
@@ -197,15 +215,30 @@ export class NineRouterApiClient {
     return { id: safeId(value.id), name: typeof value.name === "string" ? textField(value.name, "NINE_ROUTER_RESPONSE_INVALID") : name };
   }
 
+  async deleteProviderConnection(id: string): Promise<void> {
+    await this.request("DELETE", `/api/providers/${safeId(id)}`);
+  }
+
   async createCombo(input: { name: string; models: readonly Record<string, unknown>[] }): Promise<NineRouterCreatedObject> {
     const name = textField(input.name, "NINE_ROUTER_COMBO_NAME_INVALID");
     if (input.models.length < 1 || input.models.length > 256) throw new NineRouterApiError("NINE_ROUTER_COMBO_MODELS_INVALID");
-    const serialized = JSON.stringify(input.models);
-    if (/(?:api.?key|authorization|credential|password|secret|token)/iu.test(serialized)) {
-      throw new NineRouterApiError("NINE_ROUTER_COMBO_SECRET_FIELD_FORBIDDEN");
-    }
+    assertNoCredentialFields(input.models);
     const value = createdRecord(await this.request("POST", "/api/combos", { name, models: input.models }), "combo");
     return { id: safeId(value.id), name: typeof value.name === "string" ? textField(value.name, "NINE_ROUTER_RESPONSE_INVALID") : name };
+  }
+
+  async readCombo(id: string): Promise<NineRouterComboDetail> {
+    const value = createdRecord(await this.request("GET", `/api/combos/${safeId(id)}`), "combo");
+    if (!Array.isArray(value.models)) throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID");
+    return {
+      id: safeId(value.id),
+      alias: textField(value.name, "NINE_ROUTER_RESPONSE_INVALID"),
+      models: value.models.map((model) => secretFreeObject(model)),
+    };
+  }
+
+  async deleteCombo(id: string): Promise<void> {
+    await this.request("DELETE", `/api/combos/${safeId(id)}`);
   }
 
   async createGatewayKey(name: string, capture: (secret: string) => Promise<void>): Promise<NineRouterGatewayKeyReceipt> {
@@ -222,6 +255,17 @@ export class NineRouterApiClient {
     return { id, name: typeof value.name === "string" ? textField(value.name, "NINE_ROUTER_RESPONSE_INVALID") : requestedName, captured: true };
   }
 
+  async readGatewayKeys(): Promise<NineRouterGatewayKeySummary[]> {
+    return responseArray(await this.request("GET", "/api/keys"), "keys").map((value) => {
+      const item = record(value, "NINE_ROUTER_RESPONSE_INVALID");
+      return { id: safeId(item.id), name: textField(item.name, "NINE_ROUTER_RESPONSE_INVALID") };
+    });
+  }
+
+  async deleteGatewayKey(id: string): Promise<void> {
+    await this.request("DELETE", `/api/keys/${safeId(id)}`);
+  }
+
   async readCliToolSettings(tool: NineRouterCliTool): Promise<Record<string, unknown>> {
     if (!CLI_TOOLS.has(tool)) throw new NineRouterApiError("NINE_ROUTER_CLI_TOOL_INVALID");
     const value = await this.request("GET", `/api/cli-tools/${tool}-settings`);
@@ -232,9 +276,7 @@ export class NineRouterApiClient {
 
   async applyCliToolSettings(tool: NineRouterCliTool, settings: Record<string, unknown>): Promise<Record<string, unknown>> {
     if (!CLI_TOOLS.has(tool)) throw new NineRouterApiError("NINE_ROUTER_CLI_TOOL_INVALID");
-    if (/(?:api.?key|authorization|credential|password|secret|token)/iu.test(JSON.stringify(settings))) {
-      throw new NineRouterApiError("NINE_ROUTER_CLI_SETTINGS_SECRET_FIELD_FORBIDDEN");
-    }
+    assertNoCredentialFields(settings);
     const value = await this.request("POST", `/api/cli-tools/${tool}-settings`, settings);
     return secretFreeObject(createdRecord(value, "settings"));
   }

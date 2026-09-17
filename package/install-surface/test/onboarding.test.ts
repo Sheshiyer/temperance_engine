@@ -84,7 +84,9 @@ describe("onboarding contracts", () => {
         keys: { collection: "/api/keys", item: "/api/keys/{id}" },
         cli_tool_settings: "/api/cli-tools/{tool}-settings",
         providers: "/api/providers",
+        provider_item: "/api/providers/{id}",
         combos: "/api/combos",
+        combo_item: "/api/combos/{id}",
         gateway_key_policy: {
           capture: "one-time-to-keychain",
           profile_storage: "reference-only",

@@ -36,6 +36,20 @@ describe("9router management adapter", () => {
     expect(JSON.stringify(catalog)).not.toContain("must-not-return");
   });
 
+  test("reads exact combo membership while redacting credential-shaped response fields", async () => {
+    const client = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({
+        "GET /api/combos/combo-1": {
+          combo: { id: "combo-1", name: "noesis-build", models: [{ provider: "anthropic", model: "claude-build", accessToken: "hidden" }] },
+        },
+      }, []),
+    });
+    expect(await client.readCombo("combo-1")).toEqual({
+      id: "combo-1", alias: "noesis-build", models: [{ provider: "anthropic", model: "claude-build" }],
+    });
+  });
+
   test("captures a new gateway key once and never returns the secret", async () => {
     const observed: Array<{ url: string; init: RequestInit }> = [];
     let captured = "";
@@ -49,14 +63,41 @@ describe("9router management adapter", () => {
     expect(JSON.stringify(receipt)).not.toContain("gateway-secret");
   });
 
+  test("reads gateway key metadata without returning key material", async () => {
+    const client = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({ "GET /api/keys": { keys: [{ id: "key-1", name: "Temperance", key: "must-not-return" }] } }, []),
+    });
+    const keys = await client.readGatewayKeys();
+    expect(keys).toEqual([{ id: "key-1", name: "Temperance" }]);
+    expect(JSON.stringify(keys)).not.toContain("must-not-return");
+  });
+
+  test("deletes newly created resources through bounded item endpoints", async () => {
+    const observed: Array<{ url: string; init: RequestInit }> = [];
+    const client = new NineRouterApiClient({ dataDirectory: "/example/.9router", io: mockIo({}, observed) });
+    await client.deleteProviderConnection("provider-1");
+    await client.deleteCombo("combo-1");
+    await client.deleteGatewayKey("key-1");
+    expect(observed.map(({ url, init }) => `${init.method} ${new URL(url).pathname}`)).toEqual([
+      "DELETE /api/providers/provider-1",
+      "DELETE /api/combos/combo-1",
+      "DELETE /api/keys/key-1",
+    ]);
+  });
+
   test("fails closed for remote URLs, unsafe secret modes, and credential fields in combos", async () => {
     expect(() => new NineRouterApiClient({ dataDirectory: "/example/.9router", baseUrl: "https://router.example.com:20128" })).toThrow("NINE_ROUTER_BASE_URL_NOT_LOOPBACK");
     const unsafeIo = mockIo({}, []);
     unsafeIo.mode = async () => 0o644;
     const unsafe = new NineRouterApiClient({ dataDirectory: "/example/.9router", io: unsafeIo });
     await expect(unsafe.readCatalog()).rejects.toEqual(expect.objectContaining({ code: "NINE_ROUTER_CLI_SECRET_MODE_UNSAFE" }));
-    const client = new NineRouterApiClient({ dataDirectory: "/example/.9router", io: mockIo({}, []) });
+    const client = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({ "POST /api/combos": { combo: { id: "combo-safe", name: "noesis-plan" } } }, []),
+    });
     await expect(client.createCombo({ name: "noesis-plan", models: [{ providerId: "p1", apiKey: "forbidden" }] })).rejects.toBeInstanceOf(NineRouterApiError);
+    await expect(client.createCombo({ name: "noesis-plan", models: [{ provider: "example", model: "token-efficient-model" }] })).resolves.toEqual(expect.objectContaining({ name: "noesis-plan" }));
   });
 
   test("strips credential-shaped CLI settings fields from API readback", async () => {
