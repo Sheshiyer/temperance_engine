@@ -36,7 +36,6 @@ import { executeConfirmedNineRouterRepair } from "./onboarding/nine-router-repai
 import { createFileOperationReceiptSink } from "./onboarding/operation-executor.ts";
 import type { HostBindingV1, HostProfileV1, NineRouterGuidedSetupV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
 import { parseV4CutoverReviewArgs } from "./onboarding/v4-cutover-cli-args.ts";
-import { createV4CutoverViewModel } from "./onboarding/v4-cutover-review.ts";
 import type { V4CutoverPlan } from "../../router/v4-cutover-plan.ts";
 import type { V4ReplacementProof } from "../../router/v4-cutover-executor.ts";
 
@@ -267,6 +266,7 @@ async function main(): Promise<void> {
       const args = parseV4CutoverReviewArgs(process.argv.slice(3));
       const plan = JSON.parse(readFileSync(resolve(args.planPath), "utf8")) as V4CutoverPlan;
       const proof = JSON.parse(readFileSync(resolve(args.proofPath), "utf8")) as V4ReplacementProof;
+      const { createV4CutoverViewModel } = await import("./onboarding/v4-cutover-review.ts");
       const view = createV4CutoverViewModel(plan, proof);
       if (args.json) {
         process.stdout.write(`${canonical(view)}\n`);
