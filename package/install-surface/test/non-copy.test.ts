@@ -102,6 +102,28 @@ describe("managed-template-v1", () => {
     expect(prepared.mode.absent_mode).toBe(0o644);
   });
 
+  test("preserves valid Unicode outside the managed block", async () => {
+    const root = tempRoot("non-copy-unicode-");
+    const repository = join(root, "repository");
+    const codex = join(root, "codex");
+    mkdirSync(join(repository, "templates"), { recursive: true });
+    mkdirSync(codex, { recursive: true });
+    const template = "managed\n";
+    const existing = "# Personal instructions\n\n\ud83e\udde0 Keep this operator-owned guidance.\n";
+    writeFileSync(join(repository, "templates/codex.AGENTS.md"), template, { mode: 0o644 });
+    writeFileSync(join(codex, "AGENTS.md"), existing, { mode: 0o644 });
+
+    const prepared = await prepareNonCopy(transformRecord(template), {
+      io: io(), repositoryRoot: repository, resolveRoot: () => codex,
+    });
+
+    expect(prepared.status).toBe("prepared");
+    if (prepared.status !== "prepared") return;
+    expect(prepared.content.startsWith(existing)).toBe(true);
+    expect(prepared.content).toContain("🧠 Keep this operator-owned guidance.");
+    expect(readFileSync(join(codex, "AGENTS.md"), "utf8")).toBe(existing);
+  });
+
   test("rejects malformed or duplicate target markers before a destination write", () => {
     expect(() => spliceManagedBlock("<!-- temperance:managed:start temperance-engine -->\n", "temperance-engine", "new")).toThrow("MANAGED_BLOCK_MARKERS_INVALID");
     expect(() => spliceManagedBlock("<!-- temperance:managed:end temperance-engine -->\n", "temperance-engine", "new")).toThrow("MANAGED_BLOCK_MARKERS_INVALID");

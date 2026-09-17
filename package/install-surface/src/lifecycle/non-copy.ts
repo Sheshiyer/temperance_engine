@@ -59,7 +59,7 @@ function digest(content: string): string {
 }
 
 function requireText(content: string, code: string): string {
-  if (/[^\x09\x0a\x0d\x20-\x7e\u0080-\ufffc]/u.test(content) || content.includes("\ufffd")) {
+  if (/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/u.test(content) || content.includes("\ufffd")) {
     throw new Error(code);
   }
   return content;
