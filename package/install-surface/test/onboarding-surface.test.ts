@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import { ONBOARDING_CATALOG_SCHEMA, ONBOARDING_PROFILE_SCHEMA, type OnboardingPlanV1 } from "../src/onboarding/contracts.ts";
 import { createOnboardingReceipt } from "../src/onboarding/receipt.ts";
 import { createOnboardingViewModel, renderOnboardingText } from "../src/onboarding/presentation.ts";
-import { canConfirmOnboardingPlan } from "../src/onboarding/tui.ts";
+import { canConfirmOnboardingPlan, selectedOnboardingModuleIds, toggleOnboardingModuleSelection } from "../src/onboarding/tui.ts";
 import { parseOnboardingArgs } from "../src/onboarding/cli-args.ts";
 
 const roots: string[] = [];
@@ -38,6 +38,15 @@ const plan: OnboardingPlanV1 = {
 };
 
 describe("onboarding presentation", () => {
+  test("module selection is explicit, reversible, and rejects unknown modules", () => {
+    const selected = selectedOnboardingModuleIds(plan);
+    expect([...selected].sort()).toEqual(["blocked", "ready"]);
+    const withoutBlocked = toggleOnboardingModuleSelection(plan, selected, "blocked");
+    expect([...withoutBlocked]).toEqual(["ready"]);
+    expect([...toggleOnboardingModuleSelection(plan, withoutBlocked, "blocked")].sort()).toEqual(["blocked", "ready"]);
+    expect(() => toggleOnboardingModuleSelection(plan, selected, "unknown")).toThrow("ONBOARDING_MODULE_UNKNOWN:unknown");
+  });
+
   test("renders status, holds, and guided repair from one view model", () => {
     const view = createOnboardingViewModel(plan);
     expect(view.summary).toContain("1 eligible");

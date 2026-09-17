@@ -24,6 +24,12 @@ write configuration directly.
    receipt.
 6. Doctor reuses the same probes and desired state to report drift.
 
+The OpenTUI module page is a planner control, not a direct configuration
+writer. Requesting or removing a module re-runs every capability and dependency
+probe, produces a new plan digest, and clears prior confirmation. A requested
+module with an unmet dependency remains held and cannot be enabled. Digest-bound
+repair mode keeps its reviewed module set immutable.
+
 Discovery never implies enrollment. Growth maps, portfolio scans, and Git
 remotes produce candidates only. A project capsule is created only after an
 explicit approval, and removing that capsule never deletes the repository.
@@ -126,6 +132,29 @@ subtree before project mutation becomes eligible.
 An absent volume is a supported degraded state. The generic runtime, doctor,
 and non-volume modules continue to work; mounted-project mutations, Obsidian
 tunneling, and dependent organs remain held with actionable reasons.
+
+### Private target-host binding
+
+The portable profile is joined to a private binding created on the target Mac.
+The initializer observes the exact hardware model, Apple chip, architecture,
+and local user ID; accepts symbolic variable values, Keychain references,
+semantic aliases, and enrolled volume identities; then validates the composed
+profile before creating one owner-only file. It has no plaintext-secret input.
+
+```bash
+temperance host-binding-init \
+  --host-profile "${HOST_PROFILE_PATH}" \
+  --output "${HOST_BINDING_PATH}" \
+  --set VARIABLE VALUE \
+  --secret-reference REFERENCE_ID KEYCHAIN_SERVICE KEYCHAIN_ACCOUNT \
+  --alias SEMANTIC_ALIAS ROUTER_COMBO \
+  --volume VOLUME_ID MOUNT_VARIABLE UUID_VARIABLE VOLUME_UUID
+```
+
+Flags may be repeated. The output path must not exist, its parent must not be
+group- or world-writable, and the resulting file is mode `0600`. The receipt
+reports only field names, reference identifiers, aliases, volume-binding IDs,
+and non-secret host identity—never bound paths, UUIDs, or credential values.
 
 ## Cutover Invariants
 

@@ -14,7 +14,7 @@ import { createPlan, type PlanOptions, type LifecycleVerb } from "./lifecycle/pl
 import { executePlan, rollbackTransaction } from "./lifecycle/executor.ts";
 import { readReceipt, listReceipts } from "./lifecycle/receipts.ts";
 import type { LifecycleIO } from "./lifecycle/journal.ts";
-import type { OnboardingCatalogV1, OnboardingProfileV1 } from "./onboarding/contracts.ts";
+import type { OnboardingCatalogV1, OnboardingPlanV1, OnboardingProfileV1 } from "./onboarding/contracts.ts";
 import { composeOnboardingProfile } from "./onboarding/composition.ts";
 import {
   validateHostBindingV1,
@@ -30,6 +30,8 @@ import { createSystemProbeAdapter } from "./onboarding/system-adapter.ts";
 import { renderOnboardingText } from "./onboarding/presentation.ts";
 import { discoverProjectCandidates } from "./onboarding/project-discovery.ts";
 import { parseOnboardingArgs } from "./onboarding/cli-args.ts";
+import { parseHostBindingInitArgs } from "./onboarding/host-binding-init-cli-args.ts";
+import { createHostBinding, writePrivateHostBinding } from "./onboarding/host-binding-init.ts";
 import { MacOsKeychainAdapter } from "./onboarding/keychain-adapter.ts";
 import { NineRouterApiClient } from "./onboarding/nine-router-api.ts";
 import { createNineRouterGuidedSetupPlanInput, prepareNineRouterGuidedSetupCatalog } from "./onboarding/nine-router-guided-setup.ts";
@@ -38,7 +40,7 @@ import { createFileOperationReceiptSink } from "./onboarding/operation-executor.
 import type { HostBindingV1, HostProfileV1, NineRouterGuidedSetupV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
 import { parseV4CutoverReviewArgs } from "./onboarding/v4-cutover-cli-args.ts";
 import { parseV4CutoverApplyArgs } from "./onboarding/v4-cutover-apply-cli-args.ts";
-import { hostIdentityMatches } from "./onboarding/host-identity.ts";
+import { hostIdentityMatches, observeHostIdentity } from "./onboarding/host-identity.ts";
 import type { V4CutoverPlan } from "../../router/v4-cutover-plan.ts";
 import type { V4CutoverConfirmation, V4ReplacementProof } from "../../router/v4-cutover-executor.ts";
 
@@ -264,6 +266,33 @@ function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
 
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "host-binding-init") {
+    try {
+      const args = parseHostBindingInitArgs(process.argv.slice(3));
+      const hostProfile = loadOnboardingJson<HostProfileV1>(
+        args.hostProfilePath,
+        validateHostProfileV1,
+        "HOST_PROFILE_INVALID",
+      );
+      const binding = createHostBinding(hostProfile, args, observeHostIdentity());
+      writePrivateHostBinding(args.outputPath, binding);
+      process.stdout.write(canonical({
+        schema: "temperance.host-binding-init-receipt.v1",
+        profile_id: binding.profile_id,
+        host_identity: binding.host_identity,
+        variable_names: Object.keys(binding.variables).sort(),
+        secret_reference_ids: Object.keys(binding.secret_references).sort(),
+        routing_aliases: binding.routing_aliases.map(({ alias }) => alias).sort(),
+        volume_binding_ids: binding.volume_bindings.map(({ id }) => id).sort(),
+        output_created: true,
+      }));
+      process.exitCode = 0;
+    } catch (error) {
+      process.stderr.write(`temperance host-binding-init: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
   if (command === "cutover-apply") {
     try {
       const args = parseV4CutoverApplyArgs(process.argv.slice(3));
@@ -376,16 +405,17 @@ async function main(): Promise<void> {
           hostProfileDirectory: dirname(resolve(args.hostProfilePath!)),
         })
         : { candidates: [], findings: [] };
-      const plan = await createOnboardingPlan({
+      const buildPlan = (selections?: ReadonlySet<string>): Promise<OnboardingPlanV1> => createOnboardingPlan({
         catalog: plannedCatalog,
         profile,
         adapter: createSystemProbeAdapter(),
-        selections: args.selections,
+        selections,
         projectCandidates: discovery.candidates,
         projectDiscoveryFindings: discovery.findings,
         dryRun: !args.apply,
         configurationInputs: routerSetup ? [createNineRouterGuidedSetupPlanInput(routerSetup, profile)] : [],
       });
+      const plan = await buildPlan(args.selections);
       if (args.apply && (plan.install_order.length !== 1 || plan.install_order[0] !== "provider.9router")) {
         throw new Error("NINE_ROUTER_REPAIR_SCOPE_INVALID");
       }
@@ -399,6 +429,7 @@ async function main(): Promise<void> {
         const result = await runOnboardingTui(plan, {
           existingProjectCapsules: projectCapsules,
           allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
+          replanModuleSelections: args.apply ? undefined : buildPlan,
         });
         if (result.save_project_capsules) {
           const output = resolve(args.projectCapsulesOutPath!);
@@ -617,6 +648,10 @@ async function main(): Promise<void> {
   process.stderr.write(`usage: temperance <command> [options]
 
 Commands:
+  host-binding-init --host-profile P --output B
+          [--set NAME VALUE] [--secret-reference NAME SERVICE ACCOUNT]
+          [--alias ALIAS COMBO] [--volume ID MOUNT_VAR UUID_VAR UUID]
+                                   Create one owner-only binding for this exact host
   onboard [--profile P | --host-profile P --host-binding B] [--catalog C] [--json|--doctor]
                                    Open generic TUI by default; Noesis is an explicit overlay
           [--project-capsules P --project-capsules-out P --tui]
