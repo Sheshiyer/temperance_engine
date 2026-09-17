@@ -42,10 +42,15 @@
               },
               {
                 "type": "object", "additionalProperties": false,
-                "required": ["id", "kind", "source_root_variable", "source_relative_path", "project_root_variable", "access"],
+                "required": ["id", "kind", "source_relative_path", "project_root_variable", "access"],
+                "oneOf": [
+                  { "required": ["source_root_variable"], "properties": { "source_root_variable": { "$ref": "#/$defs/variable" } } },
+                  { "required": ["source_base"], "properties": { "source_base": { "const": "host-profile-directory" } } }
+                ],
                 "properties": {
                   "id": { "$ref": "#/$defs/identifier" }, "kind": { "const": "json-project-map" },
                   "source_root_variable": { "$ref": "#/$defs/variable" },
+                  "source_base": { "const": "host-profile-directory" },
                   "source_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
                   "project_root_variable": { "$ref": "#/$defs/variable" }, "project_root_prefix_variable": { "$ref": "#/$defs/variable" },
                   "access": { "enum": ["read-only", "read-write"] }
@@ -53,10 +58,15 @@
               },
               {
                 "type": "object", "additionalProperties": false,
-                "required": ["id", "kind", "source_root_variable", "source_relative_path", "project_root_variable", "access"],
+                "required": ["id", "kind", "source_relative_path", "project_root_variable", "access"],
+                "oneOf": [
+                  { "required": ["source_root_variable"], "properties": { "source_root_variable": { "$ref": "#/$defs/variable" } } },
+                  { "required": ["source_base"], "properties": { "source_base": { "const": "host-profile-directory" } } }
+                ],
                 "properties": {
                   "id": { "$ref": "#/$defs/identifier" }, "kind": { "const": "portfolio-root-map" },
                   "source_root_variable": { "$ref": "#/$defs/variable" },
+                  "source_base": { "const": "host-profile-directory" },
                   "source_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
                   "repository_mapping_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
                   "project_root_variable": { "$ref": "#/$defs/variable" }, "project_root_prefix_variable": { "$ref": "#/$defs/variable" },

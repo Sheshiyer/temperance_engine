@@ -84,6 +84,29 @@ describe("V4 public contracts", () => {
         access: "read-only",
       }],
     })).toBe(true);
+    expect(validateHostProfileV1({
+      ...profile,
+      project_discovery: [{
+        id: "packaged-portfolio-map",
+        kind: "portfolio-root-map",
+        source_base: "host-profile-directory",
+        source_relative_path: "project-maps/portfolio-roots.v1.json",
+        project_root_variable: "PROJECT_ROOT",
+        access: "read-only",
+      }],
+    })).toBe(true);
+    expect(validateHostProfileV1({
+      ...profile,
+      project_discovery: [{
+        id: "ambiguous-map",
+        kind: "portfolio-root-map",
+        source_base: "host-profile-directory",
+        source_root_variable: "MAP_ROOT",
+        source_relative_path: "project-maps/portfolio-roots.v1.json",
+        project_root_variable: "PROJECT_ROOT",
+        access: "read-only",
+      }],
+    })).toBe(false);
   });
 
   test("runtime-validates ModuleDescriptorV2 with the full admission state enum", () => {

@@ -36,6 +36,12 @@ repository evidence. A missing mapped path remains visible but cannot be
 selected. Repository evidence does not clone, fetch, validate credentials, or
 grant authority; saving a capsule still requires an explicit TUI selection.
 
+A portable overlay may bind a map source to `host-profile-directory`. The
+runtime then resolves the bounded relative map path beside the selected profile,
+not through a machine-local project or volume path. This lets the selector keep
+showing its full proposal set while an external project volume is absent; every
+unavailable project is rendered as held and remains impossible to approve.
+
 ## Router Authority
 
 `9router` is the successor package to OmniRoute. It is not installed beside

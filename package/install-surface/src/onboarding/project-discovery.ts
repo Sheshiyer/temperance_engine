@@ -25,6 +25,11 @@ export interface ProjectDiscoveryResult {
   findings: ProjectDiscoveryFinding[];
 }
 
+export interface ProjectDiscoveryOptions {
+  /** Absolute directory containing the loaded host-profile document. */
+  hostProfileDirectory?: string;
+}
+
 function safeRelativePath(value: string): boolean {
   return value === "." || (
     value.length > 0
@@ -191,6 +196,18 @@ function rootFor(binding: HostBindingV1, variable: string): string | undefined {
   return root && isAbsolute(root) ? root : undefined;
 }
 
+function sourceRootFor(
+  source: Extract<ProjectDiscoverySpecV1, { kind: "json-project-map" | "portfolio-root-map" }>,
+  binding: HostBindingV1,
+  options: ProjectDiscoveryOptions,
+): string | undefined {
+  if (source.source_base === "host-profile-directory") {
+    const directory = options.hostProfileDirectory;
+    return directory && isAbsolute(directory) ? resolve(directory) : undefined;
+  }
+  return source.source_root_variable ? rootFor(binding, source.source_root_variable) : undefined;
+}
+
 function prefixFor(binding: HostBindingV1, variable: string | undefined): string | undefined {
   return variable ? binding.variables[variable] : undefined;
 }
@@ -234,16 +251,21 @@ function discoverProjectMap(
   source: Extract<ProjectDiscoverySpecV1, { kind: "json-project-map" }>,
   binding: HostBindingV1,
   findings: ProjectDiscoveryFinding[],
+  options: ProjectDiscoveryOptions,
 ): ProjectCandidateV1[] {
-  const sourceRoot = rootFor(binding, source.source_root_variable);
+  const sourceRoot = sourceRootFor(source, binding, options);
   const projectRoot = rootFor(binding, source.project_root_variable);
   const prefix = prefixFor(binding, source.project_root_prefix_variable);
   if (!safeRelativePath(source.source_relative_path) || (prefix !== undefined && !safeRelativePath(prefix))) {
     findings.push({ source_id: source.id, code: "PREFIX_UNSAFE", message: `Discovery source ${source.id} contains an unsafe relative path.` });
     return [];
   }
-  if (!sourceRoot || !projectRoot) {
+  if (!projectRoot) {
     findings.push({ source_id: source.id, code: "ROOT_UNAVAILABLE", message: `A root variable required by ${source.id} is unavailable.` });
+    return [];
+  }
+  if (!sourceRoot) {
+    findings.push({ source_id: source.id, code: "SOURCE_UNAVAILABLE", message: `Project map base for ${source.id} is unavailable.` });
     return [];
   }
   const mapPath = resolve(sourceRoot, source.source_relative_path);
@@ -280,8 +302,9 @@ function discoverPortfolioRootMap(
   source: Extract<ProjectDiscoverySpecV1, { kind: "portfolio-root-map" }>,
   binding: HostBindingV1,
   findings: ProjectDiscoveryFinding[],
+  options: ProjectDiscoveryOptions,
 ): ProjectCandidateV1[] {
-  const sourceRoot = rootFor(binding, source.source_root_variable);
+  const sourceRoot = sourceRootFor(source, binding, options);
   const projectRoot = rootFor(binding, source.project_root_variable);
   const prefix = prefixFor(binding, source.project_root_prefix_variable);
   const relativePaths = [source.source_relative_path, source.repository_mapping_relative_path].filter((value): value is string => value !== undefined);
@@ -289,8 +312,12 @@ function discoverPortfolioRootMap(
     findings.push({ source_id: source.id, code: "PREFIX_UNSAFE", message: `Discovery source ${source.id} contains an unsafe relative path.` });
     return [];
   }
-  if (!sourceRoot || !projectRoot) {
+  if (!projectRoot) {
     findings.push({ source_id: source.id, code: "ROOT_UNAVAILABLE", message: `A root variable required by ${source.id} is unavailable.` });
+    return [];
+  }
+  if (!sourceRoot) {
+    findings.push({ source_id: source.id, code: "SOURCE_UNAVAILABLE", message: `Portfolio map base for ${source.id} is unavailable.` });
     return [];
   }
   const mapPath = resolve(sourceRoot, source.source_relative_path);
@@ -368,12 +395,16 @@ function discoverPortfolioRootMap(
 }
 
 /** Discovery is advisory only. Every emitted candidate is explicitly unapproved. */
-export function discoverProjectCandidates(profile: HostProfileV1, binding: HostBindingV1): ProjectDiscoveryResult {
+export function discoverProjectCandidates(
+  profile: HostProfileV1,
+  binding: HostBindingV1,
+  options: ProjectDiscoveryOptions = {},
+): ProjectDiscoveryResult {
   const findings: ProjectDiscoveryFinding[] = [];
   const discovered = (profile.project_discovery ?? []).flatMap((source) => {
     if (source.kind === "directory-children") return discoverDirectories(source, binding, findings);
-    if (source.kind === "json-project-map") return discoverProjectMap(source, binding, findings);
-    return discoverPortfolioRootMap(source, binding, findings);
+    if (source.kind === "json-project-map") return discoverProjectMap(source, binding, findings, options);
+    return discoverPortfolioRootMap(source, binding, findings, options);
   });
   const byIdentity = new Map<string, ProjectCandidateV1>();
   for (const item of discovered) {

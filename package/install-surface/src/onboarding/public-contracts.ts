@@ -9,6 +9,10 @@ export const NINE_ROUTER_GUIDED_SETUP_SCHEMA = "temperance.9router-guided-setup.
 
 export type ModuleAdmissionState = "unavailable" | "detected" | "configured" | "healthy" | "enabled";
 
+type ProjectDiscoverySourceV1 =
+  | { source_root_variable: string; source_base?: never }
+  | { source_root_variable?: never; source_base: "host-profile-directory" };
+
 export type ProjectDiscoverySpecV1 =
   | {
     id: string;
@@ -18,25 +22,23 @@ export type ProjectDiscoverySpecV1 =
     require_git: boolean;
     access: "read-only" | "read-write";
   }
-  | {
+  | ({
     id: string;
     kind: "json-project-map";
-    source_root_variable: string;
     source_relative_path: string;
     project_root_variable: string;
     project_root_prefix_variable?: string;
     access: "read-only" | "read-write";
-  }
-  | {
+  } & ProjectDiscoverySourceV1)
+  | ({
     id: string;
     kind: "portfolio-root-map";
-    source_root_variable: string;
     source_relative_path: string;
     repository_mapping_relative_path?: string;
     project_root_variable: string;
     project_root_prefix_variable?: string;
     access: "read-only" | "read-write";
-  };
+  } & ProjectDiscoverySourceV1);
 
 export interface HostProfileV1 {
   schema: typeof HOST_PROFILE_SCHEMA;

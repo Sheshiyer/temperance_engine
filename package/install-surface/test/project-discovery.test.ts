@@ -204,4 +204,50 @@ describe("advisory project discovery", () => {
       code: "SOURCE_INVALID", message: expect.stringContaining("Repository mapping evidence"),
     })]);
   });
+
+  test("keeps packaged portfolio choices visible when the project volume is absent", () => {
+    const root = mkdtempSync(join(tmpdir(), "temperance-packaged-portfolio-map-"));
+    roots.push(root);
+    const profileDirectory = join(root, "profiles");
+    mkdirSync(join(profileDirectory, "project-maps"), { recursive: true });
+    writeFileSync(join(profileDirectory, "project-maps", "portfolio-roots.v1.json"), JSON.stringify({
+      schema: "thoughtseed.portfolio-root-map.v1",
+      authority: "proposal-only",
+      portfolios: [{
+        portfolioId: "thoughtseed",
+        folders: [
+          { folder: "cambium", workIds: ["sapling:cambium"], status: "mapping-proposal" },
+          { folder: "growth-engine", workIds: ["sapling:growth"], status: "mapping-proposal" },
+        ],
+      }],
+    }));
+    const profile: HostProfileV1 = {
+      schema: "temperance.host-profile.v1", version: { major: 1, minor: 0 }, id: "packaged-map-test",
+      variables: [
+        { name: "VOLUME_ROOT", kind: "absolute-path", required: true },
+        { name: "PROJECTS_SUBTREE", kind: "string", required: true },
+      ],
+      secret_references: [], preselected_modules: [], required_routing_aliases: [],
+      project_discovery: [{
+        id: "packaged-portfolio-map", kind: "portfolio-root-map", source_base: "host-profile-directory",
+        source_relative_path: "project-maps/portfolio-roots.v1.json", project_root_variable: "VOLUME_ROOT",
+        project_root_prefix_variable: "PROJECTS_SUBTREE", access: "read-only",
+      }],
+    };
+    const binding: HostBindingV1 = {
+      schema: "temperance.host-binding.v1", version: { major: 1, minor: 0 }, profile_id: profile.id,
+      variables: { VOLUME_ROOT: join(root, "absent-volume"), PROJECTS_SUBTREE: "2026/Projects" },
+      secret_references: {}, routing_aliases: [], volume_bindings: [],
+    };
+
+    const result = discoverProjectCandidates(profile, binding, { hostProfileDirectory: profileDirectory });
+    expect(result.findings).toEqual([]);
+    expect(result.candidates).toHaveLength(2);
+    expect(result.candidates.every(({ path_present, selectable, mapping_status }) => (
+      path_present === false && selectable === false && mapping_status === "path-missing"
+    ))).toBe(true);
+    expect(discoverProjectCandidates(profile, binding).findings).toEqual([expect.objectContaining({
+      code: "SOURCE_UNAVAILABLE",
+    })]);
+  });
 });

@@ -372,7 +372,9 @@ async function main(): Promise<void> {
         : undefined;
       const plannedCatalog = routerSetup ? prepareNineRouterGuidedSetupCatalog(catalog, routerSetup, profile) : catalog;
       const discovery = hostProfile && hostBinding
-        ? discoverProjectCandidates(hostProfile, hostBinding)
+        ? discoverProjectCandidates(hostProfile, hostBinding, {
+          hostProfileDirectory: dirname(resolve(args.hostProfilePath!)),
+        })
         : { candidates: [], findings: [] };
       const plan = await createOnboardingPlan({
         catalog: plannedCatalog,
