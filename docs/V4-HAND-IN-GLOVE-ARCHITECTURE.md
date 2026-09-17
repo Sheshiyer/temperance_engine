@@ -75,12 +75,25 @@ they can be enabled. The adapter contains no model identifiers, credentials,
 tokens, quotas, connection state, or combo membership, and every row fails
 closed when the observed package version differs from `0.5.75`.
 
-OAuth remains wholly owned by 9Router. The TUI explains which 9Router flow must
-be completed and then waits for `/api/providers` readback; Temperance never
-mints, imports, or persists an OAuth token. API-key providers remain held until
-a private host binding declares a macOS Keychain reference and reviewed private
-provider intent selects it. The concrete model selector is populated only from
-the live `/v1/models` response.
+OAuth token custody remains wholly owned by 9Router. The exact-version
+management adapter may broker the operator interaction through 9Router's
+loopback authorization-code and device-code endpoints, but it never mints,
+imports, returns, logs, or persists a provider token. Authorization verifier,
+CSRF state, device code, and provider-specific polling proof exist only in
+process-local opaque sessions; generic JSON serialization exposes only the
+flow kind and provider, so interaction URLs, user codes, and proof cannot enter
+a plan, profile, receipt, or machine-readable CLI result. Authorization
+callbacks must match the provider's exact loopback origin and path plus the
+generated state. A device poll performs one request and returns only `pending`
+or `connected`, leaving timing, cancellation, and retry bounds to the TUI
+controller. The adapter does not open a browser or write the clipboard without
+a future explicit UI action.
+
+After 9Router reports success, onboarding refreshes `/api/providers`; that
+readback, not the OAuth response, is the connection authority. API-key
+providers remain held until a private host binding declares a macOS Keychain
+reference and reviewed private provider intent selects it. The concrete model
+selector is populated only from the live `/v1/models` response.
 
 9Router's bundled macOS autostart is not the Temperance service contract. In
 0.5.75 it uses the package's network-exposed default host and does not bind the

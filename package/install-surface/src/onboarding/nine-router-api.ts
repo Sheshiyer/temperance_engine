@@ -2,6 +2,11 @@ import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { isAbsolute, join, normalize } from "node:path";
 
+import {
+  NINE_ROUTER_PROVIDER_CAPABILITIES,
+  type NineRouterProviderAuthKind,
+} from "./nine-router-provider-capabilities.ts";
+
 const MAX_RESPONSE_BYTES = 4_194_304;
 const MAX_REQUEST_BYTES = 1_048_576;
 const CLI_TOKEN_SALT = "9r-cli-auth";
@@ -17,6 +22,24 @@ export interface NineRouterCatalogSnapshot { providers: NineRouterProviderSummar
 export interface NineRouterCreatedObject { id: string; name: string; }
 export interface NineRouterGatewayKeySummary { id: string; name: string; }
 export interface NineRouterGatewayKeyReceipt { id: string; name: string; captured: true; }
+export interface NineRouterOAuthConnectionReceipt { provider: string; connected: true; }
+export interface NineRouterOAuthAuthorizationSession {
+  kind: "authorization-code";
+  provider: string;
+  authorization_url: string;
+  callback_url: string;
+}
+export interface NineRouterOAuthDeviceSession {
+  kind: "device-code";
+  provider: string;
+  verification_url: string;
+  user_code?: string;
+  poll_interval_seconds: number;
+  expires_in_seconds: number | null;
+}
+export type NineRouterOAuthDevicePoll =
+  | { status: "pending"; retry_after_seconds: number }
+  | { status: "connected"; provider: string };
 
 export interface NineRouterApiIO {
   readFile(path: string): Promise<string>;
@@ -29,6 +52,22 @@ const nodeNineRouterApiIO: NineRouterApiIO = {
   mode: async (path) => (await stat(path)).mode & 0o777,
   fetch: (url, init) => fetch(url, init),
 };
+
+interface AuthorizationSessionSecret {
+  codeVerifier: string;
+  redirectUri: string;
+  state: string;
+}
+
+interface DeviceSessionSecret {
+  codeVerifier?: string;
+  deviceCode: string;
+  extraData: unknown;
+  pollIntervalSeconds: number;
+}
+
+const authorizationSessionSecrets = new WeakMap<NineRouterOAuthAuthorizationSession, AuthorizationSessionSecret>();
+const deviceSessionSecrets = new WeakMap<NineRouterOAuthDeviceSession, DeviceSessionSecret>();
 
 export class NineRouterApiError extends Error {
   constructor(public readonly code: string) {
@@ -95,12 +134,128 @@ function safeId(value: unknown): string {
   return id;
 }
 
+function oauthCapability(provider: string, expected?: NineRouterProviderAuthKind): string {
+  const id = textField(provider, "NINE_ROUTER_OAUTH_PROVIDER_INVALID", 128);
+  const capability = NINE_ROUTER_PROVIDER_CAPABILITIES.find((candidate) => candidate.id === id);
+  if (!capability || capability.auth_kind === "api-key") {
+    throw new NineRouterApiError("NINE_ROUTER_OAUTH_PROVIDER_INVALID");
+  }
+  if (expected && capability.auth_kind !== expected) {
+    throw new NineRouterApiError("NINE_ROUTER_OAUTH_FLOW_INVALID");
+  }
+  return capability.id;
+}
+
+function oauthRedirectUri(provider: string): string {
+  return provider === "codex"
+    ? "http://localhost:1455/auth/callback"
+    : "http://localhost:20128/callback";
+}
+
+function exactEndpoint(path: string): URL | undefined {
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("#") || /[\u0000-\u001f\u007f]/u.test(path)) return undefined;
+  let parsed: URL;
+  try { parsed = new URL(path, "http://temperance.invalid"); } catch { return undefined; }
+  if (parsed.origin !== "http://temperance.invalid" || `${parsed.pathname}${parsed.search}` !== path) return undefined;
+  return parsed;
+}
+
 function endpointAllowed(method: string, path: string): boolean {
-  if (method === "GET" && ["/api/providers", "/api/combos", "/api/keys", "/v1/models"].includes(path)) return true;
-  if (method === "GET" && /^\/api\/combos\/[A-Za-z0-9._-]{1,512}$/u.test(path)) return true;
-  if ((method === "GET" || method === "POST") && /^\/api\/cli-tools\/(claude|codex|droid|openclaw)-settings$/u.test(path)) return true;
-  if (method === "POST" && ["/api/providers", "/api/combos", "/api/keys"].includes(path)) return true;
-  return method === "DELETE" && /^\/api\/(?:providers|combos|keys)\/[A-Za-z0-9._-]{1,512}$/u.test(path);
+  const endpoint = exactEndpoint(path);
+  if (!endpoint) return false;
+  const pathname = endpoint.pathname;
+  if (method === "GET" && ["/api/providers", "/api/combos", "/api/keys", "/v1/models"].includes(pathname) && !endpoint.search) return true;
+  if (method === "GET" && /^\/api\/combos\/[A-Za-z0-9._-]{1,512}$/u.test(pathname) && !endpoint.search) return true;
+  if ((method === "GET" || method === "POST") && /^\/api\/cli-tools\/(claude|codex|droid|openclaw)-settings$/u.test(pathname) && !endpoint.search) return true;
+  if (method === "POST" && ["/api/providers", "/api/combos", "/api/keys"].includes(pathname) && !endpoint.search) return true;
+  if (method === "DELETE" && /^\/api\/(?:providers|combos|keys)\/[A-Za-z0-9._-]{1,512}$/u.test(pathname) && !endpoint.search) return true;
+
+  const match = pathname.match(/^\/api\/oauth\/([A-Za-z0-9-]{1,128})\/(authorize|exchange|device-code|poll)$/u);
+  if (!match) return false;
+  const [, provider = "", action = ""] = match;
+  const capability = NINE_ROUTER_PROVIDER_CAPABILITIES.find((candidate) => candidate.id === provider);
+  if (!capability || capability.auth_kind === "api-key") return false;
+  const authKind: NineRouterProviderAuthKind = capability.auth_kind;
+  if (authKind === "oauth-authorization-code") {
+    if (action === "exchange") return method === "POST" && !endpoint.search;
+    if (action !== "authorize" || method !== "GET") return false;
+    const keys = [...endpoint.searchParams.keys()];
+    return keys.length === 1
+      && keys[0] === "redirect_uri"
+      && endpoint.searchParams.getAll("redirect_uri").length === 1
+      && endpoint.searchParams.get("redirect_uri") === oauthRedirectUri(provider);
+  }
+  return !endpoint.search && ((action === "device-code" && method === "GET") || (action === "poll" && method === "POST"));
+}
+
+function responseRecord(value: unknown): Record<string, unknown> {
+  const root = record(value, "NINE_ROUTER_RESPONSE_INVALID");
+  return root.data && typeof root.data === "object" && !Array.isArray(root.data)
+    ? root.data as Record<string, unknown>
+    : root;
+}
+
+function externalHttpsUrl(value: unknown, code: string): string {
+  const source = textField(value, code, 32_768);
+  let url: URL;
+  try { url = new URL(source); } catch { throw new NineRouterApiError(code); }
+  if (url.protocol !== "https:" || url.username || url.password || /[\u0000-\u001f\u007f]/u.test(source)) {
+    throw new NineRouterApiError(code);
+  }
+  return source;
+}
+
+function boundedJsonClone(value: unknown): unknown {
+  let encoded: string;
+  try { encoded = JSON.stringify(value); } catch { throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID"); }
+  if (!encoded || Buffer.byteLength(encoded, "utf8") > MAX_REQUEST_BYTES) {
+    throw new NineRouterApiError("NINE_ROUTER_RESPONSE_INVALID");
+  }
+  return JSON.parse(encoded) as unknown;
+}
+
+function boundedSeconds(value: unknown, fallback: number, max: number): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= max ? value : fallback;
+}
+
+function freezeOpaqueSession<T extends { kind: string; provider: string }>(session: T): T {
+  Object.defineProperty(session, "toJSON", {
+    configurable: false,
+    enumerable: false,
+    writable: false,
+    value: () => ({ kind: session.kind, provider: session.provider, opaque: true }),
+  });
+  return Object.freeze(session);
+}
+
+function authorizationCallback(value: string, secret: AuthorizationSessionSecret): string {
+  const source = textField(value, "NINE_ROUTER_OAUTH_CALLBACK_INVALID", 32_768);
+  let actual: URL;
+  let expected: URL;
+  try {
+    actual = new URL(source);
+    expected = new URL(secret.redirectUri);
+  } catch {
+    throw new NineRouterApiError("NINE_ROUTER_OAUTH_CALLBACK_INVALID");
+  }
+  if (
+    actual.username
+    || actual.password
+    || actual.hash
+    || actual.protocol !== expected.protocol
+    || actual.hostname !== expected.hostname
+    || actual.port !== expected.port
+    || actual.pathname !== expected.pathname
+  ) {
+    throw new NineRouterApiError("NINE_ROUTER_OAUTH_CALLBACK_INVALID");
+  }
+  if (actual.searchParams.has("error")) throw new NineRouterApiError("NINE_ROUTER_OAUTH_PROVIDER_DENIED");
+  const codes = actual.searchParams.getAll("code");
+  const states = actual.searchParams.getAll("state");
+  if (codes.length !== 1 || states.length !== 1 || states[0] !== secret.state) {
+    throw new NineRouterApiError("NINE_ROUTER_OAUTH_CALLBACK_INVALID");
+  }
+  return textField(codes[0], "NINE_ROUTER_OAUTH_CALLBACK_INVALID", 16_384);
 }
 
 function redactCredentialFields(value: unknown, depth = 0): unknown {
@@ -231,6 +386,122 @@ export class NineRouterApiClient {
         return { id, owner, kind: owner === "combo" ? "combo" : "provider" };
       })
       .sort((left, right) => left.kind.localeCompare(right.kind) || left.owner.localeCompare(right.owner) || left.id.localeCompare(right.id));
+  }
+
+  /**
+   * Starts an authorization-code flow owned by 9Router. The verifier and CSRF
+   * state live only in this module's WeakMap and cannot be serialized with the
+   * user-facing session object.
+   */
+  async beginOAuthAuthorization(providerInput: string): Promise<NineRouterOAuthAuthorizationSession> {
+    const provider = oauthCapability(providerInput, "oauth-authorization-code");
+    const expectedRedirectUri = oauthRedirectUri(provider);
+    const path = `/api/oauth/${provider}/authorize?redirect_uri=${encodeURIComponent(expectedRedirectUri)}`;
+    const value = responseRecord(await this.request("GET", path));
+    const authorizationUrl = externalHttpsUrl(value.authUrl, "NINE_ROUTER_OAUTH_AUTHORIZATION_URL_INVALID");
+    const codeVerifier = textField(value.codeVerifier, "NINE_ROUTER_RESPONSE_INVALID", 16_384);
+    const state = textField(value.state, "NINE_ROUTER_RESPONSE_INVALID", 16_384);
+    const redirectUri = textField(value.redirectUri, "NINE_ROUTER_RESPONSE_INVALID", 1_024);
+    if (redirectUri !== expectedRedirectUri) throw new NineRouterApiError("NINE_ROUTER_OAUTH_REDIRECT_MISMATCH");
+    const session: NineRouterOAuthAuthorizationSession = freezeOpaqueSession({
+      kind: "authorization-code",
+      provider,
+      authorization_url: authorizationUrl,
+      callback_url: redirectUri,
+    });
+    authorizationSessionSecrets.set(session, { codeVerifier, redirectUri, state });
+    return session;
+  }
+
+  /**
+   * Exchanges one validated callback through 9Router and returns no token
+   * material. Sessions are one-shot even when the upstream exchange fails.
+   */
+  async completeOAuthAuthorization(
+    session: NineRouterOAuthAuthorizationSession,
+    callbackUrl: string,
+  ): Promise<NineRouterOAuthConnectionReceipt> {
+    const secret = authorizationSessionSecrets.get(session);
+    if (!secret) throw new NineRouterApiError("NINE_ROUTER_OAUTH_SESSION_INVALID");
+    authorizationSessionSecrets.delete(session);
+    const provider = oauthCapability(session.provider, "oauth-authorization-code");
+    const code = authorizationCallback(callbackUrl, secret);
+    const root = record(await this.request("POST", `/api/oauth/${provider}/exchange`, {
+      code,
+      redirectUri: secret.redirectUri,
+      codeVerifier: secret.codeVerifier,
+      state: secret.state,
+    }), "NINE_ROUTER_RESPONSE_INVALID");
+    const data = responseRecord(root);
+    if (root.success !== true && data.success !== true) throw new NineRouterApiError("NINE_ROUTER_OAUTH_EXCHANGE_FAILED");
+    return { provider, connected: true };
+  }
+
+  /**
+   * Starts a device flow without exposing the device code, verifier, or
+   * provider-specific polling payload. Only user-displayable instructions are
+   * present on the returned frozen object.
+   */
+  async beginOAuthDevice(providerInput: string): Promise<NineRouterOAuthDeviceSession> {
+    const provider = oauthCapability(providerInput, "oauth-device-code");
+    const value = responseRecord(await this.request("GET", `/api/oauth/${provider}/device-code`));
+    const deviceCode = textField(value.device_code, "NINE_ROUTER_RESPONSE_INVALID", 16_384);
+    const codeVerifier = value.codeVerifier === undefined
+      ? undefined
+      : textField(value.codeVerifier, "NINE_ROUTER_RESPONSE_INVALID", 16_384);
+    const verificationValue = typeof value.verification_uri_complete === "string" && value.verification_uri_complete.length > 0
+      ? value.verification_uri_complete
+      : value.verification_uri;
+    const verificationUrl = externalHttpsUrl(verificationValue, "NINE_ROUTER_OAUTH_VERIFICATION_URL_INVALID");
+    const userCode = value.user_code === undefined
+      ? undefined
+      : textField(value.user_code, "NINE_ROUTER_RESPONSE_INVALID", 256);
+    const pollIntervalSeconds = boundedSeconds(value.interval, 5, 30);
+    const expiresInSeconds = value.expires_in === undefined
+      ? null
+      : boundedSeconds(value.expires_in, 300, 86_400);
+    const session: NineRouterOAuthDeviceSession = freezeOpaqueSession({
+      kind: "device-code",
+      provider,
+      verification_url: verificationUrl,
+      ...(userCode ? { user_code: userCode } : {}),
+      poll_interval_seconds: pollIntervalSeconds,
+      expires_in_seconds: expiresInSeconds,
+    });
+    deviceSessionSecrets.set(session, {
+      codeVerifier,
+      deviceCode,
+      extraData: boundedJsonClone(value.extraData ?? value),
+      pollIntervalSeconds,
+    });
+    return session;
+  }
+
+  /** Polls exactly once; the caller owns cancellable timing and retry bounds. */
+  async pollOAuthDevice(session: NineRouterOAuthDeviceSession): Promise<NineRouterOAuthDevicePoll> {
+    const secret = deviceSessionSecrets.get(session);
+    if (!secret) throw new NineRouterApiError("NINE_ROUTER_OAUTH_SESSION_INVALID");
+    const provider = oauthCapability(session.provider, "oauth-device-code");
+    const root = record(await this.request("POST", `/api/oauth/${provider}/poll`, {
+      deviceCode: secret.deviceCode,
+      ...(secret.codeVerifier ? { codeVerifier: secret.codeVerifier } : {}),
+      extraData: secret.extraData,
+    }), "NINE_ROUTER_RESPONSE_INVALID");
+    const data = responseRecord(root);
+    if (root.success === true || data.success === true) {
+      deviceSessionSecrets.delete(session);
+      return { status: "connected", provider };
+    }
+    const error = typeof root.error === "string"
+      ? root.error
+      : typeof data.error === "string" ? data.error : undefined;
+    const pending = root.pending === true || data.pending === true || error === "authorization_pending" || error === "slow_down";
+    if (pending) {
+      if (error === "slow_down") secret.pollIntervalSeconds = Math.min(secret.pollIntervalSeconds + 5, 30);
+      return { status: "pending", retry_after_seconds: secret.pollIntervalSeconds };
+    }
+    deviceSessionSecrets.delete(session);
+    throw new NineRouterApiError("NINE_ROUTER_OAUTH_DEVICE_FAILED");
   }
 
   async createProviderConnection(input: { provider: string; name: string; apiKey: string }): Promise<NineRouterCreatedObject> {

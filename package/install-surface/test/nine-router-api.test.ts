@@ -71,6 +71,159 @@ describe("9router management adapter", () => {
     ]);
   });
 
+  test("completes a one-shot authorization-code flow without returning verifier, state, code, or tokens", async () => {
+    const observed: Array<{ url: string; init: RequestInit }> = [];
+    const client = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({
+        "GET /api/oauth/codex/authorize": {
+          authUrl: "https://auth.example.test/authorize?request=opaque",
+          codeVerifier: "verifier-secret",
+          state: "state-secret",
+          redirectUri: "http://localhost:1455/auth/callback",
+        },
+        "POST /api/oauth/codex/exchange": {
+          success: true,
+          connection: { id: "connection-1", accessToken: "upstream-token" },
+        },
+      }, observed),
+    });
+
+    const session = await client.beginOAuthAuthorization("codex");
+    expect(session).toEqual({
+      kind: "authorization-code",
+      provider: "codex",
+      authorization_url: "https://auth.example.test/authorize?request=opaque",
+      callback_url: "http://localhost:1455/auth/callback",
+    });
+    expect(Object.isFrozen(session)).toBe(true);
+    expect(JSON.parse(JSON.stringify(session))).toEqual({ kind: "authorization-code", provider: "codex", opaque: true });
+    expect(JSON.stringify(session)).not.toContain("auth.example.test");
+    expect(new URL(observed[0]?.url ?? "").searchParams.get("redirect_uri")).toBe("http://localhost:1455/auth/callback");
+
+    const receipt = await client.completeOAuthAuthorization(
+      session,
+      "http://localhost:1455/auth/callback?code=authorization-code&state=state-secret",
+    );
+    expect(receipt).toEqual({ provider: "codex", connected: true });
+    expect(JSON.stringify(receipt)).not.toContain("upstream-token");
+    expect(JSON.parse(String(observed[1]?.init.body))).toEqual({
+      code: "authorization-code",
+      redirectUri: "http://localhost:1455/auth/callback",
+      codeVerifier: "verifier-secret",
+      state: "state-secret",
+    });
+    await expect(client.completeOAuthAuthorization(
+      session,
+      "http://localhost:1455/auth/callback?code=authorization-code&state=state-secret",
+    )).rejects.toThrow("NINE_ROUTER_OAUTH_SESSION_INVALID");
+  });
+
+  test("rejects forged callbacks and providers whose declared flow does not match", async () => {
+    const observed: Array<{ url: string; init: RequestInit }> = [];
+    const client = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({
+        "GET /api/oauth/claude/authorize": {
+          authUrl: "https://auth.example.test/authorize",
+          codeVerifier: "verifier-secret",
+          state: "state-secret",
+          redirectUri: "http://localhost:20128/callback",
+        },
+      }, observed),
+    });
+    await expect(client.beginOAuthAuthorization("openai")).rejects.toThrow("NINE_ROUTER_OAUTH_PROVIDER_INVALID");
+    await expect(client.beginOAuthAuthorization("github")).rejects.toThrow("NINE_ROUTER_OAUTH_FLOW_INVALID");
+    await expect(client.beginOAuthDevice("claude")).rejects.toThrow("NINE_ROUTER_OAUTH_FLOW_INVALID");
+    const session = await client.beginOAuthAuthorization("claude");
+    await expect(client.completeOAuthAuthorization(
+      session,
+      "http://localhost:20128/callback?code=authorization-code&state=wrong-state",
+    )).rejects.toThrow("NINE_ROUTER_OAUTH_CALLBACK_INVALID");
+    expect(observed).toHaveLength(1);
+  });
+
+  test("polls a device flow once per call while keeping device proof out of the view model", async () => {
+    const observed: Array<{ url: string; init: RequestInit }> = [];
+    const pollResponses = [
+      { error: "slow_down" },
+      { success: true, accessToken: "upstream-token" },
+    ];
+    const io = mockIo({}, observed);
+    io.fetch = async (url, init) => {
+      observed.push({ url, init });
+      const pathname = new URL(url).pathname;
+      const value = pathname.endsWith("/device-code")
+        ? {
+          device_code: "device-code-secret",
+          user_code: "ABCD-EFGH",
+          verification_uri: "https://device.example.test/activate",
+          codeVerifier: "device-verifier-secret",
+          interval: 5,
+          expires_in: 300,
+          extraData: { _clientId: "provider-client-secret" },
+        }
+        : pollResponses.shift();
+      return new Response(JSON.stringify(value ?? {}), { status: 200, headers: { "content-type": "application/json" } });
+    };
+    const client = new NineRouterApiClient({ dataDirectory: "/example/.9router", io });
+
+    const session = await client.beginOAuthDevice("github");
+    expect(session).toEqual({
+      kind: "device-code",
+      provider: "github",
+      verification_url: "https://device.example.test/activate",
+      user_code: "ABCD-EFGH",
+      poll_interval_seconds: 5,
+      expires_in_seconds: 300,
+    });
+    expect(Object.isFrozen(session)).toBe(true);
+    const serialized = JSON.stringify(session);
+    expect(JSON.parse(serialized)).toEqual({ kind: "device-code", provider: "github", opaque: true });
+    expect(serialized).not.toContain("ABCD-EFGH");
+    expect(serialized).not.toContain("device-code-secret");
+    expect(serialized).not.toContain("device-verifier-secret");
+    expect(serialized).not.toContain("provider-client-secret");
+
+    expect(await client.pollOAuthDevice(session)).toEqual({ status: "pending", retry_after_seconds: 10 });
+    expect(await client.pollOAuthDevice(session)).toEqual({ status: "connected", provider: "github" });
+    const pollBody = JSON.parse(String(observed[1]?.init.body));
+    expect(pollBody).toEqual({
+      deviceCode: "device-code-secret",
+      codeVerifier: "device-verifier-secret",
+      extraData: { _clientId: "provider-client-secret" },
+    });
+    await expect(client.pollOAuthDevice(session)).rejects.toThrow("NINE_ROUTER_OAUTH_SESSION_INVALID");
+  });
+
+  test("fails closed when 9router returns a remote-insecure OAuth URL or a changed redirect", async () => {
+    const insecure = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({
+        "GET /api/oauth/claude/authorize": {
+          authUrl: "http://auth.example.test/authorize",
+          codeVerifier: "verifier",
+          state: "state",
+          redirectUri: "http://localhost:20128/callback",
+        },
+      }, []),
+    });
+    await expect(insecure.beginOAuthAuthorization("claude")).rejects.toThrow("NINE_ROUTER_OAUTH_AUTHORIZATION_URL_INVALID");
+
+    const redirectChanged = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({
+        "GET /api/oauth/codex/authorize": {
+          authUrl: "https://auth.example.test/authorize",
+          codeVerifier: "verifier",
+          state: "state",
+          redirectUri: "http://localhost:20128/callback",
+        },
+      }, []),
+    });
+    await expect(redirectChanged.beginOAuthAuthorization("codex")).rejects.toThrow("NINE_ROUTER_OAUTH_REDIRECT_MISMATCH");
+  });
+
   test("rejects malformed live model choices instead of rendering unsafe dropdown text", async () => {
     const client = new NineRouterApiClient({
       dataDirectory: "/example/.9router",
