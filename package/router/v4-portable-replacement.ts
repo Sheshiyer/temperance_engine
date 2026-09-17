@@ -328,6 +328,7 @@ export class PortableV4ReplacementLifecycle implements V4ReplacementLifecycle {
     await this.io.mkdir(this.routerRoot, { recursive: true, mode: 0o700 });
     await this.io.writeFile(join(this.routerRoot, "package.json"), packageDocument("temperance-9router"), { mode: 0o600, flag: "wx" });
     await this.command([this.bun, "add", "--exact", "--ignore-scripts", `9router@${ROUTER_VERSION}`], this.routerRoot, signal, "REPLACEMENT_ROUTER_INSTALL_FAILED");
+    if (this.platform !== "win32") await this.io.chmod(this.serviceInput.cli_entrypoint, 0o755);
 
     await this.io.mkdir(this.routerRuntime, { recursive: true, mode: 0o700 });
     await this.io.writeFile(join(this.routerRuntime, "package.json"), packageDocument("temperance-9router-runtime"), { mode: 0o600, flag: "wx" });

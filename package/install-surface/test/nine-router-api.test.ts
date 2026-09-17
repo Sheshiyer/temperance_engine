@@ -54,12 +54,18 @@ describe("9router management adapter", () => {
     const client = new NineRouterApiClient({
       dataDirectory: "/example/.9router",
       io: mockIo({
+        "GET /api/providers": { connections: [
+          { id: "p1", name: "Claude", provider: "claude", isActive: true },
+          { id: "p2", name: "Codex", provider: "codex", isActive: true },
+        ] },
+        "GET /api/combos": { combos: [{ id: "c1", name: "noesis-build", models: ["cx/gpt-codex"] }] },
         "GET /v1/models": {
           object: "list",
           data: [
             { id: "noesis-build", owned_by: "combo", ignored: "value" },
             { id: "cc/claude-sonnet", owned_by: "cc", apiKey: "must-not-return" },
             { id: "cx/gpt-codex", owned_by: "cx" },
+            { id: "gc/gemini-pro", owned_by: "gc" },
           ],
         },
       }, []),
@@ -69,6 +75,18 @@ describe("9router management adapter", () => {
       { id: "cc/claude-sonnet", owner: "cc", kind: "provider" },
       { id: "cx/gpt-codex", owner: "cx", kind: "provider" },
     ]);
+  });
+
+  test("does not offer static models before a live provider is admitted", async () => {
+    const client = new NineRouterApiClient({
+      dataDirectory: "/example/.9router",
+      io: mockIo({
+        "GET /api/providers": { connections: [] },
+        "GET /api/combos": { combos: [] },
+        "GET /v1/models": { data: [{ id: "cx/gpt-codex", owned_by: "cx" }] },
+      }, []),
+    });
+    expect(await client.readAvailableModels()).toEqual([]);
   });
 
   test("completes a one-shot authorization-code flow without returning verifier, state, code, or tokens", async () => {

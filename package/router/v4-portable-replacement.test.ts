@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
@@ -152,6 +152,7 @@ describe("portable V4 replacement lifecycle", () => {
     });
 
     expect(await Bun.file(join(context.runtime, "VERSION")).text()).toBe("0.5.4\n");
+    expect(statSync(join(context.runtime, "providers", "9router", "node_modules", "9router", "cli.js")).mode & 0o777).toBe(0o755);
     expect(readdirSync(context.staging)).toEqual([]);
     expect(await Bun.file(join(context.data, "runtime", "node_modules", "sql.js", "package.json")).json()).toMatchObject({ version: "1.14.1" });
     expect(context.calls.filter(([command]) => command === "bun").some((argv) => argv.includes("9router@0.5.75"))).toBe(true);

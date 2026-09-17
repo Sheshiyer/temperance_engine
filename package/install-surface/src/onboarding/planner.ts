@@ -80,6 +80,8 @@ function missingInputProbe(requirement: CapabilityRequirement, profile: Onboardi
         ? [requirement.url_variable]
         : requirement.kind === "9router-management"
           ? [requirement.data_dir_variable]
+        : requirement.kind === "binary"
+          ? [requirement.executable_variable]
         : [];
   const missing = variableNames.filter((name): name is string => Boolean(name) && !profile.variables[name!]);
   if (missing.length > 0) {
@@ -98,6 +100,12 @@ function missingInputProbe(requirement: CapabilityRequirement, profile: Onboardi
   }
   if (requirement.kind === "9router-management" && profile.variables[requirement.data_dir_variable] && !isAbsolute(profile.variables[requirement.data_dir_variable]!)) {
     return { capability_id: requirement.id, available: false, reason_code: "VARIABLE_INVALID", evidence: ["9router DATA_DIR must be absolute"] };
+  }
+  if (requirement.kind === "binary" && requirement.executable_variable) {
+    const executable = profile.variables[requirement.executable_variable];
+    if (executable && !isAbsolute(executable)) {
+      return { capability_id: requirement.id, available: false, reason_code: "VARIABLE_INVALID", evidence: ["bound executable path must be absolute"] };
+    }
   }
   return undefined;
 }

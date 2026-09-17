@@ -22,6 +22,8 @@ export interface BinaryCapability {
   id: string;
   kind: "binary";
   executable: string;
+  /** Optional private host binding for an isolated executable. */
+  executable_variable?: string;
   version?: { exact: string; argv?: string[]; pattern?: string };
 }
 

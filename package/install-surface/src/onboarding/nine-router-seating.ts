@@ -61,7 +61,7 @@ function assertUnique(values: readonly string[], code: string): void {
 
 function stateFor(selected: readonly string[], choiceCount: number): Pick<NineRouterAliasSeat, "state" | "hold_reason"> {
   if (choiceCount === 0) return { state: "held", hold_reason: "LIVE_PROVIDER_MODELS_UNAVAILABLE" };
-  return selected.length === 0 ? { state: "unseated", hold_reason: undefined } : { state: "ready", hold_reason: undefined };
+  return selected.length === 0 ? { state: "unseated" } : { state: "ready" };
 }
 
 /**

@@ -40,6 +40,7 @@
         "id": { "$ref": "#/$defs/identifier" },
         "kind": { "const": "binary" },
         "executable": { "type": "string", "pattern": "^[A-Za-z0-9._+-]+$", "maxLength": 128 },
+        "executable_variable": { "$ref": "#/$defs/variable" },
         "version": { "$ref": "#/$defs/versionRequirement" }
       }
     },

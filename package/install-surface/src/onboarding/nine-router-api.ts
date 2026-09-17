@@ -370,12 +370,23 @@ export class NineRouterApiClient {
   }
 
   /**
-   * Reads 9Router's OpenAI-compatible catalog after provider admission.
-   * This is the authoritative dropdown surface: the adapter deliberately does
-   * not copy 9Router's private provider/model registry into Temperance policy.
+   * Reads 9Router's OpenAI-compatible catalog, gated by its live provider and
+   * combo admission state. The static upstream model catalog alone is not
+   * proof that a model can route on this host.
    */
   async readAvailableModels(): Promise<NineRouterAvailableModel[]> {
-    return responseArray(await this.request("GET", "/v1/models"), "data")
+    const [catalog, modelResponse] = await Promise.all([
+      this.readCatalog(),
+      this.request("GET", "/v1/models"),
+    ]);
+    const connectedOwners = new Set(catalog.providers
+      .filter(({ active }) => active !== false)
+      .flatMap(({ provider }) => {
+        const capability = NINE_ROUTER_PROVIDER_CAPABILITIES.find(({ id }) => id === provider);
+        return capability ? [capability.id, capability.alias] : [provider];
+      }));
+    const admittedCombos = new Set(catalog.combos.map(({ alias }) => alias));
+    return responseArray(modelResponse, "data")
       .map((value): NineRouterAvailableModel => {
         const item = record(value, "NINE_ROUTER_RESPONSE_INVALID");
         const id = modelId(item.id, "NINE_ROUTER_RESPONSE_INVALID");
@@ -385,6 +396,7 @@ export class NineRouterApiClient {
         }
         return { id, owner, kind: owner === "combo" ? "combo" : "provider" };
       })
+      .filter((model) => model.kind === "combo" ? admittedCombos.has(model.id) : connectedOwners.has(model.owner))
       .sort((left, right) => left.kind.localeCompare(right.kind) || left.owner.localeCompare(right.owner) || left.id.localeCompare(right.id));
   }
 

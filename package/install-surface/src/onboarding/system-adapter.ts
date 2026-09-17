@@ -76,7 +76,13 @@ function escapePattern(value: string): string {
 }
 
 async function probeBinary(requirement: Extract<CapabilityRequirement, { kind: "binary" }>, context: OnboardingProbeContext, io: OnboardingProbeIO): Promise<CapabilityProbe> {
-  const executable = await io.which(requirement.executable);
+  const boundExecutable = requirement.executable_variable
+    ? context.profile.variables[requirement.executable_variable]
+    : undefined;
+  if (boundExecutable && !isAbsolute(boundExecutable)) {
+    return unavailable(requirement.id, "VARIABLE_INVALID", ["bound executable path must be absolute"]);
+  }
+  const executable = await io.which(boundExecutable ?? requirement.executable);
   if (!executable) return unavailable(requirement.id, "BINARY_MISSING");
   if (!requirement.version) return available(requirement.id, ["binary is present"]);
   const output = await io.execFile(executable, requirement.version.argv ?? ["--version"], { signal: context.signal });

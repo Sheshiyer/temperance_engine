@@ -36,6 +36,26 @@ describe("system onboarding probe adapter", () => {
     expect(result.evidence.join(" ")).not.toContain("token");
   });
 
+  test("probes a private host-bound executable without requiring a global shim", async () => {
+    const lookups: string[] = [];
+    const executions: string[] = [];
+    const adapter = createSystemProbeAdapter({ io: io({
+      which: async (executable) => { lookups.push(executable); return executable; },
+      execFile: async (file) => { executions.push(file); return { stdout: "0.5.75\n", stderr: "", exitCode: 0 }; },
+    }) });
+    const profile = { ...baseProfile, variables: { NINE_ROUTER_CLI_ENTRYPOINT: "/private/runtime/9router/cli.js" } };
+    const result = await adapter.probe({
+      id: "router",
+      kind: "binary",
+      executable: "9router",
+      executable_variable: "NINE_ROUTER_CLI_ENTRYPOINT",
+      version: { exact: "0.5.75", argv: ["--version"] },
+    }, { profile, signal: new AbortController().signal });
+    expect(result.available).toBe(true);
+    expect(lookups).toEqual(["/private/runtime/9router/cli.js"]);
+    expect(executions).toEqual(["/private/runtime/9router/cli.js"]);
+  });
+
   test("checks Keychain item presence without requesting or emitting its value", async () => {
     const calls: Array<{ file: string; args: readonly string[] }> = [];
     const adapter = createSystemProbeAdapter({ io: io({
