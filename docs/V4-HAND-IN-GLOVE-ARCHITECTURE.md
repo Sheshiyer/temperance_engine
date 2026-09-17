@@ -201,6 +201,15 @@ Application Support directory, outside `~/.temperance_engine`, so replacing
 the runtime cannot delete its own recovery source or audit trail. Construction
 does not create those directories, inspect Keychain values, or start services.
 
+`temperance cutover-review --plan <file> --proof <file>` is the source-to-host
+commitment boundary. JSON mode exposes the same review model as the dedicated
+OpenTUI: the exact plan, clean replacement proof, managed paths, LaunchAgents,
+ordered actions, activation holds, and combined operation digest. The TUI
+requires two presses on the confirmation page—first arm, then confirm—and emits
+only a short-lived digest-bound confirmation. Review and confirmation perform
+no host mutation; the destructive executor must independently re-observe an
+identical plan before opening its journal.
+
 No runnable legacy backup survives successful activation. Recovery is a fresh
 install from reviewed source plus redacted receipts, not reactivation of stale
 executables or credentials.

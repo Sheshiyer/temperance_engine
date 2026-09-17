@@ -35,6 +35,10 @@ import { createNineRouterGuidedSetupPlanInput, prepareNineRouterGuidedSetupCatal
 import { executeConfirmedNineRouterRepair } from "./onboarding/nine-router-repair.ts";
 import { createFileOperationReceiptSink } from "./onboarding/operation-executor.ts";
 import type { HostBindingV1, HostProfileV1, NineRouterGuidedSetupV1, ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
+import { parseV4CutoverReviewArgs } from "./onboarding/v4-cutover-cli-args.ts";
+import { createV4CutoverViewModel } from "./onboarding/v4-cutover-review.ts";
+import type { V4CutoverPlan } from "../../router/v4-cutover-plan.ts";
+import type { V4ReplacementProof } from "../../router/v4-cutover-executor.ts";
 
 const packageRoot = resolve(import.meta.dir, "..");
 const repositoryRoot = resolve(packageRoot, "../..");
@@ -258,6 +262,27 @@ function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
 
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "cutover-review") {
+    try {
+      const args = parseV4CutoverReviewArgs(process.argv.slice(3));
+      const plan = JSON.parse(readFileSync(resolve(args.planPath), "utf8")) as V4CutoverPlan;
+      const proof = JSON.parse(readFileSync(resolve(args.proofPath), "utf8")) as V4ReplacementProof;
+      const view = createV4CutoverViewModel(plan, proof);
+      if (args.json) {
+        process.stdout.write(`${canonical(view)}\n`);
+      } else {
+        if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("CUTOVER_REVIEW_TUI_REQUIRES_TTY");
+        const { runV4CutoverTui } = await import("./onboarding/v4-cutover-tui.ts");
+        const confirmation = await runV4CutoverTui(view);
+        if (confirmation) process.stdout.write(`${canonical(confirmation)}\n`);
+      }
+      process.exitCode = 0;
+    } catch (error) {
+      process.stderr.write(`temperance cutover-review: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
   if (command === "onboard") {
     try {
       const args = parseOnboardingArgs(process.argv.slice(3));
@@ -535,6 +560,8 @@ Commands:
           --tui --repair --host-profile P --host-binding B --router-setup R
           --receipt-dir D --select provider.9router
                                    Confirm and apply one digest-bound 9Router repair transaction
+  cutover-review --plan P --proof R [--tui|--json]
+                                   Review plan + clean proof; TUI confirmation never mutates host state
   compile                          Compile fragments and print receipt
   write-lock                       Compile and write lock file
   doctor [--section S] [--json]    Run doctor checks
