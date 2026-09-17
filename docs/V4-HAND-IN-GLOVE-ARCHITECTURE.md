@@ -170,6 +170,18 @@ references, and a package symlink whose resolved `package.json` identifies
 behind `V4ReplacementLifecycle`, so Noesis policy and Madara bindings cannot
 become host-mutation authority.
 
+`PortableV4ReplacementLifecycle` implements that fresh-only boundary. It
+attests a clean Git archive to the replacement proof, verifies the extracted
+install surface before promotion, consumes the stage instead of retaining a
+runnable backup, and installs the router into a runtime-owned package root.
+It invokes Bun only. Because `9router@0.5.75` otherwise performs npm-based
+self-healing on first launch, the lifecycle also pre-seats its exact runtime
+dependencies under `${DATA_DIR}/runtime`: `sql.js@1.14.1`,
+`better-sqlite3@13.0.3`, and `systray2@2.1.4`. The upstream postinstall remains
+blocked. Native Node versions below 22 fail capability preflight instead of
+silently selecting a different native dependency. Service creation,
+activation, and live doctor readback remain injected host responsibilities.
+
 No runnable legacy backup survives successful activation. Recovery is a fresh
 install from reviewed source plus redacted receipts, not reactivation of stale
 executables or credentials.

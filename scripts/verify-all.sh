@@ -25,6 +25,7 @@ run bun test \
   package/router/v4-cutover-executor.test.ts \
   package/router/v4-cutover-journal.test.ts \
   package/router/v4-macos-host-adapter.test.ts \
+  package/router/v4-portable-replacement.test.ts \
   package/router/v4-replacement-proof.test.ts
 run bun test package/router/omniroute-portfolios.test.ts
 run bun test package/router/omniroute-native-control-plane.test.ts
