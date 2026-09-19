@@ -40,8 +40,9 @@ export async function readOnboardingRoutingSnapshot(options: {
     } catch { /* Bound but unavailable is distinct from an unselected host profile. */ }
   }
   const gatewayReferenceId = routerSetup?.gateway_key.secret_reference_id;
-  const routerVersionHeld = plan.modules.find(({ id }) => id === "provider.9router")?.holds
-    .some(({ reason_code }) => reason_code === "BINARY_MISSING" || reason_code === "VERSION_MISMATCH") ?? true;
+  const routerModule = plan.modules.find(({ id }) => id === "provider.9router");
+  // An unselected module has no probe evidence. Empty holds are not a pass.
+  const routerVersionHeld = !routerModule?.requested || routerModule.status !== "eligible";
   return {
     ...(connection ? { connection } : {}),
     routing: createNineRouterRoutingSurface({

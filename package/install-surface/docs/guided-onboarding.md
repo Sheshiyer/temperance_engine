@@ -28,3 +28,14 @@ project or module choices; completed provider authorizations are owned by
 Generic Temperance needs no Noesis profile, mounted personal volume, or provider.
 Personal paths and Keychain references belong in the explicitly supplied private
 host binding, not in the portable core.
+
+## Agents, health and telemetry
+
+The same workflow is available as `onboard --agent`; `--step` and `--action`
+operate on the shared controller without persisting approvals or bypassing
+sign-in/review. The TUI exposes doctor/health and local event inspection via
+visible actions or `d` / `l`; closing either report returns to the same step.
+Use `--telemetry` to record bounded local metadata, `--health --json` for a fresh
+health snapshot, and `--logs --json` for recent events.
+See [agent operations](agent-operations.md) for the full runnable flow,
+argument/state handoff, privacy boundaries, and exit-code semantics.

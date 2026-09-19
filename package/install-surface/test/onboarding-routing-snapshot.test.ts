@@ -55,6 +55,17 @@ test("generic onboarding remains unbound and performs no management request", as
   expect(renderOnboardingText(input.plan, snapshot.routing)).toContain("HOST_PROFILE_NOT_SELECTED");
 });
 
+test("an unselected router cannot imply adapter compatibility from absent holds", async () => {
+  const input = await fixture(true);
+  let probes = 0;
+  const plan = await createOnboardingPlan({ catalog: createCoreOnboardingCatalog(), profile: input.profile, selections: new Set(), adapter: {
+    probe: async ({ id }) => { probes++; return { capability_id: id, available: true, reason_code: "AVAILABLE", evidence: [] }; },
+  } });
+  const snapshot = await readOnboardingRoutingSnapshot({ ...input, plan, hostProfile, observe: async () => ({ catalog: { providers: [], combos: [] }, models: [] }) });
+  expect(probes).toBe(0);
+  expect(snapshot.routing?.compatible).toBe(false);
+});
+
 test("successful read-only observations produce the shared live routing projection", async () => {
   const input = await fixture(true);
   let calls = 0;

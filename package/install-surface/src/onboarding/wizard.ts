@@ -16,6 +16,7 @@ export interface OnboardingWizardOptions {
   allowModuleReplan?: boolean;
   hostDescription?: string;
   notice?: string;
+  allowInspection?: boolean;
 }
 export interface OnboardingWizardState {
   step: WizardStepId;
@@ -24,7 +25,7 @@ export interface OnboardingWizardState {
   notice?: string;
 }
 type WizardAction =
-  | { kind: "next" | "back" | "refresh" | "seat" | "save" | "confirm" | "info" }
+  | { kind: "next" | "back" | "refresh" | "seat" | "save" | "confirm" | "info" | "health" | "logs" }
   | { kind: "project" | "module" | "authorize"; id: string }
   | { kind: "defer"; ids: string[] };
 export interface WizardRow {
@@ -45,7 +46,7 @@ export interface OnboardingWizardView {
   rows: WizardRow[];
 }
 export type WizardEffect =
-  | { kind: "cancel" | "refresh" | "seat" | "save" | "confirm" }
+  | { kind: "cancel" | "refresh" | "seat" | "save" | "confirm" | "health" | "logs" }
   | { kind: "authorize"; providerId: string }
   | { kind: "replan"; selectedModuleIds: string[] };
 export interface OnboardingWizardResult {
@@ -60,6 +61,7 @@ export interface OnboardingWizardResult {
   selected_candidate_ids?: string[];
   routing_seating_requested?: boolean;
   refresh_requested?: boolean;
+  inspection_requested?: "health" | "logs";
 }
 
 const COPY: Record<WizardStepId, { title: string; why: string; next: string }> = {
@@ -152,6 +154,10 @@ export function createOnboardingWizardView(plan: OnboardingPlanV1, state: Onboar
     for (const input of plan.configuration_inputs ?? []) rows.push(info(`configuration.${input.id}`, input.id, input.digest, input.details));
     rows.push(info("review.plan", "Exact plan", `${plan.install_order.length} eligible modules`, [`Digest: ${plan.plan_digest}`, `Order: ${plan.install_order.join(" → ") || "none"}`]));
   }
+  if (options.allowInspection) rows.push(
+    action("health", "Run doctor & health checks", "Read-only checks; returns to this step", { kind: "health" }),
+    action("logs", "View recent telemetry", "Local metadata only; returns to this step", { kind: "logs" }),
+  );
   const summary = state.step === "projects"
     ? `${options.existingProjectCapsules?.filter(({ approved }) => approved).length ?? plan.project_enrollments?.filter(({ approved }) => approved).length ?? 0} approved · ${plan.project_candidates?.length ?? 0} candidates · ${plan.project_candidates?.filter(({ mapping_status }) => Boolean(mapping_status)).length ?? 0} mapped · ${plan.project_candidates?.filter(({ path_present, selectable }) => !path_present || selectable === false).length ?? 0} unavailable · ${state.selectedCandidateIds.length} pending`
     : `${state.selectedModuleIds.length} modules requested · ${state.selectedCandidateIds.length} project approvals pending`;
@@ -161,6 +167,7 @@ export function createOnboardingWizardView(plan: OnboardingPlanV1, state: Onboar
 /** Pure action-key controller. The renderer owns only arrow-key focus. */
 export function handleOnboardingWizardKey(plan: OnboardingPlanV1, state: OnboardingWizardState, options: OnboardingWizardOptions, key: string, rowId?: string): { state: OnboardingWizardState; effect?: WizardEffect } {
   if (key === "q" || key === "escape") return { state, effect: { kind: "cancel" } };
+  if (options.allowInspection && (key === "d" || key === "l")) return { state, effect: { kind: key === "d" ? "health" : "logs" } };
   const confirmShortcut = key.toLowerCase() === "y" && state.step === "review";
   if (key !== "enter" && key !== "return" && !confirmShortcut) return { state };
   const row = createOnboardingWizardView(plan, state, options).rows.find(({ id }) => id === (confirmShortcut ? "confirm" : rowId));
@@ -195,7 +202,7 @@ export function completeOnboardingWizard(plan: OnboardingPlanV1, state: Onboardi
   if (confirmed && state.selectedCandidateIds.length > 0 && !options.allowProjectCapsuleSave) throw new Error("ONBOARDING_PROJECT_SAVE_UNAVAILABLE");
   if (effect.kind === "save" && !options.allowProjectCapsuleSave) throw new Error("ONBOARDING_PROJECT_SAVE_UNAVAILABLE");
   const save = Boolean(options.allowProjectCapsuleSave) && (effect.kind === "save" || (confirmed && state.selectedCandidateIds.length > 0));
-  const resume = effect.kind === "authorize" || effect.kind === "seat" || effect.kind === "refresh";
+  const resume = effect.kind === "authorize" || effect.kind === "seat" || effect.kind === "refresh" || effect.kind === "health" || effect.kind === "logs";
   return {
     confirmed, ...(confirmed ? { confirmed_at: confirmedAt } : {}),
     plan_digest: plan.plan_digest, selected_module_ids: [...state.selectedModuleIds],
@@ -206,5 +213,6 @@ export function completeOnboardingWizard(plan: OnboardingPlanV1, state: Onboardi
     ...(effect.kind === "authorize" ? { routing_authorization_provider_id: effect.providerId } : {}),
     ...(effect.kind === "seat" ? { routing_seating_requested: true } : {}),
     ...(effect.kind === "refresh" ? { refresh_requested: true } : {}),
+    ...(effect.kind === "health" || effect.kind === "logs" ? { inspection_requested: effect.kind } : {}),
   };
 }

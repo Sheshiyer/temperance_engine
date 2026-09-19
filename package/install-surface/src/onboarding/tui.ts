@@ -5,6 +5,7 @@ import {
 import type { OnboardingPlanV1 } from "./contracts.ts";
 import type { NineRouterRoutingSurface } from "./nine-router-provider-capabilities.ts";
 import { verifyOnboardingPlanDigest } from "./planner.ts";
+import type { OperatorEventInput } from "./operator-events.ts";
 import { completeOnboardingWizard, createOnboardingWizardState, createOnboardingWizardView, handleOnboardingWizardKey, type OnboardingWizardOptions, type OnboardingWizardResult, type WizardEffect, type WizardRow } from "./wizard.ts";
 export { createOnboardingViewModel, renderOnboardingText } from "./presentation.ts";
 export type { WizardStepId } from "./wizard.ts";
@@ -14,6 +15,7 @@ export interface OnboardingTuiOptions extends OnboardingWizardOptions {
   now?: () => Date;
   /** Renderer injection supports deterministic keyboard and size regressions. */
   createRenderer?: typeof createCliRenderer;
+  onEvent?: (event: OperatorEventInput) => void;
 }
 export interface OnboardingTuiResult extends OnboardingWizardResult {}
 
@@ -56,7 +58,8 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
   const selector = new SelectRenderable(renderer, { id: "wizard-actions", width: "60%", height: "100%", options: [], wrapSelection: false, showDescription: false, selectedBackgroundColor: "#2c5282", selectedTextColor: "#ffffff" });
   const details = new BoxRenderable(renderer, { flexGrow: 1, height: "100%", border: true, borderColor: "#4c566a", title: "Selected action", paddingX: 1 });
   const detail = new TextRenderable(renderer, { content: "", fg: "#d8dee9" });
-  const footer = new TextRenderable(renderer, { height: 1, content: "↑/↓ choose · Enter activate · q/esc cancel", fg: "#88c0d0" });
+  const controls = options.allowInspection ? "↑/↓ choose · Enter activate · d health · l logs · q/esc cancel" : "↑/↓ choose · Enter activate · q/esc cancel";
+  const footer = new TextRenderable(renderer, { height: 1, content: controls, fg: "#88c0d0" });
   details.add(detail); body.add(selector); body.add(details);
   root.add(heading); root.add(body); root.add(footer); renderer.root.add(root);
   const show = (preferredRowId?: string): void => {
@@ -73,6 +76,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
     detail.content = rowDetails(view.rows.find(({ id }) => id === currentRowId));
   });
   show(); selector.focus(); renderer.start();
+  options.onEvent?.({ event_type: "step", surface: "tui", step: state.step });
   await new Promise<void>((resolve) => {
     let finished = false;
     const finish = (effect: WizardEffect): void => {
@@ -89,7 +93,11 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
       const previousStep = state.step;
       const transition = handleOnboardingWizardKey(currentPlan, state, wizardOptions, key.name, currentRowId);
       if (transition.state === state && !transition.effect) return;
+      const row = view.rows.find(({ id }) => id === currentRowId);
+      if (transition.effect?.kind === "health" || transition.effect?.kind === "logs") options.onEvent?.({ event_type: "action", surface: "tui", step: state.step, action_kind: transition.effect.kind, outcome: "requested" });
+      else if (row) options.onEvent?.({ event_type: "action", surface: "tui", step: state.step, action_kind: row.action.kind, outcome: row.disabled ? "held" : "requested" });
       state = transition.state;
+      if (state.step !== previousStep) options.onEvent?.({ event_type: "step", surface: "tui", step: state.step });
       const effect = transition.effect;
       if (effect?.kind === "replan") {
         if (!options.replanModuleSelections) return;
@@ -109,7 +117,7 @@ export async function runOnboardingTui(plan: OnboardingPlanV1, options: Onboardi
           if (closed) return;
           state = { ...state, notice: `Selection unchanged: ${error instanceof Error ? error.message : "ONBOARDING_REPLAN_FAILED"}` };
           show(preferred);
-        }).finally(() => { replanning = false; if (!closed) footer.content = "↑/↓ choose · Enter activate · q/esc cancel"; });
+        }).finally(() => { replanning = false; if (!closed) footer.content = controls; });
         return;
       }
       if (effect) { finish(effect); return; }

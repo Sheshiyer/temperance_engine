@@ -40,6 +40,8 @@ import { NineRouterApiClient } from "./onboarding/nine-router-api.ts";
 import { readOnboardingRoutingSnapshot } from "./onboarding/routing-snapshot.ts";
 import { readWizardPreferences, writeWizardPreferences } from "./onboarding/wizard-preferences.ts";
 import type { WizardStepId } from "./onboarding/wizard.ts";
+import { createOperatorEventLog, type OperatorEventInput, type OperatorEventV1 } from "./onboarding/operator-events.ts";
+import { projectOperatorHealth, renderOperatorHealth } from "./onboarding/operator-health.ts";
 import { compileNineRouterGuidedSetup, createNineRouterSeatingDraft } from "./onboarding/nine-router-seating.ts";
 import { parseNineRouterSeatingArgs } from "./onboarding/nine-router-seating-cli-args.ts";
 import { writePrivateNineRouterSetup } from "./onboarding/nine-router-setup-writer.ts";
@@ -57,6 +59,11 @@ const packageRoot = resolve(import.meta.dir, "..");
 const repositoryRoot = resolve(packageRoot, "../..");
 const fragmentRoot = resolve(packageRoot, "fragments");
 const lockPath = resolve(packageRoot, "install-surface-manifest.lock.json");
+
+function renderOperatorEvents(events: readonly OperatorEventV1[]): string {
+  if (!events.length) return "No local operator events recorded. Use --telemetry to opt in.";
+  return events.map(event => [event.timestamp, event.run_id.slice(0, 8), event.surface, event.step ?? "-", event.action_kind ?? event.event_type, event.outcome ?? "-", event.duration_ms === undefined ? "" : `${event.duration_ms}ms`].filter(Boolean).join(" · ")).join("\n");
+}
 
 // ─── Lifecycle IO (real filesystem) ──────────────────────────────────────────
 
@@ -353,8 +360,27 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "onboard") {
+    let eventLog: ReturnType<typeof createOperatorEventLog> | undefined;
+    let telemetryFailed = false;
+    let surface: "tui" | "agent" | "health" = "tui";
+    const startedAt = Date.now();
+    const record = (event: OperatorEventInput): void => {
+      if (!eventLog || telemetryFailed) return;
+      try { eventLog.record(event); } catch { telemetryFailed = true; }
+    };
+    const telemetry = () => ({ enabled: Boolean(eventLog), status: telemetryFailed ? "unavailable" : eventLog ? "local-metadata-only" : "disabled", ...(eventLog ? { run_id: eventLog.runId } : {}) });
     try {
       const args = parseOnboardingArgs(process.argv.slice(3));
+      const stateRoot = getStateRoot();
+      if (args.logs) {
+        const events = createOperatorEventLog(stateRoot).read({ limit: args.logLimit ?? 50, runId: args.runId });
+        process.stdout.write(args.json ? `${JSON.stringify({ schema: "temperance.operator-log-view.v1", events }, null, 2)}\n` : `${renderOperatorEvents(events)}\n`);
+        process.exitCode = 0;
+        return;
+      }
+      surface = args.agent ? "agent" : args.health ? "health" : "tui";
+      if (args.telemetry) eventLog = createOperatorEventLog(stateRoot);
+      record({ event_type: "started", surface });
       const catalog = args.catalogPath
         ? loadOnboardingJson<OnboardingCatalogV1>(args.catalogPath, validateOnboardingCatalog, "ONBOARDING_CATALOG_INVALID")
         : createCoreOnboardingCatalog();
@@ -378,12 +404,13 @@ async function main(): Promise<void> {
         ? loadOnboardingJson<NineRouterGuidedSetupV1>(args.routerSetupPath, validateNineRouterGuidedSetupV1, "NINE_ROUTER_SETUP_INVALID")
         : undefined;
       const plannedCatalog = routerSetup ? prepareNineRouterGuidedSetupCatalog(catalog, routerSetup, profile) : catalog;
-      const discovery = hostProfile && hostBinding
+      const buildPlan = async (selections?: ReadonlySet<string>): Promise<OnboardingPlanV1> => {
+        const discovery = hostProfile && hostBinding
         ? discoverProjectCandidates(hostProfile, hostBinding, {
           hostProfileDirectory: dirname(resolve(args.hostProfilePath!)),
         })
         : { candidates: [], findings: [] };
-      const buildPlan = (selections?: ReadonlySet<string>): Promise<OnboardingPlanV1> => createOnboardingPlan({
+        return createOnboardingPlan({
         catalog: plannedCatalog,
         profile,
         adapter: createSystemProbeAdapter(),
@@ -393,13 +420,71 @@ async function main(): Promise<void> {
         dryRun: !args.apply,
         configurationInputs: routerSetup ? [createNineRouterGuidedSetupPlanInput(routerSetup, profile)] : [],
       });
+      };
       const moduleIds = plannedCatalog.modules.map(({ id }) => id);
       const savedPreferences = args.wizardStatePath ? readWizardPreferences(resolve(args.wizardStatePath), profile.id, moduleIds) : undefined;
       const plan = await buildPlan(args.selections ?? (savedPreferences ? new Set(savedPreferences.selected_module_ids) : undefined));
+      const inspectHealth = async (currentPlan: OnboardingPlanV1) => {
+        const [snapshot, install] = await Promise.all([
+          readOnboardingRoutingSnapshot({ plan: currentPlan, profile, hostProfile, routerSetup }),
+          runDoctorV2({ repositoryRoot, stateRoot, inventory: loadLock(lockPath), sections: ["install"] }),
+        ]);
+        let sessionAdmission: { ok: boolean; reasonCode: string } | undefined;
+        if (profile.routing_aliases.length) {
+          try {
+            // Optional router diagnostics must not become a startup dependency
+            // for portable lifecycle-only installations.
+            const { checkSessionAdmission } = await import("../../router/session-admission-cli.ts");
+            sessionAdmission = checkSessionAdmission(["--alias", profile.routing_aliases[0]!.combo]);
+          }
+          catch { sessionAdmission = { ok: false, reasonCode: "SESSION_POLICY_INVALID" }; }
+        }
+        const report = projectOperatorHealth({ plan: currentPlan, routing: snapshot.routing, routingObserved: Boolean(snapshot.connection), install, sessionAdmission, observedAt: new Date().toISOString() });
+        record({ event_type: "health", surface, outcome: report.overall_status === "PASS" ? "ok" : "held", counts: { checks: report.checks.length, passed: report.counts.pass, blocked: report.counts.hold } });
+        return report;
+      };
       if (args.apply && (plan.install_order.length !== 1 || plan.install_order[0] !== "provider.9router")) {
         throw new Error("NINE_ROUTER_REPAIR_SCOPE_INVALID");
       }
-      if (args.doctor) {
+      if (args.health) {
+        const report = await inspectHealth(plan);
+        record({ event_type: "completed", surface, duration_ms: Date.now() - startedAt });
+        process.stdout.write(args.json ? `${JSON.stringify({ ...report, telemetry: telemetry() }, null, 2)}\n` : `${renderOperatorHealth(report)}\nTelemetry: ${telemetry().status}\n`);
+        process.exitCode = report.overall_status === "PASS" ? 0 : 1;
+      } else if (args.agent) {
+        const { projectAgentFlow } = await import("./onboarding/agent-flow.ts");
+        const snapshot = await readOnboardingRoutingSnapshot({ plan, profile, hostProfile, routerSetup });
+        const options = {
+          step: args.step, actionId: args.actionId, selectedCandidateIds: args.selectedCandidateIds,
+          existingProjectCapsules: projectCapsules, allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
+          routing: snapshot.routing, allowRoutingAuthorization: Boolean(snapshot.connection),
+          allowRoutingSeating: Boolean(snapshot.connection) && (snapshot.routing?.live_model_count ?? 0) > 0 && Boolean(profile.secret_references.NINE_ROUTER_GATEWAY_KEY),
+          allowModuleReplan: true, allowInspection: true,
+        };
+        const requestedAction = args.actionId ? projectAgentFlow(plan, { ...options, actionId: undefined }).actions.find(({ id }) => id === args.actionId) : undefined;
+        let flow = projectAgentFlow(plan, options);
+        if (requestedAction) record({ event_type: "action", surface, step: args.step ?? "host", action_kind: requestedAction.kind, outcome: "requested" });
+        let health;
+        let events;
+        let inspectionError: string | undefined;
+        if (flow.handoff?.kind === "replan") {
+          const replanned = await buildPlan(new Set(flow.handoff.requested_module_ids));
+          flow = projectAgentFlow(replanned, { ...options, actionId: undefined, step: flow.state.step, selectedCandidateIds: flow.state.selected_candidate_ids });
+        } else if (flow.handoff?.kind === "health" || flow.handoff?.kind === "logs" || flow.handoff?.kind === "refresh") {
+          if (flow.handoff.kind === "health") health = await inspectHealth(plan);
+          if (flow.handoff.kind === "logs") {
+            try { events = createOperatorEventLog(stateRoot).read({ limit: 50 }); }
+            catch { inspectionError = "OPERATOR_LOG_UNAVAILABLE"; }
+          }
+          const { handoff: _handled, ...observedFlow } = flow;
+          flow = { ...observedFlow, transition: { ...flow.transition!, outcome: "inspected" } };
+        }
+        record({ event_type: "step", surface, step: flow.state.step });
+        record({ event_type: "completed", surface, outcome: flow.handoff || inspectionError ? "held" : "ok", duration_ms: Date.now() - startedAt });
+        // Workflow arrays are ordered, unlike the ID-sorted inventory format.
+        process.stdout.write(`${JSON.stringify({ ...flow, ...(health ? { health } : {}), ...(events ? { events } : {}), ...(inspectionError ? { inspection_error: inspectionError } : {}), telemetry: telemetry() }, null, 2)}\n`);
+        process.exitCode = 0;
+      } else if (args.doctor) {
         const section = projectOnboardingDoctorSection(plan);
         const routing = args.json ? undefined : (await readOnboardingRoutingSnapshot({ plan, profile, hostProfile, routerSetup })).routing;
         process.stdout.write(args.json ? canonical(section) : renderOnboardingText(plan, routing));
@@ -407,9 +492,9 @@ async function main(): Promise<void> {
       } else if (args.tui || (!args.json && process.stdin.isTTY && process.stdout.isTTY)) {
         if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("ONBOARDING_TUI_REQUIRES_TTY");
         let activePlan = plan;
-        let resumeStep: WizardStepId | undefined = args.apply ? "review" : undefined;
-        let selectedCandidateIds: string[] = [];
-        let notice: string | undefined;
+        let resumeStep: WizardStepId | undefined = args.apply ? "review" : args.step;
+        let selectedCandidateIds: string[] = args.selectedCandidateIds ?? [];
+        let notice: string | undefined = args.telemetry ? `Telemetry: ${telemetry().status}. Use d for health or l for recent events.` : undefined;
         while (true) {
           const { routing, connection } = await readOnboardingRoutingSnapshot({ plan: activePlan, profile, hostProfile, routerSetup });
           const routingApi = connection ? new NineRouterApiClient(connection) : undefined;
@@ -418,6 +503,8 @@ async function main(): Promise<void> {
             initialStep: resumeStep,
             selectedCandidateIds,
             notice,
+            allowInspection: !args.apply,
+            onEvent: record,
             hostDescription: hostBinding?.host_identity ? `${hostBinding.host_identity.chip_model} · ${hostBinding.host_identity.hardware_model} · ${hostBinding.host_identity.platform}/${hostBinding.host_identity.architecture}` : "Portable Temperance · no personal layer required",
             existingProjectCapsules: projectCapsules,
             allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
@@ -429,6 +516,23 @@ async function main(): Promise<void> {
           resumeStep = result.resume_step;
           selectedCandidateIds = result.selected_candidate_ids ?? selectedCandidateIds;
           notice = undefined;
+          if (result.inspection_requested) {
+            const { runOperatorReportTui } = await import("./onboarding/operator-report-tui.ts");
+            // The renderer may have re-planned local module choices. Both
+            // inspectors must retain them before reopening the wizard.
+            activePlan = await buildPlan(new Set(result.selected_module_ids));
+            let content: string;
+            if (result.inspection_requested === "health") {
+              content = renderOperatorHealth(await inspectHealth(activePlan));
+            } else {
+              try {
+                const events = createOperatorEventLog(stateRoot).read({ limit: 50 });
+                content = `Telemetry: ${telemetry().status}\nTime · run · interface · step · event/action · outcome · duration\n${renderOperatorEvents(events)}`;
+              } catch { content = "Local telemetry unavailable. No raw log content was displayed."; }
+            }
+            await runOperatorReportTui(result.inspection_requested === "health" ? "Doctor & health" : "Local telemetry", content);
+            continue;
+          }
           if (result.routing_authorization_provider_id) {
             if (args.apply || !routingApi || !routing?.compatible) throw new Error("NINE_ROUTER_OAUTH_ACTION_UNAVAILABLE");
             const { runNineRouterOAuthTui } = await import("./onboarding/nine-router-oauth-tui.ts");
@@ -495,7 +599,8 @@ async function main(): Promise<void> {
             process.stdout.write(`${canonical(receipt)}\n`);
             process.exitCode = receipt.status === "committed" ? 0 : 1;
           } else {
-            process.stdout.write(`${canonical({ confirmed: result.confirmed, preferences_saved: Boolean(result.confirmed && args.wizardStatePath), project_capsules_saved: result.save_project_capsules, runtime_activation: "not-performed", context_readiness: "unverified" })}\n`);
+            record({ event_type: result.confirmed ? "completed" : "cancelled", surface, outcome: result.confirmed ? "confirmed" : "cancelled", duration_ms: Date.now() - startedAt });
+            process.stdout.write(`${canonical({ confirmed: result.confirmed, preferences_saved: Boolean(result.confirmed && args.wizardStatePath), project_capsules_saved: result.save_project_capsules, runtime_activation: "not-performed", context_readiness: "unverified", telemetry: telemetry() })}\n`);
             process.exitCode = 0;
           }
           break;
@@ -506,7 +611,9 @@ async function main(): Promise<void> {
         process.exitCode = 0;
       }
     } catch (error) {
-      process.stderr.write(`temperance onboard: ${error instanceof Error ? error.message : String(error)}\n`);
+      record({ event_type: "failed", surface, outcome: "failed", duration_ms: Math.min(Date.now() - startedAt, 86_400_000) });
+      const reason = error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : "ONBOARDING_OPERATION_FAILED";
+      process.stderr.write(`temperance onboard: ${reason}\n`);
       process.exitCode = 64;
     }
     return;
@@ -773,6 +880,13 @@ Commands:
           [--project-capsules P --project-capsules-out P --tui]
                                    Review advisory candidates and explicitly save capsules
           [--wizard-state P --tui]  Save module requests on confirmation; re-probe on every launch
+          --agent [--step S --action ID --project-select IDS --select IDS]
+                                   JSON actions from the shared wizard; writes/auth require handoff
+          --health [--json]         Fresh prerequisites, routing, install doctor and session admission
+          --logs [--json --limit N --run ID]
+                                   Read bounded local operator events; never remote service logs
+          [--telemetry]            Opt-in metadata-only local events for TUI, agent or health
+          --tui [--step S]          Guided interface; d health, l recent events, Enter actions
           --tui --repair --host-profile P --host-binding B --router-setup R
           --receipt-dir D --select provider.9router
                                    Confirm and apply one digest-bound 9Router repair transaction
