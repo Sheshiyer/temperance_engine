@@ -38,6 +38,8 @@ import { createHostBinding, writePrivateHostBinding } from "./onboarding/host-bi
 import { MacOsKeychainAdapter } from "./onboarding/keychain-adapter.ts";
 import { NineRouterApiClient } from "./onboarding/nine-router-api.ts";
 import { readOnboardingRoutingSnapshot } from "./onboarding/routing-snapshot.ts";
+import { readWizardPreferences, writeWizardPreferences } from "./onboarding/wizard-preferences.ts";
+import type { WizardStepId } from "./onboarding/wizard.ts";
 import { compileNineRouterGuidedSetup, createNineRouterSeatingDraft } from "./onboarding/nine-router-seating.ts";
 import { parseNineRouterSeatingArgs } from "./onboarding/nine-router-seating-cli-args.ts";
 import { writePrivateNineRouterSetup } from "./onboarding/nine-router-setup-writer.ts";
@@ -391,7 +393,9 @@ async function main(): Promise<void> {
         dryRun: !args.apply,
         configurationInputs: routerSetup ? [createNineRouterGuidedSetupPlanInput(routerSetup, profile)] : [],
       });
-      const plan = await buildPlan(args.selections);
+      const moduleIds = plannedCatalog.modules.map(({ id }) => id);
+      const savedPreferences = args.wizardStatePath ? readWizardPreferences(resolve(args.wizardStatePath), profile.id, moduleIds) : undefined;
+      const plan = await buildPlan(args.selections ?? (savedPreferences ? new Set(savedPreferences.selected_module_ids) : undefined));
       if (args.apply && (plan.install_order.length !== 1 || plan.install_order[0] !== "provider.9router")) {
         throw new Error("NINE_ROUTER_REPAIR_SCOPE_INVALID");
       }
@@ -403,31 +407,74 @@ async function main(): Promise<void> {
       } else if (args.tui || (!args.json && process.stdin.isTTY && process.stdout.isTTY)) {
         if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("ONBOARDING_TUI_REQUIRES_TTY");
         let activePlan = plan;
+        let resumeStep: WizardStepId | undefined = args.apply ? "review" : undefined;
+        let selectedCandidateIds: string[] = [];
+        let notice: string | undefined;
         while (true) {
           const { routing, connection } = await readOnboardingRoutingSnapshot({ plan: activePlan, profile, hostProfile, routerSetup });
           const routingApi = connection ? new NineRouterApiClient(connection) : undefined;
           const { runOnboardingTui } = await import("./onboarding/tui.ts");
           const result = await runOnboardingTui(activePlan, {
+            initialStep: resumeStep,
+            selectedCandidateIds,
+            notice,
+            hostDescription: hostBinding?.host_identity ? `${hostBinding.host_identity.chip_model} · ${hostBinding.host_identity.hardware_model} · ${hostBinding.host_identity.platform}/${hostBinding.host_identity.architecture}` : "Portable Temperance · no personal layer required",
             existingProjectCapsules: projectCapsules,
             allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
             replanModuleSelections: args.apply ? undefined : buildPlan,
             routing,
             allowRoutingAuthorization: !args.apply && Boolean(routing?.compatible) && Boolean(routingApi),
+            allowRoutingSeating: !args.apply && Boolean(routing?.compatible) && Boolean(routingApi) && (routing?.live_model_count ?? 0) > 0 && Boolean(profile.secret_references.NINE_ROUTER_GATEWAY_KEY),
           });
+          resumeStep = result.resume_step;
+          selectedCandidateIds = result.selected_candidate_ids ?? selectedCandidateIds;
+          notice = undefined;
           if (result.routing_authorization_provider_id) {
             if (args.apply || !routingApi || !routing?.compatible) throw new Error("NINE_ROUTER_OAUTH_ACTION_UNAVAILABLE");
             const { runNineRouterOAuthTui } = await import("./onboarding/nine-router-oauth-tui.ts");
-            await runNineRouterOAuthTui({
-              providerId: result.routing_authorization_provider_id,
-              api: routingApi,
-            });
+            try {
+              const authorization = await runNineRouterOAuthTui({
+                providerId: result.routing_authorization_provider_id,
+                api: routingApi,
+              });
+              notice = authorization.connected ? `${authorization.provider}: sign-in verified by 9Router. Continue or connect another provider.` : "Sign-in was not completed. Retry or explicitly defer it.";
+            } catch {
+              notice = "Provider sign-in could not start. Your choices are preserved; check 9Router, then retry or defer.";
+            }
             activePlan = await buildPlan(new Set(result.selected_module_ids));
+            continue;
+          }
+          if (result.routing_seating_requested) {
+            if (args.apply || !routingApi || !routing?.compatible) throw new Error("NINE_ROUTER_SEATING_ACTION_UNAVAILABLE");
+            const { runWizardRouterSetup } = await import("./onboarding/wizard-router-setup.ts");
+            const { runNineRouterSeatingTui } = await import("./onboarding/nine-router-seating-tui.ts");
+            const { runNineRouterSetupReviewTui } = await import("./onboarding/nine-router-setup-review-tui.ts");
+            const setupResult = await runWizardRouterSetup({
+              catalog, profile, requiredAliases: [...new Set(profile.routing_aliases.map(({ combo }) => combo))],
+              gatewayReferenceId: "NINE_ROUTER_GATEWAY_KEY", api: routingApi, keychain: new MacOsKeychainAdapter(),
+              executable: { id: "9router", path: profile.variables.NINE_ROUTER_CLI_ENTRYPOINT ?? "", version: "0.5.75" },
+              receiptSink: createFileOperationReceiptSink(resolve(getStateRoot(), "onboarding-receipts")),
+              selectSeats: runNineRouterSeatingTui, confirmReview: runNineRouterSetupReviewTui,
+            });
+            notice = setupResult.status === "committed" ? "9Router combos and gateway key read back successfully. Context/session admission still requires separate proof."
+              : `9Router setup ${setupResult.status}${setupResult.reason_code ? `: ${setupResult.reason_code}` : ""}. Existing state was not silently replaced.`;
+            activePlan = await buildPlan(new Set(result.selected_module_ids));
+            continue;
+          }
+          if (result.refresh_requested) {
+            activePlan = await buildPlan(new Set(result.selected_module_ids));
+            notice = "Prerequisites rechecked against current host and 9Router state.";
             continue;
           }
           if (result.save_project_capsules) {
             const output = resolve(args.projectCapsulesOutPath!);
             mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
             await lifecycleIO.writeFileAtomic!(output, `${canonical(result.project_capsules)}\n`, { mode: 0o600 });
+          }
+          if (!args.apply && result.confirmed && args.wizardStatePath) {
+            writeWizardPreferences(resolve(args.wizardStatePath), {
+              schema: "temperance.onboarding-preferences.v1", profile_id: profile.id, selected_module_ids: result.selected_module_ids,
+            }, moduleIds);
           }
           if (args.apply && result.confirmed) {
             if (!result.confirmed_at || !routerSetup) throw new Error("NINE_ROUTER_REPAIR_CONFIRMATION_INVALID");
@@ -448,6 +495,7 @@ async function main(): Promise<void> {
             process.stdout.write(`${canonical(receipt)}\n`);
             process.exitCode = receipt.status === "committed" ? 0 : 1;
           } else {
+            process.stdout.write(`${canonical({ confirmed: result.confirmed, preferences_saved: Boolean(result.confirmed && args.wizardStatePath), project_capsules_saved: result.save_project_capsules, runtime_activation: "not-performed", context_readiness: "unverified" })}\n`);
             process.exitCode = 0;
           }
           break;
@@ -724,6 +772,7 @@ Commands:
                                    Open generic TUI by default; Noesis is an explicit overlay
           [--project-capsules P --project-capsules-out P --tui]
                                    Review advisory candidates and explicitly save capsules
+          [--wizard-state P --tui]  Save module requests on confirmation; re-probe on every launch
           --tui --repair --host-profile P --host-binding B --router-setup R
           --receipt-dir D --select provider.9router
                                    Confirm and apply one digest-bound 9Router repair transaction

@@ -6,6 +6,7 @@ import {
   TextRenderable,
   createCliRenderer,
   type SelectOption,
+  type CliRenderer,
 } from "@opentui/core";
 
 import type { NineRouterAvailableModel } from "./nine-router-api.ts";
@@ -16,13 +17,14 @@ import {
   toggleNineRouterSeatModel,
   type NineRouterSeatingDraft,
 } from "./nine-router-seating.ts";
-import { isSimpleConfirmationKey } from "./simple-confirmation.ts";
 
 export interface NineRouterSeatingTuiOptions {
   requiredAliases: readonly string[];
   availableModels: readonly NineRouterAvailableModel[];
   initialSelections?: Readonly<Record<string, readonly string[]>>;
   now?: () => Date;
+  /** In-memory renderer injection for terminal verification only. */
+  renderer?: CliRenderer;
 }
 
 export interface NineRouterSeatingTuiResult {
@@ -67,92 +69,109 @@ export function createNineRouterSeatingTuiView(
   return { alias_options: aliasOptions, model_options: modelOptions, detail, confirmable: canConfirmNineRouterSeating(draft) };
 }
 
+export interface NineRouterSeatingFlowState {
+  draft: NineRouterSeatingDraft;
+  alias_index: number;
+  current_model?: string;
+  status: "editing" | "confirmed" | "cancelled";
+  notice?: string;
+}
+
+export type NineRouterSeatingAction =
+  | { kind: "model"; id: string }
+  | { kind: "move"; direction: -1 | 1 }
+  | { kind: "continue" | "back" | "cancel" };
+
+export function advanceNineRouterSeatingFlow(state: NineRouterSeatingFlowState, action: NineRouterSeatingAction): NineRouterSeatingFlowState {
+  if (state.status !== "editing") return state;
+  const seat = state.draft.seats[state.alias_index];
+  if (action.kind === "cancel" || (action.kind === "back" && state.alias_index === 0)) return { ...state, status: "cancelled" };
+  if (action.kind === "back") return { ...state, alias_index: state.alias_index - 1, current_model: undefined, notice: undefined };
+  if (!seat) return { ...state, notice: "No semantic alias is available." };
+  if (action.kind === "model") return { ...state, draft: toggleNineRouterSeatModel(state.draft, seat.alias, action.id), current_model: action.id, notice: undefined };
+  if (action.kind === "move") {
+    if (!state.current_model || !seat.selected_model_ids.includes(state.current_model)) return { ...state, notice: "Select a model first, then choose Move earlier or Move later." };
+    return { ...state, draft: moveNineRouterSeatModel(state.draft, seat.alias, state.current_model, action.direction), notice: undefined };
+  }
+  if (seat.state !== "ready") return { ...state, notice: "Choose at least one live provider model before continuing." };
+  if (state.alias_index < state.draft.seats.length - 1) return { ...state, alias_index: state.alias_index + 1, current_model: undefined, notice: undefined };
+  return canConfirmNineRouterSeating(state.draft)
+    ? { ...state, status: "confirmed", notice: undefined }
+    : { ...state, notice: "Every alias needs a live provider model; use Back to complete it." };
+}
+
+export function nineRouterSeatingFlowOptions(state: NineRouterSeatingFlowState): SelectOption[] {
+  const seat = state.draft.seats[state.alias_index];
+  const view = createNineRouterSeatingTuiView(state.draft, seat?.alias);
+  return [
+    { name: state.alias_index === state.draft.seats.length - 1 ? "Continue to final 9Router review" : "Continue to next alias", description: "Requires at least one selected live model", value: { kind: "continue" } },
+    { name: state.alias_index === 0 ? "Back to provider setup" : "Back to previous alias", description: "Keep current choices while moving back", value: { kind: "back" } },
+    { name: "Move highlighted model earlier", description: "Earlier means higher fallback priority", value: { kind: "move", direction: -1 } },
+    { name: "Move highlighted model later", description: "Later means lower fallback priority", value: { kind: "move", direction: 1 } },
+    { name: "Cancel seating", description: "No changes will be applied", value: { kind: "cancel" } },
+    ...view.model_options.map(option => ({ ...option, value: { kind: "model", id: option.value } })),
+  ];
+}
+
 /**
  * Collects ordered combo membership from live 9Router choices. It has no file,
  * Keychain, API-write, or host-mutation capability; the caller must bind the
  * returned combos into a newly reviewed onboarding plan.
  */
 export async function runNineRouterSeatingTui(options: NineRouterSeatingTuiOptions): Promise<NineRouterSeatingTuiResult> {
-  let draft = createNineRouterSeatingDraft(options.requiredAliases, options.availableModels, options.initialSelections);
-  let currentAlias = draft.seats[0]?.alias;
-  let currentModel = draft.choices[0]?.id;
-  let view = createNineRouterSeatingTuiView(draft, currentAlias);
-  const renderer = await createCliRenderer({ exitOnCtrlC: true, clearOnShutdown: true, useMouse: true });
-  const root = new BoxRenderable(renderer, { id: "9router-seating-root", width: "100%", height: "100%", flexDirection: "column", backgroundColor: "#0b1020", padding: 1, gap: 1 });
-  const header = new BoxRenderable(renderer, { width: "100%", height: 5, border: true, borderStyle: "rounded", borderColor: "#88c0d0", title: "9Router semantic seating", paddingX: 1 });
-  const headerText = new TextRenderable(renderer, { content: "LIVE CATALOG · provider models only\nSelections remain uncommitted until the onboarding plan is reviewed.", fg: "#d8dee9" });
-  header.add(headerText);
-  const content = new BoxRenderable(renderer, { width: "100%", flexGrow: 1, flexDirection: "row", gap: 1 });
-  const aliases = new SelectRenderable(renderer, { id: "semantic-aliases", width: "34%", height: "100%", options: view.alias_options, wrapSelection: true, showDescription: true, selectedBackgroundColor: "#2c5282", selectedTextColor: "#ffffff" });
-  const modelsBox = new BoxRenderable(renderer, { width: "40%", height: "100%", border: true, borderStyle: "single", borderColor: "#4c566a", title: "Live model dropdown", padding: 1 });
-  const models = new SelectRenderable(renderer, { id: "provider-models", width: "100%", height: "100%", options: view.model_options, wrapSelection: true, showDescription: true, selectedBackgroundColor: "#2c5282", selectedTextColor: "#ffffff" });
-  modelsBox.add(models);
-  const detailBox = new BoxRenderable(renderer, { width: "26%", height: "100%", border: true, borderStyle: "single", borderColor: "#4c566a", title: "Ordered seat", padding: 1 });
-  const detail = new TextRenderable(renderer, { content: view.detail, fg: "#d8dee9" });
-  detailBox.add(detail);
-  content.add(aliases); content.add(modelsBox); content.add(detailBox);
-  const footer = new TextRenderable(renderer, { height: 1, content: "←/→ switch pane · ↑/↓ choose · space toggle · [/] reorder · enter/y continue · q cancel", fg: "#88c0d0" });
-  root.add(header); root.add(content); root.add(footer); renderer.root.add(root); aliases.focus(); renderer.start();
-
-  let focused: "aliases" | "models" = "aliases";
-  let confirmed = false;
-  let confirmedAt: string | undefined;
+  let state: NineRouterSeatingFlowState = { draft: createNineRouterSeatingDraft(options.requiredAliases, options.availableModels, options.initialSelections), alias_index: 0, status: "editing" };
+  const renderer = options.renderer ?? await createCliRenderer({ exitOnCtrlC: true, clearOnShutdown: true, useMouse: true });
+  const root = new BoxRenderable(renderer, { id: "9router-seating-root", width: "100%", height: "100%", flexDirection: "column", backgroundColor: "#0b1020", padding: 1 });
+  const header = new TextRenderable(renderer, { height: 3, flexShrink: 0, content: "", fg: "#d8dee9" });
+  const detail = new TextRenderable(renderer, { height: 3, flexShrink: 0, content: "", fg: "#88c0d0" });
+  const selector = new SelectRenderable(renderer, { id: "sequential-alias-models", width: "100%", flexGrow: 1, minHeight: 3, options: [], wrapSelection: true, showDescription: false, showScrollIndicator: true, selectedBackgroundColor: "#2c5282", selectedTextColor: "#ffffff" });
+  const footer = new TextRenderable(renderer, { height: 2, flexShrink: 0, content: "↑/↓ choose · Enter toggles model or activates action\nHome: actions · [ / ] reorder selected model · Esc: cancel", fg: "#88c0d0" });
+  root.add(header); root.add(detail); root.add(selector); root.add(footer); renderer.root.add(root);
   let closed = false;
-  const refresh = (): void => {
-    view = createNineRouterSeatingTuiView(draft, currentAlias);
-    aliases.options = view.alias_options;
-    models.options = view.model_options;
-    detail.content = view.detail;
-    if (!currentModel || !draft.choices.some(({ id }) => id === currentModel)) currentModel = draft.choices[0]?.id;
-    const modelIndex = Math.max(0, draft.choices.findIndex(({ id }) => id === currentModel));
-    if (models.options.length > 0) models.setSelectedIndex(modelIndex);
-    footer.content = `←/→ switch pane · ↑/↓ choose · space toggle · [/] reorder · ${view.confirmable ? "enter/y continue" : "seat every alias"} · q cancel`;
+  let refreshing = false;
+  const refresh = (index = selector.getSelectedIndex()): void => {
+    refreshing = true;
+    const seat = state.draft.seats[state.alias_index]!;
+    header.content = `9Router seating · Alias ${state.alias_index + 1}/${state.draft.seats.length}\n${seat.alias}\nChoose live models in fallback order. Nothing is applied yet.`;
+    detail.content = `${state.notice ?? (seat.state === "held" ? "Held: connect a provider, then refresh the live catalog." : "Enter on a model selects/removes it; first selected is the head.")}\nOrdered seats: ${seat.selected_model_ids.length}; highlighted: ${state.current_model ?? "none"}`;
+    selector.options = nineRouterSeatingFlowOptions(state);
+    selector.setSelectedIndex(Math.max(0, Math.min(index, selector.options.length - 1)));
+    refreshing = false;
   };
-  aliases.on(SelectRenderableEvents.SELECTION_CHANGED, (_index: number, option: SelectOption) => {
-    if (typeof option?.value !== "string") return;
-    currentAlias = option.value;
-    refresh();
+  selector.on(SelectRenderableEvents.SELECTION_CHANGED, (_index: number, option: SelectOption) => {
+    if (refreshing || option?.value?.kind !== "model") return;
+    state = { ...state, current_model: option.value.id };
+    const seat = state.draft.seats[state.alias_index]!;
+    detail.content = `Live provider model: ${option.value.id}\nSelected order: ${seat.selected_model_ids.indexOf(option.value.id) + 1 || "not selected"}\nUse Move earlier/later actions or [ / ] to reorder.`;
   });
-  models.on(SelectRenderableEvents.SELECTION_CHANGED, (_index: number, option: SelectOption) => {
-    if (typeof option?.value === "string") currentModel = option.value;
-  });
+  refresh(state.draft.choices.length ? 5 : 0);
+  selector.focus(); renderer.start();
 
   await new Promise<void>((resolve) => {
     let finished = false;
     const finish = (): void => { if (finished) return; finished = true; closed = true; renderer.destroy(); resolve(); };
     renderer.once(CliRenderEvents.DESTROY, () => { if (finished) return; finished = true; closed = true; resolve(); });
+    const activate = (action: NineRouterSeatingAction): void => {
+      if (closed) return;
+      const previousAlias = state.alias_index;
+      state = advanceNineRouterSeatingFlow(state, action);
+      if (state.status !== "editing") { finish(); return; }
+      refresh(previousAlias === state.alias_index ? selector.getSelectedIndex() : state.draft.choices.length ? 5 : 0);
+    };
+    selector.on(SelectRenderableEvents.ITEM_SELECTED, (_index: number, option: SelectOption) => { if (option?.value) activate(option.value); });
     renderer.keyInput.on("keypress", (key) => {
       if (closed) return;
-      if (key.name === "q" || key.name === "escape") finish();
-      if (key.name === "left" || key.name === "right" || key.name === "tab") {
-        focused = focused === "aliases" ? "models" : "aliases";
-        if (focused === "aliases") aliases.focus(); else models.focus();
-      }
-      if (key.name === "space" && focused === "models" && currentAlias && currentModel) {
-        draft = toggleNineRouterSeatModel(draft, currentAlias, currentModel);
-        refresh();
-      }
-      if ((key.name === "[" || key.name === "]") && focused === "models" && currentAlias && currentModel) {
-        const seat = draft.seats.find(({ alias }) => alias === currentAlias);
-        if (seat?.selected_model_ids.includes(currentModel)) {
-          draft = moveNineRouterSeatModel(draft, currentAlias, currentModel, key.name === "[" ? -1 : 1);
-          refresh();
-        }
-      }
-      if (isSimpleConfirmationKey(key.name)) {
-        if (!canConfirmNineRouterSeating(draft)) {
-          detail.content = `${view.detail}\n\nEvery semantic alias needs at least one live provider model.`;
-          return;
-        }
-        confirmed = true;
-        confirmedAt = (options.now?.() ?? new Date()).toISOString();
-        finish();
-      }
+      if (key.name === "q" || key.name === "escape") { activate({ kind: "cancel" }); return; }
+      if (key.name === "home") selector.setSelectedIndex(0);
+      if (key.name === "end") selector.setSelectedIndex(selector.options.length - 1);
+      if (key.name === "[" || key.name === "]") activate({ kind: "move", direction: key.name === "[" ? -1 : 1 });
+      if (key.name === "space" && selector.getSelectedOption()?.value?.kind === "model") activate(selector.getSelectedOption()!.value);
     });
   });
+  const confirmed = state.status === "confirmed";
   return {
     confirmed,
-    confirmed_at: confirmedAt,
-    combos: confirmed ? compileNineRouterSeatCombos(draft) : [],
+    confirmed_at: confirmed ? (options.now?.() ?? new Date()).toISOString() : undefined,
+    combos: confirmed ? compileNineRouterSeatCombos(state.draft) : [],
   };
 }

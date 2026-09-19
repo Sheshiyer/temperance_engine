@@ -34,7 +34,7 @@ describe("9router OAuth TUI projection", () => {
       expires_in_seconds: 300,
     });
     expect(view).toMatchObject({ provider: "github", flow: "device-code", user_code: "ABCD-EFGH" });
-    expect(view.body).toContain("press p for one bounded status check");
+    expect(view.body).toContain("press Enter for one bounded status check");
     expect(view.body).toContain("Suggested interval: 5s · expires in 300s");
     expect(view.body).toContain("No automatic polling");
   });

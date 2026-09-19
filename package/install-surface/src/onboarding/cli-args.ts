@@ -5,6 +5,7 @@ export interface OnboardingCliArgs {
   hostBindingPath?: string;
   projectCapsulesPath?: string;
   projectCapsulesOutPath?: string;
+  wizardStatePath?: string;
   routerSetupPath?: string;
   receiptDirectory?: string;
   selections?: Set<string>;
@@ -21,6 +22,7 @@ export function parseOnboardingArgs(args: string[]): OnboardingCliArgs {
   let hostBindingPath: string | undefined;
   let projectCapsulesPath: string | undefined;
   let projectCapsulesOutPath: string | undefined;
+  let wizardStatePath: string | undefined;
   let routerSetupPath: string | undefined;
   let receiptDirectory: string | undefined;
   let selections: Set<string> | undefined;
@@ -42,6 +44,7 @@ export function parseOnboardingArgs(args: string[]): OnboardingCliArgs {
     else if (argument === "--host-binding-file" || argument === "--host-binding") hostBindingPath = takeValue();
     else if (argument === "--project-capsules") projectCapsulesPath = takeValue();
     else if (argument === "--project-capsules-out") projectCapsulesOutPath = takeValue();
+    else if (argument === "--wizard-state") wizardStatePath = takeValue();
     else if (argument === "--router-setup") routerSetupPath = takeValue();
     else if (argument === "--receipt-dir") receiptDirectory = takeValue();
     else if (argument === "--select") selections = new Set(takeValue().split(",").filter(Boolean));
@@ -59,13 +62,14 @@ export function parseOnboardingArgs(args: string[]): OnboardingCliArgs {
     || (usesComposedProfile && (!hostProfilePath || !hostBindingPath))
     || (Boolean(projectCapsulesPath) && !usesComposedProfile)
     || (Boolean(projectCapsulesOutPath) && (!usesComposedProfile || !tui || json || doctor))
+    || (Boolean(wizardStatePath) && (!tui || json || doctor || apply))
     || (apply && (!tui || json || doctor || !usesComposedProfile || !routerSetupPath || !receiptDirectory || !routerOnly || Boolean(projectCapsulesOutPath)))
     || (!apply && Boolean(routerSetupPath || receiptDirectory))
   ) {
     throw new Error("ONBOARDING_ARGUMENT_INVALID");
   }
   return {
-    catalogPath, profilePath, hostProfilePath, hostBindingPath, projectCapsulesPath, projectCapsulesOutPath,
+    catalogPath, profilePath, hostProfilePath, hostBindingPath, projectCapsulesPath, projectCapsulesOutPath, wizardStatePath,
     routerSetupPath, receiptDirectory, selections, json, tui, doctor, apply,
   };
 }

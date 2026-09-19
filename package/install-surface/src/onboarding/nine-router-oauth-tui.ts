@@ -86,12 +86,12 @@ export function createNineRouterOAuthInstructions(
     body: [
       "1. Open the verification URL manually in your browser.",
       ...(session.user_code ? [`2. Enter code: ${session.user_code}`] : ["2. Complete the provider prompt."]),
-      "3. Return here and press p for one bounded status check.",
+      "3. Return here and press Enter for one bounded status check.",
       "",
       `Suggested interval: ${session.poll_interval_seconds}s${session.expires_in_seconds ? ` · expires in ${session.expires_in_seconds}s` : ""}.`,
       "No automatic polling, browser launch, or clipboard write occurs.",
     ].join("\n"),
-    footer: "p poll once · q/esc cancel",
+    footer: "Enter: check sign-in · Esc: back",
   };
 }
 
@@ -180,7 +180,7 @@ export async function runNineRouterOAuthTui(options: NineRouterOAuthTuiOptions):
       connectionIds = ids;
       connected = true;
       connectedAt = (options.now?.() ?? new Date()).toISOString();
-      detail.content = `${capability.display_name}\n\nCONNECTED by 9Router readback.\nConnection IDs: ${connectionIds.join(", ")}\n\nNo provider credential entered Temperance state.`;
+      detail.content = `${capability.display_name}\n\nCONNECTED by 9Router readback.\n${connectionIds.length} active connection(s) verified.\n\nNo provider credential entered Temperance state.`;
       footer.content = "connected · enter/c return to onboarding";
       callbackInput?.blur();
     };
@@ -219,7 +219,7 @@ export async function runNineRouterOAuthTui(options: NineRouterOAuthTuiOptions):
         finish();
         return;
       }
-      if (session.kind === "device-code" && key.name === "p") {
+      if (session.kind === "device-code" && ["p", "enter", "return"].includes(key.name)) {
         const now = options.nowMilliseconds?.() ?? Date.now();
         if (now < nextPollAt) {
           footer.content = `next bounded poll available in ${Math.ceil((nextPollAt - now) / 1000)}s · q/esc cancel`;
@@ -234,7 +234,7 @@ export async function runNineRouterOAuthTui(options: NineRouterOAuthTuiOptions):
           }
           nextPollAt = (options.nowMilliseconds?.() ?? Date.now()) + (poll.retry_after_seconds * 1000);
           detail.content = `${instructions.body}\n\nPENDING · 9Router has not received provider approval yet.`;
-          footer.content = `pending · wait ${poll.retry_after_seconds}s before p · q/esc cancel`;
+          footer.content = `Wait ${poll.retry_after_seconds}s, then Enter to check · Esc: back`;
         }).catch(fail).finally(() => { busy = false; });
       }
     });
