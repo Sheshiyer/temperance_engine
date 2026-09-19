@@ -174,6 +174,80 @@ test("CLI matrix supports filtered human, verbose, JSON, and exact invalid-argum
   expect(invalid.code).toBe(2);
 });
 
+test("CLI --only updates and rolls back its dependency closure without touching unrelated surfaces", async () => {
+  const repository = mkdtempSync(join(tmpdir(), "scoped-lifecycle-cli-"));
+  roots.push(repository);
+  const home = join(repository, "home");
+  const state = join(repository, "state");
+  for (const directory of [home, state, join(repository, "payload"), join(repository, ".planning")]) mkdirSync(directory, { recursive: true });
+  writeFileSync(join(repository, "ISA.md"), "- [x] ISC-769: COPY classification is ratified.\n");
+  writeFileSync(join(repository, ".planning/REQUIREMENTS.md"), "- [ ] **PROV-02** — stable records\n");
+  const packageTarget = join(repository, "package/install-surface");
+  cpSync(resolve(import.meta.dir, ".."), packageTarget, { recursive: true });
+  rmSync(join(packageTarget, "fragments"), { recursive: true, force: true });
+  mkdirSync(join(packageTarget, "fragments"));
+  rmSync(join(packageTarget, "install-surface-manifest.lock.json"), { force: true });
+
+  const records: SurfaceRecord[] = ["helper", "router", "unrelated"].map((id) => ({
+    id: `surface.${id}`, owner: "temperance-engine", class: "COPY", source: `payload/${id}.txt`,
+    destination: { root_token: "TEMPERANCE_STATE", relative_path: `${id}.txt`, ownership: { kind: "exclusive-path" } },
+    authority: { requirement_ids: ["PROV-02"], isa: "ISC-769" },
+    eligibility: { platforms: [process.platform as "darwin" | "linux"], profiles: ["default"], required: true },
+    verification: { method: "sha256", expected: { kind: "file", sha256: sha256(`new ${id}`), mode: "0644" } },
+    rollback: { policy: "restore-backup" },
+    ...(id === "router" ? { depends_on: ["surface.helper"] } : {}),
+  }));
+  for (const id of ["helper", "router", "unrelated"]) {
+    writeFileSync(join(state, `${id}.txt`), `old ${id}`);
+    // A missing unrelated source must not poison a scoped execution.
+    if (id !== "unrelated") writeFileSync(join(repository, "payload", `${id}.txt`), `new ${id}`);
+  }
+  const fragment = { schema: "temperance.install-surface.fragment.v1", schema_uri: "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1", version: { major: 1, minor: 0 }, records };
+  writeFileSync(join(packageTarget, "fragments/scope.json"), JSON.stringify(fragment));
+  const digest = compileFragments([{ name: "scope.json", contents: JSON.stringify(fragment) }], {
+    isaText: readFileSync(join(repository, "ISA.md"), "utf8"), requirementsText: readFileSync(join(repository, ".planning/REQUIREMENTS.md"), "utf8"),
+  }).digest;
+  const environment = { PATH: process.env.PATH ?? "", HOME: home, TEMPERANCE_STATE: state, CODEX_HOME: join(home, ".codex"), CLAUDE_CONFIG_DIR: join(home, ".claude") };
+  const args = ["update", "--profile", "default", "--only", "surface.router", "--json"];
+  const dryRun = await invokeTemporaryCli(repository, home, environment, [...args, "--dry-run"]);
+  expect(dryRun.code).toBe(0);
+  const scope = { mode: "dependency-closure", requested_ids: ["surface.router"], dependency_ids: ["surface.helper"], record_ids: ["surface.helper", "surface.router"] };
+  expect(JSON.parse(dryRun.stdout).scope).toEqual(scope);
+  expect(JSON.parse(dryRun.stdout).inventory_digest).toBe(digest);
+  expect(existsSync(join(state, "transactions"))).toBe(false);
+
+  const update = await invokeTemporaryCli(repository, home, environment, args);
+  expect(update.code).toBe(0);
+  const result = JSON.parse(update.stdout);
+  expect(result.status).toBe("committed");
+  expect(result.scope).toEqual(scope);
+  expect(result.receipt.inventory_digest).toBe(digest);
+  expect(result.outcomes.map(({ record_id }: { record_id: string }) => record_id)).toEqual(scope.record_ids);
+  expect(readFileSync(join(state, "router.txt"), "utf8")).toBe("new router");
+  expect(readFileSync(join(state, "helper.txt"), "utf8")).toBe("new helper");
+  expect(readFileSync(join(state, "unrelated.txt"), "utf8")).toBe("old unrelated");
+
+  const rollback = await invokeTemporaryCli(repository, home, environment, ["rollback", "--select", result.txid, "--json"]);
+  expect(rollback.code).toBe(0);
+  expect(readFileSync(join(state, "router.txt"), "utf8")).toBe("old router");
+  expect(readFileSync(join(state, "helper.txt"), "utf8")).toBe("old helper");
+  expect(readFileSync(join(state, "unrelated.txt"), "utf8")).toBe("old unrelated");
+});
+
+test("CLI scoped dry-run emits exact router closure and rejects unknown or malformed IDs", async () => {
+  const scoped = await invoke(["update", "--profile", "default", "--only", "router.governed-runtime", "--dry-run", "--json"]);
+  expect(scoped.code).toBe(0);
+  const plan = JSON.parse(scoped.stdout);
+  expect(plan.scope).toEqual({ mode: "dependency-closure", requested_ids: ["router.governed-runtime"], dependency_ids: ["router.gsd-backup-helper"], record_ids: ["router.governed-runtime", "router.gsd-backup-helper"] });
+  expect(plan.steps.map(({ record_id }: { record_id: string }) => record_id)).toEqual(["router.gsd-backup-helper", "router.governed-runtime"]);
+  expect(plan.outcomes).toHaveLength(2);
+  for (const only of ["not-a-surface", "router.governed-runtime,"]) {
+    const rejected = await invoke(["update", "--profile", "default", "--only", only, "--dry-run", "--json"]);
+    expect(rejected.code).not.toBe(0);
+    expect(rejected.stdout).toBe("");
+  }
+});
+
 test("DRIFT produces exit 1 and human/JSON renderers share the same observations", async () => {
   const repository = mkdtempSync(join(tmpdir(), "doctor-cli-drift-"));
   roots.push(repository);

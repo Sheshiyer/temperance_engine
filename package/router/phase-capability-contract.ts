@@ -72,7 +72,7 @@ export interface PhaseWorkerContract {
   readonly schema: "temperance.phase-worker-contract.v1";
   readonly surface: CoordinatorSurface;
   readonly surfaceRole: string;
-  readonly coordinatorLane: "noesis-orchestrator";
+  readonly coordinatorLane: string;
   readonly workerLane: string;
   readonly phase: SurfaceStageId;
   readonly phaseOrdinal: number;
@@ -140,8 +140,8 @@ export function resolvePhaseCapabilityContract(input: CapabilityResolutionInput)
   }
   const phaseMap = input.surfaceContract.phaseComboMap as unknown as Record<string, unknown>;
   const coordinator = phaseMap.coordinator;
-  if (!isRecord(coordinator) || coordinator.lane !== "noesis-orchestrator") {
-    return hold("coordinator_lane_invalid", "noesis-orchestrator");
+  if (!isRecord(coordinator) || typeof coordinator.lane !== "string" || !/^[a-z0-9][a-z0-9._-]{0,127}$/u.test(coordinator.lane)) {
+    return hold("coordinator_lane_invalid");
   }
 
   const stage = resolveSurfaceStage(input.surfaceContract, input.phase);
@@ -180,14 +180,17 @@ export function resolvePhaseCapabilityContract(input: CapabilityResolutionInput)
   }
 
   const needsLongContext = input.effort === "E4" || input.effort === "E5" ||
-    (input.requiredContextTokens ?? 0) > 200_000;
+    input.requiredContextTokens !== undefined;
+  if (input.requiredContextTokens !== undefined && (!Number.isSafeInteger(input.requiredContextTokens) || input.requiredContextTokens <= 0)) {
+    return hold("context_window_insufficient");
+  }
   let contextClass: PhaseWorkerContract["contextClass"] = Object.freeze({ kind: "not-required" });
   if (needsLongContext) {
     const context = input.contextEvidence;
     if (!context) return hold("context_evidence_missing");
     if (!exactIdentity(input.selectedSeat, context)) return hold("context_identity_mismatch");
     if (!freshTimestamp(context.verifiedAt, input.now)) return hold("context_evidence_stale");
-    if (!Number.isFinite(context.maxTokens) || context.maxTokens < (input.requiredContextTokens ?? 1_000_000)) {
+    if (!["connection-probe", "provider-contract"].includes(context.source) || !Number.isSafeInteger(context.maxTokens) || context.maxTokens < (input.requiredContextTokens ?? 1_000_000)) {
       return hold("context_window_insufficient");
     }
     contextClass = Object.freeze({ kind: "verified", maxTokens: context.maxTokens });
@@ -199,7 +202,7 @@ export function resolvePhaseCapabilityContract(input: CapabilityResolutionInput)
       schema: "temperance.phase-worker-contract.v1",
       surface: input.surface,
       surfaceRole: SURFACE_ROLES[input.surface],
-      coordinatorLane: "noesis-orchestrator",
+      coordinatorLane: coordinator.lane,
       workerLane: stage.value.combo,
       phase: input.phase,
       phaseOrdinal: stage.value.ordinal,

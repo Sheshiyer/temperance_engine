@@ -67,8 +67,9 @@ async function main() {
   const prompt = promptText(input);
   const engineRoot = resolveEngineRoot();
   process.env.TEMPERANCE_ENGINE_ROOT ||= engineRoot;
-  process.env.TEMPERANCE_ROUTER_DIR ||= join(engineRoot, 'package', 'router');
-  process.env.TEMPERANCE_OMNIROUTE_PORTFOLIO_RESOLVER ||= join(engineRoot, 'package', 'router', 'omniroute-portfolios.ts');
+  const managedRouter = join(process.env.TEMPERANCE_STATE || join(homedir(), '.temperance'), 'router');
+  process.env.TEMPERANCE_ROUTER_DIR ||= existsSync(managedRouter) ? managedRouter : join(engineRoot, 'package', 'router');
+  process.env.TEMPERANCE_OMNIROUTE_PORTFOLIO_RESOLVER ||= join(process.env.TEMPERANCE_ROUTER_DIR, 'omniroute-portfolios.ts');
 
   let additionalContext: string;
   try {
@@ -79,6 +80,9 @@ async function main() {
   } catch {
     additionalContext = classifyLine(prompt); // never worse than the old shim
   }
+
+  // Local phase projection must not depend on optional Manifest Bridge availability.
+  additionalContext = `${additionalContext}\n\n${formatTemperanceRail(prompt)}`;
 
   // Emit only after this adapter has the authoritative classifier result.
   try {
@@ -101,7 +105,6 @@ async function main() {
       persistSessionMode(input.session_id, 'ALGORITHM', cwd, 'classifier');
     }
     const chosen = readSessionMode(input.session_id, cwd);
-    additionalContext = `${additionalContext}\n\n${formatTemperanceRail(prompt)}`;
     const gsd = gsdAdditionalContext(prompt, input.session_id, cwd);
     if (gsd) additionalContext = `${additionalContext}\n\n${gsd}`;
     additionalContext = `${additionalContext}\n\n${formatPaiModeOffer({

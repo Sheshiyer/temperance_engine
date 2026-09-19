@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { access, stat } from "node:fs/promises";
-import { isAbsolute, join } from "node:path";
+import { isAbsolute, join, normalize } from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -10,6 +10,11 @@ import type {
   OnboardingProbeAdapter,
   OnboardingProbeContext,
 } from "./contracts.ts";
+import { NineRouterApiClient, NineRouterApiError } from "./nine-router-api.ts";
+
+/** Membership inspection only: no write methods or inference are available here. */
+export type OnboardingRouterApi = Pick<NineRouterApiClient, "readCatalog" | "readCombo" | "readAvailableModels">;
+export type OnboardingRouterApiFactory = (options: { dataDirectory: string; baseUrl: string }) => OnboardingRouterApi;
 
 export interface PathInfo {
   exists: boolean;
@@ -179,8 +184,86 @@ async function probeNineRouterManagement(requirement: Extract<CapabilityRequirem
   return available(requirement.id, ["9router derived-auth metadata is present", "9router CLI secret mode is 0600"]);
 }
 
-export function createSystemProbeAdapter(options: { io?: OnboardingProbeIO } = {}): OnboardingProbeAdapter {
+async function withProbeSignal<T>(signal: AbortSignal, read: () => Promise<T>): Promise<T> {
+  signal.throwIfAborted();
+  let onAbort: () => void = () => {};
+  const aborted = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(new Error("ROUTING_PROBE_CANCELLED"));
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([read(), aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
+}
+
+async function probeRoutingAlias(
+  requirement: Extract<CapabilityRequirement, { kind: "routing-alias" }>,
+  context: OnboardingProbeContext,
+  routerApiFactory: OnboardingRouterApiFactory,
+): Promise<CapabilityProbe> {
+  const mappings = context.profile.routing_aliases.filter(({ alias }) => alias === requirement.alias);
+  if (mappings.length === 0) return unavailable(requirement.id, "ROUTING_ALIAS_MISSING");
+  if (mappings.length !== 1) return unavailable(requirement.id, "ROUTING_ALIAS_AMBIGUOUS");
+  const dataDirectory = context.profile.variables.NINE_ROUTER_DATA_DIR;
+  const healthUrl = context.profile.variables.NINE_ROUTER_HEALTH_URL;
+  if (!dataDirectory || !healthUrl) return unavailable(requirement.id, "VARIABLE_MISSING", ["routing inspection requires NINE_ROUTER_DATA_DIR and NINE_ROUTER_HEALTH_URL"]);
+  if (!isAbsolute(dataDirectory) || normalize(dataDirectory) !== dataDirectory || dataDirectory.length <= 1 || dataDirectory.includes("\0")) {
+    return unavailable(requirement.id, "VARIABLE_INVALID", ["9router DATA_DIR must be a canonical absolute path"]);
+  }
+  let endpoint: URL;
+  try { endpoint = new URL(healthUrl); } catch {
+    return unavailable(requirement.id, "VARIABLE_INVALID", ["9router health URL is invalid"]);
+  }
+  if (endpoint.protocol !== "http:" || !["127.0.0.1", "localhost", "::1"].includes(endpoint.hostname.replace(/^\[|\]$/gu, ""))
+    || endpoint.port !== "20128" || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+    return unavailable(requirement.id, "VARIABLE_INVALID", ["9router health URL must use the configured loopback management service"]);
+  }
+  try {
+    context.signal.throwIfAborted();
+    const api = routerApiFactory({ dataDirectory, baseUrl: endpoint.origin });
+    // Do not cache this result across probes: provider and combo state can change.
+    const [catalog, models] = await withProbeSignal(context.signal, () => Promise.all([api.readCatalog(), api.readAvailableModels()]));
+    const matches = catalog.combos.filter(({ alias }) => alias === mappings[0]!.combo);
+    if (matches.length === 0) return unavailable(requirement.id, "ROUTING_COMBO_MISSING", ["mapped combo was not found in the live catalog"]);
+    if (matches.length !== 1) return unavailable(requirement.id, "ROUTING_COMBO_AMBIGUOUS", ["mapped combo name is not unique in the live catalog"]);
+    const summary = matches[0]!;
+    if (catalog.combos.filter(({ id }) => id === summary.id).length !== 1) {
+      return unavailable(requirement.id, "ROUTING_RESPONSE_INVALID", ["live combo identity is ambiguous"]);
+    }
+    const detail = await withProbeSignal(context.signal, () => api.readCombo(summary.id));
+    if (detail.id !== summary.id || detail.alias !== mappings[0]!.combo || detail.models.length !== summary.model_count) {
+      return unavailable(requirement.id, "ROUTING_COMBO_CHANGED", ["live combo detail does not match its catalog entry"]);
+    }
+    if (detail.models.length === 0) return unavailable(requirement.id, "ROUTING_COMBO_EMPTY", ["mapped combo has no model members"]);
+    if (new Set(detail.models).size !== detail.models.length || new Set(models.map(({ id }) => id)).size !== models.length) {
+      return unavailable(requirement.id, "ROUTING_RESPONSE_INVALID", ["live model membership is ambiguous"]);
+    }
+    const comboIds = new Set([...catalog.combos.map(({ alias }) => alias), ...models.filter(({ kind }) => kind === "combo").map(({ id }) => id)]);
+    if (detail.models.some((id) => comboIds.has(id))) return unavailable(requirement.id, "ROUTING_MODEL_NESTED", ["mapped combo contains another combo rather than a provider model"]);
+    const providerIds = new Set(models.filter(({ kind }) => kind === "provider").map(({ id }) => id));
+    if (detail.models.some((id) => !providerIds.has(id))) return unavailable(requirement.id, "ROUTING_MODEL_UNAVAILABLE", ["mapped combo contains a member absent from the live provider-model catalog"]);
+    return available(requirement.id, [
+      "live routing alias and provider-model membership verified",
+      "catalog membership only; context, quota, tool use and inference health are not verified",
+    ]);
+  } catch (error) {
+    if (context.signal.aborted) return unavailable(requirement.id, "PROBE_FAILED", ["routing inspection was cancelled"]);
+    // Never copy exception messages, provider names, URLs, or response bodies into evidence.
+    if (error instanceof NineRouterApiError) {
+      if (["NINE_ROUTER_AUTH_METADATA_MISSING", "NINE_ROUTER_AUTH_METADATA_INVALID", "NINE_ROUTER_CLI_SECRET_MODE_UNSAFE", "NINE_ROUTER_API_HTTP_401", "NINE_ROUTER_API_HTTP_403"].includes(error.code)) {
+        return unavailable(requirement.id, "ROUTING_AUTH_UNAVAILABLE", ["9router management authentication is unavailable"]);
+      }
+      if (error.code.startsWith("NINE_ROUTER_RESPONSE_")) return unavailable(requirement.id, "ROUTING_RESPONSE_INVALID", ["9router returned an unusable catalog response"]);
+    }
+    return unavailable(requirement.id, "ROUTING_API_UNAVAILABLE", ["live routing membership could not be inspected"]);
+  }
+}
+
+export function createSystemProbeAdapter(options: { io?: OnboardingProbeIO; routerApiFactory?: OnboardingRouterApiFactory } = {}): OnboardingProbeAdapter {
   const io = options.io ?? nodeOnboardingProbeIO;
+  const routerApiFactory = options.routerApiFactory ?? ((config) => new NineRouterApiClient(config));
   return {
     probe: async (requirement, context) => {
       try {
@@ -190,9 +273,7 @@ export function createSystemProbeAdapter(options: { io?: OnboardingProbeIO } = {
           case "mount": return await probeMount(requirement, context, io);
           case "path": return await probePath(requirement, context, io);
           case "keychain-secret": return await probeKeychain(requirement, context, io);
-          case "routing-alias": return context.profile.routing_aliases.some((alias) => alias.alias === requirement.alias)
-            ? available(requirement.id, ["routing alias is declared"])
-            : unavailable(requirement.id, "ROUTING_ALIAS_MISSING");
+          case "routing-alias": return await probeRoutingAlias(requirement, context, routerApiFactory);
           case "http-health": return await probeHttp(requirement, context, io);
           case "9router-management": return await probeNineRouterManagement(requirement, context, io);
         }

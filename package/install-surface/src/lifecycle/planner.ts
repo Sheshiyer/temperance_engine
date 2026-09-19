@@ -25,6 +25,11 @@ export type PlanErrorCode =
   | "PLAN_DEPENDENCY_CYCLE"
   | "PLAN_NEVER_SHIP_MUTATION"
   | "PLAN_DUPLICATE_STEP_ID"
+  | "PLAN_SCOPE_EMPTY"
+  | "PLAN_SCOPE_UNKNOWN_RECORD"
+  | "PLAN_SCOPE_INELIGIBLE_RECORD"
+  | "PLAN_SCOPE_CONFLICT"
+  | "PLAN_SCOPE_VERB_UNSUPPORTED"
   | "CAPABILITY_UNAVAILABLE";
 
 export class PlanError extends Error {
@@ -59,6 +64,14 @@ export interface PlanResult {
   verb: string;
   profile: string;
   inventory_digest: string;
+  scope?: LifecycleScope;
+}
+
+export interface LifecycleScope {
+  mode: "dependency-closure";
+  requested_ids: string[];
+  dependency_ids: string[];
+  record_ids: string[];
 }
 
 // ─── Verb semantics ───────────────────────────────────────────────────────────
@@ -72,6 +85,40 @@ export interface PlanOptions {
   platform?: NodeJS.Platform;
   force?: boolean;
   explicitSelections?: Set<string>;
+  onlyIds?: ReadonlySet<string>;
+}
+
+function resolveScope(options: PlanOptions, platform: NodeJS.Platform): LifecycleScope | undefined {
+  if (options.onlyIds === undefined) return undefined;
+  if (options.verb !== "install" && options.verb !== "update") throw new PlanError("PLAN_SCOPE_VERB_UNSUPPORTED");
+  if (options.onlyIds.size === 0) throw new PlanError("PLAN_SCOPE_EMPTY");
+  const records = new Map(options.profileResult.lockObject.records.map((record) => [record.id, record]));
+  const included = new Set<string>();
+  const visiting = new Set<string>();
+  const visit = (id: string): void => {
+    if (visiting.has(id)) throw new PlanError("PLAN_DEPENDENCY_CYCLE", { record_id: id });
+    if (included.has(id)) return;
+    const record = records.get(id);
+    if (!record) throw new PlanError("PLAN_SCOPE_UNKNOWN_RECORD", { record_id: id });
+    if (record.class === "NEVER-SHIP") throw new PlanError("PLAN_NEVER_SHIP_MUTATION", { record_id: id });
+    if (!record.eligibility.profiles.includes(options.profile) || !isPlatformSupported(record, platform)) {
+      throw new PlanError("PLAN_SCOPE_INELIGIBLE_RECORD", { record_id: id });
+    }
+    visiting.add(id);
+    for (const dependency of record.depends_on ?? []) visit(dependency);
+    visiting.delete(id);
+    included.add(id);
+  };
+  for (const id of [...options.onlyIds].sort()) visit(id);
+  for (const id of options.explicitSelections ?? []) {
+    if (!included.has(id)) throw new PlanError("PLAN_SCOPE_CONFLICT", { record_id: id });
+  }
+  return {
+    mode: "dependency-closure",
+    requested_ids: [...options.onlyIds].sort(),
+    dependency_ids: [...included].filter((id) => !options.onlyIds!.has(id)).sort(),
+    record_ids: [...included].sort(),
+  };
 }
 
 // ─── Topological sort ────────────────────────────────────────────────────────
@@ -199,7 +246,9 @@ export function createPlan(options: PlanOptions): PlanResult {
     explicitSelections,
   } = options;
 
-  const records = profileResult.lockObject.records;
+  const scope = resolveScope(options, platform);
+  const scopedIds = scope ? new Set(scope.record_ids) : undefined;
+  const records = profileResult.lockObject.records.filter((record) => !scopedIds || scopedIds.has(record.id));
   const steps: PlannedStep[] = [];
   const outcomes: StepOutcome[] = [];
 
@@ -291,6 +340,7 @@ export function createPlan(options: PlanOptions): PlanResult {
     verb,
     profile,
     inventory_digest: profileResult.digest,
+    ...(scope ? { scope } : {}),
   };
 }
 

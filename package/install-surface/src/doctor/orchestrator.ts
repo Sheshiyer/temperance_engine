@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { loadLock } from "../load.ts";
+import { resolveRuntimeStateRoot } from "../state-root.ts";
 import { validateDoctorReport, validateDoctorReportV2 } from "../schema.ts";
 import {
   DOCTOR_SCHEMA,
@@ -126,8 +127,8 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorReport
   const requested = [...new Set(options.sections ?? [...DOCTOR_SECTION_ORDER])]
     .sort((left, right) => DOCTOR_SECTION_ORDER.indexOf(left) - DOCTOR_SECTION_ORDER.indexOf(right));
   const io = options.io ?? nodeObservationIO;
-  const home = homedir();
-  const stateRoot = options.stateRoot ?? resolve(home, ".temperance_engine");
+  const home = process.env.HOME || homedir();
+  const stateRoot = resolveRuntimeStateRoot({ stateRoot: options.stateRoot, environment: process.env, homeDirectory: home });
   let manifestDigest: `sha256:${string}`;
   try {
     manifestDigest = loadLock(resolve(options.repositoryRoot, "package/install-surface/install-surface-manifest.lock.json")).digest;
@@ -150,8 +151,8 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorReport
     stateRoot,
     platform: options.platform ?? process.platform,
     rootBindings: options.rootBindings ?? {
-      CODEX_HOME: resolve(home, ".codex"),
-      CLAUDE_CONFIG_DIR: resolve(home, ".claude"),
+      CODEX_HOME: process.env.CODEX_HOME || resolve(home, ".codex"),
+      CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR || resolve(home, ".claude"),
       HOME: home,
       TEMPERANCE_STATE: stateRoot,
     },
@@ -204,16 +205,16 @@ export async function runDoctorV2(options: RunDoctorV2Options): Promise<DoctorRe
   const requested = [...new Set(options.sections ?? [...V2_DOCTOR_SECTION_ORDER])]
     .sort((left, right) => V2_DOCTOR_SECTION_ORDER.indexOf(left) - V2_DOCTOR_SECTION_ORDER.indexOf(right));
   const io = options.io ?? nodeObservationIO;
-  const home = homedir();
-  const stateRoot = options.stateRoot ?? resolve(home, ".temperance_engine");
+  const home = process.env.HOME || homedir();
+  const stateRoot = resolveRuntimeStateRoot({ stateRoot: options.stateRoot, environment: process.env, homeDirectory: home });
 
   const baseContext: Omit<DoctorContextV2, "signal"> = {
     repositoryRoot: options.repositoryRoot,
     stateRoot,
     platform: options.platform ?? process.platform,
     rootBindings: options.rootBindings ?? {
-      CODEX_HOME: resolve(home, ".codex"),
-      CLAUDE_CONFIG_DIR: resolve(home, ".claude"),
+      CODEX_HOME: process.env.CODEX_HOME || resolve(home, ".codex"),
+      CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR || resolve(home, ".claude"),
       HOME: home,
       TEMPERANCE_STATE: stateRoot,
     },

@@ -15,6 +15,7 @@ import { createHash, randomUUID } from "node:crypto"
 import { enrich } from "../enrich/index"
 import type { EnrichInput } from "../enrich/contract"
 import { assertLiveModel, getLiveModelIds } from "./omniroute-catalog-guard"
+import { checkSessionAdmission } from "./session-admission-cli"
 
 export const AUTO_MODEL = "temperance-auto"
 export const ROUTING_MODELS = new Set([AUTO_MODEL, "temperance-routing"])
@@ -56,6 +57,10 @@ const COMPRESSION_ENGINE_ALLOWLIST: Readonly<Record<string, string>> = {
 }
 
 export function automaticReadiness(): { ready: boolean; reason: string | null } {
+  try {
+    const admission = checkSessionAdmission(["--alias", AUTO_MODEL])
+    if (!admission.ok) return { ready: false, reason: admission.reasonCode }
+  } catch { return { ready: false, reason: "SESSION_POLICY_INVALID" } }
   const value = (process.env.TEMPERANCE_AUTO_READY || "").trim().toLowerCase()
   const ready = ["1", "true", "yes", "on"].includes(value)
   return {
@@ -614,6 +619,17 @@ async function chatResponse(request: Request, fetchImpl: typeof fetch, deps: Pro
   }
 
   const requested = text(body.model) || compatibilityModel()
+  // This also covers ACP clients that call this proxy instead of shell dispatch.
+  // A selected policy must be enforced before catalog, planning, or upstream I/O.
+  let admission: { ok: boolean; reasonCode: string }
+  try { admission = checkSessionAdmission(["--alias", requested]) }
+  catch (error) {
+    admission = { ok: false, reasonCode: error instanceof Error && /^SESSION_[A-Z_]+$/.test(error.message) ? error.message : "SESSION_POLICY_INVALID" }
+  }
+  if (!admission.ok) return jsonResponse({ error: {
+    message: "Selected session policy cannot be admitted by the current gateway adapter.",
+    type: "temperance_session_held", code: admission.reasonCode,
+  } }, 503)
   const readiness = automaticReadiness()
   if (ROUTING_MODELS.has(requested) && !readiness.ready) {
     const decision: RouteDecision = {

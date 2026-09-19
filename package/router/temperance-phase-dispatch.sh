@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# temperance-phase-dispatch.sh — one alchemical step on an OmniRoute combo.
-# Prints sigil-formatted rail + provider stack (no emojis), then wires omniroute-codex.
+# One alchemical step on a gateway-owned combo; policy admission precedes the wire.
 set -euo pipefail
 
 PHASE="${1:-}"
@@ -10,11 +9,12 @@ TASK="${2:-}"
   exit 2
 }
 
-MAP="${TEMPERANCE_PHASE_COMBO_MAP:-$HOME/.temperance_engine/router/phase-combo-map.json}"
+ROUTER_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+MAP="${TEMPERANCE_PHASE_COMBO_MAP:-$ROUTER_DIR/phase-combo-map.json}"
 CONTRACT_CLI="${TEMPERANCE_ROUTING_CONTRACT_CLI:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/routing-contract-cli.ts}"
-WIRE="${TEMPERANCE_OMNIROUTE_CODEX:-$HOME/.temperance_engine/router/omniroute-codex.sh}"
-FORMAT="${TEMPERANCE_RAIL_FORMAT:-$HOME/.temperance_engine/router/rail-format.sh}"
-NATIVE="${TEMPERANCE_ORCHESTRATOR_MODEL:-gpt-5.4}"
+WIRE="${TEMPERANCE_OMNIROUTE_CODEX:-$ROUTER_DIR/omniroute-codex.sh}"
+FORMAT="${TEMPERANCE_RAIL_FORMAT:-$ROUTER_DIR/rail-format.sh}"
+NATIVE="${TEMPERANCE_ORCHESTRATOR_MODEL:-unreported}"
 
 resolve_combo() (
   local contract_bun contract_combo
@@ -45,6 +45,11 @@ esac
 
 COMBO=$(resolve_combo "$PHASE")
 
+# The optional host policy may require exact-seat checks on every fallback.
+# The stock gateway adapter cannot prove that contract, so held means no wire.
+# Do not promote saved evidence files or advertised context sizes into permits.
+"${TEMPERANCE_BUN:-bun}" "$ROUTER_DIR/session-admission-cli.ts" "$phase_label" "$COMBO" >&2 || exit "$?"
+
 if [[ -x "$FORMAT" ]]; then
   "$FORMAT" announce "$phase_label" "$COMBO" "$NATIVE" >&2
   echo >&2
@@ -54,11 +59,6 @@ fi
 
 [[ -x "$WIRE" ]] || { echo "missing omniroute-codex.sh at $WIRE" >&2; exit 127; }
 
-if [[ -z "${OMNIROUTE_API_KEY:-}" && -f "$HOME/.omniroute/export-api-key.sh" ]]; then
-  # shellcheck disable=SC1090
-  source "$HOME/.omniroute/export-api-key.sh" >/dev/null 2>&1 || true
-fi
-
 # Capture output; best-effort resolved line if response is plain text only
 OUT_FILE=$(mktemp)
 set +e
@@ -66,24 +66,9 @@ set +e
 rc=$?
 set -e
 
-# Prefer last non-empty line as model reply; resolved provider unknown without gateway headers
+# A catalog head is not an actual attempt receipt. Preserve unverified status.
 if [[ -x "$FORMAT" ]]; then
-  # head of stack as "attempted" note
-  head_line=$(sqlite3 "${OMNIROUTE_DB:-$HOME/.omniroute/storage.sqlite}" \
-    "SELECT data FROM combos WHERE name='$COMBO' LIMIT 1;" 2>/dev/null \
-    | python3 -c "import json,sys
-raw=sys.stdin.read().strip()
-if not raw: raise SystemExit
-m=(json.loads(raw).get('models') or [{}])[0]
-mid=m.get('model') or ''
-prov=m.get('providerId') or (mid.split('/')[0] if '/' in mid else 'omniroute')
-rest=mid.split('/',1)[1] if '/' in mid else mid
-print(prov, rest)" 2>/dev/null || true)
-  if [[ -n "${head_line:-}" ]]; then
-    set -- $head_line
-    "$FORMAT" resolved "$COMBO" "${1:-unknown}" "${2:-unknown}" >&2
-    echo "  ·  note       head of priority stack (OmniRoute may have failed over)" >&2
-  fi
+  "$FORMAT" resolved "$COMBO" >&2
 fi
 
 cat "$OUT_FILE"

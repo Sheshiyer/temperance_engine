@@ -8,6 +8,21 @@ set -uo pipefail
 MODEL="${1:-${TEMPERANCE_OMNIROUTE_MODEL:-temperance-coding}}"
 TASK="${2:-}"
 [[ -n "$TASK" ]] || { echo "usage: $0 MODEL TASK" >&2; exit 2; }
+
+# Common execution boundary for phase, batch, and parallel dispatch. Selected
+# policy must hold before looking up Codex, accessing Keychain, or networking;
+# phase-less callers still require the model to be a policy-admitted alias.
+source_path="${BASH_SOURCE[0]}"
+while [ -L "$source_path" ]; do
+  source_dir="$(cd -P "$(dirname "$source_path")" && pwd)"
+  source_path="$(readlink "$source_path")"
+  case "$source_path" in /*) ;; *) source_path="$source_dir/$source_path" ;; esac
+done
+ROUTER_DIR="$(cd -P "$(dirname "$source_path")" && pwd)"
+unset source_path source_dir
+"${TEMPERANCE_BUN:-bun}" --no-env-file --config=/dev/null \
+  "$ROUTER_DIR/session-admission-cli.ts" --alias "$MODEL" >&2 || exit "$?"
+
 command -v codex >/dev/null 2>&1 || { echo "codex CLI is required for the OmniRoute agent backend" >&2; exit 127; }
 
 BASE_URL="${TEMPERANCE_OMNIROUTE_BASE_URL:-http://127.0.0.1:20128/v1}"

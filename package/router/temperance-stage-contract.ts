@@ -6,6 +6,7 @@
 
 import { existsSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import { phaseMeta } from "./phase-projection.v4";
 
 export const STAGE_IDS = [
   "observe",
@@ -25,6 +26,7 @@ export interface StageCapabilityProfile {
   id: StageId;
   ordinal: number;
   alchemical: string;
+  kosha: string;
   purpose: string;
   portfolio: string;
   portfolioStatus: "existing" | "proposed";
@@ -109,11 +111,10 @@ const KNOWLEDGE_ROOTS = [
   { id: "skill-index", kind: "file" as const, relative: ".agents/skill-clusters/skill-index.json" },
 ] as const;
 
-export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = [
+// Capability policy is independent of presentation. Metadata is projected once below.
+const STAGE_CAPABILITY_POLICIES: readonly Omit<StageCapabilityProfile, "ordinal" | "alchemical" | "kosha">[] = [
   {
     id: "observe",
-    ordinal: 1,
-    alchemical: "NIGREDO",
     purpose: "Expose current state, intent, constraints, and unknowns.",
     portfolio: "te-reason",
     portfolioStatus: "existing",
@@ -124,8 +125,6 @@ export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = [
   },
   {
     id: "think",
-    ordinal: 2,
-    alchemical: "ALBEDO",
     purpose: "Challenge assumptions and generate defensible alternatives.",
     portfolio: "te-reason",
     portfolioStatus: "existing",
@@ -136,8 +135,6 @@ export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = [
   },
   {
     id: "plan",
-    ordinal: 3,
-    alchemical: "CITRINITAS",
     purpose: "Freeze deliverables, dependencies, acceptance, and route intent.",
     portfolio: "te-plan",
     portfolioStatus: "existing",
@@ -148,8 +145,6 @@ export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = [
   },
   {
     id: "build",
-    ordinal: 4,
-    alchemical: "CALCINATIO",
     purpose: "Prepare reversible implementation and verification surfaces.",
     portfolio: "te-build",
     portfolioStatus: "existing",
@@ -160,8 +155,6 @@ export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = [
   },
   {
     id: "execute",
-    ordinal: 5,
-    alchemical: "SOLUTIO",
     purpose: "Execute the frozen plan with parallel work and bounded fallbacks.",
     portfolio: "te-dispatch",
     portfolioStatus: "existing",
@@ -172,8 +165,6 @@ export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = [
   },
   {
     id: "verify",
-    ordinal: 6,
-    alchemical: "COAGULATIO",
     purpose: "Produce fresh evidence and reject unverified completion claims.",
     portfolio: "te-validate",
     portfolioStatus: "existing",
@@ -184,8 +175,6 @@ export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = [
   },
   {
     id: "learn",
-    ordinal: 7,
-    alchemical: "RUBEDO",
     purpose: "Persist decisions, verification, and reusable learning for the next run.",
     portfolio: "te-reason",
     portfolioStatus: "existing",
@@ -195,6 +184,11 @@ export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = [
     next: null,
   },
 ] as const;
+
+export const STAGE_CAPABILITIES: readonly StageCapabilityProfile[] = STAGE_CAPABILITY_POLICIES.map((profile) => {
+  const metadata = phaseMeta(profile.id);
+  return { ...profile, ordinal: metadata.step, alchemical: metadata.stage, kosha: metadata.kosha };
+});
 
 function asSet(values: readonly string[] | undefined): Set<string> {
   return new Set((values ?? []).filter((value) => typeof value === "string"));

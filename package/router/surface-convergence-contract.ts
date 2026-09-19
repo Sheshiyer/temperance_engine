@@ -291,8 +291,9 @@ function validatePhaseMap(value: unknown): SurfaceHold | PhaseComboMap {
   if (!isStringRecord(value.task_type_to_combo) || !isStringRecord(value.algorithm_phases)) {
     return hold("surface_contract_invalid", "phase-combo-map", "mappings");
   }
-  if (!isRecord(value.coordinator) || value.coordinator.lane !== "noesis-orchestrator" ||
-    value.coordinator.provider !== "omniroute" || !Array.isArray(value.coordinator.supported_surfaces) ||
+  const alias = /^[a-z0-9][a-z0-9._-]{0,127}$/u;
+  if (!isRecord(value.coordinator) || typeof value.coordinator.lane !== "string" || !alias.test(value.coordinator.lane) ||
+    typeof value.coordinator.provider !== "string" || !alias.test(value.coordinator.provider) || !Array.isArray(value.coordinator.supported_surfaces) ||
     value.coordinator.supported_surfaces.some((surface) => typeof surface !== "string")) {
     return hold("surface_contract_invalid", "phase-combo-map", "coordinator");
   }
@@ -300,7 +301,7 @@ function validatePhaseMap(value: unknown): SurfaceHold | PhaseComboMap {
     ...Object.entries(value.task_type_to_combo),
     ...Object.entries(value.algorithm_phases),
   ]) {
-    if (!/^noesis-[a-z0-9-]+$/.test(combo)) {
+    if (!alias.test(combo)) {
       return hold("surface_contract_invalid", "phase-combo-map", key);
     }
   }
@@ -333,11 +334,12 @@ function validateAlchemyMap(value: unknown): SurfaceHold | AlchemyMap {
       detail.primary_hubs.some((hub) => !isRecord(hub) || typeof hub.name !== "string")) {
       return hold("surface_contract_invalid", "alchemy-stage-hub-map", stage);
     }
-    if (!isRecord(detail.mcp_policy) || !Array.isArray(detail.mcp_policy.required) ||
-      !Array.isArray(detail.mcp_policy.allowed) ||
-      detail.mcp_policy.required.some((entry) => typeof entry !== "string") ||
-      detail.mcp_policy.allowed.some((entry) => typeof entry !== "string") ||
-      detail.mcp_policy.required.some((entry) => !detail.mcp_policy.allowed.includes(entry))) {
+    const mcpPolicy = detail.mcp_policy;
+    if (!isRecord(mcpPolicy) || !Array.isArray(mcpPolicy.required) ||
+      !Array.isArray(mcpPolicy.allowed) ||
+      mcpPolicy.required.some((entry) => typeof entry !== "string") ||
+      mcpPolicy.allowed.some((entry) => typeof entry !== "string") ||
+      mcpPolicy.required.some((entry) => !(mcpPolicy.allowed as unknown[]).includes(entry))) {
       return hold("surface_contract_invalid", "alchemy-stage-hub-map", `mcp:${stage}`);
     }
     if (!isRecord(detail.agent) || typeof detail.agent.name !== "string" ||

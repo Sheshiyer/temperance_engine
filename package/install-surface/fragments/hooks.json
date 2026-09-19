@@ -212,6 +212,9 @@
         ],
         "required": true
       },
+      "depends_on": [
+        "router.governed-runtime"
+      ],
       "verification": {
         "method": "sha256",
         "expected": {
@@ -254,6 +257,11 @@
         ],
         "required": true
       },
+      "depends_on": [
+        "hooks.claude.gsd-command",
+        "hooks.claude.manifest-mode-commit",
+        "hooks.claude.temperance-rail-announce"
+      ],
       "verification": {
         "method": "sha256",
         "expected": {
@@ -265,6 +273,74 @@
       "rollback": {
         "policy": "restore-backup"
       }
+    },
+    {
+      "id": "hooks.claude.gsd-command",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/GsdCommand.hook.ts",
+      "destination": {
+        "root_token": "CLAUDE_CONFIG_DIR",
+        "relative_path": "hooks/GsdCommand.hook.ts",
+        "ownership": { "kind": "exclusive-path" }
+      },
+      "authority": {
+        "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": ["darwin", "linux"],
+        "profiles": ["default"],
+        "required": true
+      },
+      "depends_on": ["hooks.claude.manifest-mode-commit"],
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "hooks.claude.manifest-mode-commit",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/ManifestModeCommit.hook.ts",
+      "destination": {
+        "root_token": "CLAUDE_CONFIG_DIR",
+        "relative_path": "hooks/ManifestModeCommit.hook.ts",
+        "ownership": { "kind": "exclusive-path" }
+      },
+      "authority": {
+        "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": ["darwin", "linux"],
+        "profiles": ["default"],
+        "required": true
+      },
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
+    },
+    {
+      "id": "hooks.claude.temperance-rail-announce",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/hooks/codex/TemperanceRailAnnounce.hook.ts",
+      "destination": {
+        "root_token": "CLAUDE_CONFIG_DIR",
+        "relative_path": "hooks/TemperanceRailAnnounce.hook.ts",
+        "ownership": { "kind": "exclusive-path" }
+      },
+      "authority": {
+        "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": ["darwin", "linux"],
+        "profiles": ["default"],
+        "required": true
+      },
+      "depends_on": ["router.governed-runtime"],
+      "verification": { "method": "sha256" },
+      "rollback": { "policy": "restore-backup" }
     }
   ]
 }

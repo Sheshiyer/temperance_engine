@@ -1,7 +1,9 @@
 import { classifyTaskType as classifySharedTaskType } from "./task-classification"
+import { phaseMeta, formatRailHeader, configuredPhaseAlias, formatAttemptResolution, type PhaseMeta } from "./phase-projection.v4"
+export { phaseMeta, formatRailHeader, type PhaseMeta } from "./phase-projection.v4"
 /**
  * Shared sigil-formatted rail announce for OpenCode + Codex (no emojis).
- * Lists OmniRoute combo stack with providers from live storage.sqlite.
+ * Projects configuration separately from actual worker evidence. Never queries private router storage.
  */
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
@@ -10,20 +12,12 @@ import { execFileSync } from "node:child_process"
 
 export type Mode = "MINIMAL" | "NATIVE" | "ALGORITHM"
 
-export type PhaseMeta = {
-  step: number
-  total: number
-  stage: string
-  label: string
-  sigil: string
-}
-
 export type StackRow = { i: number; provider: string; rest: string; mid: string }
 
-export function loadPhaseMap(home = homedir()): any {
+export function loadPhaseMap(_home = homedir()): any {
   const p =
     process.env.TEMPERANCE_PHASE_COMBO_MAP ||
-    join(home, ".temperance_engine", "router", "phase-combo-map.json")
+    join(process.env.TEMPERANCE_ROUTER_DIR || import.meta.dir, "phase-combo-map.json")
   if (!existsSync(p)) return null
   try {
     return JSON.parse(readFileSync(p, "utf8"))
@@ -89,122 +83,12 @@ export function phaseForTaskType(tt: string): string {
   }
 }
 
-export function phaseMeta(phase: string): PhaseMeta {
-  const key = phase.toLowerCase()
-  const table: Record<string, PhaseMeta> = {
-    observe: { step: 1, total: 7, stage: "NIGREDO", label: "OBSERVE", sigil: "♄" },
-    think: { step: 2, total: 7, stage: "ALBEDO", label: "THINK", sigil: "☿" },
-    plan: { step: 3, total: 7, stage: "ALBEDO", label: "PLAN", sigil: "☉" },
-    build: { step: 4, total: 7, stage: "CITRINITAS", label: "BUILD", sigil: "♃" },
-    execute: { step: 5, total: 7, stage: "RUBEDO", label: "EXECUTE", sigil: "♂" },
-    verify: { step: 6, total: 7, stage: "RUBEDO", label: "VERIFY", sigil: "♀" },
-    learn: { step: 7, total: 7, stage: "MULTIPLICATIO", label: "LEARN", sigil: "☽" },
-  }
-  return (
-    table[key] || {
-      step: 0,
-      total: 7,
-      stage: "PROCESS",
-      label: phase.toUpperCase(),
-      sigil: "◇",
-    }
-  )
-}
+/** Compatibility API: no database access or inferred live seats from configuration. */
+export function loadComboStack(_combo: string, _home = homedir()): StackRow[] { return [] }
 
-function loadHardExclude(home = homedir()): { providers: Set<string>; prefixes: string[] } {
-  const providers = new Set<string>(["codex"]) // never announce Sol while codex is opted down
-  const prefixes: string[] = ["codex/"]
-  try {
-    const klassPath = join(home, ".temperance_engine", "state", "provider-class.json")
-    if (existsSync(klassPath)) {
-      const klass = JSON.parse(readFileSync(klassPath, "utf8"))
-      for (const p of klass?.hard_exclude?.providers || []) providers.add(String(p))
-      for (const p of klass?.hard_exclude?.model_prefixes || []) prefixes.push(String(p))
-    }
-  } catch {
-    /* ignore */
-  }
-  const db = process.env.OMNIROUTE_DB || join(home, ".omniroute", "storage.sqlite")
-  try {
-    if (existsSync(db)) {
-      const raw = execFileSync(
-        "sqlite3",
-        [db, "SELECT provider FROM provider_connections WHERE is_active=0;"],
-        { encoding: "utf8", timeout: 800 },
-      ).trim()
-      for (const line of raw.split("\n")) if (line.trim()) providers.add(line.trim())
-    }
-  } catch {
-    /* ignore */
-  }
-  return { providers, prefixes }
-}
-
-function isExcludedSeat(mid: string, excl: { providers: Set<string>; prefixes: string[] }): boolean {
-  if (!mid) return true
-  const provider = mid.includes("/") ? mid.split("/")[0] : ""
-  if (provider && excl.providers.has(provider)) return true
-  if (excl.prefixes.some((p) => mid.startsWith(p))) return true
-  if (/gpt-5\.6-sol/i.test(mid) && excl.providers.has("codex")) return true
-  return false
-}
-
-export function loadComboStack(combo: string, home = homedir()): StackRow[] {
-  const db = process.env.OMNIROUTE_DB || join(home, ".omniroute", "storage.sqlite")
-  if (!existsSync(db)) return []
-  const excl = loadHardExclude(home)
-  try {
-    const raw = execFileSync(
-      "sqlite3",
-      [db, `SELECT data FROM combos WHERE name='${combo.replace(/'/g, "''")}' LIMIT 1;`],
-      { encoding: "utf8", timeout: 800 },
-    ).trim()
-    if (!raw) return []
-    const data = JSON.parse(raw)
-    const rows: StackRow[] = []
-    let i = 0
-    for (const m of data.models || []) {
-      const mid = String(m.model || "")
-      if (isExcludedSeat(mid, excl)) continue
-      i += 1
-      const provider = String(
-        m.providerId || (mid.includes("/") ? mid.split("/")[0] : "omniroute"),
-      )
-      const rest = mid.includes("/") ? mid.slice(mid.indexOf("/") + 1) : mid
-      rows.push({ i, provider, rest, mid })
-    }
-    return rows
-  } catch {
-    return []
-  }
-}
-
-/** Live session pin for banners — never static Sol while Codex is inactive. */
-export function resolveSessionPin(home = homedir()): string {
-  const excl = loadHardExclude(home)
-  const candidates: string[] = []
-  try {
-    const settings = JSON.parse(
-      readFileSync(join(home, ".claude", "settings.json"), "utf8"),
-    )
-    if (settings?.env?.ANTHROPIC_MODEL) candidates.push(String(settings.env.ANTHROPIC_MODEL))
-  } catch {
-    /* ignore */
-  }
-  try {
-    const klass = JSON.parse(
-      readFileSync(join(home, ".temperance_engine", "state", "provider-class.json"), "utf8"),
-    )
-    if (klass?.claude_code_default?.model) candidates.push(String(klass.claude_code_default.model))
-    if (klass?.babysit?.standard) candidates.push(String(klass.babysit.standard))
-  } catch {
-    /* ignore */
-  }
-  candidates.push("te-algorithm", "te-build", "te-fast")
-  for (const mid of candidates) {
-    if (!isExcludedSeat(mid, excl)) return mid
-  }
-  return "te-algorithm"
+/** Host-native sessions are independent of routed workers; never guess their model. */
+export function resolveSessionPin(_home = homedir()): string {
+  return process.env.TEMPERANCE_NATIVE_SESSION_MODEL || "host-native (model not reported)"
 }
 
 function pad(label: string, n = 10): string {
@@ -243,11 +127,6 @@ function railVerbose(): boolean {
   return process.env.RAIL_FORMAT_VERBOSE === "1"
 }
 
-/** Canonical multi-line header for a phase (Codex + OpenCode parity). */
-export function formatRailHeader(meta: PhaseMeta): string {
-  return `${meta.sigil} RAIL · ${meta.stage} · ${meta.label} · ${meta.step}/${meta.total}`
-}
-
 /** Stack lines matching rail-format.sh (► marks head). */
 export function formatStackLines(stack: StackRow[], indent = "     "): string[] {
   if (!stack.length) return [`${indent}·  (live stack unavailable)`]
@@ -278,7 +157,8 @@ export function formatVisibleAnnounce(opts: {
 
   if (opts.surface === "codex") {
     const pin = opts.nativeModel || resolveSessionPin()
-    lines.push(`  ·  native  ${pin} · combo ${opts.combo}`)
+    lines.push(`  ·  native  ${pin} (not a 9Router worker)`)
+    lines.push(`  ·  combo   ${opts.combo} (configured intent)`)
   } else {
     const bits = [opts.surface]
     if (opts.agent) bits.push(opts.agent)
@@ -286,7 +166,8 @@ export function formatVisibleAnnounce(opts: {
     if (opts.taskType) bits.push(opts.taskType)
     lines.push(`  ·  ${bits.join(" · ")}`)
   }
-  lines.push(`  ·  head    ${formatCompactStack(opts.stack)}`)
+  lines.push(`  ·  worker  UNVERIFIED · actual provider/model not observed`)
+  lines.push(`  ·  context UNVERIFIED · header does not establish native context capacity`)
   if (railVerbose()) {
     lines.push(`  ·  stack`)
     lines.push(...formatStackLines(opts.stack))
@@ -296,7 +177,7 @@ export function formatVisibleAnnounce(opts: {
 
 const RAIL_SIGIL_CLASS = "[♄☿☉♃♂♀☽◇◆●○■□▲△◆]"
 const MALFORMED_STAGE_PHASE =
-  /CITRINITAS\s*·\s*PLAN|NIGREDO\s*·\s*THINK|ALBEDO\s*·\s*BUILD|RUBEDO\s*·\s*PLAN|CALCINATIO|SOLUTIO|COAGULATIO|MULTIPLICATIO\s*·\s*PLAN/i
+  /ALBEDO\s*·\s*PLAN|NIGREDO\s*·\s*THINK|ALBEDO\s*·\s*BUILD|RUBEDO\s*·\s*PLAN|CALCINATIO|SOLUTIO|COAGULATIO|MULTIPLICATIO/i
 
 /**
  * True when text already starts with the exact multi-line canonical announce
@@ -447,46 +328,33 @@ export function formatRailBlock(opts: {
   agent?: string
 }): string {
   const meta = phaseMeta(opts.phase)
-  const head = opts.stack[0]
   const lines: string[] = []
 
-  lines.push(
-    `${meta.sigil} RAIL · ${meta.stage} · ${meta.label} · ${meta.step}/${meta.total}`,
-  )
+  lines.push(formatRailHeader(meta))
   lines.push(`  ·  stages  ${formatStageProgress(meta.step, meta.total)}`)
   lines.push(`  ·  ${pad("surface")}${opts.surface}`)
   if (opts.agent) lines.push(`  ·  ${pad("agent")}${opts.agent}`)
   lines.push(`  ·  ${pad("mode")}${opts.mode}`)
   lines.push(`  ·  ${pad("task")}${opts.taskType}`)
-  lines.push(`  ·  ${pad("session")}${opts.sessionModel}`)
-  lines.push(`  ·  ${pad("combo")}${opts.combo}`)
-  lines.push(`  ·  ${pad("head")}${formatCompactStack(opts.stack)}`)
-  lines.push(`  ·  ${pad("workers")}te-dispatch-paid`)
-  lines.push(`  ·  ${pad("capacity")}te-fast`)
+  lines.push(`  ·  ${pad("session")}${opts.sessionModel}${opts.surface === "codex" ? " (native; not a 9Router worker)" : " (requested route; not observed execution)"}`)
+  lines.push(`  ·  ${pad("combo")}${opts.combo} (configured intent)`)
+  lines.push(`  ·  ${pad("worker")}UNVERIFIED · no actual-attempt evidence`)
+  lines.push(`  ·  ${pad("context")}UNVERIFIED · native capacity is not established by this header`)
   lines.push("")
   lines.push("CONTRACT")
-  if (opts.surface === "opencode") {
-    lines.push("  ·  OpenCode uses single provider temperance (te-* combos + temperance-auto).")
-    lines.push("  ·  Announce combo + head provider at each alchemical step (no emojis).")
-    lines.push("  ·  Fleet Execute: temperance-worker / temperance-batch on te-dispatch-paid.")
-  } else {
-    lines.push("  ·  Native Codex babysits; dispatch heavy steps to combos.")
-    lines.push("  ·  After each worker: COMBO · RESOLVED with provider + model.")
-  }
+  lines.push("  ·  Presentation is not admission, execution authority, or proof of model context capacity.")
+  lines.push("  ·  A combo is intent; report actual provider/model only from matching worker-attempt evidence.")
+  lines.push("  ·  Keep the native coordinator distinct from bounded routed workers.")
   lines.push("")
   lines.push("ANNOUNCE (phase transitions — no emojis)")
-  lines.push(
-    `  ${meta.sigil} RAIL · ${meta.stage} · ${meta.label} · ${meta.step}/${meta.total}`,
-  )
+  lines.push(`  ${formatRailHeader(meta)}`)
   lines.push(`  ·  stages  ${formatStageProgress(meta.step, meta.total)}`)
   lines.push(
-    `  ·  session ${opts.sessionModel} · combo ${opts.combo}` +
-      (head ? ` · head ${head.provider}/${head.rest}` : ""),
+    `  ·  session ${opts.sessionModel} · combo ${opts.combo} (configured intent)`,
   )
-  lines.push(`  ☿ COMBO · ${opts.combo} · RESOLVED`)
-  lines.push(`  ·  provider <name> · model <id>`)
+  lines.push(formatAttemptResolution(opts.combo))
 
-  return ["<temperance-rail>", ...lines, "</temperance-rail>"].join("\n")
+  return ["## Temperance rail", ...lines].join("\n")
 }
 
 export type OpenCodeRoute = {
@@ -574,6 +442,7 @@ export function resolveOpenCodeRoute(
   }
 
   const phase = agentPhase || phaseForTaskType(taskType)
+  combo = configuredPhaseAlias(map, phase, combo)
   const meta = phaseMeta(phase)
   const stack = loadComboStack(combo)
   const head = stack[0]
@@ -634,19 +503,16 @@ export function resolveOpenCodeRoute(
             "- Then a blank line, then NOESIS on its own line.",
             "- Use NATIVE format. Sigils only — no emojis.",
             "- Never put mode/task/combo/NOESIS on the same line as RAIL.",
-            "- Never invent stages (no CITRINITAS for PLAN; PLAN = ALBEDO · ☉).",
+            "- Use the supplied V4 phase and kosha projection; never invent stage mappings.",
           ].join("\n")
         : [
             "- Open with the multi-line RAIL block exactly as shown above.",
             "- Then a blank line, then NOESIS on its own line (never mashed into RAIL).",
-            `- Stage map: OBSERVE=NIGREDO ♄, THINK=ALBEDO ☿, PLAN=ALBEDO ☉, BUILD=CITRINITAS ♃, EXECUTE=RUBEDO ♂, VERIFY=RUBEDO ♀, LEARN=MULTIPLICATIO ☽`,
+            "- Phase, alchemy, and kosha derive from the shared V4 projection above.",
             `- This turn: ${formatRailHeader(meta)} · combo ${combo}` +
               (head ? ` · head ${head.provider}/${head.rest}` : ""),
             "- Follow PAI Algorithm for multi-step work (read LATEST then version).",
-            "- Close with multi-line:",
-            `  ☿ COMBO · ${combo} · RESOLVED`,
-            "    ·  provider <name>",
-            "    ·  model <id>",
+            "- Without a matching actual-attempt receipt, report UNVERIFIED; never invent resolved seats.",
             "- Sigils only — no emojis. No diamond (◇) phase bullets.",
           ].join("\n"),
     "",
@@ -722,14 +588,52 @@ export function ensureVisibleRailPrefix(text: string, route: OpenCodeRoute): str
 
 export function formatResolvedLine(
   route: OpenCodeRoute,
-  resolved?: { provider?: string; model?: string },
+  resolved?: { provider?: string; model?: string; [key: string]: unknown },
 ): string {
-  const provider = resolved?.provider || route.head?.provider || "omniroute"
-  const model = resolved?.model || route.head?.rest || route.combo
-  return [
-    `☿ COMBO · ${route.combo} · RESOLVED`,
-    `  ·  ${pad("provider")}${provider}`,
-    `  ·  ${pad("model")}${model}`,
-    `  ·  ${pad("route")}${provider}/${model}`,
-  ].join("\n")
+  return formatAttemptResolution(route.combo, resolved)
+}
+
+/** Shared implementation used by source and installed Codex hooks. */
+export function buildCodexRail(prompt: string): string {
+  const map = loadPhaseMap()
+  const taskType = classifyTaskType(prompt)
+  const phase = phaseForTaskType(taskType)
+  const fallback = map?.task_type_to_combo?.[taskType] || (phase === "Plan" ? "te-plan" : "te-fast")
+  return formatRailBlock({ mode: classifyMode(prompt), taskType, phase, combo: configuredPhaseAlias(map, phase, fallback), surface: "codex", sessionModel: resolveSessionPin(), stack: [] })
+}
+
+/** The shell entry point delegates here so CLI, GSD, and hooks share metadata. */
+export function railCli(args: string[]): string {
+  const [command, first = "", second = "", third = ""] = args
+  if (command === "announce") {
+    if (!first || !second) throw new Error("announce requires phase and configured combo")
+    return formatVisibleAnnounce({ mode: "ALGORITHM", taskType: "explicit-phase", phase: first, combo: second, surface: "codex", nativeModel: third || resolveSessionPin(), stack: [] })
+  }
+  if (command === "stack") return `◇ STACK · ${first}\n  ·  UNVERIFIED · live catalog not observed; no provider seat inferred`
+  if (command === "resolved") return formatAttemptResolution(first) // Legacy positional strings are not execution evidence.
+  if (command === "gsd-banner") return [formatRailHeader(phaseMeta(first || "execute")), second && `  ·  command ${second}`, third && `  ·  ${third}`].filter(Boolean).join("\n")
+  if (command === "gsd-init") {
+    if (!/^[a-z][a-z0-9-]*$/.test(first)) throw new Error("invalid GSD command")
+    const mapPath = process.env.TEMPERANCE_GSD_RAIL_MAP || join(process.env.TEMPERANCE_ROUTER_DIR || import.meta.dir, "gsd-rail-map.json")
+    const gsd = JSON.parse(readFileSync(mapPath, "utf8"))
+    const spec = gsd.commands?.[first] || gsd.defaults || {}
+    const phase = spec.stage || spec.alchemy || "process"
+    const map = loadPhaseMap()
+    const routes = spec.route_sequence || (spec.route ? [spec.route] : [])
+    const aliases = routes.map((route: string) => route.startsWith("phase:") ? configuredPhaseAlias(map, route.slice(6), "unconfigured") : "unconfigured")
+    return [
+      formatRailHeader(phaseMeta(phase)),
+      `  ·  command /gsd:${first} · mode ${spec.mode || "ALGORITHM"}`,
+      `  ·  combo   ${aliases.length ? aliases.join(" → ") : "none (native command)"} (configured intent)`,
+      `  ·  worker  UNVERIFIED · no actual-attempt evidence`,
+      `  ·  workflow ${join(process.env.PAI_HOME || join(homedir(), ".claude"), "get-shit-done", "workflows", `${first}.md`)}`,
+      "  ·  authority upstream GSD workflow; this header never admits or dispatches work",
+    ].join("\n")
+  }
+  throw new Error("usage: rail-format.sh announce <phase> <combo> [native] | stack <combo> | resolved <combo> | gsd-banner <phase> [context] [extra] | gsd-init <command>")
+}
+
+if (import.meta.main) {
+  try { console.log(railCli(process.argv.slice(2))) }
+  catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 2 }
 }

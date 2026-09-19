@@ -16,12 +16,6 @@ SCRIPT_DIR="$(cd -P "$(dirname "$source_path")" && pwd)"
 unset source_path source_dir
 SHIM_DIR="$SCRIPT_DIR/claude-launch-shim"
 SHIM_BIN="$SHIM_DIR/claude"
-USER_NAME="${USER:-$(id -un)}"
-KEYCHAIN_SERVICE="${TEMPERANCE_OMNIROUTE_CLAUDE_KEYCHAIN_SERVICE:-OmniRoute Temperance Claude API Key}"
-SECURITY_BIN="${TEMPERANCE_SECURITY_BIN:-/usr/bin/security}"
-OMNIROUTE_BIN="${TEMPERANCE_OMNIROUTE_BIN:-$(command -v omniroute || true)}"
-REAL_CLAUDE_BIN="${TEMPERANCE_REAL_CLAUDE_BIN:-$(command -v claude || true)}"
-BASE_URL="http://127.0.0.1:20128"
 
 usage() {
   printf 'usage: %s PROFILE [claude arguments...]\n' "$0" >&2
@@ -33,6 +27,11 @@ usage() {
 profile="$1"
 shift
 
+# The current adapter has no verified per-attempt policy enforcement. Hold
+# selected policy before credential access or launching the native gateway.
+"${TEMPERANCE_BUN:-bun}" --no-env-file --config=/dev/null \
+  "$SCRIPT_DIR/session-admission-cli.ts" --alias "$profile" >&2 || exit "$?"
+
 case "$profile" in
   antigravity-claude-sonnet-5|gh-claude-sonnet-5|no-think-antigravity-claude-sonnet-5|no-think-gh-claude-sonnet-5) ;;
   *)
@@ -40,6 +39,13 @@ case "$profile" in
     exit 2
     ;;
 esac
+
+USER_NAME="${USER:-$(id -un)}"
+KEYCHAIN_SERVICE="${TEMPERANCE_OMNIROUTE_CLAUDE_KEYCHAIN_SERVICE:-OmniRoute Temperance Claude API Key}"
+SECURITY_BIN="${TEMPERANCE_SECURITY_BIN:-/usr/bin/security}"
+OMNIROUTE_BIN="${TEMPERANCE_OMNIROUTE_BIN:-$(command -v omniroute || true)}"
+REAL_CLAUDE_BIN="${TEMPERANCE_REAL_CLAUDE_BIN:-$(command -v claude || true)}"
+BASE_URL="http://127.0.0.1:20128"
 
 [ -x "$SECURITY_BIN" ] || { printf 'security CLI unavailable: %s\n' "$SECURITY_BIN" >&2; exit 127; }
 [ -n "$OMNIROUTE_BIN" ] && [ -x "$OMNIROUTE_BIN" ] || { printf 'omniroute CLI unavailable\n' >&2; exit 127; }

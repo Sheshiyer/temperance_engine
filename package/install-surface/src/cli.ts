@@ -10,7 +10,9 @@ import type { DoctorSectionId, V2_SectionId } from "./doctor/model.ts";
 import { renderDoctorHuman } from "./doctor/render-human.ts";
 import { renderDoctorJson } from "./doctor/render-json.ts";
 import { loadLock } from "./load.ts";
+import { resolveRuntimeStateRoot } from "./state-root.ts";
 import { createPlan, type PlanOptions, type LifecycleVerb } from "./lifecycle/planner.ts";
+import { parseLifecycleArgs } from "./lifecycle/cli-args.ts";
 import { executePlan, rollbackTransaction } from "./lifecycle/executor.ts";
 import { readReceipt, listReceipts } from "./lifecycle/receipts.ts";
 import type { LifecycleIO } from "./lifecycle/journal.ts";
@@ -34,8 +36,8 @@ import { parseOnboardingArgs } from "./onboarding/cli-args.ts";
 import { parseHostBindingInitArgs } from "./onboarding/host-binding-init-cli-args.ts";
 import { createHostBinding, writePrivateHostBinding } from "./onboarding/host-binding-init.ts";
 import { MacOsKeychainAdapter } from "./onboarding/keychain-adapter.ts";
-import { NineRouterApiClient, type NineRouterAvailableModel, type NineRouterCatalogSnapshot } from "./onboarding/nine-router-api.ts";
-import { createNineRouterRoutingSurface, NINE_ROUTER_PROVIDER_CAPABILITY_VERSION } from "./onboarding/nine-router-provider-capabilities.ts";
+import { NineRouterApiClient } from "./onboarding/nine-router-api.ts";
+import { readOnboardingRoutingSnapshot } from "./onboarding/routing-snapshot.ts";
 import { compileNineRouterGuidedSetup, createNineRouterSeatingDraft } from "./onboarding/nine-router-seating.ts";
 import { parseNineRouterSeatingArgs } from "./onboarding/nine-router-seating-cli-args.ts";
 import { writePrivateNineRouterSetup } from "./onboarding/nine-router-setup-writer.ts";
@@ -138,7 +140,7 @@ const lifecycleIO: LifecycleIO = {
 // ─── State root ──────────────────────────────────────────────────────────────
 
 function getStateRoot(): string {
-  return process.env.TEMPERANCE_STATE || resolve(process.env.HOME || "/tmp", ".temperance");
+  return resolveRuntimeStateRoot({ environment: process.env, homeDirectory: process.env.HOME || homedir() });
 }
 
 // ─── Compile ─────────────────────────────────────────────────────────────────
@@ -222,37 +224,6 @@ function parseDoctorArgs(args: string[]): { sections?: DoctorSectionId[]; v2Sect
 }
 
 // ─── Lifecycle verb args ─────────────────────────────────────────────────────
-
-function parseLifecycleArgs(args: string[]): {
-  profile?: string;
-  dryRun: boolean;
-  force: boolean;
-  select?: string;
-  json: boolean;
-} {
-  let profile: string | undefined;
-  let dryRun = false;
-  let force = false;
-  let select: string | undefined;
-  let json = false;
-
-  for (let index = 0; index < args.length; index += 1) {
-    const argument = args[index];
-    if (argument === "--profile") {
-      profile = args[index += 1];
-    } else if (argument === "--dry-run") {
-      dryRun = true;
-    } else if (argument === "--force") {
-      force = true;
-    } else if (argument === "--select") {
-      select = args[index += 1];
-    } else if (argument === "--json") {
-      json = true;
-    }
-  }
-
-  return { profile, dryRun, force, select, json };
-}
 
 function loadOnboardingJson<T>(path: string, validate: (value: unknown) => value is T, code: string): T {
   const value: unknown = JSON.parse(readFileSync(resolve(path), "utf8"));
@@ -426,47 +397,25 @@ async function main(): Promise<void> {
       }
       if (args.doctor) {
         const section = projectOnboardingDoctorSection(plan);
-        process.stdout.write(args.json ? canonical(section) : renderOnboardingText(plan));
+        const routing = args.json ? undefined : (await readOnboardingRoutingSnapshot({ plan, profile, hostProfile, routerSetup })).routing;
+        process.stdout.write(args.json ? canonical(section) : renderOnboardingText(plan, routing));
         process.exitCode = section.condition === "PASS" || section.condition === "WARN" ? 0 : 1;
       } else if (args.tui || (!args.json && process.stdin.isTTY && process.stdout.isTTY)) {
         if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("ONBOARDING_TUI_REQUIRES_TTY");
         let activePlan = plan;
         while (true) {
-          let routingApi: NineRouterApiClient | undefined;
-          let routingCatalog: NineRouterCatalogSnapshot | undefined;
-          let routingModels: NineRouterAvailableModel[] | undefined;
-          const routerDataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
-          const routerHealthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
-          if (routerDataDirectory && routerHealthUrl) {
-            try {
-              const candidate = new NineRouterApiClient({ dataDirectory: routerDataDirectory, baseUrl: new URL(routerHealthUrl).origin });
-              [routingCatalog, routingModels] = await Promise.all([candidate.readCatalog(), candidate.readAvailableModels()]);
-              routingApi = candidate;
-            } catch { /* Routing page remains dependency-smart and held when live management is unavailable. */ }
-          }
-          const gatewayReferenceId = routerSetup?.gateway_key.secret_reference_id;
-          const routerVersionHeld = activePlan.modules.find(({ id }) => id === "provider.9router")?.holds
-            .some(({ reason_code }) => reason_code === "BINARY_MISSING" || reason_code === "VERSION_MISMATCH") ?? true;
-          const routing = createNineRouterRoutingSurface({
-            routerVersion: routerVersionHeld ? "unavailable-or-mismatched" : NINE_ROUTER_PROVIDER_CAPABILITY_VERSION,
-            requiredAliases: hostProfile?.required_routing_aliases ?? profile.routing_aliases.map(({ combo }) => combo),
-            catalog: routingCatalog,
-            availableModels: routingModels,
-            declaredSecretReferenceIds: routerSetup
-              ? routerSetup.providers.map(({ credential_reference_id }) => credential_reference_id).filter((id) => id !== gatewayReferenceId)
-              : [],
-            providerPreferences: hostProfile?.routing_provider_preferences,
-          });
+          const { routing, connection } = await readOnboardingRoutingSnapshot({ plan: activePlan, profile, hostProfile, routerSetup });
+          const routingApi = connection ? new NineRouterApiClient(connection) : undefined;
           const { runOnboardingTui } = await import("./onboarding/tui.ts");
           const result = await runOnboardingTui(activePlan, {
             existingProjectCapsules: projectCapsules,
             allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
             replanModuleSelections: args.apply ? undefined : buildPlan,
             routing,
-            allowRoutingAuthorization: !args.apply && routing.compatible && Boolean(routingApi),
+            allowRoutingAuthorization: !args.apply && Boolean(routing?.compatible) && Boolean(routingApi),
           });
           if (result.routing_authorization_provider_id) {
-            if (args.apply || !routingApi || !routing.compatible) throw new Error("NINE_ROUTER_OAUTH_ACTION_UNAVAILABLE");
+            if (args.apply || !routingApi || !routing?.compatible) throw new Error("NINE_ROUTER_OAUTH_ACTION_UNAVAILABLE");
             const { runNineRouterOAuthTui } = await import("./onboarding/nine-router-oauth-tui.ts");
             await runNineRouterOAuthTui({
               providerId: result.routing_authorization_provider_id,
@@ -504,7 +453,8 @@ async function main(): Promise<void> {
           break;
         }
       } else {
-        process.stdout.write(args.json ? canonical(plan) : renderOnboardingText(plan));
+        const routing = args.json ? undefined : (await readOnboardingRoutingSnapshot({ plan, profile, hostProfile, routerSetup })).routing;
+        process.stdout.write(args.json ? canonical(plan) : renderOnboardingText(plan, routing));
         process.exitCode = 0;
       }
     } catch (error) {
@@ -615,11 +565,10 @@ async function main(): Promise<void> {
   // ─── Lifecycle verbs ─────────────────────────────────────────────────────
 
   if (command === "install" || command === "update" || command === "uninstall") {
-    const args = parseLifecycleArgs(process.argv.slice(3));
-    const profile = args.profile || "minimal";
-    const stateRoot = getStateRoot();
-
     try {
+      const args = parseLifecycleArgs(process.argv.slice(3), command);
+      const profile = args.profile || "minimal";
+      const stateRoot = getStateRoot();
       const compileResult = compileRepositoryFragments();
 
       // Check for NO_APPLICABLE_RECORDS
@@ -638,6 +587,7 @@ async function main(): Promise<void> {
         profileResult: compileResult,
         profile,
         force: args.force,
+        onlyIds: args.onlyIds,
         explicitSelections: args.select
           ? new Set(args.select.split(",").filter((selection) => /^[a-z0-9][a-z0-9._-]*$/.test(selection)))
           : undefined,
@@ -650,6 +600,7 @@ async function main(): Promise<void> {
         process.stdout.write(canonical({
           verb: command,
           profile,
+          ...(plan.scope ? { scope: plan.scope } : {}),
           steps: plan.steps.map((s) => ({
             step_id: s.step_id,
             record_id: s.record_id,
@@ -677,8 +628,9 @@ async function main(): Promise<void> {
       });
 
       if (args.json) {
-        process.stdout.write(canonical(result));
+        process.stdout.write(canonical({ ...result, ...(plan.scope ? { scope: plan.scope } : {}) }));
       } else {
+        if (plan.scope) process.stdout.write(`Scope: ${plan.scope.requested_ids.join(", ")}; dependencies: ${plan.scope.dependency_ids.join(", ") || "none"}\n`);
         process.stdout.write(`Transaction ${result.txid}: ${result.status}\n`);
         for (const outcome of result.outcomes) {
           process.stdout.write(`  ${outcome.record_id}: ${outcome.status}${outcome.reason ? ` (${outcome.reason})` : ""}\n`);
@@ -694,7 +646,7 @@ async function main(): Promise<void> {
   }
 
   if (command === "rollback") {
-    const args = parseLifecycleArgs(process.argv.slice(3));
+    const args = parseLifecycleArgs(process.argv.slice(3), command);
     if (!args.select) {
       process.stderr.write("temperance rollback: --select <txid> required\n");
       process.exitCode = 64;
@@ -721,7 +673,7 @@ async function main(): Promise<void> {
   }
 
   if (command === "receipt") {
-    const args = parseLifecycleArgs(process.argv.slice(3));
+    const args = parseLifecycleArgs(process.argv.slice(3), command);
     const stateRoot = getStateRoot();
 
     try {
@@ -783,8 +735,11 @@ Commands:
   compile                          Compile fragments and print receipt
   write-lock                       Compile and write lock file
   doctor [--section S] [--json]    Run doctor checks
-  install [--profile P] [--dry-run] [--force]  Install records
-  update [--profile P] [--dry-run]             Update records
+  install [--profile P] [--only IDs] [--dry-run] [--force]  Install records
+  update [--profile P] [--only IDs] [--dry-run]             Update records
+          --only id1,id2 limits steps and outcomes to those IDs and transitive dependencies.
+          Dry-run scope lists requested_ids, dependency_ids, and exact record_ids;
+          inventory_digest remains the complete compiled inventory digest.
   uninstall [--profile P] [--dry-run]          Uninstall records
   rollback --select <txid>                     Rollback transaction
   receipt [--select <txid>] [--json]           View receipts

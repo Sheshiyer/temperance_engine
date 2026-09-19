@@ -7,6 +7,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { prepareCopies, captureCopyManifest, assertCopyPrior, declaredCopyHashesForSteps, loadCopyManifest, rollbackCopies, safePath, sha256, type CopyManifest } from "./copy-tree.ts";
 import { prepareNonCopy, producerAvailability } from "./non-copy.ts";
@@ -92,13 +93,15 @@ export interface ExecutorOptions {
 // ─── Root resolution ─────────────────────────────────────────────────────────
 
 const ROOT_PATHS: Record<string, () => string> = {
-  HOME: () => process.env.HOME || "/tmp",
-  TEMPERANCE_STATE: () => process.env.TEMPERANCE_STATE || "/tmp/temperance-state",
-  CODEX_HOME: () => process.env.CODEX_HOME || "/tmp/codex",
-  CLAUDE_CONFIG_DIR: () => process.env.CLAUDE_CONFIG_DIR || "/tmp/claude-config",
+  HOME: () => process.env.HOME || homedir(),
+  CODEX_HOME: () => process.env.CODEX_HOME || join(process.env.HOME || homedir(), ".codex"),
+  CLAUDE_CONFIG_DIR: () => process.env.CLAUDE_CONFIG_DIR || join(process.env.HOME || homedir(), ".claude"),
 };
 
-function defaultResolveRoot(token: string): string {
+function defaultResolveRoot(token: string, stateRoot: string): string {
+  // A transaction's destination, journal, and recovery must share one root,
+  // even when its explicit root differs from the current environment.
+  if (token === "TEMPERANCE_STATE") return stateRoot;
   const resolver = ROOT_PATHS[token];
   if (!resolver) throw new Error(`Unknown root token: ${token}`);
   return resolver();
@@ -159,11 +162,11 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     profile,
     dryRun = false,
     force = false,
-    explicitSelections,
     signal = new AbortController().signal,
   } = options;
+  const explicitSelections = new Set([...(options.explicitSelections ?? []), ...(plan.scope?.record_ids ?? [])]);
 
-  const resolveRoot = options.resolveRoot ?? defaultResolveRoot;
+  const resolveRoot = options.resolveRoot ?? ((token: string) => defaultResolveRoot(token, stateRoot));
   const txid = generateTxId();
   const txDir = join(stateRoot, "transactions", txid);
 
@@ -606,7 +609,7 @@ export async function rollbackTransaction(
   io: LifecycleIO,
   options: { resolveRoot?: (token: string) => string } = {},
 ): Promise<ExecutorResult> {
-  const resolveRoot = options.resolveRoot ?? defaultResolveRoot;
+  const resolveRoot = options.resolveRoot ?? ((token: string) => defaultResolveRoot(token, stateRoot));
   if (!/^[a-f0-9]{12}-[a-f0-9]{8}$/.test(txid)) return { txid, status: "failed", outcomes: [], exitCode: 1 };
   const txDir = join(stateRoot, "transactions", txid);
   const journal = Journal.open(txDir, io);

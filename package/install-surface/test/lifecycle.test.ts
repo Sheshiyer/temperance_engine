@@ -18,7 +18,7 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 
 import type { CompileResult } from "../src/compile.ts";
 import type { SurfaceRecord, InstallSurfaceLockV1 } from "../src/types.ts";
@@ -103,6 +103,24 @@ function createTestIO(): LifecycleIO {
   };
 }
 
+function confinedTestIO(root: string): LifecycleIO {
+  const operations = new Set(["mkdir", "writeFile", "readFile", "readdir", "rm", "lstat", "chmod", "rename", "realpath", "writeFileAtomic"]);
+  return new Proxy(createTestIO(), {
+    get(target, property, receiver) {
+      const original = Reflect.get(target, property, receiver);
+      if (typeof property !== "string" || !operations.has(property)) return original;
+      return (...args: unknown[]) => {
+        const paths = property === "rename" ? args.slice(0, 2) : args.slice(0, 1);
+        for (const path of paths) {
+          const absolute = resolve(String(path));
+          if (absolute !== root && !absolute.startsWith(`${root}${sep}`)) throw new Error("TEST_IO_OUTSIDE_DISPOSABLE_ROOT");
+        }
+        return original(...args);
+      };
+    },
+  });
+}
+
 /**
  * Create a minimal CompileResult fixture.
  * @param srcDir - Absolute path to the source directory for COPY records
@@ -182,7 +200,102 @@ function createFixture(overrides?: Partial<CompileResult>, srcDir?: string): Com
   };
 }
 
+test("execute and rollback bind TEMPERANCE_STATE destinations to their transaction root", async () => {
+  const root = tempRoot("lifecycle-state-root-");
+  const stateRoot = join(root, "state");
+  const environmentRoot = join(root, "environment-state");
+  const sourceRoot = join(root, "source");
+  for (const directory of [stateRoot, environmentRoot, sourceRoot]) mkdirSync(directory, { recursive: true });
+  writeFileSync(join(sourceRoot, "file1.txt"), "new state bytes");
+  const fixture = createFixture(undefined, sourceRoot);
+  const record = fixture.lockObject.records[0]!;
+  record.destination = { root_token: "TEMPERANCE_STATE", relative_path: "router.txt", ownership: { kind: "exclusive-path" } };
+  fixture.lockObject.records = [record];
+  const target = join(stateRoot, "router.txt");
+  const untouched = join(environmentRoot, "router.txt");
+  writeFileSync(target, "prior state bytes");
+  writeFileSync(untouched, "other installation bytes");
+
+  const previous = process.env.TEMPERANCE_STATE;
+  process.env.TEMPERANCE_STATE = environmentRoot;
+  try {
+    const io = createTestIO();
+    const plan = createPlan({ verb: "update", profileResult: fixture, profile: "minimal" });
+    const result = await executePlan({ stateRoot, io, plan, compileResult: fixture, verb: "update", profile: "minimal" });
+    expect(result.status).toBe("committed");
+    expect(readFileSync(target, "utf8")).toBe("new state bytes");
+    expect(readFileSync(untouched, "utf8")).toBe("other installation bytes");
+    expect(existsSync(join(stateRoot, "transactions", result.txid, "receipt.json"))).toBe(true);
+
+    // Recovery must keep using the recorded transaction's root even if the
+    // operator launches it under a different or unset environment binding.
+    delete process.env.TEMPERANCE_STATE;
+    const rollback = await rollbackTransaction(result.txid, stateRoot, io);
+    expect(rollback.status).toBe("committed");
+    expect(readFileSync(target, "utf8")).toBe("prior state bytes");
+    expect(readFileSync(untouched, "utf8")).toBe("other installation bytes");
+  } finally {
+    if (previous === undefined) delete process.env.TEMPERANCE_STATE;
+    else process.env.TEMPERANCE_STATE = previous;
+  }
+});
+
 // ─── Planner tests ────────────────────────────────────────────────────────────
+
+test.each([false, true])("host roots use home defaults or explicit overrides (override=%s)", async (override) => {
+  const root = tempRoot("lifecycle-host-roots-");
+  const stateRoot = join(root, "state");
+  const home = join(root, "home");
+  const source = join(root, "source");
+  const codex = override ? join(root, "custom-codex") : join(home, ".codex");
+  const claude = override ? join(root, "custom-claude") : join(home, ".claude");
+  for (const path of [stateRoot, home, source, codex, claude]) mkdirSync(path, { recursive: true });
+  writeFileSync(join(source, "file1.txt"), "portable roots");
+  const fixture = createFixture(undefined, source);
+  const record = fixture.lockObject.records[0]!;
+  fixture.lockObject.records = ["CODEX_HOME", "CLAUDE_CONFIG_DIR"].map((token, index) => ({
+    ...record, id: `host-root-${index}`, destination: { root_token: token as "CODEX_HOME" | "CLAUDE_CONFIG_DIR", relative_path: "probe.txt", ownership: { kind: "exclusive-path" } },
+  }));
+  const previous = { HOME: process.env.HOME, CODEX_HOME: process.env.CODEX_HOME, CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR };
+  process.env.HOME = home;
+  if (override) {
+    process.env.CODEX_HOME = codex;
+    process.env.CLAUDE_CONFIG_DIR = claude;
+  } else {
+    delete process.env.CODEX_HOME;
+    delete process.env.CLAUDE_CONFIG_DIR;
+  }
+  try {
+    const io = confinedTestIO(root);
+    const plan = createPlan({ verb: "install", profileResult: fixture, profile: "minimal" });
+    const result = await executePlan({ stateRoot, io, plan, compileResult: fixture, verb: "install", profile: "minimal" });
+    expect(result.status).toBe("committed");
+    expect(readFileSync(join(codex, "probe.txt"), "utf8")).toBe("portable roots");
+    expect(readFileSync(join(claude, "probe.txt"), "utf8")).toBe("portable roots");
+    expect((await rollbackTransaction(result.txid, stateRoot, io)).status).toBe("committed");
+    expect(existsSync(join(codex, "probe.txt"))).toBe(false);
+    expect(existsSync(join(claude, "probe.txt"))).toBe(false);
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
+test("scoped execution does not silently skip an unavailable optional dependency", async () => {
+  const root = tempRoot("scoped-unavailable-");
+  const fixture = createFixture();
+  fixture.lockObject.records[0]!.eligibility.required = false;
+  fixture.lockObject.records[0]!.requires = [{ kind: "binary", name: "missing-test-binary" }];
+  const plan = createPlan({ verb: "update", profileResult: fixture, profile: "full", onlyIds: new Set(["test-record-2"]) });
+  const io = { ...confinedTestIO(root), execFile: async () => ({ stdout: "", stderr: "", exitCode: 1 }) };
+  const stateRoot = join(root, "state");
+  const result = await executePlan({ stateRoot, io, plan, compileResult: fixture, verb: "update", profile: "full" });
+  expect(result.status).toBe("failed");
+  expect(result.outcomes.find(({ record_id }) => record_id === "test-record-1")?.reason).toContain("CAPABILITY_UNAVAILABLE");
+  expect(existsSync(stateRoot)).toBe(false);
+});
 
 describe("planner", () => {
   test("creates plan with topological ordering", () => {
