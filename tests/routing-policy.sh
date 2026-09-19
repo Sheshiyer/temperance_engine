@@ -247,6 +247,7 @@ check "set-observation leaves health's own timestamp untouched" "500000" \
   "$(jq -r '.backends.omniroute.health_updated_at_ms' "$TMP/set-observation.json")"
 
 quota_plan=$(TEMPERANCE_BACKENDS="omniroute" \
+  TEMPERANCE_OMNIROUTE_CATALOG_FILE="$ROOT/tests/fixtures/omniroute-models.json" \
   TEMPERANCE_ROUTING_POLICY=shadow \
   TEMPERANCE_ROUTING_STATE="$TMP/set-observation.json" \
   TEMPERANCE_ROUTING_NOW_MS=1000001 \

@@ -21,6 +21,10 @@ run bun test package/adapters/command-code/context-sources-line.test.ts
 run bash tests/command-code-context-sources.sh
 run bun test package/router/routing-policy.test.ts
 run bun test \
+  package/router/session-rail.test.ts \
+  package/router/phase-projection.v4.test.ts \
+  package/router/surface-portability.test.ts
+run bun test \
   package/router/v4-cutover-plan.test.ts \
   package/router/v4-cutover-executor.test.ts \
   package/router/v4-cutover-apply.test.ts \

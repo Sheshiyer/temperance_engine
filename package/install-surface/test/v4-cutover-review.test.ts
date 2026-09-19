@@ -51,8 +51,8 @@ function proof(): V4ReplacementProof {
 
 function plan(overrides: { inspectPort?: () => ReturnType<NonNullable<Parameters<typeof createV4CutoverPlan>[0]["inspectPort"]>> } = {}): V4CutoverPlan {
   return createV4CutoverPlan({
-    homeDirectory: "/Users/example",
-    launchAgentsDirectory: "/Users/example/Library/LaunchAgents",
+    homeDirectory: "/synthetic-home/example",
+    launchAgentsDirectory: "/synthetic-home/example/Library/LaunchAgents",
     platform: "darwin",
     now: () => new Date("2026-09-17T00:00:00.000Z"),
     findBinary: () => null,

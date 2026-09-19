@@ -12,6 +12,9 @@ trap 'rm -rf "$ROUTING_TEST_TMP"' EXIT
 export TEMPERANCE_STATE_DIR="$ROUTING_TEST_TMP/state"
 export TEMPERANCE_ROUTING_STATE="$ROUTING_TEST_TMP/routing-observations.json"
 export TEMPERANCE_ROUTING_POLICY=shadow
+# Healthy-gateway cases must use a fixture, not whichever catalog happens to
+# be served on the operator's loopback port. Empty-catalog cases override this.
+export TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG"
 fail=0
 check() { # desc, expected, actual
   if [[ "$2" == "$3" ]]; then echo "ok - $1"; else echo "FAIL - $1: expected [$2] got [$3]"; fail=1; fi

@@ -123,10 +123,10 @@ describe("agent flow reuses the guided onboarding wizard", () => {
     const plan = readyPlan();
     plan.configuration_inputs = [{ id: "routing-input", digest: `sha256:${"b".repeat(64)}`, details: ["SECRET_CONFIGURATION_VALUE"] }];
     plan.modules[0]!.guided_installs = [{ id: "private-command", kind: "command", label: "Private", argv: ["tool", "SECRET_ARGUMENT_VALUE"] }];
-    const sensitive = { ...options, hostDescription: "/Users/private-host/SECRET_HOST_VALUE", notice: "SECRET_NOTICE_VALUE" };
+    const sensitive = { ...options, hostDescription: "/synthetic-home/private-host/SECRET_HOST_VALUE", notice: "SECRET_NOTICE_VALUE" };
     const before = JSON.stringify({ plan, sensitive });
     const serialized = JSON.stringify(ONBOARDING_WIZARD_STEPS.map((step) => projectAgentFlow(plan, { ...sensitive, step })));
-    for (const value of ["SECRET_CONFIGURATION_VALUE", "SECRET_ARGUMENT_VALUE", "SECRET_HOST_VALUE", "SECRET_NOTICE_VALUE", "/Users/private-host/"]) expect(serialized).not.toContain(value);
+    for (const value of ["SECRET_CONFIGURATION_VALUE", "SECRET_ARGUMENT_VALUE", "SECRET_HOST_VALUE", "SECRET_NOTICE_VALUE", "/synthetic-home/private-host/"]) expect(serialized).not.toContain(value);
     expect(JSON.stringify({ plan, sensitive })).toBe(before);
   });
 });

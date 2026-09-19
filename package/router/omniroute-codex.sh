@@ -20,8 +20,16 @@ while [ -L "$source_path" ]; do
 done
 ROUTER_DIR="$(cd -P "$(dirname "$source_path")" && pwd)"
 unset source_path source_dir
-"${TEMPERANCE_BUN:-bun}" --no-env-file --config=/dev/null \
-  "$ROUTER_DIR/session-admission-cli.ts" --alias "$MODEL" >&2 || exit "$?"
+# Keep successful control-plane diagnostics out of the worker completion
+# stream: the dispatcher must still recognize blank model output as failure.
+if admission_result="$("${TEMPERANCE_BUN:-bun}" --no-env-file --config=/dev/null \
+  "$ROUTER_DIR/session-admission-cli.ts" --alias "$MODEL")"; then
+  unset admission_result
+else
+  admission_status=$?
+  printf '%s\n' "$admission_result" >&2
+  exit "$admission_status"
+fi
 
 command -v codex >/dev/null 2>&1 || { echo "codex CLI is required for the OmniRoute agent backend" >&2; exit 127; }
 

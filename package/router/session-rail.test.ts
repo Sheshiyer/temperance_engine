@@ -161,9 +161,19 @@ describe("optional session rail policy", () => {
       env: { PATH: `${root}:/usr/bin:/bin`, HOME: root, USER: "fixture", TEMPERANCE_BUN: process.execPath, OMNIROUTE_API_KEY: "fixture-not-a-real-key" },
     });
     expect(result.exitCode).toBe(42);
-    expect(result.stderr.toString()).toContain("OPTIONAL_SESSION_POLICY_NOT_SELECTED");
+    expect(result.stderr.toString()).not.toContain("OPTIONAL_SESSION_POLICY_NOT_SELECTED");
     expect(result.stderr.toString()).toContain("STUB_CODEX_ONLY");
     expect(result.stderr.toString()).not.toContain("UNEXPECTED_KEYCHAIN");
+  });
+  test("successful admission never decorates a whitespace-only worker completion", () => {
+    const root = temp();
+    writeFileSync(join(root, "codex"), "#!/bin/sh\nwhile [ $# -gt 0 ]; do\n  if [ \"$1\" = -o ]; then printf '\\n' > \"$2\"; exit 0; fi\n  shift\ndone\nexit 42\n", { mode: 0o700 });
+    const result = Bun.spawnSync(["/bin/bash", join(import.meta.dir, "omniroute-codex.sh"), "provider/model", "fixture only"], {
+      env: { PATH: `${root}:/usr/bin:/bin`, HOME: root, USER: "fixture", TEMPERANCE_BUN: process.execPath, OMNIROUTE_API_KEY: "fixture-not-a-real-key" },
+    });
+    expect(result.exitCode).toBe(0); // Transport exit is not dispatcher task acceptance.
+    expect(result.stdout.toString().trim()).toBe("");
+    expect(result.stderr.toString()).toBe("");
   });
   test.each(["omniroute-claude.sh", "omniroute-opencode.sh"])("%s holds selected policy before Keychain or native launcher calls", (launcher) => {
     const root = temp(); const file = join(root, "policy.json");
