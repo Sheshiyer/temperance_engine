@@ -10,6 +10,62 @@ Compatibility: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-19
+
+### Added
+
+- Portable v4 hand-in-glove onboarding with optional personal profiles, private
+  host bindings, dependency-aware organs, mounted-volume checks, and read-only
+  project discovery and explicit enrollment.
+- Guided seven-step onboarding: Host, Projects, Providers, Combos, Organs/tools,
+  Integrations, Review. The headless agent flow shares the same actions and
+  admission gates as the TUI, with explicit handoffs for sign-in and changes.
+- Exact-version `9router@0.5.75` capability adapter, opaque OAuth interaction,
+  live provider/model discovery, reviewed combo seating, and digest-bound
+  replacement/cutover transactions with rollback evidence.
+- Read-only operator health, install doctor integration, local opt-in bounded
+  metadata telemetry, and log inspection from either the TUI or JSON CLI.
+- Optional session-policy admission checks for context budgets, phase aliases,
+  seats, and fallback; shared seven-phase alchemical/Kosha header projection.
+
+### Changed
+
+- Temperance remains independently installable. Noesis/Cambium is an optional
+  personal layer, not a required dependency or source of shipped private state.
+- Onboarding uses sequential guidance instead of tabs, with Enter actions and
+  Enter/y final confirmation. Blocked plans remain impossible to confirm.
+- Scoped lifecycle updates and refreshed COPY provenance reconcile managed
+  surfaces without treating unavailable transformations as successful installs.
+
+### Fixed
+
+- Preserve Unicode in managed instructions and pending wizard choices across
+  routing, health, and log handoffs; keep agent step arrays in workflow order.
+- Keep successful admission diagnostics out of worker completion output so
+  blank responses cannot masquerade as successful model work.
+- Keep synthetic test homes portable and isolate launcher, proxy, and routing
+  fixtures from the operator's optional personal policy, logs, and live catalog.
+
+### Security
+
+- OAuth proof and provider tokens remain outside plans, receipts, and telemetry.
+  Logs use a bounded, owner-only, metadata-only store with strict input handling.
+- Missing, stale, incompatible, or unverified routing/context evidence holds
+  admission. Prerequisite availability is never reported as runtime health.
+
+### Qualification boundary
+
+- This is the `0.6.0` feature release, not completion of the separately tracked
+  v1.1 clean-host qualification milestone or a claim of end-to-end 1M sessions.
+- The adapter pin remains `9router@0.5.75`; other versions, including `0.5.81`,
+  are not qualified and are held. Provider sign-in and persisted combo membership
+  require fresh verification on each installation.
+- Per-attempt gateway context enforcement and durable checkpoint recovery are
+  not qualified. A selected long-context policy remains held where enforcement
+  cannot be verified. Native client context capacity is not established here.
+- App/volume presence does not establish Obsidian tunneling or dashboard health.
+  Unsupported doctor transforms/generators remain explicitly unavailable.
+
 ## [0.5.4] - 2026-08-26 — v5 arc closed (XVII Star + Swords minors) + v4.3 fix
 
 Product bump reflecting the local runtime's v5.4 Five of Swords state. All noted work landed via the noesis-cambium repo (`~/.temperance_engine`); this glove entry records the semver correspondence + summary. Full receipts in the host runtime CHANGELOG at `~/.temperance_engine/CHANGELOG.md` and Arcana canonical spec at `~/.temperance_engine/ARCANA-NOMENCLATURE.md`.
@@ -76,5 +132,6 @@ Product bump reflecting the local runtime's v5.4 Five of Swords state. All noted
 - Initial public installer package for Temperance Engine.
 - Added backup-first install scripts, verifier, rollback docs, PAI templates, Pulse compatibility server, skill resolver shim, and CodeGraph routing guidance.
 
-[Unreleased]: https://github.com/Sheshiyer/temperance_engine/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Sheshiyer/temperance_engine/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.6.0
 [0.1.0]: https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.1.0

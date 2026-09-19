@@ -1,6 +1,8 @@
 # Release control
 
-Temperance Engine and OmniRoute are one operator ecosystem with **three independently versioned planes**. Do not collapse them into a single SemVer.
+Temperance Engine and its optional routing gateway have **three independently
+versioned planes**. Do not collapse them into a single SemVer. The v4 architecture
+name is not the product version; the current product release is `0.6.0`.
 
 Keep a Changelog: [CHANGELOG.md](../CHANGELOG.md). Compatibility pins: [COMPATIBILITY.md](COMPATIBILITY.md).
 
@@ -9,8 +11,8 @@ Keep a Changelog: [CHANGELOG.md](../CHANGELOG.md). Compatibility pins: [COMPATIB
 | Plane | Identity | Source of truth | Bump when |
 |---|---|---|---|
 | **Glove product** | `temperance_engine` SemVer | repo `VERSION` + git tag `vX.Y.Z` | Public installer, doctor, lifecycle, or docs contract that downloaders consume |
-| **Host runtime** | install generation | `~/.temperance_engine/VERSION` | `install.sh` / `--with-spine` actually copies a new generation onto the machine |
-| **Mercurius** | OmniRoute package version | installed OmniRoute `version` field (currently **3.8.48**) | Upstream OmniRoute release, only after glove qualification |
+| **Host runtime** | installed generation and receipts | Selected state root and lifecycle transaction receipts; legacy installs may retain `~/.temperance_engine/VERSION` | A reviewed lifecycle operation actually copies and verifies new managed bytes |
+| **Mercurius** | 9router package version | Exact adapter pin in [COMPATIBILITY.md](COMPATIBILITY.md), checked against the installed executable | Upstream gateway release, only after adapter qualification |
 
 Alchemical display names (Opus, Speculum, Vas, Athanor, Mercurius) are coding names only. Tags, CHANGELOG headings, and `VERSION` files keep the real product names.
 
@@ -22,7 +24,11 @@ Follow [semver.org](https://semver.org/):
 - **MINOR** — additive public surface that old clients can ignore.
 - **PATCH** — bugfix, docs, or verification that does not change contracts.
 
-Pre-1.0: glove `0.1.0` is the first public installer. Milestone **v1.1 Public Temperance Glove** ships as tag `v1.1.0` at Phase 7, not sooner.
+Pre-1.0: glove `0.1.0` is the first public installer. `0.6.0` publishes the
+additive v4 onboarding/operator surfaces with explicit limitations. Milestone
+**v1.1 Public Temperance Glove** still requires its separate clean-host,
+Apple Silicon/Intel, and exact-candidate qualification gates; a `0.x` feature
+release does not mark that milestone complete.
 
 Schema versions (`temperance.doctor.report.v1`, install-surface fragment `{major,minor}`) are **independent** of product SemVer. A product MINOR may keep schema major 1. A schema major bump is always a product MAJOR.
 
@@ -33,8 +39,8 @@ Each plane keeps a [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) file
 | Plane | File |
 |---|---|
 | Glove | [`CHANGELOG.md`](../CHANGELOG.md) |
-| Host | `~/.temperance_engine/CHANGELOG.md` (host-only distill / install generation) |
-| Mercurius | upstream OmniRoute notes; glove records the **pin** in COMPATIBILITY.md, not a fork changelog |
+| Host | Private lifecycle receipts and host changelog, when present; never updated merely because a product tag changes |
+| Mercurius | Upstream gateway notes; glove records the **pin** in COMPATIBILITY.md, not a fork changelog |
 
 Required heading shape:
 
@@ -52,25 +58,40 @@ Unreleased is the only place in-progress work may land. Cutting a release:
 
 1. Move Unreleased bullets into `[X.Y.Z] - date`.
 2. Write `VERSION` to `X.Y.Z`.
-3. Tag `vX.Y.Z` on a **clean** tree (Phase 7 RELS-06).
-4. Record OmniRoute pin + manifest lock digest in the release notes.
+3. Refresh README, compatibility, and local README source-reconciliation metadata.
+   Do not label reused NotebookLM assets as newly generated research.
+4. Run `./scripts/verify-all.sh`, install-surface typecheck/build, and COPY
+   expectation checks. Preserve failing gates; do not publish a failed candidate.
+5. Commit the reviewed candidate, then tag `vX.Y.Z` on a **clean** tree. Do not
+   change an existing published tag. Push the exact branch/tag without force.
+6. Record the commit, 9router pin, and SHA-256 of
+   `package/install-surface/install-surface-manifest.lock.json` in the GitHub
+   release notes. Include qualification limitations and the Verify workflow
+   result for that exact commit. Use `gh release create --verify-tag` only after
+   verifying the remote tag and successful checks.
+
+The existing GitHub Actions `Verify` workflow runs on `main` pushes. There is no
+separate automatic release-publishing workflow; the documented release cut is
+manual. For v1.1, additionally bind the artifact digest and complete RELS-06/07
+and both required clean-host platform lanes before publication.
 
 ## Ecosystem identifier
 
 An operator-facing ecosystem line is the triple, not a fourth SemVer:
 
 ```text
-temperance_engine@<VERSION> + omniroute@<PIN> + host@<HOST_VERSION>
+temperance_engine@<VERSION> + 9router@<PIN> + host@<RECEIPT_OR_UNKNOWN>
 ```
 
-Example: `temperance_engine@0.1.0 + omniroute@3.8.48 + host@0.1.0`.
+Example: `temperance_engine@0.6.0 + 9router@0.5.75 + host@unverified`.
 
-Doctor JSON and release receipts should report this triple. Do not invent `ecosystem 2.0` that disagrees with `VERSION`.
+Release notes report the independent planes. Do not change an existing doctor
+schema to synthesize a host version, and do not invent an ecosystem SemVer.
 
 ## What this file does not do
 
-- It does not execute Phase 1 (`package/install-surface`).
-- It does not promote OmniRoute 3.8.49 (see `docs/audits/omniroute-3.8.49-a2a-comparison.json` — comparison only).
+- It does not activate or repair an operator's runtime merely by publishing.
+- It does not promote an unqualified gateway version, including 9router 0.5.81.
 - It does not replace ISA.md as the acceptance judge.
 - Dirty host-spine files already in the working tree remain Unreleased until reviewable commits land.
 

@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 708/830
+progress: 712/834
 mode: interactive
 started: 2026-06-12
-updated: 2026-08-20T17:18:00Z
+updated: 2026-09-19T14:22:31Z
 ---
 
 ## Problem
@@ -1078,6 +1078,10 @@ untouched.
 - [ ] ISC-806: Doctor human and JSON modes observe identical manifest truth without mutation.
 - [ ] ISC-807: Phase 1 verification commands exit zero with captured output.
 - [ ] ISC-808: Anti: Phase 1 commits exclude unrelated pre-existing host-spine changes.
+- [x] ISC-809: The owner-requested minor release candidate declares product version `0.6.0`.
+- [x] ISC-810: The `0.6.0` changelog explicitly preserves the unqualified long-context enforcement boundary.
+- [x] ISC-811: The `0.6.0` source candidate passes the canonical verification suite.
+- [x] ISC-812: Anti: the `0.6.0` public candidate contains no private absolute home path rejected by the existing guard.
 
 ## Test Strategy
 
@@ -1877,6 +1881,10 @@ untouched.
 | ISC-806 | doctor safety | human/JSON semantic parity and filesystem stability | equal model plus zero writes | doctor integration test |
 | ISC-807 | verification | Phase 1 commands | every exit zero | plan verification commands |
 | ISC-808 | commit boundary | unrelated dirty spine paths in Phase 1 commits | zero | `git show --name-only` audit |
+| ISC-809 | release | product version | exact `0.6.0` | `cat VERSION` |
+| ISC-810 | release | qualification boundary | explicit gateway/context/recovery holds | changelog readback |
+| ISC-811 | release | canonical verification | exit zero | `./scripts/verify-all.sh` |
+| ISC-812 | privacy | existing public-path guard | exit zero, guard unchanged | `./verify.sh` |
 
 ## Features
 
@@ -1972,6 +1980,7 @@ untouched.
 | GSD query-runtime readiness and fail-fast wrappers | ISC-789..ISC-794 | external GSD 1.42.3 CLI plus Temperance wrapper generation | no |
 | Phase 1 provenance contract execution | ISC-795..ISC-805 | approved 01-01 and 01-02 plans | no |
 | Phase 1 read-only control plane verification | ISC-806..ISC-808 | approved 01-03 plan, dirty-tree commit boundary | no |
+| 0.6.0 additive v4 feature release | ISC-809..ISC-812 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
 
 ## Architecture
 
@@ -2227,6 +2236,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-08-04 11:45 IST: The read-only dry-run manifest `/tmp/temperance-canary-plan.HF48kw/thoughtseed-brand-atlas.plan.json` (mode `0600`, SHA-256 `a93d5dfd484ff3a5ecf5d553177731d019f43c93208cb90f2e7f7f73ad19ceeb`) is held: source and Git are clean, the normalized identity has no destination collision, and no exact checked-in old-path references were found, but all six required packet files are missing (`PROJECT.md`, `AGENTS.md`, `CLAUDE.md`, `.project/CONTEXT.md`, `.project/project.yaml`, `.project/HANDOFF.md`). Manifest approval and packet preparation remain separate gates.
 - 2026-08-04 18:16 IST: Decision 27 authorized the next six-file packet for the already approved canary. The packet is a separate, uncommitted repository draft only: `PROJECT.md`, `AGENTS.md`, `CLAUDE.md`, `.project/CONTEXT.md`, `.project/project.yaml`, and `.project/HANDOFF.md`. Thoughtseed TeamForge identity is intentionally represented as `project_id: null`, `identity_status: pending-teamforge-verification`, and `packet_status: draft-held`; no substitute ID was minted. This authorization does not approve relocation, registry/capsule writes, rename, client pickup, commit, push, session/Paseo work, or provider/deployment mutation.
 - 2026-08-04 18:20 IST: The six-file packet draft is present with packet digest `be0d69efec00bc2bd769b4f54e2160e45fea93c80897952a8ff22f79fa6a72c8`. The fresh owner-only dry-run `/tmp/temperance-canary-packet.GWGuFG/thoughtseed-brand-atlas.plan.json` is mode `0600`, SHA-256 `fe78fc1cb2556ae66e86b26705406c628e8a81be1142ae8b7db04b207ab397f8`, `ready:false`, and holds on `packet_identity_pending_teamforge` plus `working_tree_not_clean`; exact checked-in path consumers remain empty and the destination remains absent.
+
+- 2026-09-19 14:10 UTC: refined: The owner requests a minor version bump and GitHub publication of the current v4 integration. Product `VERSION` moves from 0.5.4 to 0.6.0; v4 names the architecture, not a product major. ISC-800 records the earlier Phase 1 freeze and is historical, not an instruction to downgrade the current product. The separate v1.1 milestone and its clean-host platform gates remain incomplete. Noesis stays optional; no host generation, credentials, provider pin, or session-policy activation changes follow from publication. Release operations stay single-author because version, candidate commit, and tag form one sequential chain. The optional Advisor returned exit 1 and is not counted as approval.
 
 ## Changelog
 
@@ -2650,6 +2661,11 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   learned: distributable installation truth is a portable source-to-destination relation governed by a versioned provenance manifest; milestone identity and concrete phase numbers must be reconciled and assigned by intake.
   criterion now: ISC-763 proves the product symlink equals the repository root, and ISC-774..ISC-780 require Intake/A-F logical stages, alternative-safe planning commands, authority reconciliation, and held activation.
 
+- 2026-09-19 | conjectured: Passing the install-surface package tests alone was enough to cut the additive feature release.
+  refuted by: The canonical suite rejected synthetic absolute home literals, exposed fixtures reading personal policy/catalog state and a missing Bash 4+ prerequisite, then caught successful admission JSON masking a blank worker response.
+  learned: Release qualification needs repository-wide gates with isolated test state and CI prerequisites. Successful control-plane diagnostics must not enter the worker completion stream; suppressing success must preserve visible hold reasons and nonzero exits.
+  criterion now: ISC-811 and ISC-812 require the full canonical suite and unchanged public-path guard before publication.
+
 ## Verification
 
 - ISC-750: directory enumeration — The report classifies all 70 Thoughtseed immediate children: 68 directories and 2 files.
@@ -3067,3 +3083,7 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-08-19 canonical boundary: `./verify.sh` exits 1 at its public-path guard because existing relocation/runtime sources contain private workstation prefixes. This is an explicitly mapped Stage B release blocker; the new public audit contains no private home or mounted-volume prefix.
 - 2026-08-19 runtime/project check: `temperance-project-init --check` completed with running services healthy and only known optional project gaps plus a stale ranker; no service, milestone, provider, or private runtime state was mutated.
 - 2026-08-19 governed review: both Advisor attempts failed expired OAuth and returned no verdict; `te-validate` stalled and was cancelled; the named Cato role was unavailable. A separate read-only adversarial agent found six P1 documentation/workflow issues across two repair rounds, then returned PASS with no Critical/P0/P1 finding. None of the unavailable gates is counted as approval.
+- ISC-809: version readback — `cat VERSION` returned `0.6.0` on 2026-09-19.
+- ISC-810: changelog readback — `0.6.0` states that per-attempt gateway context enforcement and durable checkpoint recovery are not qualified; the exact 9router 0.5.75 pin is unchanged.
+- ISC-811: canonical verification — `./scripts/verify-all.sh` exited 0 on 2026-09-19 and printed `Temperance Engine full verification passed`, including 980 passing Bun tests and the shell/install/rollback/dispatcher/doctor suites. Install-surface typecheck/build, README continuity, and 18-record COPY verification also passed. Independent read-only release and admission-output reviews reported no blocking findings. GitHub publication remains gated on Verify for the exact pushed candidate, whose result is recorded in the release notes.
+- ISC-812: public guard — the unchanged private-path guard and its regression suite passed inside the canonical run; no host binding, credentials, private operator logs, or personal project capsules are staged for this release.
