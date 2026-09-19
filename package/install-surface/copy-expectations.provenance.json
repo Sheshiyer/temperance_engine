@@ -7,10 +7,28 @@
       "source_object": "d5e74db46bae774d71a0e1351de62f3a74b44581"
     },
     {
-      "expectation_digest": "sha256:c0ed66a71a7ce876b66766657cce69e3a8624df43048b90dffaadc5dbc63d0ed",
+      "expectation_digest": "sha256:f15d7a4a547238d093dcd4f4ea8e1d3cbc13d88e9babaf01b142fd46905ba190",
+      "id": "hooks.claude.gsd-command",
+      "source": "package/hooks/codex/GsdCommand.hook.ts",
+      "source_object": "76f9befe10ac60fdeec43c4796a92811ad592518"
+    },
+    {
+      "expectation_digest": "sha256:238b04e610ee7e721d76a77d96614410fcea7f60181d9b468b422da065563533",
+      "id": "hooks.claude.manifest-mode-commit",
+      "source": "package/hooks/codex/ManifestModeCommit.hook.ts",
+      "source_object": "e7a412d78c134fc0aa17c599c66ddbe243b91bbd"
+    },
+    {
+      "expectation_digest": "sha256:c1e673dbfddc598471cf6c881e5ea34f8ff599a2508c87ad0caea7819847b391",
       "id": "hooks.claude.prompt-processing",
       "source": "package/hooks/claude/PromptProcessing.hook.ts",
-      "source_object": "d6b153198efd3ccd3ba5b6fe6e61e9822b4de457"
+      "source_object": "a5742ce588468b22fa40bd356f4b9855fdbeef59"
+    },
+    {
+      "expectation_digest": "sha256:4122cdd4f4c307b9b50b7a550c9cfb027eb342a1153bde8507dd1306f742d3cd",
+      "id": "hooks.claude.temperance-rail-announce",
+      "source": "package/hooks/codex/TemperanceRailAnnounce.hook.ts",
+      "source_object": "6aa89ae1ef9ef25fbf1da01356776874aae850a4"
     },
     {
       "expectation_digest": "sha256:f15d7a4a547238d093dcd4f4ea8e1d3cbc13d88e9babaf01b142fd46905ba190",
@@ -25,10 +43,10 @@
       "source_object": "e7a412d78c134fc0aa17c599c66ddbe243b91bbd"
     },
     {
-      "expectation_digest": "sha256:592358186eeb2fb9877d9ac6eac1021c0c77fea88fb2f924f79eea9b170aecd6",
+      "expectation_digest": "sha256:23b43010bf83bf3e8235ec0c604a5148d11bba6c0f1a0dc44a5a7fdecf691be4",
       "id": "hooks.codex.prompt-processing",
       "source": "package/hooks/codex/PromptProcessing.hook.ts",
-      "source_object": "cecab7137b764f1fbb2c3c62fb3ee1aef914ba54"
+      "source_object": "6972f6e7ca08eed7168e2b87f715bde116d9fd6c"
     },
     {
       "expectation_digest": "sha256:cdb612d26418d79c20b3f37ab836f1d2471d7a840ae283ff27138fdf1b0843b3",
@@ -37,10 +55,10 @@
       "source_object": "731aee3e21e0aaf10c65b085a14c0c4edfddffb8"
     },
     {
-      "expectation_digest": "sha256:e6d3a8a37de7a27fdf2a169f7e26efa3a4dae05925769bc93461219a591caec3",
+      "expectation_digest": "sha256:4122cdd4f4c307b9b50b7a550c9cfb027eb342a1153bde8507dd1306f742d3cd",
       "id": "hooks.codex.temperance-rail-announce",
       "source": "package/hooks/codex/TemperanceRailAnnounce.hook.ts",
-      "source_object": "40733fc1878665123522e860d35db690f0dedf92"
+      "source_object": "6aa89ae1ef9ef25fbf1da01356776874aae850a4"
     },
     {
       "expectation_digest": "sha256:10d477e6e17921528eeab4c1d75a5b01b8d61f13777961f95c772f23039bf467",
@@ -55,10 +73,10 @@
       "source_object": "2c15ff81f4afb0865bb8db1db60f1a1d8c560077"
     },
     {
-      "expectation_digest": "sha256:b54dd3a8234ee4d8de5db38caabb8fc497678fa088a03f0edb32a627e88f93e3",
+      "expectation_digest": "sha256:890962625768db41b0ea527916dc7aefc9b51fa9fdadbdc7026b969ceff759ed",
       "id": "router.governed-runtime",
       "source": "package/router",
-      "source_object": "52fd4e864e64f9750d15b03a6acb980f42576e5a"
+      "source_object": "bb71ead0a4a71aef1ad3f06b18dd4e2a12424341"
     },
     {
       "expectation_digest": "sha256:f40f92598d75fca3203768a53b1e5bb229d169243944f6c8bd63b949af02490f",
@@ -91,7 +109,7 @@
       "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
     }
   ],
-  "revision": "abaf5f03bb3dcc1857f00174aa6db86c0f1ffeee",
+  "revision": "1005f978acadfb4fa45474a8529401031c210e80",
   "schema": "temperance.install-surface.copy-expectations-provenance.v1",
-  "tree": "bfb41d39a64130adb7ab6e9d71d4bf44e7232c28"
+  "tree": "cd422ba7c82dfc4ccb918c7c91fca51e1ce8be23"
 }

@@ -45,7 +45,7 @@
         "method": "sha256",
         "expected": {
           "kind": "file",
-          "sha256": "sha256:8b00793b312249665874c1483db48cd4977988545fd75ac4ebd38a5c75936507",
+          "sha256": "sha256:39319c6f56131d97fd1f8ee74727caa9dc3fe7fe9065d6177c172425cf39f9e4",
           "mode": "0755"
         }
       },
@@ -219,7 +219,7 @@
         "method": "sha256",
         "expected": {
           "kind": "file",
-          "sha256": "sha256:046f21838b532847e8f67217f1be5eb1b6c6bfe24c15df0bfcad947b38d51555",
+          "sha256": "sha256:1bad46dc87316495dd6f53c7e089e6683eccd1a564d099a63e03f468f9f3318f",
           "mode": "0755"
         }
       },
@@ -266,7 +266,7 @@
         "method": "sha256",
         "expected": {
           "kind": "file",
-          "sha256": "sha256:9dc835cdf59ce54732d8f769082dc0d9bcf3f999bf659be8074fb814980d5b0a",
+          "sha256": "sha256:7bd15ff47d5405a4e4aef8095cf9aa3153e427557eb8633ebc006bd920cfe030",
           "mode": "0644"
         }
       },
@@ -282,20 +282,42 @@
       "destination": {
         "root_token": "CLAUDE_CONFIG_DIR",
         "relative_path": "hooks/GsdCommand.hook.ts",
-        "ownership": { "kind": "exclusive-path" }
+        "ownership": {
+          "kind": "exclusive-path"
+        }
       },
       "authority": {
-        "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"],
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
         "isa": "ISC-769"
       },
       "eligibility": {
-        "platforms": ["darwin", "linux"],
-        "profiles": ["default"],
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
         "required": true
       },
-      "depends_on": ["hooks.claude.manifest-mode-commit"],
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "depends_on": [
+        "hooks.claude.manifest-mode-commit"
+      ],
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:a895d515238214d73f998d87bfa3c4f7e4286221594b39f79257aa7d2bb246eb",
+          "mode": "0755"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     },
     {
       "id": "hooks.claude.manifest-mode-commit",
@@ -305,19 +327,39 @@
       "destination": {
         "root_token": "CLAUDE_CONFIG_DIR",
         "relative_path": "hooks/ManifestModeCommit.hook.ts",
-        "ownership": { "kind": "exclusive-path" }
+        "ownership": {
+          "kind": "exclusive-path"
+        }
       },
       "authority": {
-        "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"],
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
         "isa": "ISC-769"
       },
       "eligibility": {
-        "platforms": ["darwin", "linux"],
-        "profiles": ["default"],
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
         "required": true
       },
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:d1c6ee8867240f10bd9e662af5b28bf4dddec4aadd9a7c4dac5bf5d342aea39d",
+          "mode": "0755"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     },
     {
       "id": "hooks.claude.temperance-rail-announce",
@@ -327,20 +369,42 @@
       "destination": {
         "root_token": "CLAUDE_CONFIG_DIR",
         "relative_path": "hooks/TemperanceRailAnnounce.hook.ts",
-        "ownership": { "kind": "exclusive-path" }
+        "ownership": {
+          "kind": "exclusive-path"
+        }
       },
       "authority": {
-        "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"],
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
         "isa": "ISC-769"
       },
       "eligibility": {
-        "platforms": ["darwin", "linux"],
-        "profiles": ["default"],
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
         "required": true
       },
-      "depends_on": ["router.governed-runtime"],
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "depends_on": [
+        "router.governed-runtime"
+      ],
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "file",
+          "sha256": "sha256:1bad46dc87316495dd6f53c7e089e6683eccd1a564d099a63e03f468f9f3318f",
+          "mode": "0755"
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     }
   ]
 }
