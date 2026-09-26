@@ -39,6 +39,18 @@ function loadMap(): any {
   }
 }
 
+function loadPortfolioManifest(): any {
+  const p =
+    process.env.TEMPERANCE_PORTFOLIO_MANIFEST ||
+    join(homedir(), ".temperance_engine", "router", "omniroute-portfolios.json")
+  if (!existsSync(p)) return null
+  try {
+    return JSON.parse(readFileSync(p, "utf8"))
+  } catch {
+    return null
+  }
+}
+
 function classifyTaskType(prompt: string): string {
   const script =
     process.env.TEMPERANCE_CLASSIFY ||
@@ -73,16 +85,18 @@ function classifyMode(prompt: string): Mode {
     return "MINIMAL"
   }
   const multi =
-    /(build|create|implement|refactor|migrate|integrate|upgrade|debug|fix|investigate|design|plan|audit|review|multiple|all files|algorithm|isa|pai)/i
+    /(build|create|implement|refactor|migrate|integrate|upgrade|debug|fix|investigate|design|plan|audit|review|multiple|all files|algorithm|isa|pai|proceed|continue|go ahead|resume)/i
   if (!multi.test(prompt) && v.split(/\s+/).length <= 16) return "NATIVE"
   return "ALGORITHM"
 }
 
 // RAIL-02/36-02: the displayed phase is this session's actual rail state, never a taskType
-// keyword guess. Mirrors router/session-rail-state.ts's getCurrentPhase() read order — own
-// state file > AlgorithmTracker per-session state > RailContinuity rail — but is inlined
-// rather than imported so this hook keeps working once installed standalone to
-// ~/.codex/hooks/, matching phaseOntology()'s own inline-fallback pattern below.
+// keyword guess (the old phaseForTaskType(taskType) here made "audit the config" render as
+// VERIFY 6/7 regardless of where the Algorithm actually was). Mirrors
+// router/session-rail-state.ts's getCurrentPhase() read order — own state file > AlgorithmTracker
+// per-session state > RailContinuity rail — but is inlined rather than imported so this hook
+// keeps working once installed standalone to ~/.claude/hooks/, matching phaseOntology()'s own
+// inline-fallback pattern below (a relative import into router/ would not resolve there).
 const SESSION_PHASE_TITLE: Record<string, string> = {
   OBSERVE: "Observe", THINK: "Think", PLAN: "Plan", BUILD: "Build",
   EXECUTE: "Execute", VERIFY: "Verify", LEARN: "Learn",
@@ -103,7 +117,7 @@ function readJSONQuiet(path: string): any | null {
 }
 
 function resolveSessionId(): string {
-  return process.env.TEMPERANCE_SESSION_ID || process.env.CODEX_SESSION_ID || "default"
+  return process.env.TEMPERANCE_SESSION_ID || process.env.CLAUDE_SESSION_ID || "default"
 }
 
 /** Current session phase: own rail state > AlgorithmTracker > RailContinuity > Observe. */
@@ -170,9 +184,56 @@ function phaseMeta(phase: string): PhaseMeta {
 
 type StackRow = { i: number; provider: string; rest: string; mid: string }
 
+function loadProviderClass(): any {
+  const p = join(homedir(), ".temperance_engine", "state", "provider-class.json")
+  if (!existsSync(p)) return null
+  try {
+    return JSON.parse(readFileSync(p, "utf8"))
+  } catch {
+    return null
+  }
+}
+
+function inactiveProviders(): Set<string> {
+  const out = new Set<string>()
+  const db = process.env.OMNIROUTE_DB || join(homedir(), ".omniroute", "storage.sqlite")
+  const klass = loadProviderClass()
+  for (const p of klass?.hard_exclude?.providers || []) out.add(String(p))
+  if (!existsSync(db)) return out
+  try {
+    const raw = execFileSync(
+      "sqlite3",
+      [db, "SELECT provider FROM provider_connections WHERE is_active=0;"],
+      { encoding: "utf8", timeout: 800 },
+    ).trim()
+    for (const line of raw.split("\n")) {
+      if (line.trim()) out.add(line.trim())
+    }
+  } catch {
+    /* ignore */
+  }
+  // Operator hard-off: Codex weekly burn / inactive seat must never be announced as native.
+  out.add("codex")
+  return out
+}
+
+function isExcludedModel(mid: string, inactive: Set<string>): boolean {
+  if (!mid) return true
+  const provider = mid.includes("/") ? mid.split("/")[0] : ""
+  if (provider && inactive.has(provider)) return true
+  const klass = loadProviderClass()
+  for (const prefix of klass?.hard_exclude?.model_prefixes || []) {
+    if (mid.startsWith(String(prefix))) return true
+  }
+  // Stale Sol labels even if somehow still in a template
+  if (/gpt-5\.6-sol/i.test(mid) && inactive.has("codex")) return true
+  return false
+}
+
 function loadComboStack(combo: string): StackRow[] {
   const db = process.env.OMNIROUTE_DB || join(homedir(), ".omniroute", "storage.sqlite")
   if (!existsSync(db)) return []
+  const inactive = inactiveProviders()
   try {
     const raw = execFileSync(
       "sqlite3",
@@ -182,16 +243,75 @@ function loadComboStack(combo: string): StackRow[] {
     if (!raw) return []
     const data = JSON.parse(raw)
     const rows: StackRow[] = []
-    for (const [idx, m] of (data.models || []).entries()) {
+    let i = 0
+    for (const m of data.models || []) {
       const mid = String(m.model || "")
+      if (isExcludedModel(mid, inactive)) continue
+      i += 1
       const provider = String(m.providerId || (mid.includes("/") ? mid.split("/")[0] : "omniroute"))
       const rest = mid.includes("/") ? mid.slice(mid.indexOf("/") + 1) : mid
-      rows.push({ i: idx + 1, provider, rest, mid })
+      rows.push({ i, provider, rest, mid })
     }
     return rows
   } catch {
     return []
   }
+}
+
+function isExecutionWorkerContext(taskType: string, phase: string, combo: string): boolean {
+  return (
+    combo === "noesis-execute" ||
+    phase.toLowerCase() === "execute" ||
+    taskType === "dispatch" ||
+    taskType === "parallel-worker"
+  )
+}
+
+function resolveExplicitWorkerModel(
+  inactive: Set<string>,
+  taskType: string,
+  phase: string,
+  combo: string,
+): string | null {
+  if (!isExecutionWorkerContext(taskType, phase, combo)) return null
+  const requested = String(
+    process.env.TEMPERANCE_WORKER_MODEL ||
+      process.env.TEMPERANCE_WORKER_LANE ||
+      process.env.TEMPERANCE_EXECUTION_MODEL ||
+      (combo === "noesis-execute" ? "noesis-execute" : "") ||
+      "",
+  ).trim()
+  if (requested !== "noesis-execute") return null
+  if (isExcludedModel(requested, inactive)) return null
+  return requested
+}
+
+/** Live session pin — never static Sol while Codex is off. */
+function resolveNativeModel(
+  map: any,
+  stack: StackRow[],
+  taskType: string,
+  phase: string,
+  combo: string,
+): string {
+  const klass = loadProviderClass()
+  const fromClass =
+    klass?.claude_code_default?.model ||
+    klass?.babysit?.standard ||
+    klass?.babysit?.model
+  const fromMap = map?.native_orchestrator?.model
+  const fromEnv = process.env.TEMPERANCE_ORCHESTRATOR_MODEL || process.env.ANTHROPIC_MODEL
+  const inactive = inactiveProviders()
+  const workerModel = resolveExplicitWorkerModel(inactive, taskType, phase, combo)
+  if (workerModel) return workerModel
+  for (const candidate of [fromEnv, fromClass, fromMap, stack[0]?.mid, "te-algorithm"]) {
+    const mid = String(candidate || "").trim()
+    if (!mid) continue
+    if (isExcludedModel(mid, inactive)) continue
+    if (/gpt-5\.6-sol/i.test(mid) && inactive.has("codex")) continue
+    return mid
+  }
+  return "te-algorithm"
 }
 
 function pad(label: string, n = 10): string {
@@ -236,7 +356,7 @@ function formatRailBlock(opts: {
   lines.push(`  ·  ${pad("capacity")}noesis-fast`)
   lines.push("")
   lines.push("CONTRACT")
-  lines.push("  ·  Native session babysits by default; explicit --profile noesis-* selects bounded routed work.")
+  lines.push("  ·  Native session babysits only unless --profile noesis-* is active.")
   lines.push("  ·  Dispatch heavy alchemical work to the combo; do not bulk-code on native.")
   lines.push("  ·  After each worker: announce resolved provider + model (no emojis).")
   lines.push("")
@@ -257,25 +377,28 @@ function formatRailBlock(opts: {
 
 export function buildContext(prompt: string): string {
   const map = loadMap()
+  const portfolio = loadPortfolioManifest()
   const mode = classifyMode(prompt)
   const taskType = classifyTaskType(prompt)
-  const combo =
+  const mapCombo =
     (map?.task_type_to_combo && map.task_type_to_combo[taskType]) ||
     (taskType === "plan" ? "noesis-plan" : "noesis-fast")
+  // Keep this display contract aligned with enrichment's portfolio resolver.
+  // The phase map is still the fallback for non-portfolio phase labels, but it
+  // must not overwrite a current shared task-type portfolio (notably balanced
+  // -> noesis-build).
+  const combo =
+    (portfolio?.task_type_portfolios && portfolio.task_type_portfolios[taskType]) ||
+    mapCombo
   const phase = currentSessionPhase()
-  const phaseCombo =
-    (map?.algorithm_phases && map.algorithm_phases[phase]) || combo
-  const nativeModel =
-    map?.native_orchestrator?.model ||
-    process.env.TEMPERANCE_ORCHESTRATOR_MODEL ||
-    "gpt-5.4"
-  const stack = loadComboStack(phaseCombo)
+  const stack = loadComboStack(combo)
+  const nativeModel = resolveNativeModel(map, stack, taskType, phase, combo)
 
   return formatRailBlock({
     mode,
     taskType,
     phase,
-    combo: phaseCombo,
+    combo,
     nativeModel,
     stack,
   })
