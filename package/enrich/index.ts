@@ -1,5 +1,5 @@
 // package/enrich/index.ts -- SP0 enrichment assembler (SHARED, frozen wiring). Do not fork.
-// Contract: enrich() runs resolve() then the eight pure stages in fixed order, drops empty lines,
+// Contract: enrich() runs resolve() then the nine pure stages in fixed order, drops empty lines,
 // and wraps the survivors in a <temperance-context> block. It NEVER throws.
 //
 // Block shape (stubs emit mostly-empty lines, so early output is sparse -- that is expected):
@@ -8,9 +8,11 @@
 //   intent: ... | not: ...
 //   guardrails: ... | anti: ...
 //   isa: ...
-//   context-sources: {"pai":...,"gsd":...,"skills":...,"material":"pointers-only"}
+//   context-sources: {"pai":...,"gsd":...,"skills":...,"atlas":...,"material":"pointers-only"}
+//   atlas-recall: mount ... | sessions at ... | tool ...    # only when keyword match + atlas present
 //   memory: worked=... failed=... open=...
 //   dispatch: ...        # only when planningPresent
+//   routing: ...
 //   </temperance-context>
 import type { EnrichInput, FieldResult, Stage } from './contract';
 import { resolve } from './resolver';
@@ -19,6 +21,7 @@ import { intent } from './stages/intent';
 import { guardrails } from './stages/guardrails';
 import { isaPointer } from './stages/isaPointer';
 import { contextSources } from './stages/contextSources';
+import { atlasRecall } from './stages/atlasRecall';
 import { memory } from './stages/memory';
 import { dispatch } from './stages/dispatch';
 import { routing } from './stages/routing';
@@ -30,6 +33,7 @@ const STAGES: Stage[] = [
   guardrails,
   isaPointer,
   contextSources,
+  atlasRecall,
   memory,
   dispatch,
   routing,

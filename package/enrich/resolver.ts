@@ -13,11 +13,12 @@
 //              ~/.claude/MEMORY/LEARNING/FAILURES/. worked/open => project MEMORY.md near cwd/work
 //              dir + newest REFLECTIONS|SIGNALS file. null when nothing is found.
 //   planning : planningPresent/planningState from a `.planning` dir near cwd (else false/null).
-//   sources  : fixed PAI/GSD/skill-index PATHS only, resolved by explicit root allowlists.
+//   sources  : fixed Noesis/GSD/skill-index PATHS only, resolved by explicit root allowlists.
 // `home` override (default process.env.HOME) lets tests point resolution at a fixture home.
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { EnrichInput, ResolvedContext } from './contract';
+import { execFileSync } from 'node:child_process';
+import type { AtlasMetadata, EnrichInput, ResolvedContext } from './contract';
 import { resolveContextSources } from './contextSources';
 
 export interface ResolveOptions { home?: string; }
@@ -33,8 +34,42 @@ function emptyContext(input: EnrichInput): ResolvedContext {
     memory: { ...EMPTY_MEMORY },
     planningPresent: false,
     planningState: null,
-    contextSources: { pai: null, gsd: null, skills: null },
+    nextWave: null,
+    contextSources: { pai: null, gsd: null, skills: null, atlas: null },
+    atlasMetadata: null,
   };
+}
+
+/**
+ * Probe temperance-next-wave for the next parallel/sequential planning batch.
+ * Fail-open: null on any error or timeout (keeps enrich <1s path healthy).
+ */
+function resolveNextWave(cwd: string, home: string): ResolvedContext['nextWave'] {
+  if (!cwd) return null;
+  try {
+    const script = join(home, '.temperance_engine', 'router', 'temperance-next-wave.mjs');
+    if (!existsSync(script)) return null;
+    const out = execFileSync('node', [script, '--cwd', cwd, '--json'], {
+      encoding: 'utf8',
+      timeout: 900,
+      maxBuffer: 2 * 1024 * 1024,
+      env: process.env,
+    });
+    const data = JSON.parse(out);
+    const wave = data?.wave || {};
+    const tasks = Array.isArray(wave.tasks) ? wave.tasks : [];
+    return {
+      action: String(wave.action || 'idle'),
+      reason: String(wave.reason || ''),
+      mode: wave.mode ? String(wave.mode) : null,
+      phase: wave.phase ? String(wave.phase) : null,
+      combo: wave.combo ? String(wave.combo) : null,
+      taskIds: tasks.map((t: { id?: string }) => String(t.id || '')).filter(Boolean).slice(0, 8),
+      instruction: typeof data.agent_instruction === 'string' ? data.agent_instruction : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Read a UTF-8 file, or null on any error (missing, permission, not-a-file). */
@@ -268,6 +303,37 @@ function resolvePlanning(cwd: string): { planningPresent: boolean; planningState
     return { planningPresent: false, planningState: null };
   }
 }
+// -- Atlas metadata resolution ------------------------------------------------
+
+function resolveAtlasMetadata(atlasPath: string | null | undefined): AtlasMetadata | null {
+  if (!atlasPath) return null;
+  try {
+    const raw = readTextOrNull(atlasPath);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    // Validate required string fields and containsTranscript boolean.
+    if (typeof parsed.containerPath !== 'string' || !parsed.containerPath) return null;
+    if (typeof parsed.containsTranscript !== 'boolean') return null;
+    // All string fields default to '' if missing/wrong type.
+    return {
+      containerPath: String(parsed.containerPath ?? ''),
+      waveStatus: typeof parsed.waveStatus === 'string' ? parsed.waveStatus : '',
+      mountCommand: typeof parsed.mountCommand === 'string' ? parsed.mountCommand : '',
+      unmountCommand: typeof parsed.unmountCommand === 'string' ? parsed.unmountCommand : '',
+      designPlanPath: typeof parsed.designPlanPath === 'string' ? parsed.designPlanPath : '',
+      implPlanPath: typeof parsed.implPlanPath === 'string' ? parsed.implPlanPath : '',
+      isaPath: typeof parsed.isaPath === 'string' ? parsed.isaPath : '',
+      sessionProgressToolPath: typeof parsed.sessionProgressToolPath === 'string' ? parsed.sessionProgressToolPath : '',
+      workDir: typeof parsed.workDir === 'string' ? parsed.workDir : '',
+      lastVerified: typeof parsed.lastVerified === 'string' ? parsed.lastVerified : '',
+      containsTranscript: parsed.containsTranscript === true,
+    };
+  } catch {
+    return null;
+  }
+}
+
 
 // -- Public entry point -------------------------------------------------------
 
@@ -320,13 +386,34 @@ export async function resolve(input: EnrichInput, opts: ResolveOptions = {}): Pr
       ctx.planningState = null;
     }
 
+    // Next parallel/sequential wave from local GSD/spec-kit (fail-open, ~900ms cap).
+    try {
+      ctx.nextWave = resolveNextWave(cwd, home);
+      // If next-wave found open tasks, treat planning as present even without .planning/
+      if (ctx.nextWave && ctx.nextWave.action !== 'idle' && ctx.nextWave.action !== 'complete') {
+        ctx.planningPresent = true;
+        if (!ctx.planningState) {
+          ctx.planningState = `${ctx.nextWave.action}:${ctx.nextWave.phase || 'wave'}`;
+        }
+      }
+    } catch {
+      ctx.nextWave = null;
+    }
+
     // Fixed client-owned context-source pointers. The dedicated resolver uses
     // metadata and canonical paths only; it never reads a pointed file body.
     try {
       ctx.contextSources = resolveContextSources({ home, cwd });
     } catch {
-      ctx.contextSources = { pai: null, gsd: null, skills: null };
+      ctx.contextSources = { pai: null, gsd: null, skills: null, atlas: null };
     }
+    // Atlas metadata (operational pointers only, never session content).
+    try {
+      ctx.atlasMetadata = resolveAtlasMetadata(ctx.contextSources?.atlas);
+    } catch {
+      ctx.atlasMetadata = null;
+    }
+
 
     return ctx;
   } catch {

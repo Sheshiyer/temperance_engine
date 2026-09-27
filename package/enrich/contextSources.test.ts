@@ -24,6 +24,7 @@ type Fixture = {
   paiTarget: string;
   gsdTarget: string;
   skillsTarget: string;
+  atlasTarget: string;
   paiReal: string;
   skillsReal: string;
 };
@@ -38,9 +39,13 @@ function fixture(label = 'normal'): Fixture {
   const paiTarget = join(paiReal, 'Algorithm', 'LATEST');
   const gsdTarget = join(cwd, '.planning', 'STATE.md');
   const skillsTarget = join(skillsReal, 'skill-index.json');
+  // atlas-context.json lives under .claude/MEMORY/STATE
+  const atlasDir = join(home, '.claude', 'MEMORY', 'STATE');
+  const atlasTarget = join(atlasDir, 'atlas-context.json');
 
   mkdirSync(join(home, '.Codex'), { recursive: true });
   mkdirSync(join(home, '.agents'), { recursive: true });
+  mkdirSync(atlasDir, { recursive: true });
   mkdirSync(dirname(paiTarget), { recursive: true });
   mkdirSync(dirname(gsdTarget), { recursive: true });
   mkdirSync(dirname(skillsTarget), { recursive: true });
@@ -49,6 +54,7 @@ function fixture(label = 'normal'): Fixture {
   writeFileSync(paiTarget, 'v6.3.0\nBODY_CANARY_PAI', 'utf8');
   writeFileSync(gsdTarget, 'BODY_CANARY_GSD', 'utf8');
   writeFileSync(skillsTarget, '{"body":"BODY_CANARY_SKILLS"}', 'utf8');
+  writeFileSync(atlasTarget, '{"containerPath":"/tmp/test.sparsebundle","containsTranscript":false}', 'utf8');
   return {
     root,
     home,
@@ -56,6 +62,7 @@ function fixture(label = 'normal'): Fixture {
     paiTarget: realpathSync(paiTarget),
     gsdTarget: realpathSync(gsdTarget),
     skillsTarget: realpathSync(skillsTarget),
+    atlasTarget: realpathSync(atlasTarget),
     paiReal: realpathSync(paiReal),
     skillsReal: realpathSync(skillsReal),
   };
@@ -72,6 +79,7 @@ describe('resolveContextSources()', () => {
       pai: f.paiTarget,
       gsd: f.gsdTarget,
       skills: f.skillsTarget,
+      atlas: f.atlasTarget,
     });
   });
 
@@ -83,6 +91,7 @@ describe('resolveContextSources()', () => {
       pai: null,
       gsd: null,
       skills: f.skillsTarget,
+      atlas: f.atlasTarget,
     });
   });
 
@@ -98,6 +107,7 @@ describe('resolveContextSources()', () => {
       pai: null,
       gsd: f.gsdTarget,
       skills: null,
+      atlas: null,
     });
   });
 
@@ -120,6 +130,7 @@ describe('resolveContextSources()', () => {
       pai: null,
       gsd: f.gsdTarget,
       skills: realpathSync(join(escapedSkills, 'skill-index.json')),
+      atlas: f.atlasTarget,
     });
   });
 
@@ -146,6 +157,7 @@ describe('resolveContextSources()', () => {
     expect(pointers.gsd).toBeNull();
     expect(pointers.pai).toBe(f.paiTarget);
     expect(pointers.skills).toBe(f.skillsTarget);
+    expect(pointers.atlas).toBe(f.atlasTarget);
   });
 
   test('rejects directory and FIFO candidates', () => {
@@ -164,22 +176,24 @@ describe('resolveContextSources()', () => {
   test('rejects unsafe root characters and never returns body canaries', () => {
     const f = fixture('unsafe\u2028root');
     const pointers = resolveContextSources({ home: f.home, cwd: f.cwd });
-    expect(pointers).toEqual({ pai: null, gsd: null, skills: null });
+    expect(pointers).toEqual({ pai: null, gsd: null, skills: null, atlas: null });
     const serialized = JSON.stringify(pointers);
     expect(serialized).not.toContain('BODY_CANARY');
     expect(serialized).not.toContain('\u2028');
   });
 
-  test('fails open to three nulls for absent, relative, or traversal-shaped roots', () => {
+  test('fails open to four nulls for absent, relative, or traversal-shaped roots', () => {
     expect(resolveContextSources({ home: '/definitely/absent', cwd: '/also/absent' })).toEqual({
       pai: null,
       gsd: null,
       skills: null,
+      atlas: null,
     });
     expect(resolveContextSources({ home: 'relative/home', cwd: '../relative/project' })).toEqual({
       pai: null,
       gsd: null,
       skills: null,
+      atlas: null,
     });
   });
 
