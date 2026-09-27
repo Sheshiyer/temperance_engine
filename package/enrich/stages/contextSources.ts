@@ -16,6 +16,7 @@ function normalized(value: ContextSourcePointers | undefined): ContextSourcePoin
     pai: pointer(value?.pai),
     gsd: pointer(value?.gsd),
     skills: pointer(value?.skills),
+    atlas: pointer(value?.atlas),
   };
 }
 
@@ -29,10 +30,12 @@ export const contextSources: Stage = (ctx) => {
     pai: sources.pai,
     gsd: sources.gsd,
     skills: sources.skills,
+    atlas: sources.atlas,
     material: 'pointers-only',
   });
+  const allNull = sources.pai === null && sources.gsd === null && sources.skills === null && sources.atlas === null;
   return {
     line: `context-sources: ${payload}`,
-    degraded: sources.pai === null && sources.gsd === null && sources.skills === null,
+    degraded: allNull,
   };
 };
