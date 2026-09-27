@@ -9,7 +9,7 @@ export interface SchemaVersionV1 {
   minor: 0;
 }
 
-export type SurfaceClass = "COPY" | "TRANSFORM" | "REGENERATE" | "NEVER-SHIP";
+export type SurfaceClass = "COPY" | "TRANSFORM" | "REGENERATE" | "NEVER-SHIP" | "LAUNCHAGENT";
 export type OwnershipKind = "exclusive-path" | "managed-block";
 
 export interface DestinationOwnership {
@@ -124,11 +124,21 @@ export interface NeverShipSurfaceRecord extends SurfaceRecordBase {
   rollback: { policy: "none-private" };
 }
 
+export interface LaunchAgentSurfaceRecord extends SurfaceRecordBase {
+  class: "LAUNCHAGENT";
+  label: string;                    // e.g. "com.temperance.engine.manifest-bridge"
+  plist_template: string;           // inline plist XML template with {{bindings}}
+  bindings: Record<string, string>; // template variable values
+  verification: { method: "plist-sha256" };
+  rollback: { policy: "unload-and-restore" };
+}
+
 export type SurfaceRecord =
   | CopySurfaceRecord
   | TransformSurfaceRecord
   | RegenerateSurfaceRecord
-  | NeverShipSurfaceRecord;
+  | NeverShipSurfaceRecord
+  | LaunchAgentSurfaceRecord;
 
 export interface InstallSurfaceFragmentV1 {
   schema: typeof FRAGMENT_SCHEMA;

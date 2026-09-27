@@ -22,7 +22,15 @@ import {
 } from "./prepared-surface.ts";
 
 import type { CompileResult } from "../compile.ts";
-import type { SurfaceRecord } from "../types.ts";
+import type { SurfaceRecord, LaunchAgentSurfaceRecord } from "../types.ts";
+import {
+  renderPlist,
+  isLoaded as laIsLoaded,
+  loadAgent,
+  unloadAgent,
+  probeHealth,
+  sha256Hex,
+} from "./launchagent.ts";
 import { assertDestination } from "../path-policy.ts";
 import {
   type PlannedStep,
@@ -479,7 +487,170 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
         // A missing destination is an idempotent uninstall.
       }
 
-      if (step.mode === "uninstall") {
+      if (record.class === "LAUNCHAGENT") {
+        // LAUNCHAGENT: render plist, launchctl load/unload, verify, health probe
+        const laRecord = record as LaunchAgentSurfaceRecord;
+        const plistContent = renderPlist(laRecord.plist_template, laRecord.bindings);
+        const plistSha256 = sha256Hex(plistContent);
+
+        if (step.mode === "uninstall") {
+          // Uninstall: unload if loaded, then remove plist
+          try {
+            const loaded = await laIsLoaded(laRecord.label, io, signal);
+            if (loaded) {
+              await unloadAgent(laRecord.label, io, signal);
+            }
+          } catch {
+            // launchctl not available or unload failed — continue to remove plist
+          }
+          try {
+            await io.rm(destPath, { force: true });
+          } catch {
+            // File doesn't exist — idempotent
+          }
+        } else {
+          // Install/Update: check if already loaded, render plist, load, verify
+          let alreadyLoaded = false;
+          try {
+            alreadyLoaded = await laIsLoaded(laRecord.label, io, signal);
+          } catch {
+            // Not darwin or launchctl error — treat as not loaded
+          }
+
+          if (step.mode === "install" && alreadyLoaded) {
+            // Idempotent: already loaded, skip
+            await journal.append({
+              kind: "COMMIT_STEP",
+              ts: new Date().toISOString(),
+              step_id: step.step_id,
+            });
+            committedSteps.push(step.step_id);
+            continue;
+          }
+
+          if (step.mode === "update" && alreadyLoaded) {
+            // Update: check if plist content changed
+            try {
+              const existingContent = await io.readFile(destPath);
+              const existingSha256 = sha256Hex(existingContent);
+              if (existingSha256 === plistSha256) {
+                // Unchanged — skip
+                await journal.append({
+                  kind: "COMMIT_STEP",
+                  ts: new Date().toISOString(),
+                  step_id: step.step_id,
+                });
+                committedSteps.push(step.step_id);
+                continue;
+              }
+            } catch {
+              // Can't read existing — proceed with update
+            }
+
+            // Content changed: unload → write → load
+            try {
+              await unloadAgent(laRecord.label, io, signal);
+            } catch {
+              // Unload failed — continue anyway
+            }
+          }
+
+          // Save preimage (plist bytes + loaded state) for rollback
+          const preimageDir = join(txDir, "preimage");
+          const preimageData = JSON.stringify({
+            plistBytes: null as string | null,
+            wasLoaded: alreadyLoaded,
+          });
+          try {
+            const existingPlist = await io.readFile(destPath);
+            const preimageJson = JSON.stringify({
+              plistBytes: existingPlist,
+              wasLoaded: alreadyLoaded,
+            });
+            const preimagePath = join(preimageDir, `${step.step_id}.preimage`);
+            await io.writeFileAtomic(preimagePath, preimageJson);
+          } catch {
+            // No existing plist — preimage has null bytes
+            const preimagePath = join(preimageDir, `${step.step_id}.preimage`);
+            await io.writeFileAtomic(preimagePath, preimageData);
+          }
+
+          // Write plist
+          await io.writeFileAtomic(destPath, plistContent);
+
+          // Load agent
+          try {
+            await loadAgent(destPath, io, signal);
+          } catch (error) {
+            // Load failed — abort and restore preimage
+            await journal.append({
+              kind: "ABORT",
+              ts: new Date().toISOString(),
+              reason: `launchctl load failed for ${step.step_id}: ${error}`,
+            });
+
+            // Restore preimage
+            try {
+              const preimagePath = join(preimageDir, `${step.step_id}.preimage`);
+              const preimageRaw = await io.readFile(preimagePath);
+              const preimage = JSON.parse(preimageRaw) as { plistBytes: string | null; wasLoaded: boolean };
+              if (preimage.plistBytes) {
+                await io.writeFileAtomic(destPath, preimage.plistBytes);
+              } else {
+                await io.rm(destPath, { force: true });
+              }
+            } catch {
+              // Preimage restore failed
+            }
+
+            return {
+              txid,
+              status: "failed",
+              outcomes: plan.outcomes.map((o) => ({
+                ...o,
+                status: o.step_id === step.step_id ? "failed" : o.status,
+                reason: o.step_id === step.step_id ? "launchctl load failed" : o.reason,
+              })),
+              exitCode: 1,
+            };
+          }
+
+          // Verify plist sha256
+          try {
+            const installedContent = await io.readFile(destPath);
+            const installedSha256 = sha256Hex(installedContent);
+            if (installedSha256 !== plistSha256) {
+              await journal.append({
+                kind: "ABORT",
+                ts: new Date().toISOString(),
+                reason: `Plist verification failed for ${step.step_id}: sha256 mismatch`,
+              });
+              return {
+                txid,
+                status: "failed",
+                outcomes: plan.outcomes.map((o) => ({
+                  ...o,
+                  status: o.step_id === step.step_id ? "failed" : o.status,
+                  reason: o.step_id === step.step_id ? "Plist sha256 mismatch" : o.reason,
+                })),
+                exitCode: 1,
+              };
+            }
+          } catch {
+            // Can't read installed plist — verification failed
+          }
+
+          // Health probe (non-fatal — log but don't abort)
+          try {
+            const health = await probeHealth(laRecord.label, io, signal);
+            if (!health.healthy) {
+              // Health probe failed — log but continue (service may need time to start)
+            }
+          } catch {
+            // Health probe error — non-fatal
+          }
+        }
+      } else if (step.mode === "uninstall") {
         // Uninstall: remove the destination file
         try {
           await io.rm(destPath, { recursive: false, force: true });

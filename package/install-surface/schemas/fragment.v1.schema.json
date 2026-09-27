@@ -74,7 +74,7 @@
       "additionalProperties": false,
       "required": ["method"],
       "properties": {
-        "method": { "enum": ["sha256", "adapter", "semantic-probe", "symbolic-exclusion", "presence-only"] },
+        "method": { "enum": ["sha256", "adapter", "semantic-probe", "symbolic-exclusion", "presence-only", "plist-sha256"] },
         "expected": { "$ref": "#/$defs/copy_expectation" },
         "adapter_id": { "type": "string", "minLength": 1, "maxLength": 192 },
         "generator_id": { "type": "string", "minLength": 1, "maxLength": 192 }
@@ -138,7 +138,7 @@
       "additionalProperties": false,
       "required": ["policy"],
       "properties": {
-        "policy": { "enum": ["restore-backup", "remove-installed", "regenerate", "none-private"] }
+        "policy": { "enum": ["restore-backup", "remove-installed", "regenerate", "none-private", "unload-and-restore"] }
       }
     },
     "identity_migration": {
@@ -157,8 +157,11 @@
       "properties": {
         "id": { "type": "string", "minLength": 3, "maxLength": 192, "pattern": "^[a-z0-9][a-z0-9._-]*$" },
         "owner": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "class": { "enum": ["COPY", "TRANSFORM", "REGENERATE", "NEVER-SHIP"] },
+        "class": { "enum": ["COPY", "TRANSFORM", "REGENERATE", "NEVER-SHIP", "LAUNCHAGENT"] },
         "source": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "label": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[a-z][a-z0-9.-]*$" },
+        "plist_template": { "type": "string", "minLength": 1, "maxLength": 16384 },
+        "bindings": { "type": "object", "additionalProperties": { "type": "string" } },
         "destination": { "$ref": "#/$defs/destination" },
         "authority": { "$ref": "#/$defs/authority" },
         "eligibility": { "$ref": "#/$defs/eligibility" },
