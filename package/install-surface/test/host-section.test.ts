@@ -33,6 +33,8 @@ function makeContext(overrides?: Partial<DoctorContextV2>): DoctorContextV2 {
       pulse: "http://127.0.0.1:31337",
     },
     io: {
+      readBytes: async () => { throw new Error("unused COPY byte probe"); },
+      readdir: async () => { throw new Error("unused COPY tree probe"); },
       readFile: async (path: string) => { throw new Error(`ENOENT: ${path}`); },
       lstat: async (path: string) => { throw new Error(`ENOENT: ${path}`); },
       realpath: async (path: string) => path,

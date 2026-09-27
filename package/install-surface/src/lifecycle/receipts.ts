@@ -20,7 +20,7 @@ export interface ReceiptStep {
   id: string;
   record_id: string;
   destination_symbolic: string;
-  outcome: "installed" | "skipped" | "unsupported" | "failed";
+  outcome: "installed" | "skipped" | "unsupported" | "unavailable" | "failed";
 }
 
 export interface Receipt {

@@ -176,17 +176,24 @@ describe("offline native CLI source contract", () => {
     }
   });
 
-  test("verifies the installed default only against reviewed digest pins", () => {
-    const receipt = inspectOmniRouteNativeCliReadiness({ now: () => NOW });
-    expect(receipt.classification).toBe("contract_verified");
+  test("holds a resolved unpinned package outside the reviewed digest pins", () => {
+    const root = makePackageFixture();
+    const launcher = join(makeTemporaryRoot("temperance-native-cli-reviewed-launcher-"), "omniroute");
+    symlinkSync(join(root, "bin/omniroute.mjs"), launcher);
+    const receipt = inspectOmniRouteNativeCliReadiness({
+      which: () => launcher,
+      now: () => NOW,
+    });
+
+    expect(receipt.classification).toBe("contract_unverified");
     expect(receipt.digestPinSource).toBe("reviewed-omniroute-3.8.48");
-    expect(receipt.observedPackage.version).toBe("3.8.48");
-    expect(receipt.sources.every(({ digestMatches }) => digestMatches)).toBe(true);
-    expect(
-      receipt.sources.every(
-        ({ id, expectedSha256 }) => expectedSha256 === OMNIROUTE_NATIVE_CLI_EXPECTED_SHA256[id],
-      ),
-    ).toBe(true);
+    expect(receipt.observedPackage).toEqual({
+      name: "omniroute",
+      version: "3.8.48",
+      nameMatches: true,
+      versionMatches: true,
+    });
+    expect(receipt.sources.every(({ digestMatches }) => !digestMatches)).toBe(true);
   });
 
   test("fails every individual digest mismatch while all contract markers remain intact", () => {

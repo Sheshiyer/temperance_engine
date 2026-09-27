@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thoughtseed.space/schemas/temperance/onboarding/profile/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "version", "id", "variables", "secret_references", "preselected_modules", "routing_aliases", "project_enrollments"],
+  "properties": {
+    "schema": { "const": "temperance.onboarding.profile.v1" },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major", "minor"],
+      "properties": { "major": { "const": 1 }, "minor": { "const": 0 } }
+    },
+    "id": { "$ref": "#/$defs/identifier" },
+    "variables": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/variable" },
+      "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 4096 },
+      "maxProperties": 512
+    },
+    "secret_references": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/variable" },
+      "additionalProperties": { "$ref": "#/$defs/keychainReference" },
+      "maxProperties": 128
+    },
+    "preselected_modules": { "type": "array", "items": { "$ref": "#/$defs/identifier" }, "uniqueItems": true, "maxItems": 512 },
+    "routing_aliases": { "type": "array", "items": { "$ref": "#/$defs/routingAlias" }, "maxItems": 256 },
+    "project_enrollments": { "type": "array", "items": { "$ref": "#/$defs/projectEnrollment" }, "maxItems": 512 }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$", "maxLength": 128 },
+    "variable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "maxLength": 128 },
+    "keychainReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["store", "service", "account"],
+      "properties": {
+        "store": { "const": "macos-keychain" },
+        "service": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "account": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "routingAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alias", "combo"],
+      "properties": {
+        "alias": { "$ref": "#/$defs/identifier" },
+        "combo": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "projectEnrollment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "root_variable", "approved", "access"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "root_variable": { "$ref": "#/$defs/variable" },
+        "approved": { "type": "boolean" },
+        "access": { "enum": ["read-only", "read-write"] }
+      }
+    }
+  }
+}
+

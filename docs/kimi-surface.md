@@ -201,8 +201,11 @@ daimon/logs/adapter.log:
 appears **zero** times in any log. The managed block therefore sits in a file the
 app never reads: on 3.1.5 the desktop lane is inert, even though `enable`
 succeeds and every sha/state check stays green. `temperance-doctor.sh` now
-detects exactly this as `kimi_desktop_target` (warn-level; the CLI lane is
-unaffected).
+delegates to the read-only install-surface doctor. An earlier host-integrated
+doctor reported this mismatch as `kimi_desktop_target`; the current public
+doctor does not inspect desktop app configuration and cannot certify the
+desktop lane. The CLI lane is unaffected. Treat the desktop condition as
+unproven unless a separate, consented desktop diagnostic is restored.
 
 **Do not "fix" it by repointing `TEMPERANCE_KIMI_DESKTOP_CONFIG` at the
 agentFile.** agent-core does not implement the provider shape we emit — zero

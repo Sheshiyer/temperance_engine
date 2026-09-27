@@ -46,5 +46,15 @@
     "report": ".readme-notebooklm/assets/notebooklm-report.md",
     "mind-map": ".readme-notebooklm/assets/notebooklm-mind-map.json",
     "data-table": ".readme-notebooklm/assets/notebooklm-data-table.csv"
+  },
+  "localSourceReconciliation": {
+    "mode": "local-source-refresh-existing-research-assets",
+    "observedAt": "2026-09-19T14:19:02Z",
+    "sourceHead": "a2ba07ae0f5a97206c7be7fcad54456ace871adb",
+    "source": "CHANGELOG.md",
+    "sourceSha256": "0bc3836f5b87dd4b99326603757136a6cd0d01df186579e5dc76def90cef0ae8",
+    "reason": "Reconcile 0.6.0 release notes and README with the guided v4 operator surfaces; preserve historical research assets without claiming regeneration.",
+    "notebookRegenerated": false,
+    "historicalResearchAssetsReused": true
   }
 }

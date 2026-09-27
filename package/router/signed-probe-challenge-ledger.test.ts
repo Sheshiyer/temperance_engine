@@ -715,6 +715,8 @@ describe("atomic signed-probe challenge ledger", () => {
         "package",
         "scripts",
         "--glob",
+        "*.ts",
+        "--glob",
         "!*.test.ts",
         "--glob",
         "!verify-all.sh",
@@ -723,5 +725,24 @@ describe("atomic signed-probe challenge ledger", () => {
     );
     expect(cliInvocations.status).toBe(0);
     expect(cliInvocations.stdout.trim()).toBe("scripts/signed-probe-challenge-ledger.ts");
+
+    for (const path of [
+      "package/install-surface/fragments/router.json",
+      "package/install-surface/install-surface-manifest.lock.json",
+    ]) {
+      const metadata = JSON.parse(readFileSync(resolve(path), "utf8")) as {
+        records: Array<{
+          id: string;
+          verification: { expected: { files: Record<string, string>; modes: Record<string, string> } };
+        }>;
+      };
+      const routerRecord = metadata.records.find(({ id }) => id === "router.governed-runtime");
+      expect(routerRecord?.verification.expected.files["signed-probe-challenge-ledger.ts"]).toMatch(
+        /^sha256:[a-f0-9]{64}$/u,
+      );
+      expect(routerRecord?.verification.expected.modes["signed-probe-challenge-ledger.ts"]).toBe("0644");
+      expect(JSON.stringify(routerRecord)).not.toContain("scripts/signed-probe-challenge-ledger.ts");
+      expect(JSON.stringify(routerRecord)).not.toContain("issueProbeChallenge");
+    }
   });
 });

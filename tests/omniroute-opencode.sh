@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LAUNCHER="$ROOT_DIR/package/router/omniroute-opencode.sh"
 TEST_DIR="$(mktemp -d)"
+# Exercise portable-core launch semantics without reading the operator's
+# optional personal session policy. Admission itself has dedicated rail tests.
+export TEMPERANCE_STATE="$TEST_DIR/temperance-state"
+unset TEMPERANCE_SESSION_POLICY
 MOCK_SECURITY="$TEST_DIR/security"
 MOCK_OPENCODE="$TEST_DIR/opencode"
 CANARY='test-opencode-key-canary-8521'

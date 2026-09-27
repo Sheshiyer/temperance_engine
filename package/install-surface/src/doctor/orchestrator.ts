@@ -1,10 +1,11 @@
 import { execFile } from "node:child_process";
-import { lstat, readFile, realpath } from "node:fs/promises";
+import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { loadLock } from "../load.ts";
+import { resolveRuntimeStateRoot } from "../state-root.ts";
 import { validateDoctorReport, validateDoctorReportV2 } from "../schema.ts";
 import {
   DOCTOR_SCHEMA,
@@ -40,6 +41,8 @@ export const SECTION_TIMEOUTS_MS = { install: 2000, privacy: 750, runtime: 4000 
 
 export const nodeObservationIO: ObservationIO = {
   readFile: (path) => readFile(path, "utf8"),
+  readBytes: (path) => readFile(path),
+  readdir,
   lstat,
   realpath,
   fetch: (url, options) => fetch(url, options),
@@ -68,7 +71,7 @@ export interface RunDoctorOptions {
   runners?: Partial<Record<DoctorSectionId, DoctorSectionRunner>>;
 }
 
-function unavailableSection(id: DoctorSectionId, reasonCode: string): DoctorSection {
+function unavailableSection(id: DoctorSection["id"], reasonCode: string): DoctorSection {
   return {
     id,
     condition: "UNAVAILABLE",
@@ -124,8 +127,8 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorReport
   const requested = [...new Set(options.sections ?? [...DOCTOR_SECTION_ORDER])]
     .sort((left, right) => DOCTOR_SECTION_ORDER.indexOf(left) - DOCTOR_SECTION_ORDER.indexOf(right));
   const io = options.io ?? nodeObservationIO;
-  const home = homedir();
-  const stateRoot = options.stateRoot ?? resolve(home, ".temperance_engine");
+  const home = process.env.HOME || homedir();
+  const stateRoot = resolveRuntimeStateRoot({ stateRoot: options.stateRoot, environment: process.env, homeDirectory: home });
   let manifestDigest: `sha256:${string}`;
   try {
     manifestDigest = loadLock(resolve(options.repositoryRoot, "package/install-surface/install-surface-manifest.lock.json")).digest;
@@ -148,8 +151,8 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorReport
     stateRoot,
     platform: options.platform ?? process.platform,
     rootBindings: options.rootBindings ?? {
-      CODEX_HOME: resolve(home, ".codex"),
-      CLAUDE_CONFIG_DIR: resolve(home, ".claude"),
+      CODEX_HOME: process.env.CODEX_HOME || resolve(home, ".codex"),
+      CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR || resolve(home, ".claude"),
       HOME: home,
       TEMPERANCE_STATE: stateRoot,
     },
@@ -168,7 +171,7 @@ export async function runDoctor(options: RunDoctorOptions): Promise<DoctorReport
     baseContext,
     options.timeouts?.[id] ?? SECTION_TIMEOUTS_MS[id],
   )));
-  sections.sort((left, right) => DOCTOR_SECTION_ORDER.indexOf(left.id) - DOCTOR_SECTION_ORDER.indexOf(right.id));
+  sections.sort((left, right) => DOCTOR_SECTION_ORDER.indexOf(left.id as DoctorSectionId) - DOCTOR_SECTION_ORDER.indexOf(right.id as DoctorSectionId));
   const overall = aggregate(sections);
   const report: DoctorReportV1 = {
     schema: DOCTOR_SCHEMA,
@@ -202,16 +205,16 @@ export async function runDoctorV2(options: RunDoctorV2Options): Promise<DoctorRe
   const requested = [...new Set(options.sections ?? [...V2_DOCTOR_SECTION_ORDER])]
     .sort((left, right) => V2_DOCTOR_SECTION_ORDER.indexOf(left) - V2_DOCTOR_SECTION_ORDER.indexOf(right));
   const io = options.io ?? nodeObservationIO;
-  const home = homedir();
-  const stateRoot = options.stateRoot ?? resolve(home, ".temperance_engine");
+  const home = process.env.HOME || homedir();
+  const stateRoot = resolveRuntimeStateRoot({ stateRoot: options.stateRoot, environment: process.env, homeDirectory: home });
 
   const baseContext: Omit<DoctorContextV2, "signal"> = {
     repositoryRoot: options.repositoryRoot,
     stateRoot,
     platform: options.platform ?? process.platform,
     rootBindings: options.rootBindings ?? {
-      CODEX_HOME: resolve(home, ".codex"),
-      CLAUDE_CONFIG_DIR: resolve(home, ".claude"),
+      CODEX_HOME: process.env.CODEX_HOME || resolve(home, ".codex"),
+      CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR || resolve(home, ".claude"),
       HOME: home,
       TEMPERANCE_STATE: stateRoot,
     },
@@ -224,8 +227,8 @@ export async function runDoctorV2(options: RunDoctorV2Options): Promise<DoctorRe
     },
     io,
     inventory: {
-      lockObject: { schema: "temperance.install-surface.lock.v1", schema_uri: "", version: { major: 1, minor: 0 }, records: [] },
-      canonicalBytes: new Uint8Array(),
+      lockObject: { schema: "temperance.install-surface.lock.v1", schema_uri: "https://thoughtseed.space/schemas/temperance/install-surface/lock/v1", version: { major: 1, minor: 0 }, records: [] },
+      canonicalBytes: "",
       digest: options.inventory.digest,
       semanticIds: [],
     },
@@ -244,7 +247,7 @@ export async function runDoctorV2(options: RunDoctorV2Options): Promise<DoctorRe
     if (!runner) throw new Error(`V2_SECTION_RUNNER_MISSING: ${id}`);
     return runBoundedV2(id, runner, baseContext, options.timeouts?.[id] ?? defaultTimeouts[id]);
   }));
-  sections.sort((left, right) => V2_DOCTOR_SECTION_ORDER.indexOf(left.id) - V2_DOCTOR_SECTION_ORDER.indexOf(right.id));
+  sections.sort((left, right) => V2_DOCTOR_SECTION_ORDER.indexOf(left.id as V2_SectionId) - V2_DOCTOR_SECTION_ORDER.indexOf(right.id as V2_SectionId));
   const overall = aggregate(sections);
   const report: DoctorReportV2 = {
     schema: V2_DOCTOR_SCHEMA,

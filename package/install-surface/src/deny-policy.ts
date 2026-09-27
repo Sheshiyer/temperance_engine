@@ -21,16 +21,29 @@ export class DenyPolicyError extends Error {
   }
 }
 
+function compileRules(policy: DenyPolicy): Array<{ rule: DenyRule; expression: RegExp }> {
+  return policy.rules.map((rule) => ({ rule, expression: new RegExp(rule.pattern, "u") }));
+}
+
+/**
+ * Apply the same disclosure-safe policy to a single repository-relative path.
+ * Tree COPY callers must call this for every leaf, not only the tree root.
+ */
+export function assertDenyPath(path: string, policy: DenyPolicy): void {
+  for (const { rule, expression } of compileRules(policy)) {
+    // A user-supplied policy may include a stateful global/sticky expression.
+    expression.lastIndex = 0;
+    if (!expression.test(path)) continue;
+    throw new DenyPolicyError(
+      rule.id,
+      rule.disclosure === "safe-relative-path" ? path : undefined,
+    );
+  }
+}
+
 export function assertDenyPolicy(records: readonly SurfaceRecord[], policy: DenyPolicy): void {
-  const compiled = policy.rules.map((rule) => ({ rule, expression: new RegExp(rule.pattern, "u") }));
   for (const record of records) {
     if (!("source" in record)) continue;
-    for (const { rule, expression } of compiled) {
-      if (!expression.test(record.source)) continue;
-      throw new DenyPolicyError(
-        rule.id,
-        rule.disclosure === "safe-relative-path" ? record.source : undefined,
-      );
-    }
+    assertDenyPath(record.source, policy);
   }
 }

@@ -1,0 +1,390 @@
+# V4 Hand-in-Glove Architecture
+
+## Contract
+
+Temperance is the portable glove. A selected profile is the hand. The generic
+runtime must start, diagnose itself, and remain useful when no personal profile
+is present. A profile may add modules, symbolic roots, semantic route aliases,
+and project candidates; it may not embed credentials or silently grant project
+mutation authority.
+
+The desired-state planner is the single decision boundary shared by onboarding,
+doctor, non-interactive JSON, install, update, and repair. User interfaces do not
+write configuration directly.
+
+## Composition
+
+1. The generic catalog declares capabilities and their dependency gates.
+2. An explicitly selected profile adds personal module descriptors and symbolic
+   bindings.
+3. Host probes classify each module as unavailable, detected, configured,
+   healthy, or enabled.
+4. The planner resolves dependencies and emits the exact proposed operations.
+5. A confirmed executor applies that immutable plan and records a redacted
+   receipt.
+6. Doctor reuses the same probes and desired state to report drift.
+
+The OpenTUI module page is a planner control, not a direct configuration
+writer. Requesting or removing a module re-runs every capability and dependency
+probe, produces a new plan digest, and clears prior confirmation. A requested
+module with an unmet dependency remains held and cannot be enabled. Digest-bound
+repair mode keeps its reviewed module set immutable.
+
+Discovery never implies enrollment. Growth maps, portfolio scans, and Git
+remotes produce candidates only. A project capsule is created only after an
+explicit approval, and removing that capsule never deletes the repository.
+
+The optional `portfolio-root-map` discovery adapter keeps this boundary while
+presenting a richer selector. It reads a bounded Cambium portfolio-root map and
+optional repository-mapping queue, emits every mapped folder as a distinct
+candidate, and annotates it with portfolio, work-ID, and normalized GitHub
+repository evidence. A missing mapped path remains visible but cannot be
+selected. Repository evidence does not clone, fetch, validate credentials, or
+grant authority; saving a capsule still requires an explicit TUI selection.
+
+A portable overlay may bind a map source to `host-profile-directory`. The
+runtime then resolves the bounded relative map path beside the selected profile,
+not through a machine-local project or volume path. This lets the selector keep
+showing its full proposal set while an external project volume is absent; every
+unavailable project is rendered as held and remains impossible to approve.
+
+## Router Authority
+
+`9router` is the successor package to OmniRoute. It is not installed beside
+OmniRoute as a second authority.
+
+- The initial package pin is exactly `9router@0.5.75`.
+- Provider connections are discovered through `/api/providers`; live model and
+  combo dropdown choices are discovered through `/v1/models`. Temperance does
+  not duplicate 9Router's model registry or treat adapter metadata as routing
+  state.
+- 9Router owns provider connections, concrete combo membership, ordering,
+  quotas, and fallback.
+- Temperance and Noesis select and validate semantic combo aliases only.
+- Hands receives a semantic alias through a route lease; it has no concrete
+  combo-membership write capability.
+- Legacy `.omniroute`, `.omnirouter`, OmniRoute executables, scheduled combo
+  writers, and OmniRoute LaunchAgents are cutover inputs and are absent after
+  activation.
+
+The onboarding Routing page carries one deliberately narrow, version-bound
+capability adapter for exact `9router@0.5.75`. It presents all fifteen built-in
+provider families and whether each uses an API key, authorization-code OAuth,
+or device-code OAuth. This lets the planner hold impossible selections before
+they can be enabled. The adapter contains no model identifiers, credentials,
+tokens, quotas, connection state, or combo membership, and every row fails
+closed when the observed package version differs from `0.5.75`.
+
+An optional portable host-profile preference list may order those same fifteen
+rows and label each listed provider `recommended` or `optional`. It is display
+policy only: it cannot hide an unlisted provider, select a provider, start
+authorization, create a connection, or claim availability. Unknown or duplicate
+provider preferences fail closed against the exact-version capability table.
+
+OAuth token custody remains wholly owned by 9Router. The exact-version
+management adapter may broker the operator interaction through 9Router's
+loopback authorization-code and device-code endpoints, but it never mints,
+imports, returns, logs, or persists a provider token. Authorization verifier,
+CSRF state, device code, and provider-specific polling proof exist only in
+process-local opaque sessions; generic JSON serialization exposes only the
+flow kind and provider, so interaction URLs, user codes, and proof cannot enter
+a plan, profile, receipt, or machine-readable CLI result. Authorization
+callbacks must match the provider's exact loopback origin and path plus the
+generated state. A device poll performs one request and returns only `pending`
+or `connected`, leaving timing, cancellation, and retry bounds to the TUI
+controller. The adapter does not open a browser or write the clipboard without
+an explicit UI action.
+
+On the onboarding Routing page, `o` is available only on a held OAuth provider
+when exact `9router@0.5.75` is healthy through the selected private host
+binding. The main renderer closes before the bounded authorization renderer
+starts, then onboarding is rebuilt from fresh probes when it returns.
+Authorization-code flows display the provider URL and accept one full,
+state-bound callback URL in a transient input. Device-code flows display the
+verification URL and user code, and `p` performs one interval-limited poll; no
+automatic timer runs. Success is displayed only after a fresh
+`/api/providers` readback contains an active-or-unknown connection for the
+selected provider. Repair mode cannot launch OAuth because it must preserve the
+already reviewed transaction scope.
+
+After 9Router reports success, onboarding refreshes `/api/providers`; that
+readback, not the OAuth response, is the connection authority. API-key
+providers remain held until a private host binding declares a macOS Keychain
+reference and reviewed private provider intent selects it. The concrete model
+selector is populated only from the live `/v1/models` response.
+
+9Router's bundled macOS autostart is not the Temperance service contract. In
+0.5.75 it uses the package's network-exposed default host and does not bind the
+selected `DATA_DIR`. Temperance therefore generates its own LaunchAgent with an
+absolute executable, explicit data directory, loopback host
+`127.0.0.1:20128`, managed logs, and no credential value.
+
+Management operations use 9Router's local management API. The CLI management
+token is derived inside the selected 9Router data directory and is never copied
+into a profile, operation plan, log, or receipt. A gateway API key created for
+direct clients is captured once into macOS Keychain; durable configuration
+stores only its Keychain reference.
+
+### Guided router setup
+
+Provider and combo choices live in a private
+`temperance.9router-guided-setup.v1` input. Provider entries name Keychain
+references, never credential values. Combo membership is an ordered array of
+9Router model identifier strings, matching the exact `0.5.75` wire contract;
+it is not an array of provider configuration objects. Noesis continues to
+declare only required aliases.
+
+Provider intent may be prepared separately as
+`temperance.9router-setup-intent.v1`. It contains provider identifiers,
+connection labels, credential-reference identifiers, and the gateway-key
+reference—never credential values or concrete combo membership. Its provider
+array contains only new API-key connections and may be empty when every chosen
+provider was authenticated through 9Router's OAuth flow. The portable runtime
+does not prescribe which provider families are selected; a personal or
+organizational operator supplies this private intent.
+
+`temperance router-seat` is the read-only bridge from that intent to concrete
+membership. JSON mode reports the provider-only choices obtained from the
+selected 9Router `/v1/models` endpoint. OpenTUI mode presents every semantic
+alias from the portable host profile alongside those live choices, supports
+ordered multi-selection, refuses combo-kind rows, and writes one new mode-0600
+guided-setup input only after every alias has at least one seat:
+
+```bash
+temperance router-seat \
+  --host-profile "${HOST_PROFILE_PATH}" \
+  --host-binding "${HOST_BINDING_PATH}" \
+  --intent "${ROUTER_INTENT_PATH}" \
+  --output "${ROUTER_SETUP_PATH}" \
+  --tui
+```
+
+The seating TUI has no API-write, Keychain-write, project-write, or overwrite
+capability. Its output is still only an input to a newly compiled onboarding
+plan; it cannot authorize repair. If the live provider catalog is empty, every
+alias is displayed as held with `LIVE_PROVIDER_MODELS_UNAVAILABLE` rather than
+offering invented or copied model choices.
+
+For an OAuth-only provider set, `router-seat` can synthesize the empty-provider
+intent from one declared gateway-key reference. This removes the need for a
+hand-authored placeholder provider file without claiming the OAuth flow:
+
+```bash
+temperance router-seat \
+  --host-profile "${HOST_PROFILE_PATH}" \
+  --host-binding "${HOST_BINDING_PATH}" \
+  --gateway-reference NINE_ROUTER_GATEWAY_KEY \
+  --output "${ROUTER_SETUP_PATH}" \
+  --tui
+```
+
+The later reviewed transaction accepts existing provider connections as
+read-only catalog inputs, but still refuses any pre-existing combo or gateway
+key. Rollback deletes only the combos, key, and optional API-key connections
+whose exact IDs were created by that transaction; it never deletes an existing
+OAuth connection.
+
+The setup input is validated before review. Its canonical digest and exact
+secret-free provider, combo, model, alias, and gateway-key-reference details
+are embedded in the onboarding plan. Changing any seat after review changes
+the digest and invalidates confirmation.
+
+Repair is intentionally narrower than planning:
+
+```bash
+temperance onboard \
+  --tui --repair \
+  --host-profile "${HOST_PROFILE_PATH}" \
+  --host-binding "${HOST_BINDING_PATH}" \
+  --router-setup "${ROUTER_SETUP_PATH}" \
+  --receipt-dir "${TEMPERANCE_RECEIPT_DIR}" \
+  --select provider.9router
+```
+
+The TUI must display `COMMIT PLAN`, the bound configuration input, and the
+final plan digest. Host mutation starts only after confirmation of that exact
+digest. The effector resolves provider credentials from Keychain in memory,
+creates fresh provider connections, then reads `/v1/models` and proves every
+requested member is a live provider model before it creates any combo. Combo
+models are kept in reviewed order; combo-kind choices are refused to prevent
+implicit nesting or cycles. The effector then creates one gateway key through
+the local API, captures it into Keychain, and verifies provider, combo, alias,
+exact ordered membership, model-count, and key metadata through API readback.
+It does not edit pre-existing provider or combo objects.
+
+If any create, capture, readback, receipt, or later operation step fails, the
+executor deletes newly created keys, combos, and providers in reverse order
+and restores the prior Keychain value. Created identities are recovered by
+pre/post API difference when an upstream success response is malformed, so a
+bad response cannot silently strand an untracked object.
+
+## Route Continuity
+
+A route context contains the admitted project, GSD step, phase, session, and
+semantic alias. Opening a route lease pins that alias for one GSD step. A phase
+change or mounted-project disconnect closes the lease and emits a checkpoint.
+Resume preserves the admitted GSD step but requires a fresh session identifier
+and a new lease. Concrete providers and models remain outside the lease because
+9Router may realize the semantic alias differently over time.
+
+## External Volumes
+
+An external volume is admitted by an out-of-repository host binding that
+contains the enrolled volume identity. Label matching alone is insufficient.
+The adapter must verify the mounted identity and the configured canonical
+subtree before project mutation becomes eligible.
+
+An absent volume is a supported degraded state. The generic runtime, doctor,
+and non-volume modules continue to work; mounted-project mutations, Obsidian
+tunneling, and dependent organs remain held with actionable reasons.
+
+### Private target-host binding
+
+The portable profile is joined to a private binding created on the target Mac.
+The initializer observes the exact hardware model, Apple chip, architecture,
+and local user ID; accepts symbolic variable values, Keychain references,
+semantic aliases, and enrolled volume identities; then validates the composed
+profile before creating one owner-only file. It has no plaintext-secret input.
+
+```bash
+temperance host-binding-init \
+  --host-profile "${HOST_PROFILE_PATH}" \
+  --output "${HOST_BINDING_PATH}" \
+  --set VARIABLE VALUE \
+  --secret-reference REFERENCE_ID KEYCHAIN_SERVICE KEYCHAIN_ACCOUNT \
+  --alias SEMANTIC_ALIAS ROUTER_COMBO \
+  --volume VOLUME_ID MOUNT_VARIABLE UUID_VARIABLE VOLUME_UUID
+```
+
+Flags may be repeated. The output path must not exist, its parent must not be
+group- or world-writable, and the resulting file is mode `0600`. The receipt
+reports only field names, reference identifiers, aliases, volume-binding IDs,
+and non-secret host identity—never bound paths, UUIDs, or credential values.
+
+## Cutover Invariants
+
+The cutover planner is read-only. It inventories only allowlisted paths and
+labels, never reads LaunchAgent contents, never follows symlinks while counting
+managed files, and does not authorize destructive execution. Its stable digest
+binds the reviewed scope and the observed macOS hardware model, Apple chip,
+architecture, and local user ID. A review produced on one Mac cannot authorize
+another Mac.
+
+Activation is ordered:
+
+1. verify the replacement in isolation;
+2. capture the redacted legacy manifest;
+3. stop the legacy port owner and managed LaunchAgents;
+4. revoke the exposed legacy gateway credential;
+5. remove exact legacy state and scheduled writers;
+6. transactionally install the reviewed runtime and exact router package;
+7. generate secret-free, loopback-only services;
+8. read back provider, combo, client, project, and doctor state;
+9. prove degraded, active, and cold-start behavior.
+
+The destructive executor accepts neither a naked cutover plan nor a source
+checkout by itself. A replacement proof binds the full Temperance commit and
+tree, the exact `9router@0.5.75` target, a staged-artifact digest, and digests
+of the isolated install-surface and cutover-contract verification runs. The
+TUI confirmation binds the cutover-plan digest and replacement-proof digest
+into one short-lived operation digest. A changed host observation, replacement
+artifact, source tree, or expired confirmation refuses execution before the
+durable journal begins.
+
+A proof can be emitted only from a clean committed checkout:
+
+```bash
+bun scripts/v4-replacement-proof.ts > "${REPLACEMENT_PROOF_PATH}"
+```
+
+The generator hashes `git archive HEAD`, runs the complete install-surface
+verification, and runs the cutover planner, executor, journal, and proof
+contract suites. Failed command output is not copied into the proof or its
+error message.
+
+The executor stages the fresh replacement before stopping anything. Failures
+before credential revocation restore stopped services and discard even a
+partially staged replacement. Credential revocation is the irreversible
+boundary: after it, failures recover only from the already verified fresh
+replacement. They never restore legacy bytes. The journal records action IDs,
+digests, timestamps, and redacted failure codes; final receipts contain no
+absolute host paths or credential values. Failure to finalize the receipt
+after successful live readback is surfaced without tearing down the verified
+replacement.
+
+The portable cutover executor contains no macOS path, launchd, or Keychain
+policy. `MacOsV4CutoverAdapter` is the bounded host layer: it may control only
+the reviewed LaunchAgent allowlist, exact legacy state roots, Keychain
+references, and a package symlink whose resolved `package.json` identifies
+`omniroute`. Portable source staging and replacement installation remain
+behind `V4ReplacementLifecycle`, so Noesis policy and Madara bindings cannot
+become host-mutation authority.
+
+`PortableV4ReplacementLifecycle` implements that fresh-only boundary. It
+attests a clean Git archive to the replacement proof, verifies the extracted
+install surface before promotion, consumes the stage instead of retaining a
+runnable backup, and installs the router into a runtime-owned package root.
+It invokes Bun only. Because `9router@0.5.75` otherwise performs npm-based
+self-healing on first launch, the lifecycle also pre-seats its exact runtime
+dependencies under `${DATA_DIR}/runtime`: `sql.js@1.14.1`,
+`better-sqlite3@13.0.3`, and `systray2@2.1.4`. The upstream postinstall remains
+blocked. Native Node versions below 22 fail capability preflight instead of
+silently selecting a different native dependency. Service creation,
+activation, and live doctor readback remain injected host responsibilities.
+
+On macOS, `MacOsV4ReplacementServices` owns only the fresh
+`com.temperance.engine.9router` service. It atomically publishes the exact
+secret-free plist, restarts that exact launchd label, and refuses conflicting,
+symlinked, or hard-linked service files. The service enters through an explicit
+`env -i` boundary and restores only its reviewed `PATH` and `DATA_DIR`, so
+credentials or legacy router variables inherited by the user's launchd domain
+cannot propagate into 9Router. Verification reads the pinned package
+metadata without executing the router binary, proves every port-20128 listener
+is loopback-only and descended from the launchd service PID, then invokes the
+injected doctor probe. A process name, open port, or successful bootstrap is
+not sufficient evidence by itself.
+
+`createMacOsV4CutoverRuntime` is the non-mutating composition root joining the
+portable lifecycle, the fresh service owner, the bounded legacy scrub adapter,
+and the durable journal. Staging and receipts live below the user's macOS
+Application Support directory, outside `~/.temperance_engine`, so replacing
+the runtime cannot delete its own recovery source or audit trail. Construction
+does not create those directories, inspect Keychain values, or start services.
+
+`temperance cutover-review --plan <file> --proof <file> --host-binding <file>` is the source-to-host
+commitment boundary. JSON mode exposes the same review model as the dedicated
+OpenTUI: the exact plan, clean replacement proof, managed paths, LaunchAgents,
+ordered actions, activation holds, and combined operation digest. The TUI
+requires one explicit `Enter` or `y` on the Confirm page and emits only a
+short-lived digest-bound confirmation. Review and confirmation perform
+no host mutation; the destructive executor must independently re-observe an
+identical plan before opening its journal. The private binding records the
+intended machine identity for that installation; a portable Noesis profile is
+therefore reusable on another Mac, while a confirmation produced for one host
+cannot be applied to another.
+
+Live admission is a separate command and never occurs inside the review TUI:
+
+```bash
+temperance cutover-apply \
+  --plan "${CUTOVER_PLAN_PATH}" \
+  --proof "${REPLACEMENT_PROOF_PATH}" \
+  --confirmation "${CUTOVER_CONFIRMATION_PATH}" \
+  --host-binding "${HOST_BINDING_PATH}" \
+  --legacy-credential-reference LEGACY_OMNIROUTE_GATEWAY_KEY \
+  --source-repository "${TEMPERANCE_SOURCE_REPOSITORY}"
+```
+
+Every argument is mandatory. The command consumes, but cannot manufacture, the
+external confirmation and private host binding. It resolves only a named macOS
+Keychain reference, rejects runtime paths that do not match the reviewed home,
+requires the exact `.9router` data root and runtime-owned 9Router entrypoint,
+and accepts only an unauthenticated `127.0.0.1:20128` doctor URL. Before the
+runtime composition root is constructed it compares the current Mac identity
+with the reviewed identity; the executor then independently regenerates the
+entire plan before writing its journal. The command emits only the redacted
+receipt.
+
+No runnable legacy backup survives successful activation. Recovery is a fresh
+install from reviewed source plus redacted receipts, not reactivation of stale
+executables or credentials.

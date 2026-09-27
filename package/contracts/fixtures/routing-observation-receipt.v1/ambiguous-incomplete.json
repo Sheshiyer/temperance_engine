@@ -1,0 +1,29 @@
+{
+  "schema": "temperance.routing-observation-receipt.v1",
+  "observation_id": "obs_11111111111111111111111111111111",
+  "project_ref": "prj_synthetic-project",
+  "observed_at": "2026-09-07T00:00:00.000Z",
+  "fresh_until": "2026-09-07T00:01:00.000Z",
+  "source": "product-routing-adapter",
+  "evidence_mode": "synthetic",
+  "provenance": {
+    "product_source_commit": "2222222222222222222222222222222222222222",
+    "closure_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "contract_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "request": {
+    "outcome": "failed"
+  },
+  "attribution": {
+    "state": "ambiguous",
+    "reason_code": "multiple_successful_bindings"
+  },
+  "tools": {
+    "state": "incomplete",
+    "reason_code": "open_tools",
+    "started_count": 3,
+    "completed_count": 1,
+    "failed_count": 1
+  },
+  "receipt_id": "ro_08c842d44025671462969638e5306110693cfb26c48890ed20905554ad7ae112"
+}

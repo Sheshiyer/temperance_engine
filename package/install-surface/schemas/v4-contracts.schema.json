@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thoughtseed.space/schemas/temperance/v4-contracts",
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$", "maxLength": 128 },
+    "variable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "maxLength": 128 },
+    "version1": { "type": "object", "additionalProperties": false, "required": ["major", "minor"], "properties": { "major": { "const": 1 }, "minor": { "const": 0 } } },
+    "keychain": { "type": "object", "additionalProperties": false, "required": ["store", "service", "account"], "properties": { "store": { "const": "macos-keychain" }, "service": { "type": "string", "minLength": 1, "maxLength": 256 }, "account": { "type": "string", "minLength": 1, "maxLength": 256 } } },
+    "alias": { "type": "object", "additionalProperties": false, "required": ["alias", "combo"], "properties": { "alias": { "$ref": "#/$defs/identifier" }, "combo": { "$ref": "#/$defs/identifier" } } },
+    "hostIdentity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["platform", "hardware_model", "chip_model", "architecture", "user_id"],
+      "properties": {
+        "platform": { "enum": ["aix", "android", "darwin", "freebsd", "haiku", "linux", "openbsd", "sunos", "win32", "cygwin", "netbsd"] },
+        "hardware_model": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?!unknown$)[A-Za-z0-9][A-Za-z0-9 (),._+-]*$" },
+        "chip_model": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?!unknown$)[A-Za-z0-9][A-Za-z0-9 (),._+-]*$" },
+        "architecture": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?!unknown$)[A-Za-z0-9][A-Za-z0-9 (),._+-]*$" },
+        "user_id": { "type": "integer", "minimum": 1, "maximum": 2147483647 }
+      }
+    },
+    "hostProfile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "id", "variables", "secret_references", "preselected_modules", "required_routing_aliases"],
+      "properties": {
+        "schema": { "const": "temperance.host-profile.v1" }, "version": { "$ref": "#/$defs/version1" }, "id": { "$ref": "#/$defs/identifier" },
+        "variables": { "type": "array", "maxItems": 512, "items": { "type": "object", "additionalProperties": false, "required": ["name", "kind", "required"], "properties": { "name": { "$ref": "#/$defs/variable" }, "kind": { "enum": ["string", "absolute-path", "url", "volume-uuid"] }, "required": { "type": "boolean" } } } },
+        "secret_references": { "type": "array", "maxItems": 128, "items": { "type": "object", "additionalProperties": false, "required": ["name", "required"], "properties": { "name": { "$ref": "#/$defs/variable" }, "required": { "type": "boolean" } } } },
+        "preselected_modules": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "required_routing_aliases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "routing_provider_preferences": {
+          "type": "array", "maxItems": 64,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["provider", "tier"],
+            "properties": {
+              "provider": { "$ref": "#/$defs/identifier" },
+              "tier": { "enum": ["recommended", "optional"] }
+            }
+          }
+        },
+        "project_discovery": {
+          "type": "array", "maxItems": 64,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object", "additionalProperties": false,
+                "required": ["id", "kind", "root_variable", "require_git", "access"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/identifier" }, "kind": { "const": "directory-children" },
+                  "root_variable": { "$ref": "#/$defs/variable" }, "root_prefix_variable": { "$ref": "#/$defs/variable" },
+                  "require_git": { "type": "boolean" }, "access": { "enum": ["read-only", "read-write"] }
+                }
+              },
+              {
+                "type": "object", "additionalProperties": false,
+                "required": ["id", "kind", "source_relative_path", "project_root_variable", "access"],
+                "oneOf": [
+                  { "required": ["source_root_variable"], "properties": { "source_root_variable": { "$ref": "#/$defs/variable" } } },
+                  { "required": ["source_base"], "properties": { "source_base": { "const": "host-profile-directory" } } }
+                ],
+                "properties": {
+                  "id": { "$ref": "#/$defs/identifier" }, "kind": { "const": "json-project-map" },
+                  "source_root_variable": { "$ref": "#/$defs/variable" },
+                  "source_base": { "const": "host-profile-directory" },
+                  "source_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
+                  "project_root_variable": { "$ref": "#/$defs/variable" }, "project_root_prefix_variable": { "$ref": "#/$defs/variable" },
+                  "access": { "enum": ["read-only", "read-write"] }
+                }
+              },
+              {
+                "type": "object", "additionalProperties": false,
+                "required": ["id", "kind", "source_relative_path", "project_root_variable", "access"],
+                "oneOf": [
+                  { "required": ["source_root_variable"], "properties": { "source_root_variable": { "$ref": "#/$defs/variable" } } },
+                  { "required": ["source_base"], "properties": { "source_base": { "const": "host-profile-directory" } } }
+                ],
+                "properties": {
+                  "id": { "$ref": "#/$defs/identifier" }, "kind": { "const": "portfolio-root-map" },
+                  "source_root_variable": { "$ref": "#/$defs/variable" },
+                  "source_base": { "const": "host-profile-directory" },
+                  "source_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
+                  "repository_mapping_relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
+                  "project_root_variable": { "$ref": "#/$defs/variable" }, "project_root_prefix_variable": { "$ref": "#/$defs/variable" },
+                  "access": { "enum": ["read-only", "read-write"] }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "hostBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "profile_id", "variables", "secret_references", "routing_aliases", "volume_bindings"],
+      "properties": {
+        "schema": { "const": "temperance.host-binding.v1" }, "version": { "$ref": "#/$defs/version1" }, "profile_id": { "$ref": "#/$defs/identifier" },
+        "host_identity": { "$ref": "#/$defs/hostIdentity" },
+        "variables": { "type": "object", "propertyNames": { "$ref": "#/$defs/variable" }, "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 4096 } },
+        "secret_references": { "type": "object", "propertyNames": { "$ref": "#/$defs/variable" }, "additionalProperties": { "$ref": "#/$defs/keychain" } },
+        "routing_aliases": { "type": "array", "items": { "$ref": "#/$defs/alias" } },
+        "volume_bindings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "mount_path_variable", "volume_uuid"], "properties": { "id": { "$ref": "#/$defs/identifier" }, "mount_path_variable": { "$ref": "#/$defs/variable" }, "volume_uuid": { "type": "string", "minLength": 1, "maxLength": 256 }, "volume_uuid_variable": { "$ref": "#/$defs/variable" } } } }
+      }
+    },
+    "moduleDescriptor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "id", "title", "summary", "dependencies", "capabilities", "preselection", "admission_states"],
+      "properties": {
+        "schema": { "const": "temperance.module-descriptor.v2" }, "version": { "type": "object", "additionalProperties": false, "required": ["major", "minor"], "properties": { "major": { "const": 2 }, "minor": { "const": 0 } } },
+        "id": { "$ref": "#/$defs/identifier" }, "title": { "type": "string", "minLength": 1, "maxLength": 128 }, "summary": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "dependencies": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } }, "capabilities": { "type": "array", "maxItems": 64, "items": { "type": "object" } },
+        "preselection": { "enum": ["selected", "available", "off"] },
+        "admission_states": { "type": "array", "prefixItems": [{ "const": "unavailable" }, { "const": "detected" }, { "const": "configured" }, { "const": "healthy" }, { "const": "enabled" }], "minItems": 5, "maxItems": 5 }
+      }
+    },
+    "projectCapsule": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "id", "repository_identity", "root_variable", "relative_path", "access", "approved"],
+      "properties": {
+        "schema": { "const": "temperance.project-capsule.v1" }, "version": { "$ref": "#/$defs/version1" }, "id": { "$ref": "#/$defs/identifier" },
+        "repository_identity": { "type": "string", "minLength": 1, "maxLength": 2048 }, "root_variable": { "$ref": "#/$defs/variable" },
+        "relative_path": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000]+$" },
+        "access": { "enum": ["read-only", "read-write"] }, "approved": { "type": "boolean" }
+      }
+    },
+    "nineRouterProviderSelection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["selection_id", "provider", "connection_name", "credential_reference_id"],
+      "properties": {
+        "selection_id": { "$ref": "#/$defs/identifier" },
+        "provider": { "$ref": "#/$defs/identifier" },
+        "connection_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "credential_reference_id": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "nineRouterGatewayKeyIntent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "secret_reference_id"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "secret_reference_id": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "nineRouterSetupIntent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "providers", "gateway_key"],
+      "properties": {
+        "schema": { "const": "temperance.9router-setup-intent.v1" },
+        "version": { "$ref": "#/$defs/version1" },
+        "providers": { "type": "array", "minItems": 0, "maxItems": 64, "items": { "$ref": "#/$defs/nineRouterProviderSelection" } },
+        "gateway_key": { "$ref": "#/$defs/nineRouterGatewayKeyIntent" }
+      }
+    },
+    "nineRouterGuidedSetup": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "providers", "combos", "required_aliases", "gateway_key"],
+      "properties": {
+        "schema": { "const": "temperance.9router-guided-setup.v1" },
+        "version": { "$ref": "#/$defs/version1" },
+        "providers": {
+          "type": "array", "minItems": 0, "maxItems": 64,
+          "items": { "$ref": "#/$defs/nineRouterProviderSelection" }
+        },
+        "combos": {
+          "type": "array", "minItems": 1, "maxItems": 128,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["alias", "models"],
+            "properties": {
+              "alias": { "$ref": "#/$defs/identifier" },
+              "models": {
+                "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+                "items": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[^\\u0000-\\u001f\\u007f]+$" }
+              }
+            }
+          }
+        },
+        "required_aliases": { "type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "gateway_key": { "$ref": "#/$defs/nineRouterGatewayKeyIntent" }
+      }
+    },
+    "operationReceipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "operation_id", "plan_digest", "status", "module_ids", "secret_reference_ids", "redacted_fields", "resolved_executables", "rollback_status", "started_at", "finished_at"],
+      "properties": {
+        "schema": { "const": "temperance.operation-receipt.v1" }, "version": { "$ref": "#/$defs/version1" }, "operation_id": { "$ref": "#/$defs/identifier" },
+        "plan_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }, "status": { "enum": ["planned", "committed", "failed"] },
+        "module_ids": { "type": "array", "items": { "$ref": "#/$defs/identifier" } }, "secret_reference_ids": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+        "redacted_fields": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 128 } },
+        "resolved_executables": { "type": "array", "maxItems": 64, "items": { "type": "object", "additionalProperties": false, "required": ["id", "path", "version"], "properties": { "id": { "$ref": "#/$defs/identifier" }, "path": { "type": "string", "minLength": 1, "maxLength": 4096 }, "version": { "type": "string", "minLength": 1, "maxLength": 128 } } } },
+        "rollback_status": { "enum": ["not-required", "completed", "failed"] },
+        "failure_code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,127}$" },
+        "started_at": { "type": "string", "minLength": 20, "maxLength": 64 }, "finished_at": { "type": "string", "minLength": 20, "maxLength": 64 }
+      }
+    }
+  }
+}

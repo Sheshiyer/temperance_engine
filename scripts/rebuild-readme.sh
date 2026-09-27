@@ -59,6 +59,7 @@ python3 - "$README_PATH" "$ASSET_DIR" "$OWNER" "$PROJECT_NAME" <<'PY'
 import csv
 import json
 import re
+import os
 from pathlib import Path
 from datetime import datetime, timezone
 import sys
@@ -235,15 +236,8 @@ def render_table() -> str:
         table_blob = {"columns": [{"key": k, "label": k, "type": "text"} for k in cols], "rows": json_rows}
         json_table_path.write_text(json.dumps(table_blob, indent=2), encoding="utf-8")
 
-        return (
-            "```datatable\n"
-            f"{{\"title\": \"Repository Signals\", \"src\": \"./.readme-notebooklm/assets/notebooklm-data-table.json\"}}\n"
-            "```"
-        )
-
-    headers = [h for h in rows[0].keys() if h != "Source"]
-    if not headers:
-        headers = list(rows[0].keys())
+    # GitHub renders Markdown tables; the JSON sidecar remains available to tooling.
+    headers = list(rows[0].keys())
 
     rows_out = ["| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"]
     for r in rows:
@@ -276,7 +270,10 @@ metadata = [
     f"- source-note: {source_names}",
     f"- generated-at: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S%z')}",
     f"- notebook-id: {manifest.get('notebook', {}).get('id', 'unknown')}",
-    "- generation-command: READMEREBUILD_PIPELINE=/path/to/run_mvp_pipeline.py bash scripts/rebuild-readme.sh '" + PROJECT_NAME + "' '" + OWNER + "'",
+    "- generation-command: " + (
+        "READMEREBUILD_SKIP_NOTEBOOKLM=1 " if os.environ.get("READMEREBUILD_SKIP_NOTEBOOKLM") == "1"
+        else "READMEREBUILD_PIPELINE=/path/to/run_mvp_pipeline.py "
+    ) + "bash scripts/rebuild-readme.sh '" + PROJECT_NAME + "' '" + OWNER + "'",
     "- continuity-mode: merge-queue refresh workflow",
     "- follow-up-target: readme-continuity-refresh",
     "- workflow-reference: .github/workflows/readme-auto-refresh.yml",

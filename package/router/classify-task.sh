@@ -1,88 +1,52 @@
 #!/usr/bin/env sh
-# package/router/classify-task.sh
-# Single source of truth for task-type classification + the command-code
-# primary model per type. POSIX sh (no bashisms) so it runs under /bin/sh,
-# macOS system bash, and homebrew bash alike. Sourced by
-# multi-backend-router.sh (functions only) and exec'd by
-# package/enrich/stages/routing.ts (CLI). Pure: NO backend detection, NO
-# availability gating -- that stays in the router. Does NOT call `set` (it is
-# sourced into a script with its own shell options and must not mutate them).
-
-# _kw <text> <alternation> -> exit 0 if any keyword in the alternation matches
-# <text> as a whole word. Uses POSIX-portable word boundaries
-# `(^|[^[:alnum:]])...([^[:alnum:]]|$)` rather than the GNU/BSD `\b`, which is
-# not defined by POSIX ERE and can misbehave on strict/busybox grep. Verified
-# byte-identical to `\b` for these keyword lists on macOS + GNU grep.
-_kw() {
-  printf '%s' "$1" | grep -Eq "(^|[^[:alnum:]])($2)([^[:alnum:]]|$)"
-}
-
-# classify_task_type "<task>" -> one of:
-#   ralph | optimize | dispatch | media | vision | research | plan-max | plan
-#   | long-horizon | reasoning | validation | creative | fast | inline | balanced
-# Ordered, first-match-wins. Availability/session gating lives in classify-route.
-classify_task_type() {
-  lower_desc=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
-  if _kw "$lower_desc" 'ralph|maestro|ephemeral feature|isolated context|feature loop'; then
-    echo "ralph"; return
+# Compatibility boundary for CLI and sourced shell callers. Task-type ownership
+# is task-classification.ts; product shell callers retain their reviewed model
+# stream until multi-backend routing moves to the TypeScript contract directly.
+# Sourcing defines functions only and preserves options.
+# POSIX sourced callers outside Bash must set TEMPERANCE_CLASSIFY_MODULE_DIR
+# when using a checkout other than $HOME/.temperance_engine/router.
+# Subshells keep all scratch variables and cwd changes out of the caller.
+_temperance_classification_dir() (
+  _tc_src="$1"
+  while [ -L "$_tc_src" ]; do
+    _tc_base=$(CDPATH= cd -P -- "$(dirname -- "$_tc_src")" && pwd) || exit
+    _tc_src=$(readlink "$_tc_src") || exit
+    case "$_tc_src" in /*) ;; *) _tc_src="$_tc_base/$_tc_src" ;; esac
+  done
+  CDPATH= cd -P -- "$(dirname -- "$_tc_src")" && pwd
+)
+_temperance_classification_run() (
+  _tc_module="$1"
+  shift
+  _tc_bun=$(command -v "${TEMPERANCE_BUN:-bun}") || {
+    printf '%s\n' 'classification: Bun executable unavailable' >&2; exit 127;
+  }
+  case "$_tc_bun" in /*) ;; *) _tc_bun="$PWD/$_tc_bun" ;; esac
+  # Neither inherited Bun/Node options nor cwd/global Bun configuration may
+  # preload code or replace the pure contract process environment.
+  _tc_output=$(/usr/bin/env -i PATH=/usr/bin:/bin LC_ALL=C "$_tc_bun" \
+    --no-env-file --config=/dev/null "$_tc_module" "$@") || exit "$?"
+  [ -n "$_tc_output" ] || {
+    printf '%s\n' 'classification: runtime returned no result' >&2; exit 2;
+  }
+  printf '%s\n' "$_tc_output"
+)
+_temperance_classification() (
+  if [ -n "${TEMPERANCE_CLASSIFY_MODULE_DIR:-}" ]; then
+    _tc_dir=$(CDPATH= cd -P -- "$TEMPERANCE_CLASSIFY_MODULE_DIR" && pwd) || exit
+  elif [ -n "${BASH_SOURCE:-}" ]; then
+    _tc_dir=$(_temperance_classification_dir "$BASH_SOURCE") || exit
+  else
+    _tc_dir="${TEMPERANCE_HOME:-$HOME/.temperance_engine}/router"
+    _tc_dir=$(CDPATH= cd -P -- "$_tc_dir" && pwd) || exit
   fi
-  if _kw "$lower_desc" 'autoresearch|hill-?climb|optimize loop|eval mode|keep/discard|karpathy'; then
-    echo "optimize"; return
-  fi
-  if _kw "$lower_desc" 'dispatch|parallel workers|paid fleet|te-dispatch|swarm fan-?out'; then
-    echo "dispatch"; return
-  fi
-  if _kw "$lower_desc" 'elevenlabs|runway|text-to-speech|tts|image-to-video|meshy|voiceover|voice over'; then
-    echo "media"; return
-  fi
-  if _kw "$lower_desc" 'screenshot|vision bridge|te-vision|image audit'; then
-    echo "vision"; return
-  fi
-  if _kw "$lower_desc" 'literature|cite sources|web search|search evidence|te-write-research'; then
-    echo "research"; return
-  fi
-  if _kw "$lower_desc" 'plan-max|te-plan-max|architecture decision|system design|multi-?milestone|deep pass|task graph'; then
-    echo "plan-max"; return
-  fi
-  if _kw "$lower_desc" 'roadmap|spec|architecture|implementation plan'; then
-    echo "plan"; return
-  fi
-  if _kw "$lower_desc" 'refactor|rewrite|migrate|redesign|overhaul|restructure|entire|all files|across.*files'; then
-    echo "long-horizon"; return
-  fi
-  if _kw "$lower_desc" 'analyze|debug|diagnose|explain|understand|reason|think|complex|difficult'; then
-    echo "reasoning"; return
-  fi
-  if _kw "$lower_desc" 'validate|verify|review|check|audit|test|ensure|confirm'; then
-    echo "validation"; return
-  fi
-  if _kw "$lower_desc" 'brainstorm|creative|design|explore|imagine|ideate|alternative'; then
-    echo "creative"; return
-  fi
-  if _kw "$lower_desc" 'quick|simple|small|minor|tweak|fix typo|update comment'; then
-    echo "fast"; return
-  fi
-  if _kw "$lower_desc" 'extract|classify|summarize|list|identify|find|count'; then
-    if ! _kw "$lower_desc" 'read|search|grep|edit|write|run|execute|test|build|compile'; then
-      echo "inline"; return
-    fi
-  fi
-  echo "balanced"
-}
-
-# model_for_type "<type>" -> "<backend>:<model>" (the command-code primary;
-# inline -> current-session sentinel). Single source of the type->primary
-# catalog: MBR derives ROUTING_PRIORITY's command-code column from this, and
-# routing.ts renders `preferred=` from it.
-#
-# Command Code primaries = live deals only (2026-08-19 pricing-limits + Studio).
-# Keep: laguna-s-2.1-free, xiaomi/mimo-v2.5-pro (~5x), MiniMax-M3 (~2x),
-# google/gemini-3.7-flash (~2x through 2026-12-31).
-# Do not pin full-price CC (deepseek-v4-pro/flash, terra, Step flash).
-# Combo stacks still come from lane-templates + rank-paid-fleet — this file
-# only names the CC classifier primary per task type.
+  _temperance_classification_run "$_tc_dir/routing-contract-cli.ts" "$@"
+)
+classify_task_type() { _temperance_classification type "${1:-}"; }
+# Product compatibility: multi-backend-router.sh consumes this direct-route
+# column, while newer TypeScript consumers use task-classification.ts directly.
 model_for_type() {
-  case "$1" in
+  case "${1:-}" in
     ralph)        echo "combo:te-build" ;;
     optimize)     echo "combo:te-reason" ;;
     dispatch)     echo "combo:te-dispatch-paid" ;;
@@ -100,14 +64,10 @@ model_for_type() {
     *)            echo "command-code:poolside/laguna-s-2.1-free" ;;
   esac
 }
-
-# CLI: `classify-task.sh "<task>"` -> "<type>\t<backend>:<model>". Runs ONLY
-# when executed directly, not when sourced. The basename-of-$0 guard works in
-# both bash (sourcing does not change $0) and sh.
-_classify_main() {
-  _t=$(classify_task_type "$1")
-  printf '%s\t%s\n' "$_t" "$(model_for_type "$_t")"
-}
+_classify_main() (
+  _tc_type=$(classify_task_type "${1:-}") || exit
+  printf '%s\t%s\n' "$_tc_type" "$(model_for_type "$_tc_type")"
+)
 case "${0##*/}" in
   classify-task.sh) _classify_main "$@" ;;
 esac

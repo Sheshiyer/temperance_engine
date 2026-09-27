@@ -1,0 +1,11 @@
+#!/bin/sh
+# Compatibility entry point; logic lives in the adjacent TypeScript source.
+set -eu
+SCRIPT="$0"
+while [ -L "$SCRIPT" ]; do
+  BASE=$(CDPATH= cd -- "$(dirname -- "$SCRIPT")" && pwd)
+  TARGET=$(readlink "$SCRIPT")
+  case "$TARGET" in /*) SCRIPT="$TARGET" ;; *) SCRIPT="$BASE/$TARGET" ;; esac
+done
+ROOT=$(CDPATH= cd -- "$(dirname -- "$SCRIPT")/.." && pwd)
+exec bun "$ROOT/router/backup-if-changed.ts" "$@"

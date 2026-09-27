@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import manifestJson from "./omniroute-portfolios.json";
 
 export const PROMOTION_SCHEMA_VERSION = 1 as const;
-export const PROMOTABLE_PORTFOLIO = "te-fast";
+export const PROMOTABLE_PORTFOLIO = "noesis-fast";
 export const PROMOTION_POLICY_VERSION = "temperance-routing-v1";
 export const MIN_SAMPLE_COUNT = 50;
 export const MIN_SUCCESS_RATE = 0.95;

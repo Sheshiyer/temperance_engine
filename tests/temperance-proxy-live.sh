@@ -9,6 +9,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MOCK_PORT="${TEMPERANCE_TEST_MOCK_PORT:-22330}"
 PROXY_PORT="${TEMPERANCE_TEST_PROXY_PORT:-22331}"
 STATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/temperance-proxy-live.XXXXXX")"
+# The mocked success path must not inherit a real operator's selected policy
+# or append its synthetic traffic to the operator's runtime log.
+export TEMPERANCE_STATE="$STATE_DIR/temperance-state"
+export TEMPERANCE_STATE_DIR="$STATE_DIR/runtime-state"
+export TEMPERANCE_PROXY_LOG="$STATE_DIR/requests.jsonl"
+unset TEMPERANCE_SESSION_POLICY
 MOCK_LOG="$STATE_DIR/mock.log"
 PROXY_LOG="$STATE_DIR/proxy.log"
 

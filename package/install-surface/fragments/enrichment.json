@@ -1,18 +1,115 @@
 {
   "schema": "temperance.install-surface.fragment.v1",
   "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
-  "version": { "major": 1, "minor": 0 },
+  "version": {
+    "major": 1,
+    "minor": 0
+  },
   "records": [
     {
       "id": "enrichment.public-pipeline",
       "owner": "temperance-engine",
       "class": "COPY",
       "source": "package/enrich",
-      "destination": { "root_token": "TEMPERANCE_STATE", "relative_path": "runtime/enrichment", "ownership": { "kind": "exclusive-path" } },
-      "authority": { "requirement_ids": ["PROV-02", "PROV-04", "PROV-07"], "isa": "ISC-769" },
-      "eligibility": { "platforms": ["darwin", "linux"], "profiles": ["default"], "required": true },
-      "verification": { "method": "sha256" },
-      "rollback": { "policy": "restore-backup" }
+      "destination": {
+        "root_token": "TEMPERANCE_STATE",
+        "relative_path": "runtime/enrichment",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "default"
+        ],
+        "required": true
+      },
+      "depends_on": [
+        "router.enrichment-runtime-dependency"
+      ],
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "tree",
+          "files": {
+            "adapters/claude-prompthook.ts": "sha256:b0d5fb2674446b23cd8b3ddf35cace914b9494ed4d1059fac137925695817c4c",
+            "adapters/claude.ts": "sha256:6d0c73c0870a42d7258f2da89004d6e1654648474a68fcbab4ab1d1bcec1895a",
+            "adapters/codex-prompthook.ts": "sha256:92d421571eaa1bc3e3ba7a3c8ca2e362428e60523a14a0207079b06b6e643cc0",
+            "contextSources.test.ts": "sha256:ce69925bca1213ec6e6bbd7903bf35055852623aa45f5def9f392a744adae49d",
+            "contextSources.ts": "sha256:122e5aca0015b368b7e673f5528eacb2bcb864babf7bc38705da61b66bf90f7d",
+            "contract.ts": "sha256:c3570a20e4b3acdd97afa508bbf2ff37de26053236d8306ea9ad1ac7e6857236",
+            "fixtures/ctx-empty.json": "sha256:0dde06ec370125f8a6cebdaaa2045f3adc2e021c2305c6ddc34469d62025ebc8",
+            "fixtures/ctx-full.json": "sha256:aa396a779c245bf9680990b4df27f6c8f3bfd6dfbb2d2394277f5c835f799c3a",
+            "fixtures/sample-ISA.md": "sha256:8b75fb3b78331ddb8c5050130a9dd9d2d456cb241c03c2e944ebe9e19b22fb45",
+            "index.test.ts": "sha256:db1da142501a0b5ee709a08b2b1c599bb26d3d41ad5082cd638c60d3bfffd8e1",
+            "index.ts": "sha256:3ea9e37b861b9f0e787421a5e9d07d979742e6d886bda3fa058825494a816d34",
+            "resolver.test.ts": "sha256:0fdcf6dbe445ef8b71faefa779026309ae06709a355363e5b386d7c6ff3fe863",
+            "resolver.ts": "sha256:c8e523ee45e2b1607898e90db2610105478e2ade7affa754369ffc7716e2390e",
+            "stages/classify.test.ts": "sha256:d242f26b51b0e91181d9d45ac0071f88242e819445aea9040a771f742a8eeebe",
+            "stages/classify.ts": "sha256:7d471f23c52cf67accc0b4add5dab280d3cedb05b8547d460310aa4f48b98902",
+            "stages/contextSources.test.ts": "sha256:ce6e7670563a331f01faafd96cde19823031979aed9246d959d4e109950e8538",
+            "stages/contextSources.ts": "sha256:946421179d8ed11b4898254f6907a109ab29e892f9b722ab88bb9f7a385ae0e5",
+            "stages/dispatch.test.ts": "sha256:b88b8a75517c504abcaf1dc6b3465b092c2d540bc5972361c4705d475b19ec6b",
+            "stages/dispatch.ts": "sha256:8342f456102759fdccb8a9923b99a02301ed89183bcf98788f7d150a624e97ba",
+            "stages/guardrails.test.ts": "sha256:10d912988aeae5009f4c79dc97c19c602d1e9236ccffe10cf9d661eaea701500",
+            "stages/guardrails.ts": "sha256:b902cbd3b16dfba3f5a3307a1d2f329f27b107ae3e98089edc4218ccc1202b73",
+            "stages/intent.test.ts": "sha256:149dcbb922bb8f205b459557b446e6189fc98b47cfaebcf95709f2a0804f7ba5",
+            "stages/intent.ts": "sha256:31bc1d84f786a9a2cbdee6476389f165bb05b0d704624a8222728115aecbbdb8",
+            "stages/isaPointer.test.ts": "sha256:8083c779acc11f56f59d19150664d3e3ad48ba8c513f2f0eb496078e281351aa",
+            "stages/isaPointer.ts": "sha256:2843a737ae1b7bbc34acd3b0fa230b7847dc0baf1c88e8743a5f864218fdfa4a",
+            "stages/memory.test.ts": "sha256:9eff24570198465c9ec49dd5a208478d3793b1a85dd1e39a2503edeae33add09",
+            "stages/memory.ts": "sha256:a0f0a420798aa0713e016bfad4993b24b0fe1f0c5d2ff437fc76e548e2a1f5b8",
+            "stages/routing.test.ts": "sha256:8ab7f5e6db6709981b009598d23d46912680575d34f5eaafcb44ed6ed906177a",
+            "stages/routing.ts": "sha256:1cd75d539c071fa613749234e2996a9ebf9fe853fbd42a248091d01e5571d000"
+          },
+          "modes": {
+            "adapters/claude-prompthook.ts": "0644",
+            "adapters/claude.ts": "0644",
+            "adapters/codex-prompthook.ts": "0755",
+            "contextSources.test.ts": "0644",
+            "contextSources.ts": "0644",
+            "contract.ts": "0644",
+            "fixtures/ctx-empty.json": "0644",
+            "fixtures/ctx-full.json": "0644",
+            "fixtures/sample-ISA.md": "0644",
+            "index.test.ts": "0644",
+            "index.ts": "0644",
+            "resolver.test.ts": "0644",
+            "resolver.ts": "0644",
+            "stages/classify.test.ts": "0644",
+            "stages/classify.ts": "0644",
+            "stages/contextSources.test.ts": "0644",
+            "stages/contextSources.ts": "0644",
+            "stages/dispatch.test.ts": "0644",
+            "stages/dispatch.ts": "0644",
+            "stages/guardrails.test.ts": "0644",
+            "stages/guardrails.ts": "0644",
+            "stages/intent.test.ts": "0644",
+            "stages/intent.ts": "0644",
+            "stages/isaPointer.test.ts": "0644",
+            "stages/isaPointer.ts": "0644",
+            "stages/memory.test.ts": "0644",
+            "stages/memory.ts": "0644",
+            "stages/routing.test.ts": "0644",
+            "stages/routing.ts": "0644"
+          }
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
     }
   ]
 }

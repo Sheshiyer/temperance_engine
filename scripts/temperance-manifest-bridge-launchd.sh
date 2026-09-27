@@ -6,23 +6,34 @@ set -euo pipefail
 
 ROOT_DIR="${TEMPERANCE_ENGINE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 LABEL="com.temperance.engine.manifest-bridge"
-PLIST_DIR="${HOME}/Library/LaunchAgents"
-PLIST_PATH="${PLIST_DIR}/${LABEL}.plist"
-STATE_DIR="${TEMPERANCE_MANIFEST_STATE_DIR:-${HOME}/.temperance_engine/state/manifest}"
-LOG_DIR="${STATE_DIR}/logs"
 PORT="${TEMPERANCE_MANIFEST_PORT:-8766}"
-CLI_SOURCE="${ROOT_DIR}/package/manifest-bridge/src/cli.ts"
+# Repository launches retain their default. An installer can explicitly select
+# the copied package without relying on repository-relative runtime geometry.
+RUNTIME_ROOT="${TEMPERANCE_MANIFEST_RUNTIME_ROOT:-${ROOT_DIR}/package/manifest-bridge}"
+CLI_SOURCE="${RUNTIME_ROOT}/src/cli.ts"
 BUN_BIN="$(command -v bun)"
 DEBUG="${TEMPERANCE_MANIFEST_LOG_LEVEL:-off}"
 
 if [[ "${2:-}" == "--debug" ]]; then DEBUG="debug"; fi
 
 require_source() {
-  [[ -x "$BUN_BIN" ]] && [[ -f "$CLI_SOURCE" ]] || {
+  [[ "$RUNTIME_ROOT" == /* ]] && [[ -x "$BUN_BIN" ]] && [[ -f "$CLI_SOURCE" ]] || {
     echo "Manifest bridge source or Bun is unavailable; no service was changed" >&2
     return 1
   }
 }
+
+# Source inspection needs no operator home or state directories.
+if [[ "${1:-status}" == "source" ]]; then
+  require_source
+  printf '%s\n' "$CLI_SOURCE" "$RUNTIME_ROOT"
+  exit 0
+fi
+
+PLIST_DIR="${HOME}/Library/LaunchAgents"
+PLIST_PATH="${PLIST_DIR}/${LABEL}.plist"
+STATE_DIR="${TEMPERANCE_MANIFEST_STATE_DIR:-${HOME}/.temperance_engine/state/manifest}"
+LOG_DIR="${STATE_DIR}/logs"
 
 health() {
   curl -fsS --connect-timeout 1 --max-time 1 "http://127.0.0.1:${PORT}/health" 2>/dev/null \
@@ -68,7 +79,7 @@ write_plist() {
     <string>${BUN_BIN}</string><string>run</string><string>${CLI_SOURCE}</string>
     <string>serve</string><string>--port</string><string>${PORT}</string><string>--no-watch</string>
   </array>
-  <key>WorkingDirectory</key><string>${ROOT_DIR}/package/manifest-bridge</string>
+  <key>WorkingDirectory</key><string>${RUNTIME_ROOT}</string>
   <key>RunAtLoad</key><true/><key>KeepAlive</key><true/><key>ThrottleInterval</key><integer>5</integer>
   <key>StandardOutPath</key><string>${LOG_DIR}/bridge.log</string>
   <key>StandardErrorPath</key><string>${LOG_DIR}/bridge.log</string>
@@ -119,5 +130,5 @@ case "${1:-status}" in
   status) status_agent ;;
   uninstall) uninstall_agent ;;
   logs) logs_agent ;;
-  *) echo "usage: $0 {install [--debug]|status|logs [N]|uninstall}" >&2; exit 2 ;;
+  *) echo "usage: $0 {source|install [--debug]|status|logs [N]|uninstall}" >&2; exit 2 ;;
 esac

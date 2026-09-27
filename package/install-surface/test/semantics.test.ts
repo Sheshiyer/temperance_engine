@@ -53,7 +53,7 @@ describe("ownership", () => {
     ])).toThrow("OWNERSHIP_OVERLAP");
   });
 
-  test("distinct managed-block markers may share one file", () => {
+  test("distinct managed-block markers sharing one file are rejected until multi-block transactions exist", () => {
     const left = {
       ...copyRecord("surface.alpha", "config.txt"),
       class: "TRANSFORM",
@@ -65,7 +65,7 @@ describe("ownership", () => {
       id: "surface.beta",
       destination: { ...left.destination, ownership: { kind: "managed-block", marker_id: "beta" } },
     } as SurfaceRecord;
-    expect(() => assertSemanticValidity([left, right])).not.toThrow();
+    expect(() => assertSemanticValidity([left, right])).toThrow("OWNERSHIP_OVERLAP");
   });
 });
 
@@ -112,5 +112,86 @@ describe("semantic", () => {
     expect(() => assertSemanticValidity([replacement], priorLock)).toThrow("IDENTITY_MIGRATION_REQUIRED");
     replacement.identity_migration = { from_id: "surface.previous", to_id: "surface.replacement" };
     expect(() => assertSemanticValidity([replacement], priorLock)).not.toThrow();
+  });
+
+  test("rejects unsafe and colliding tree expectation keys", () => {
+    const unsafe = copyRecord() as SurfaceRecord & {
+      verification: {
+        method: "sha256";
+        expected: { kind: "tree"; files: Record<string, string> };
+      };
+    };
+    unsafe.verification = {
+      method: "sha256",
+      expected: {
+        kind: "tree",
+        files: {
+          "nested/../escape.ts": `sha256:${"a".repeat(64)}`,
+          "Readme.md": `sha256:${"b".repeat(64)}`,
+          "README.md": `sha256:${"c".repeat(64)}`,
+        },
+      },
+    };
+
+    expect(() => assertSemanticValidity([unsafe])).toThrow("COPY_EXPECTATION_INVALID");
+  });
+
+  test("rejects case-folded file ancestors and directory aliases in tree expectations", () => {
+    for (const files of [
+      {
+        "A": `sha256:${"a".repeat(64)}`,
+        "a/b.txt": `sha256:${"b".repeat(64)}`,
+      },
+      {
+        "Dir/a.txt": `sha256:${"a".repeat(64)}`,
+        "dir/b.txt": `sha256:${"b".repeat(64)}`,
+      },
+    ]) {
+      const unsafe = copyRecord() as SurfaceRecord & {
+        verification: {
+          method: "sha256";
+          expected: { kind: "tree"; files: Record<string, string> };
+        };
+      };
+      unsafe.verification = {
+        method: "sha256",
+        expected: { kind: "tree", files },
+      };
+
+      expect(() => assertSemanticValidity([unsafe])).toThrow("COPY_EXPECTATION_INVALID");
+    }
+  });
+
+  test("requires a declared tree mode for every declared leaf when modes are present", () => {
+    const unsafe = copyRecord() as SurfaceRecord & {
+      verification: {
+        method: "sha256";
+        expected: { kind: "tree"; files: Record<string, string>; modes: Record<string, string> };
+      };
+    };
+    unsafe.verification = {
+      method: "sha256",
+      expected: {
+        kind: "tree",
+        files: { "index.ts": `sha256:${"a".repeat(64)}` },
+        modes: { "other.ts": "0644" },
+      },
+    };
+
+    expect(() => assertSemanticValidity([unsafe])).toThrow("COPY_EXPECTATION_INVALID");
+  });
+
+  test("rejects a tree COPY expectation on a transform record", () => {
+    const unsafe = {
+      ...copyRecord(),
+      class: "TRANSFORM",
+      verification: {
+        method: "adapter",
+        adapter_id: "managed-template-v1",
+        expected: { kind: "tree", files: { "source.txt": `sha256:${"a".repeat(64)}` } },
+      },
+    } as unknown as SurfaceRecord;
+
+    expect(() => assertSemanticValidity([unsafe])).toThrow("TRANSFORM_SOURCE_EXPECTATION_INVALID");
   });
 });

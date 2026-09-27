@@ -6,6 +6,11 @@ export TEMPERANCE_ROUTER="$DIR/package/router/multi-backend-router.sh"
 export TEMPERANCE_BACKENDS="command-code"
 TEST_STATE_DIR="$(mktemp -d)"
 export TEMPERANCE_STATE_DIR="$TEST_STATE_DIR"
+# Mocked workers exercise the portable core, never a real personal session
+# policy or a live gateway catalog selected by the operator's host.
+export TEMPERANCE_STATE="$TEST_STATE_DIR/temperance-state"
+export TEMPERANCE_OMNIROUTE_CATALOG_FILE="$DIR/tests/fixtures/omniroute-models.json"
+unset TEMPERANCE_SESSION_POLICY
 trap 'rm -rf "$TEST_STATE_DIR"' EXIT
 fail=0
 check(){ if [[ "$2" == "$3" ]]; then echo "ok - $1"; else echo "FAIL - $1: exp[$2] got[$3]"; fail=1; fi; }
@@ -169,13 +174,13 @@ CODEX_HOME="$profile_home" OMNIROUTE_API_KEY=test-key \
   TEMPERANCE_OMNIROUTE_WIRE_API="responses" \
   TEMPERANCE_OMNIROUTE_CODEX_SANDBOX="workspace-write" \
   TEMPERANCE_CORRELATION_ID="tc_test_route" \
-  "$DIR/package/router/omniroute-codex.sh" te-dispatch "inspect the explicit routing configuration" \
+  "$DIR/package/router/omniroute-codex.sh" temperance-coding "inspect the explicit routing configuration" \
   >"$omni_direct_configured" 2>&1
 configured_args="$(codex_args < "$omni_direct_configured")"
 for expected in \
   'exec' \
   '-m' \
-  'te-dispatch' \
+  'temperance-coding' \
   'model_provider="omniroute"' \
   'model_providers.omniroute.name="OmniRoute"' \
   'model_providers.omniroute.base_url="http://127.0.0.1:20128/v1"' \

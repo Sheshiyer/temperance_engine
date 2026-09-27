@@ -558,13 +558,18 @@ reject_bad_lines "$GUIDE" \
   'Codex owns ISA' 'Hermes owns ISA' 'Codex owns GSD' 'Hermes owns GSD'
 
 check_repository_contract
-check_live_db_contract
-check_live_transport_contract
-
-if [ "$live_check_result" = "ran" ]; then
-  pass "optional live OmniRoute inspection completed"
+# Source verification must not inspect an operator runtime unless an explicit
+# caller opts in. The enabled branch retains each live failure condition.
+if [ "${TEMPERANCE_ALLOW_LIVE_INSPECTION:-0}" = "1" ]; then
+  check_live_db_contract
+  check_live_transport_contract
+  if [ "$live_check_result" = "ran" ]; then
+    pass "optional live OmniRoute inspection completed"
+  else
+    note "optional live OmniRoute inspection remained non-blocking"
+  fi
 else
-  note "optional live OmniRoute inspection remained non-blocking"
+  note "optional live OmniRoute inspection skipped: set TEMPERANCE_ALLOW_LIVE_INSPECTION=1 to enable"
 fi
 
 exit "$status"

@@ -1,3 +1,4 @@
+import { handleEventPost } from './event-input';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -391,18 +392,10 @@ export class ManifestServer {
       return;
     }
     if (req.method === 'POST' && url.pathname === '/events') {
-      try {
-        const input = JSON.parse(await body(req)) as Record<string, unknown>;
-        const kind = typeof input.kind === 'string' ? input.kind : '';
-        if (/^(approval|dispatch)\./.test(kind)) throw new Error('approval and dispatch lifecycle events are reserved for controlled local endpoints');
-        // Activation hooks persist first so the event survives a bridge outage.
-        // Reload that durable append before retrying the same event over HTTP;
-        // otherwise a long-lived server can write a second copy of its ID.
-        if ('refresh' in this.store) this.store.refresh();
-        const result = this.store.ingest(input);
-        this.diagnostics.event?.({ kind, project_id: typeof input.project_id === 'string' ? input.project_id : undefined, accepted: result.accepted, outcome: result.error ? 'rejected' : result.accepted ? 'accepted' : 'deduplicated', error: result.error });
-        json(res, result.error ? 400 : result.accepted ? 201 : 200, result);
-      } catch (error) { json(res, 400, { accepted: false, error: error instanceof Error ? error.message : String(error) }); }
+      await handleEventPost(req, res, this.store, {
+        headers: headers('application/json; charset=utf-8'),
+        diagnostic: (value) => this.diagnostics.event?.(value),
+      });
       return;
     }
     if (req.method === 'POST' && url.pathname === '/approvals') {

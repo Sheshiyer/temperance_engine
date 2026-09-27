@@ -14,10 +14,8 @@
  *     throws, we fall back to the inline classifier.
  *   - always emits valid JSON, always exit 0.
  *
- * Compose envelope (UPS last-wins): classifier (with RailContinuity's sticky
- * tier) + temperance-rail + gsd-rail + pai-mode-offer. Persist /gsd:* mode so
- * the next turn skips the picker. The Manifest activation step is optional:
- * its absence drops only its own runtime/offer blocks, never the rails.
+ * Compose envelope (UPS last-wins): classifier + temperance-rail + gsd-rail +
+ * pai-mode-offer. Persist /gsd:* mode so the next turn skips the picker.
  */
 
 import { readFileSync, appendFileSync, mkdirSync, existsSync, realpathSync } from 'node:fs';
@@ -42,40 +40,6 @@ function promptText(input: any): string {
   return String(input?.prompt || input?.user_prompt || '').trim();
 }
 
-// ---- Task-notification immunity (RAIL-03, 36-02) ----
-// A <task-notification> block is a system-generated event (e.g. a background Task tool
-// finishing), not a user prompt. Running it through the classifier/rail pipeline below
-// reclassifies mode/tier/phase from the notification's own (often short, unrelated) text,
-// which drops a sticky E4/E5 ALGORITHM run back to a fresh low tier and resets the rail to
-// OBSERVE. Detected task-notifications skip reclassification and rail regeneration entirely,
-// reporting this session's last-known sticky mode/tier from RailContinuity instead.
-// Anchored: the harness delivers the event as the whole prompt, starting with the tag.
-// A user prompt that merely quotes or pastes a <task-notification> block (reviews,
-// transcripts) must still be classified normally, not frozen as a system event.
-const TASK_NOTIFICATION = /^\s*<task-notification>/i;
-
-export function isTaskNotification(prompt: string): boolean {
-  return TASK_NOTIFICATION.test(prompt);
-}
-
-/**
- * Sticky mode/tier from RailContinuity's rail file, without reclassifying or rewriting it.
- * `home` defaults to the real user home (production); tests pass a disposable fixture home,
- * since Bun's os.homedir() does not track process.env.HOME reassignment at runtime.
- */
-export async function stickyTaskNotificationContext(input: any, home: string = homedir()): Promise<string> {
-  const FALLBACK = 'MODE: NATIVE | REASON: task-notification system event | SOURCE: task-notification-immunity';
-  try {
-    const rail: any = await import(join(home, '.claude', 'hooks', 'RailContinuity.hook.ts'));
-    const state = rail.readRail?.(input?.session_id, home);
-    if (!state) return FALLBACK;
-    const tierPart = state.mode === 'ALGORITHM' && state.tier ? ` | TIER: E${state.tier}` : '';
-    return `MODE: ${state.mode || 'NATIVE'}${tierPart} | REASON: task-notification — preserving this session's sticky mode/tier | SOURCE: task-notification-immunity`;
-  } catch {
-    return FALLBACK; // RailContinuity optional — never worse than a plain NATIVE ack
-  }
-}
-
 // ---- Fallback classifier: verbatim behavior of the pre-SP0 shim ----
 function explicitTier(prompt: string): number | null {
   const m = prompt.match(/(?:^|\s)\/e([1-5])\b/i);
@@ -97,97 +61,60 @@ function classifyLine(prompt: string): string {
   return `MODE: ALGORITHM | TIER: E${tier} | REASON: multi-step or system-affecting request | SOURCE: fail-safe`;
 }
 
-function classifierMode(context: string): Mode | null {
-  const m = /^(?:mode\/tier|MODE):\s*(MINIMAL|NATIVE|ALGORITHM)\b/im.exec(context);
-  return m ? (m[1].toUpperCase() as Mode) : null;
-}
-
 async function main() {
   let input: any = {};
   try { input = JSON.parse(readFileSync(0, 'utf-8')); } catch {}
   const prompt = promptText(input);
-
-  // RAIL-03: task-notification system events never reclassify mode/tier/phase and never
-  // regenerate the rail block — see stickyTaskNotificationContext() above.
-  if (isTaskNotification(prompt)) {
-    const additionalContext = await stickyTaskNotificationContext(input);
-    console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext } }));
-    return;
-  }
-
   const engineRoot = resolveEngineRoot();
   process.env.TEMPERANCE_ENGINE_ROOT ||= engineRoot;
-  // The host owns live routing; the product tree is an installer fallback.
-  const hostRouter = join(homedir(), '.temperance_engine', 'router');
-  const routerRoot = existsSync(join(hostRouter, 'classify-task.sh'))
-    ? hostRouter : join(engineRoot, 'package', 'router');
-  process.env.TEMPERANCE_ROUTER_DIR ||= routerRoot;
+  const managedRouter = join(process.env.TEMPERANCE_STATE || join(homedir(), '.temperance'), 'router');
+  process.env.TEMPERANCE_ROUTER_DIR ||= existsSync(managedRouter) ? managedRouter : join(engineRoot, 'package', 'router');
   process.env.TEMPERANCE_OMNIROUTE_PORTFOLIO_RESOLVER ||= join(process.env.TEMPERANCE_ROUTER_DIR, 'omniroute-portfolios.ts');
-
-  // Session rail (RailContinuity): refreshed before enrich so the ISA resolver sees this session's own ISA.
-  let rail: any = null;
-  try {
-    rail = await import(join(homedir(), '.claude', 'hooks', 'RailContinuity.hook.ts'));
-    rail.refreshRail({ sessionId: input.session_id, transcriptPath: input.transcript_path, cwd: process.cwd() });
-  } catch { /* rail optional */ }
 
   let additionalContext: string;
   try {
     const enrichDir = process.env.TEMPERANCE_ENRICH_DIR || join(homedir(), '.claude', 'PAI', 'enrich');
     const mod: any = await import(join(enrichDir, 'index.ts'));
-    additionalContext = await mod.enrich({ prompt, cwd: process.cwd(), surface: 'claude', sessionId: input.session_id });
+    additionalContext = await mod.enrich({ prompt, cwd: process.cwd(), surface: 'claude' });
     if (typeof additionalContext !== 'string' || !additionalContext.trim()) throw new Error('empty');
   } catch {
     additionalContext = classifyLine(prompt); // never worse than the old shim
   }
 
-  // Follow-up prompts keep this session's E4/E5 run tier, including across compaction.
-  try {
-    if (rail) additionalContext = rail.applySessionRail({ sessionId: input.session_id, cwd: process.cwd(), prompt, context: additionalContext });
-  } catch { /* rail optional */ }
+  // Local phase projection must not depend on optional Manifest Bridge availability.
+  additionalContext = `${additionalContext}\n\n${formatTemperanceRail(prompt)}`;
 
-  // Manifest activation is optional telemetry: without the product bridge, the rails below must still run.
-  let mode: Mode | null = classifierMode(additionalContext);
-  let activation: any = null;
-  let formatPaiModeOffer: ((offer: Record<string, unknown>) => string) | null = null;
+  // Emit only after this adapter has the authoritative classifier result.
   try {
     const bridge = join(engineRoot, 'package', 'manifest-bridge', 'src');
     const { activateAlgorithmRun, classificationFromContext, loadActivationPolicy, publishActivationEvent } = await import(`${bridge}/activation.ts`);
-    const runtime = await import(`${bridge}/runtime-status.ts`);
+    const { formatManifestRuntimeContext, formatPaiModeOffer, manifestRuntimeReceipt } = await import(`${bridge}/runtime-status.ts`);
     const classification = classificationFromContext(additionalContext);
-    mode = classification.mode;
-    activation = activateAlgorithmRun({ ...classification, cwd: process.cwd(), session_id: input.session_id, surface: 'claude' }, loadActivationPolicy());
+    const activation = activateAlgorithmRun({ ...classification, cwd: process.cwd(), session_id: input.session_id, surface: 'claude' }, loadActivationPolicy());
     await publishActivationEvent(activation);
     if (classification.mode === 'ALGORITHM') {
-      additionalContext = `${additionalContext}\n\n${runtime.formatManifestRuntimeContext(await runtime.manifestRuntimeReceipt({ activation, session_id: input.session_id }))}`;
+      additionalContext = `${additionalContext}\n\n${formatManifestRuntimeContext(await manifestRuntimeReceipt({ activation, session_id: input.session_id }))}`;
     }
-    formatPaiModeOffer = runtime.formatPaiModeOffer;
-  } catch { /* bridge optional */ }
-
-  try {
     const cwd = process.cwd();
     const parsed = parseCommand(prompt);
     const map = loadGsdMap();
     const boundRaw = parsed ? map.commands?.[parsed.name]?.mode : null;
     const bound = boundRaw === 'MINIMAL' || boundRaw === 'NATIVE' || boundRaw === 'ALGORITHM' ? boundRaw : null;
     if (bound && bound !== 'MINIMAL') persistSessionMode(input.session_id, bound, cwd, `gsd:${parsed?.name || 'command'}`);
-    else if (!readSessionMode(input.session_id, cwd) && mode === 'ALGORITHM') {
+    else if (!readSessionMode(input.session_id, cwd) && classification.mode === 'ALGORITHM') {
       persistSessionMode(input.session_id, 'ALGORITHM', cwd, 'classifier');
     }
     const chosen = readSessionMode(input.session_id, cwd);
-    additionalContext = `${additionalContext}\n\n${formatTemperanceRail(prompt)}`;
     const gsd = gsdAdditionalContext(prompt, input.session_id, cwd);
     if (gsd) additionalContext = `${additionalContext}\n\n${gsd}`;
-    if (formatPaiModeOffer) {
-      additionalContext = `${additionalContext}\n\n${formatPaiModeOffer({
-        session_id: input.session_id,
-        project_id: activation?.project?.project_id || activation?.run?.project_id,
-        chosen,
-        bound,
-        classifier: mode,
-        surface: 'claude',
-      })}`;
-    }
+    additionalContext = `${additionalContext}\n\n${formatPaiModeOffer({
+      session_id: input.session_id,
+      project_id: activation.project?.project_id || activation.run?.project_id,
+      chosen,
+      bound,
+      classifier: classification.mode,
+      surface: 'claude',
+    })}`;
     try {
       await fetch('http://127.0.0.1:8766/events', {
         method: 'POST',
@@ -201,9 +128,8 @@ async function main() {
           session_id: input.session_id,
           payload: {
             hook: 'PromptProcessing',
-            mode,
-            manifest_activation: activation ? 'active' : 'unavailable',
-            envelopes: ['classifier', 'temperance-rail', gsd ? 'gsd-rail' : null, formatPaiModeOffer ? 'pai-mode-offer' : null].filter(Boolean),
+            mode: classification.mode,
+            envelopes: ['classifier', 'temperance-rail', gsd ? 'gsd-rail' : null, 'pai-mode-offer'].filter(Boolean),
           },
           evidence: [],
         }),

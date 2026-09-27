@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, readdirSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { randomBytes } from "node:crypto";
+import { homedir } from "node:os";
+import { dirname, resolve } from "node:path";
 
 import { canonical } from "./canonical-json.ts";
 import { compileFragments, writeLock, type CompileResult } from "./compile.ts";
@@ -8,20 +10,65 @@ import type { DoctorSectionId, V2_SectionId } from "./doctor/model.ts";
 import { renderDoctorHuman } from "./doctor/render-human.ts";
 import { renderDoctorJson } from "./doctor/render-json.ts";
 import { loadLock } from "./load.ts";
+import { resolveRuntimeStateRoot } from "./state-root.ts";
 import { createPlan, type PlanOptions, type LifecycleVerb } from "./lifecycle/planner.ts";
+import { parseLifecycleArgs } from "./lifecycle/cli-args.ts";
 import { executePlan, rollbackTransaction } from "./lifecycle/executor.ts";
 import { readReceipt, listReceipts } from "./lifecycle/receipts.ts";
 import type { LifecycleIO } from "./lifecycle/journal.ts";
+import type { OnboardingCatalogV1, OnboardingPlanV1, OnboardingProfileV1 } from "./onboarding/contracts.ts";
+import { composeOnboardingProfile } from "./onboarding/composition.ts";
+import {
+  validateHostBindingV1,
+  validateHostProfileV1,
+  validateNineRouterGuidedSetupV1,
+  validateNineRouterSetupIntentV1,
+  validateProjectCapsuleV1,
+} from "./onboarding/contract-schema.ts";
+import { createCoreOnboardingCatalog, createCoreOnboardingProfile } from "./onboarding/core-catalog.ts";
+import { projectOnboardingDoctorSection } from "./onboarding/doctor.ts";
+import { createOnboardingPlan } from "./onboarding/planner.ts";
+import { validateOnboardingCatalog, validateOnboardingProfile } from "./onboarding/schema.ts";
+import { createSystemProbeAdapter } from "./onboarding/system-adapter.ts";
+import { renderOnboardingText } from "./onboarding/presentation.ts";
+import { discoverProjectCandidates } from "./onboarding/project-discovery.ts";
+import { parseOnboardingArgs } from "./onboarding/cli-args.ts";
+import { parseHostBindingInitArgs } from "./onboarding/host-binding-init-cli-args.ts";
+import { createHostBinding, writePrivateHostBinding } from "./onboarding/host-binding-init.ts";
+import { MacOsKeychainAdapter } from "./onboarding/keychain-adapter.ts";
+import { NineRouterApiClient } from "./onboarding/nine-router-api.ts";
+import { readOnboardingRoutingSnapshot } from "./onboarding/routing-snapshot.ts";
+import { readWizardPreferences, writeWizardPreferences } from "./onboarding/wizard-preferences.ts";
+import type { WizardStepId } from "./onboarding/wizard.ts";
+import { createOperatorEventLog, type OperatorEventInput, type OperatorEventV1 } from "./onboarding/operator-events.ts";
+import { projectOperatorHealth, renderOperatorHealth } from "./onboarding/operator-health.ts";
+import { compileNineRouterGuidedSetup, createNineRouterSeatingDraft } from "./onboarding/nine-router-seating.ts";
+import { parseNineRouterSeatingArgs } from "./onboarding/nine-router-seating-cli-args.ts";
+import { writePrivateNineRouterSetup } from "./onboarding/nine-router-setup-writer.ts";
+import { createNineRouterGuidedSetupPlanInput, prepareNineRouterGuidedSetupCatalog } from "./onboarding/nine-router-guided-setup.ts";
+import { executeConfirmedNineRouterRepair } from "./onboarding/nine-router-repair.ts";
+import { createFileOperationReceiptSink } from "./onboarding/operation-executor.ts";
+import { NINE_ROUTER_SETUP_INTENT_SCHEMA, type HostBindingV1, type HostProfileV1, type NineRouterGuidedSetupV1, type NineRouterSetupIntentV1, type ProjectCapsuleV1 } from "./onboarding/public-contracts.ts";
+import { parseV4CutoverReviewArgs } from "./onboarding/v4-cutover-cli-args.ts";
+import { parseV4CutoverApplyArgs } from "./onboarding/v4-cutover-apply-cli-args.ts";
+import { hostIdentityMatches, observeHostIdentity } from "./onboarding/host-identity.ts";
+import type { V4CutoverPlan } from "../../router/v4-cutover-plan.ts";
+import type { V4CutoverConfirmation, V4ReplacementProof } from "../../router/v4-cutover-executor.ts";
 
 const packageRoot = resolve(import.meta.dir, "..");
 const repositoryRoot = resolve(packageRoot, "../..");
 const fragmentRoot = resolve(packageRoot, "fragments");
 const lockPath = resolve(packageRoot, "install-surface-manifest.lock.json");
 
+function renderOperatorEvents(events: readonly OperatorEventV1[]): string {
+  if (!events.length) return "No local operator events recorded. Use --telemetry to opt in.";
+  return events.map(event => [event.timestamp, event.run_id.slice(0, 8), event.surface, event.step ?? "-", event.action_kind ?? event.event_type, event.outcome ?? "-", event.duration_ms === undefined ? "" : `${event.duration_ms}ms`].filter(Boolean).join(" · ")).join("\n");
+}
+
 // ─── Lifecycle IO (real filesystem) ──────────────────────────────────────────
 
 const lifecycleIO: LifecycleIO = {
-  mkdir: async (path, opts) => mkdirSync(path, opts),
+  mkdir: async (path, opts) => { mkdirSync(path, opts); },
   writeFile: async (path, data) => {
     const { writeFileSync } = await import("node:fs");
     writeFileSync(path, data, "utf8");
@@ -36,6 +83,10 @@ const lifecycleIO: LifecycleIO = {
     const { lstatSync } = await import("node:fs");
     return lstatSync(path);
   },
+  chmod: async (path, mode) => {
+    const { chmodSync } = await import("node:fs");
+    chmodSync(path, mode);
+  },
   rename: async (oldPath, newPath) => {
     const { renameSync } = await import("node:fs");
     renameSync(oldPath, newPath);
@@ -45,14 +96,40 @@ const lifecycleIO: LifecycleIO = {
     return realpathSync(path);
   },
   now: () => new Date(),
-  writeFileAtomic: async (path, data) => {
-    const { openSync, writeSync, fsyncSync, closeSync } = await import("node:fs");
-    const fd = openSync(path, "w");
+  writeFileAtomic: async (path, data, options) => {
+    const { closeSync, fchmodSync, fsyncSync, openSync, renameSync, unlinkSync, writeSync } = await import("node:fs");
+    const mode = options?.mode ?? 0o600;
+    if (!Number.isInteger(mode) || mode < 0 || mode > 0o777) throw new Error("ATOMIC_WRITE_MODE_INVALID");
+    const temporary = `${path}.temperance-write-${randomBytes(16).toString("hex")}.tmp`;
+    let fd: number | undefined;
+    let temporaryExists = false;
     try {
-      writeSync(fd, data, 0, "utf8");
+      fd = openSync(temporary, "wx", mode);
+      temporaryExists = true;
+      // open(2)'s creation mode is masked by the process umask. Apply the
+      // reviewed final mode through the already-open descriptor before any
+      // bytes are durable, so a restrictive caller umask cannot change a
+      // lifecycle artifact or staged output's required mode.
+      fchmodSync(fd, mode);
+      const bytes = Buffer.from(data, "utf8");
+      let offset = 0;
+      while (offset < bytes.length) offset += writeSync(fd, bytes, offset, bytes.length - offset, offset);
       fsyncSync(fd);
-    } finally {
       closeSync(fd);
+      fd = undefined;
+      renameSync(temporary, path);
+      temporaryExists = false;
+      const directoryFd = openSync(dirname(path), "r");
+      try {
+        fsyncSync(directoryFd);
+      } finally {
+        closeSync(directoryFd);
+      }
+    } finally {
+      if (fd !== undefined) closeSync(fd);
+      if (temporaryExists) {
+        try { unlinkSync(temporary); } catch { /* Preserve the original failure. */ }
+      }
     }
   },
   fetch: async (url, options) => fetch(url, options),
@@ -72,7 +149,7 @@ const lifecycleIO: LifecycleIO = {
 // ─── State root ──────────────────────────────────────────────────────────────
 
 function getStateRoot(): string {
-  return process.env.TEMPERANCE_STATE || resolve(process.env.HOME || "/tmp", ".temperance");
+  return resolveRuntimeStateRoot({ environment: process.env, homeDirectory: process.env.HOME || homedir() });
 }
 
 // ─── Compile ─────────────────────────────────────────────────────────────────
@@ -157,39 +234,454 @@ function parseDoctorArgs(args: string[]): { sections?: DoctorSectionId[]; v2Sect
 
 // ─── Lifecycle verb args ─────────────────────────────────────────────────────
 
-function parseLifecycleArgs(args: string[]): {
-  profile?: string;
-  dryRun: boolean;
-  force: boolean;
-  select?: string;
-  json: boolean;
-} {
-  let profile: string | undefined;
-  let dryRun = false;
-  let force = false;
-  let select: string | undefined;
-  let json = false;
+function loadOnboardingJson<T>(path: string, validate: (value: unknown) => value is T, code: string): T {
+  const value: unknown = JSON.parse(readFileSync(resolve(path), "utf8"));
+  if (!validate(value)) throw new Error(code);
+  return value;
+}
 
-  for (let index = 0; index < args.length; index += 1) {
-    const argument = args[index];
-    if (argument === "--profile") {
-      profile = args[index += 1];
-    } else if (argument === "--dry-run") {
-      dryRun = true;
-    } else if (argument === "--force") {
-      force = true;
-    } else if (argument === "--select") {
-      select = args[index += 1];
-    } else if (argument === "--json") {
-      json = true;
-    }
+function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
+  if (!path) return [];
+  const value: unknown = JSON.parse(readFileSync(resolve(path), "utf8"));
+  if (!Array.isArray(value) || value.length > 1024 || !value.every(validateProjectCapsuleV1)) {
+    throw new Error("PROJECT_CAPSULES_INVALID");
   }
-
-  return { profile, dryRun, force, select, json };
+  return value;
 }
 
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "host-binding-init") {
+    try {
+      const args = parseHostBindingInitArgs(process.argv.slice(3));
+      const hostProfile = loadOnboardingJson<HostProfileV1>(
+        args.hostProfilePath,
+        validateHostProfileV1,
+        "HOST_PROFILE_INVALID",
+      );
+      const binding = createHostBinding(hostProfile, args, observeHostIdentity());
+      writePrivateHostBinding(args.outputPath, binding);
+      process.stdout.write(canonical({
+        schema: "temperance.host-binding-init-receipt.v1",
+        profile_id: binding.profile_id,
+        host_identity: binding.host_identity,
+        variable_names: Object.keys(binding.variables).sort(),
+        secret_reference_ids: Object.keys(binding.secret_references).sort(),
+        routing_aliases: binding.routing_aliases.map(({ alias }) => alias).sort(),
+        volume_binding_ids: binding.volume_bindings.map(({ id }) => id).sort(),
+        output_created: true,
+      }));
+      process.exitCode = 0;
+    } catch (error) {
+      process.stderr.write(`temperance host-binding-init: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
+  if (command === "cutover-apply") {
+    try {
+      const args = parseV4CutoverApplyArgs(process.argv.slice(3));
+      const plan = JSON.parse(readFileSync(resolve(args.planPath), "utf8")) as V4CutoverPlan;
+      const proof = JSON.parse(readFileSync(resolve(args.proofPath), "utf8")) as V4ReplacementProof;
+      const confirmation = JSON.parse(readFileSync(resolve(args.confirmationPath), "utf8")) as V4CutoverConfirmation;
+      const hostBinding = loadOnboardingJson<HostBindingV1>(
+        args.hostBindingPath,
+        validateHostBindingV1,
+        "HOST_BINDING_INVALID",
+      );
+      const credentialReference = hostBinding.secret_references[args.legacyCredentialReferenceId];
+      if (!credentialReference) throw new Error("CUTOVER_APPLY_KEYCHAIN_REFERENCE_MISSING");
+      if (!hostBinding.host_identity) throw new Error("CUTOVER_APPLY_INTENDED_HOST_MISSING");
+      const executable = (name: "env" | "bun" | "git" | "tar"): string => {
+        const path = Bun.which(name);
+        if (!path) throw new Error(`CUTOVER_APPLY_${name.toUpperCase()}_MISSING`);
+        return path;
+      };
+      const { applyV4Cutover } = await import("../../router/v4-cutover-apply.ts");
+      const receipt = await applyV4Cutover({
+        plan,
+        proof,
+        confirmation,
+        binding: {
+          home_directory: homedir(),
+          expected_host: hostBinding.host_identity,
+          source_repository: resolve(args.sourceRepository),
+          env_executable: executable("env"),
+          node_executable: hostBinding.variables.NINE_ROUTER_NODE_EXECUTABLE ?? "",
+          executable_path: hostBinding.variables.NINE_ROUTER_PATH ?? "",
+          bun_executable: executable("bun"),
+          git_executable: executable("git"),
+          tar_executable: executable("tar"),
+          data_directory: hostBinding.variables.NINE_ROUTER_DATA_DIR ?? "",
+          log_directory: hostBinding.variables.NINE_ROUTER_LOG_DIR ?? "",
+          cli_entrypoint: hostBinding.variables.NINE_ROUTER_CLI_ENTRYPOINT ?? "",
+          health_url: hostBinding.variables.NINE_ROUTER_HEALTH_URL ?? "",
+          legacy_credential_reference_id: args.legacyCredentialReferenceId,
+          legacy_credential_reference: credentialReference,
+        },
+      });
+      process.stdout.write(`${canonical(receipt)}\n`);
+      process.exitCode = receipt.status === "committed" ? 0 : 1;
+    } catch (error) {
+      process.stderr.write(`temperance cutover-apply: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
+  if (command === "cutover-review") {
+    try {
+      const args = parseV4CutoverReviewArgs(process.argv.slice(3));
+      const plan = JSON.parse(readFileSync(resolve(args.planPath), "utf8")) as V4CutoverPlan;
+      const proof = JSON.parse(readFileSync(resolve(args.proofPath), "utf8")) as V4ReplacementProof;
+      const hostBinding = loadOnboardingJson<HostBindingV1>(
+        args.hostBindingPath,
+        validateHostBindingV1,
+        "HOST_BINDING_INVALID",
+      );
+      if (!hostBinding.host_identity) throw new Error("CUTOVER_REVIEW_INTENDED_HOST_MISSING");
+      if (!hostIdentityMatches(hostBinding.host_identity, plan.host)) {
+        throw new Error("CUTOVER_REVIEW_INTENDED_HOST_MISMATCH");
+      }
+      const { createV4CutoverViewModel } = await import("./onboarding/v4-cutover-review.ts");
+      const view = createV4CutoverViewModel(plan, proof, hostBinding.host_identity);
+      if (args.json) {
+        process.stdout.write(`${canonical(view)}\n`);
+      } else {
+        if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("CUTOVER_REVIEW_TUI_REQUIRES_TTY");
+        const { runV4CutoverTui } = await import("./onboarding/v4-cutover-tui.ts");
+        const confirmation = await runV4CutoverTui(view);
+        if (confirmation) process.stdout.write(`${canonical(confirmation)}\n`);
+      }
+      process.exitCode = 0;
+    } catch (error) {
+      process.stderr.write(`temperance cutover-review: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
+  if (command === "onboard") {
+    let eventLog: ReturnType<typeof createOperatorEventLog> | undefined;
+    let telemetryFailed = false;
+    let surface: "tui" | "agent" | "health" = "tui";
+    const startedAt = Date.now();
+    const record = (event: OperatorEventInput): void => {
+      if (!eventLog || telemetryFailed) return;
+      try { eventLog.record(event); } catch { telemetryFailed = true; }
+    };
+    const telemetry = () => ({ enabled: Boolean(eventLog), status: telemetryFailed ? "unavailable" : eventLog ? "local-metadata-only" : "disabled", ...(eventLog ? { run_id: eventLog.runId } : {}) });
+    try {
+      const args = parseOnboardingArgs(process.argv.slice(3));
+      const stateRoot = getStateRoot();
+      if (args.logs) {
+        const events = createOperatorEventLog(stateRoot).read({ limit: args.logLimit ?? 50, runId: args.runId });
+        process.stdout.write(args.json ? `${JSON.stringify({ schema: "temperance.operator-log-view.v1", events }, null, 2)}\n` : `${renderOperatorEvents(events)}\n`);
+        process.exitCode = 0;
+        return;
+      }
+      surface = args.agent ? "agent" : args.health ? "health" : "tui";
+      if (args.telemetry) eventLog = createOperatorEventLog(stateRoot);
+      record({ event_type: "started", surface });
+      const catalog = args.catalogPath
+        ? loadOnboardingJson<OnboardingCatalogV1>(args.catalogPath, validateOnboardingCatalog, "ONBOARDING_CATALOG_INVALID")
+        : createCoreOnboardingCatalog();
+      const hostProfile = args.hostProfilePath
+        ? loadOnboardingJson<HostProfileV1>(args.hostProfilePath, validateHostProfileV1, "HOST_PROFILE_INVALID")
+        : undefined;
+      const hostBinding = args.hostBindingPath
+        ? loadOnboardingJson<HostBindingV1>(args.hostBindingPath, validateHostBindingV1, "HOST_BINDING_INVALID")
+        : undefined;
+      const projectCapsules = loadProjectCapsules(args.projectCapsulesPath);
+      const profile = args.profilePath
+        ? loadOnboardingJson<OnboardingProfileV1>(args.profilePath, validateOnboardingProfile, "ONBOARDING_PROFILE_INVALID")
+        : hostProfile
+          ? composeOnboardingProfile(
+            hostProfile,
+            hostBinding!,
+            { projectCapsules },
+          )
+          : createCoreOnboardingProfile();
+      const routerSetup = args.routerSetupPath
+        ? loadOnboardingJson<NineRouterGuidedSetupV1>(args.routerSetupPath, validateNineRouterGuidedSetupV1, "NINE_ROUTER_SETUP_INVALID")
+        : undefined;
+      const plannedCatalog = routerSetup ? prepareNineRouterGuidedSetupCatalog(catalog, routerSetup, profile) : catalog;
+      const buildPlan = async (selections?: ReadonlySet<string>): Promise<OnboardingPlanV1> => {
+        const discovery = hostProfile && hostBinding
+        ? discoverProjectCandidates(hostProfile, hostBinding, {
+          hostProfileDirectory: dirname(resolve(args.hostProfilePath!)),
+        })
+        : { candidates: [], findings: [] };
+        return createOnboardingPlan({
+        catalog: plannedCatalog,
+        profile,
+        adapter: createSystemProbeAdapter(),
+        selections,
+        projectCandidates: discovery.candidates,
+        projectDiscoveryFindings: discovery.findings,
+        dryRun: !args.apply,
+        configurationInputs: routerSetup ? [createNineRouterGuidedSetupPlanInput(routerSetup, profile)] : [],
+      });
+      };
+      const moduleIds = plannedCatalog.modules.map(({ id }) => id);
+      const savedPreferences = args.wizardStatePath ? readWizardPreferences(resolve(args.wizardStatePath), profile.id, moduleIds) : undefined;
+      const plan = await buildPlan(args.selections ?? (savedPreferences ? new Set(savedPreferences.selected_module_ids) : undefined));
+      const inspectHealth = async (currentPlan: OnboardingPlanV1) => {
+        const [snapshot, install] = await Promise.all([
+          readOnboardingRoutingSnapshot({ plan: currentPlan, profile, hostProfile, routerSetup }),
+          runDoctorV2({ repositoryRoot, stateRoot, inventory: loadLock(lockPath), sections: ["install"] }),
+        ]);
+        let sessionAdmission: { ok: boolean; reasonCode: string } | undefined;
+        if (profile.routing_aliases.length) {
+          try {
+            // Optional router diagnostics must not become a startup dependency
+            // for portable lifecycle-only installations.
+            const { checkSessionAdmission } = await import("../../router/session-admission-cli.ts");
+            sessionAdmission = checkSessionAdmission(["--alias", profile.routing_aliases[0]!.combo]);
+          }
+          catch { sessionAdmission = { ok: false, reasonCode: "SESSION_POLICY_INVALID" }; }
+        }
+        const report = projectOperatorHealth({ plan: currentPlan, routing: snapshot.routing, routingObserved: Boolean(snapshot.connection), install, sessionAdmission, observedAt: new Date().toISOString() });
+        record({ event_type: "health", surface, outcome: report.overall_status === "PASS" ? "ok" : "held", counts: { checks: report.checks.length, passed: report.counts.pass, blocked: report.counts.hold } });
+        return report;
+      };
+      if (args.apply && (plan.install_order.length !== 1 || plan.install_order[0] !== "provider.9router")) {
+        throw new Error("NINE_ROUTER_REPAIR_SCOPE_INVALID");
+      }
+      if (args.health) {
+        const report = await inspectHealth(plan);
+        record({ event_type: "completed", surface, duration_ms: Date.now() - startedAt });
+        process.stdout.write(args.json ? `${JSON.stringify({ ...report, telemetry: telemetry() }, null, 2)}\n` : `${renderOperatorHealth(report)}\nTelemetry: ${telemetry().status}\n`);
+        process.exitCode = report.overall_status === "PASS" ? 0 : 1;
+      } else if (args.agent) {
+        const { projectAgentFlow } = await import("./onboarding/agent-flow.ts");
+        const snapshot = await readOnboardingRoutingSnapshot({ plan, profile, hostProfile, routerSetup });
+        const options = {
+          step: args.step, actionId: args.actionId, selectedCandidateIds: args.selectedCandidateIds,
+          existingProjectCapsules: projectCapsules, allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
+          routing: snapshot.routing, allowRoutingAuthorization: Boolean(snapshot.connection),
+          allowRoutingSeating: Boolean(snapshot.connection) && (snapshot.routing?.live_model_count ?? 0) > 0 && Boolean(profile.secret_references.NINE_ROUTER_GATEWAY_KEY),
+          allowModuleReplan: true, allowInspection: true,
+        };
+        const requestedAction = args.actionId ? projectAgentFlow(plan, { ...options, actionId: undefined }).actions.find(({ id }) => id === args.actionId) : undefined;
+        let flow = projectAgentFlow(plan, options);
+        if (requestedAction) record({ event_type: "action", surface, step: args.step ?? "host", action_kind: requestedAction.kind, outcome: "requested" });
+        let health;
+        let events;
+        let inspectionError: string | undefined;
+        if (flow.handoff?.kind === "replan") {
+          const replanned = await buildPlan(new Set(flow.handoff.requested_module_ids));
+          flow = projectAgentFlow(replanned, { ...options, actionId: undefined, step: flow.state.step, selectedCandidateIds: flow.state.selected_candidate_ids });
+        } else if (flow.handoff?.kind === "health" || flow.handoff?.kind === "logs" || flow.handoff?.kind === "refresh") {
+          if (flow.handoff.kind === "health") health = await inspectHealth(plan);
+          if (flow.handoff.kind === "logs") {
+            try { events = createOperatorEventLog(stateRoot).read({ limit: 50 }); }
+            catch { inspectionError = "OPERATOR_LOG_UNAVAILABLE"; }
+          }
+          const { handoff: _handled, ...observedFlow } = flow;
+          flow = { ...observedFlow, transition: { ...flow.transition!, outcome: "inspected" } };
+        }
+        record({ event_type: "step", surface, step: flow.state.step });
+        record({ event_type: "completed", surface, outcome: flow.handoff || inspectionError ? "held" : "ok", duration_ms: Date.now() - startedAt });
+        // Workflow arrays are ordered, unlike the ID-sorted inventory format.
+        process.stdout.write(`${JSON.stringify({ ...flow, ...(health ? { health } : {}), ...(events ? { events } : {}), ...(inspectionError ? { inspection_error: inspectionError } : {}), telemetry: telemetry() }, null, 2)}\n`);
+        process.exitCode = 0;
+      } else if (args.doctor) {
+        const section = projectOnboardingDoctorSection(plan);
+        const routing = args.json ? undefined : (await readOnboardingRoutingSnapshot({ plan, profile, hostProfile, routerSetup })).routing;
+        process.stdout.write(args.json ? canonical(section) : renderOnboardingText(plan, routing));
+        process.exitCode = section.condition === "PASS" || section.condition === "WARN" ? 0 : 1;
+      } else if (args.tui || (!args.json && process.stdin.isTTY && process.stdout.isTTY)) {
+        if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("ONBOARDING_TUI_REQUIRES_TTY");
+        let activePlan = plan;
+        let resumeStep: WizardStepId | undefined = args.apply ? "review" : args.step;
+        let selectedCandidateIds: string[] = args.selectedCandidateIds ?? [];
+        let notice: string | undefined = args.telemetry ? `Telemetry: ${telemetry().status}. Use d for health or l for recent events.` : undefined;
+        while (true) {
+          const { routing, connection } = await readOnboardingRoutingSnapshot({ plan: activePlan, profile, hostProfile, routerSetup });
+          const routingApi = connection ? new NineRouterApiClient(connection) : undefined;
+          const { runOnboardingTui } = await import("./onboarding/tui.ts");
+          const result = await runOnboardingTui(activePlan, {
+            initialStep: resumeStep,
+            selectedCandidateIds,
+            notice,
+            allowInspection: !args.apply,
+            onEvent: record,
+            hostDescription: hostBinding?.host_identity ? `${hostBinding.host_identity.chip_model} · ${hostBinding.host_identity.hardware_model} · ${hostBinding.host_identity.platform}/${hostBinding.host_identity.architecture}` : "Portable Temperance · no personal layer required",
+            existingProjectCapsules: projectCapsules,
+            allowProjectCapsuleSave: Boolean(args.projectCapsulesOutPath),
+            replanModuleSelections: args.apply ? undefined : buildPlan,
+            routing,
+            allowRoutingAuthorization: !args.apply && Boolean(routing?.compatible) && Boolean(routingApi),
+            allowRoutingSeating: !args.apply && Boolean(routing?.compatible) && Boolean(routingApi) && (routing?.live_model_count ?? 0) > 0 && Boolean(profile.secret_references.NINE_ROUTER_GATEWAY_KEY),
+          });
+          resumeStep = result.resume_step;
+          selectedCandidateIds = result.selected_candidate_ids ?? selectedCandidateIds;
+          notice = undefined;
+          if (result.inspection_requested) {
+            const { runOperatorReportTui } = await import("./onboarding/operator-report-tui.ts");
+            // The renderer may have re-planned local module choices. Both
+            // inspectors must retain them before reopening the wizard.
+            activePlan = await buildPlan(new Set(result.selected_module_ids));
+            let content: string;
+            if (result.inspection_requested === "health") {
+              content = renderOperatorHealth(await inspectHealth(activePlan));
+            } else {
+              try {
+                const events = createOperatorEventLog(stateRoot).read({ limit: 50 });
+                content = `Telemetry: ${telemetry().status}\nTime · run · interface · step · event/action · outcome · duration\n${renderOperatorEvents(events)}`;
+              } catch { content = "Local telemetry unavailable. No raw log content was displayed."; }
+            }
+            await runOperatorReportTui(result.inspection_requested === "health" ? "Doctor & health" : "Local telemetry", content);
+            continue;
+          }
+          if (result.routing_authorization_provider_id) {
+            if (args.apply || !routingApi || !routing?.compatible) throw new Error("NINE_ROUTER_OAUTH_ACTION_UNAVAILABLE");
+            const { runNineRouterOAuthTui } = await import("./onboarding/nine-router-oauth-tui.ts");
+            try {
+              const authorization = await runNineRouterOAuthTui({
+                providerId: result.routing_authorization_provider_id,
+                api: routingApi,
+              });
+              notice = authorization.connected ? `${authorization.provider}: sign-in verified by 9Router. Continue or connect another provider.` : "Sign-in was not completed. Retry or explicitly defer it.";
+            } catch {
+              notice = "Provider sign-in could not start. Your choices are preserved; check 9Router, then retry or defer.";
+            }
+            activePlan = await buildPlan(new Set(result.selected_module_ids));
+            continue;
+          }
+          if (result.routing_seating_requested) {
+            if (args.apply || !routingApi || !routing?.compatible) throw new Error("NINE_ROUTER_SEATING_ACTION_UNAVAILABLE");
+            const { runWizardRouterSetup } = await import("./onboarding/wizard-router-setup.ts");
+            const { runNineRouterSeatingTui } = await import("./onboarding/nine-router-seating-tui.ts");
+            const { runNineRouterSetupReviewTui } = await import("./onboarding/nine-router-setup-review-tui.ts");
+            const setupResult = await runWizardRouterSetup({
+              catalog, profile, requiredAliases: [...new Set(profile.routing_aliases.map(({ combo }) => combo))],
+              gatewayReferenceId: "NINE_ROUTER_GATEWAY_KEY", api: routingApi, keychain: new MacOsKeychainAdapter(),
+              executable: { id: "9router", path: profile.variables.NINE_ROUTER_CLI_ENTRYPOINT ?? "", version: "0.5.75" },
+              receiptSink: createFileOperationReceiptSink(resolve(getStateRoot(), "onboarding-receipts")),
+              selectSeats: runNineRouterSeatingTui, confirmReview: runNineRouterSetupReviewTui,
+            });
+            notice = setupResult.status === "committed" ? "9Router combos and gateway key read back successfully. Context/session admission still requires separate proof."
+              : `9Router setup ${setupResult.status}${setupResult.reason_code ? `: ${setupResult.reason_code}` : ""}. Existing state was not silently replaced.`;
+            activePlan = await buildPlan(new Set(result.selected_module_ids));
+            continue;
+          }
+          if (result.refresh_requested) {
+            activePlan = await buildPlan(new Set(result.selected_module_ids));
+            notice = "Prerequisites rechecked against current host and 9Router state.";
+            continue;
+          }
+          if (result.save_project_capsules) {
+            const output = resolve(args.projectCapsulesOutPath!);
+            mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
+            await lifecycleIO.writeFileAtomic!(output, `${canonical(result.project_capsules)}\n`, { mode: 0o600 });
+          }
+          if (!args.apply && result.confirmed && args.wizardStatePath) {
+            writeWizardPreferences(resolve(args.wizardStatePath), {
+              schema: "temperance.onboarding-preferences.v1", profile_id: profile.id, selected_module_ids: result.selected_module_ids,
+            }, moduleIds);
+          }
+          if (args.apply && result.confirmed) {
+            if (!result.confirmed_at || !routerSetup) throw new Error("NINE_ROUTER_REPAIR_CONFIRMATION_INVALID");
+            const dataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
+            const healthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
+            const entrypoint = profile.variables.NINE_ROUTER_CLI_ENTRYPOINT;
+            if (!dataDirectory || !healthUrl || !entrypoint) throw new Error("NINE_ROUTER_REPAIR_BINDING_INCOMPLETE");
+            const receipt = await executeConfirmedNineRouterRepair({
+              plan: activePlan,
+              profile,
+              confirmation: { confirmed: true, plan_digest: result.plan_digest, confirmed_at: result.confirmed_at },
+              desired: routerSetup,
+              api: new NineRouterApiClient({ dataDirectory, baseUrl: new URL(healthUrl).origin }),
+              keychain: new MacOsKeychainAdapter(),
+              executable: { id: "9router", path: entrypoint, version: "0.5.75" },
+              receiptSink: createFileOperationReceiptSink(resolve(args.receiptDirectory!)),
+            });
+            process.stdout.write(`${canonical(receipt)}\n`);
+            process.exitCode = receipt.status === "committed" ? 0 : 1;
+          } else {
+            record({ event_type: result.confirmed ? "completed" : "cancelled", surface, outcome: result.confirmed ? "confirmed" : "cancelled", duration_ms: Date.now() - startedAt });
+            process.stdout.write(`${canonical({ confirmed: result.confirmed, preferences_saved: Boolean(result.confirmed && args.wizardStatePath), project_capsules_saved: result.save_project_capsules, runtime_activation: "not-performed", context_readiness: "unverified", telemetry: telemetry() })}\n`);
+            process.exitCode = 0;
+          }
+          break;
+        }
+      } else {
+        const routing = args.json ? undefined : (await readOnboardingRoutingSnapshot({ plan, profile, hostProfile, routerSetup })).routing;
+        process.stdout.write(args.json ? canonical(plan) : renderOnboardingText(plan, routing));
+        process.exitCode = 0;
+      }
+    } catch (error) {
+      record({ event_type: "failed", surface, outcome: "failed", duration_ms: Math.min(Date.now() - startedAt, 86_400_000) });
+      const reason = error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : "ONBOARDING_OPERATION_FAILED";
+      process.stderr.write(`temperance onboard: ${reason}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
+  if (command === "router-seat") {
+    try {
+      const args = parseNineRouterSeatingArgs(process.argv.slice(3));
+      const hostProfile = loadOnboardingJson<HostProfileV1>(args.hostProfilePath, validateHostProfileV1, "HOST_PROFILE_INVALID");
+      const hostBinding = loadOnboardingJson<HostBindingV1>(args.hostBindingPath, validateHostBindingV1, "HOST_BINDING_INVALID");
+      const profile = composeOnboardingProfile(hostProfile, hostBinding);
+      const dataDirectory = profile.variables.NINE_ROUTER_DATA_DIR;
+      const healthUrl = profile.variables.NINE_ROUTER_HEALTH_URL;
+      if (!dataDirectory || !healthUrl) throw new Error("NINE_ROUTER_SEATING_BINDING_INCOMPLETE");
+      const api = new NineRouterApiClient({ dataDirectory, baseUrl: new URL(healthUrl).origin });
+      const availableModels = await api.readAvailableModels();
+      const draft = createNineRouterSeatingDraft(hostProfile.required_routing_aliases, availableModels);
+      if (args.json) {
+        process.stdout.write(`${canonical({
+          mode: "read-only",
+          profile_id: profile.id,
+          source: "9router-live-model-catalog",
+          ...draft,
+        })}\n`);
+      } else {
+        if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("NINE_ROUTER_SEATING_TUI_REQUIRES_TTY");
+        const intent: NineRouterSetupIntentV1 = args.intentPath
+          ? loadOnboardingJson<NineRouterSetupIntentV1>(args.intentPath, validateNineRouterSetupIntentV1, "NINE_ROUTER_SETUP_INTENT_INVALID")
+          : {
+            schema: NINE_ROUTER_SETUP_INTENT_SCHEMA,
+            version: { major: 1, minor: 0 },
+            providers: [],
+            gateway_key: { name: args.gatewayKeyName!, secret_reference_id: args.gatewayReferenceId! },
+          };
+        if (!validateNineRouterSetupIntentV1(intent)) throw new Error("NINE_ROUTER_SETUP_INTENT_INVALID");
+        const { runNineRouterSeatingTui } = await import("./onboarding/nine-router-seating-tui.ts");
+        const result = await runNineRouterSeatingTui({
+          requiredAliases: hostProfile.required_routing_aliases,
+          availableModels,
+        });
+        if (result.confirmed) {
+          const setup = compileNineRouterGuidedSetup(intent, createNineRouterSeatingDraft(
+            hostProfile.required_routing_aliases,
+            availableModels,
+            Object.fromEntries(result.combos.map(({ alias, models }) => [alias, models])),
+          ));
+          if (!validateNineRouterGuidedSetupV1(setup)) throw new Error("NINE_ROUTER_SETUP_INVALID");
+          const configuration = createNineRouterGuidedSetupPlanInput(setup, profile);
+          writePrivateNineRouterSetup(args.outputPath!, setup);
+          process.stdout.write(`${canonical({
+            confirmed: true,
+            confirmed_at: result.confirmed_at,
+            setup_schema: setup.schema,
+            configuration_digest: configuration.digest,
+            provider_selection_ids: setup.providers.map(({ selection_id }) => selection_id),
+            aliases: setup.required_aliases,
+            written: true,
+          })}\n`);
+        } else {
+          process.stdout.write(`${canonical({ confirmed: false, written: false })}\n`);
+        }
+      }
+      process.exitCode = 0;
+    } catch (error) {
+      process.stderr.write(`temperance router-seat: ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 64;
+    }
+    return;
+  }
   if (command === "compile") {
     printReceipt(compileRepositoryFragments());
     return;
@@ -228,11 +720,10 @@ async function main(): Promise<void> {
   // ─── Lifecycle verbs ─────────────────────────────────────────────────────
 
   if (command === "install" || command === "update" || command === "uninstall") {
-    const args = parseLifecycleArgs(process.argv.slice(3));
-    const profile = args.profile || "minimal";
-    const stateRoot = getStateRoot();
-
     try {
+      const args = parseLifecycleArgs(process.argv.slice(3), command);
+      const profile = args.profile || "minimal";
+      const stateRoot = getStateRoot();
       const compileResult = compileRepositoryFragments();
 
       // Check for NO_APPLICABLE_RECORDS
@@ -251,6 +742,10 @@ async function main(): Promise<void> {
         profileResult: compileResult,
         profile,
         force: args.force,
+        onlyIds: args.onlyIds,
+        explicitSelections: args.select
+          ? new Set(args.select.split(",").filter((selection) => /^[a-z0-9][a-z0-9._-]*$/.test(selection)))
+          : undefined,
       };
 
       const plan = createPlan(planOptions);
@@ -260,6 +755,7 @@ async function main(): Promise<void> {
         process.stdout.write(canonical({
           verb: command,
           profile,
+          ...(plan.scope ? { scope: plan.scope } : {}),
           steps: plan.steps.map((s) => ({
             step_id: s.step_id,
             record_id: s.record_id,
@@ -275,18 +771,21 @@ async function main(): Promise<void> {
 
       const result = await executePlan({
         stateRoot,
+        repositoryRoot,
         io: lifecycleIO,
         plan,
         compileResult,
         verb: command,
         profile,
         force: args.force,
+        explicitSelections: planOptions.explicitSelections,
         signal: new AbortController().signal,
       });
 
       if (args.json) {
-        process.stdout.write(canonical(result));
+        process.stdout.write(canonical({ ...result, ...(plan.scope ? { scope: plan.scope } : {}) }));
       } else {
+        if (plan.scope) process.stdout.write(`Scope: ${plan.scope.requested_ids.join(", ")}; dependencies: ${plan.scope.dependency_ids.join(", ") || "none"}\n`);
         process.stdout.write(`Transaction ${result.txid}: ${result.status}\n`);
         for (const outcome of result.outcomes) {
           process.stdout.write(`  ${outcome.record_id}: ${outcome.status}${outcome.reason ? ` (${outcome.reason})` : ""}\n`);
@@ -302,7 +801,7 @@ async function main(): Promise<void> {
   }
 
   if (command === "rollback") {
-    const args = parseLifecycleArgs(process.argv.slice(3));
+    const args = parseLifecycleArgs(process.argv.slice(3), command);
     if (!args.select) {
       process.stderr.write("temperance rollback: --select <txid> required\n");
       process.exitCode = 64;
@@ -329,7 +828,7 @@ async function main(): Promise<void> {
   }
 
   if (command === "receipt") {
-    const args = parseLifecycleArgs(process.argv.slice(3));
+    const args = parseLifecycleArgs(process.argv.slice(3), command);
     const stateRoot = getStateRoot();
 
     try {
@@ -366,11 +865,44 @@ async function main(): Promise<void> {
   process.stderr.write(`usage: temperance <command> [options]
 
 Commands:
+  host-binding-init --host-profile P --output B
+          [--set NAME VALUE] [--secret-reference NAME SERVICE ACCOUNT]
+          [--alias ALIAS COMBO] [--volume ID MOUNT_VAR UUID_VAR UUID]
+                                   Create one owner-only binding for this exact host
+  router-seat --host-profile P --host-binding B --json
+                                   Inspect live provider models without changing host state
+  router-seat --host-profile P --host-binding B --intent I --output O [--tui]
+                                   Select ordered semantic seats and write one owner-only setup input
+  router-seat --host-profile P --host-binding B --gateway-reference ID --output O [--tui]
+          [--gateway-name NAME]    Seat aliases from existing 9Router OAuth providers; no provider secret intent
+  onboard [--profile P | --host-profile P --host-binding B] [--catalog C] [--json|--doctor]
+                                   Open generic TUI by default; Noesis is an explicit overlay
+          [--project-capsules P --project-capsules-out P --tui]
+                                   Review advisory candidates and explicitly save capsules
+          [--wizard-state P --tui]  Save module requests on confirmation; re-probe on every launch
+          --agent [--step S --action ID --project-select IDS --select IDS]
+                                   JSON actions from the shared wizard; writes/auth require handoff
+          --health [--json]         Fresh prerequisites, routing, install doctor and session admission
+          --logs [--json --limit N --run ID]
+                                   Read bounded local operator events; never remote service logs
+          [--telemetry]            Opt-in metadata-only local events for TUI, agent or health
+          --tui [--step S]          Guided interface; d health, l recent events, Enter actions
+          --tui --repair --host-profile P --host-binding B --router-setup R
+          --receipt-dir D --select provider.9router
+                                   Confirm and apply one digest-bound 9Router repair transaction
+  cutover-review --plan P --proof R --host-binding B [--tui|--json]
+                                   Review plan + clean proof; TUI confirmation never mutates host state
+  cutover-apply --plan P --proof R --confirmation C --host-binding B
+          --legacy-credential-reference ID --source-repository S
+                                   Consume external confirmation and perform destructive V4 cutover
   compile                          Compile fragments and print receipt
   write-lock                       Compile and write lock file
   doctor [--section S] [--json]    Run doctor checks
-  install [--profile P] [--dry-run] [--force]  Install records
-  update [--profile P] [--dry-run]             Update records
+  install [--profile P] [--only IDs] [--dry-run] [--force]  Install records
+  update [--profile P] [--only IDs] [--dry-run]             Update records
+          --only id1,id2 limits steps and outcomes to those IDs and transitive dependencies.
+          Dry-run scope lists requested_ids, dependency_ids, and exact record_ids;
+          inventory_digest remains the complete compiled inventory digest.
   uninstall [--profile P] [--dry-run]          Uninstall records
   rollback --select <txid>                     Rollback transaction
   receipt [--select <txid>] [--json]           View receipts

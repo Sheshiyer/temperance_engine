@@ -75,9 +75,63 @@
       "required": ["method"],
       "properties": {
         "method": { "enum": ["sha256", "adapter", "semantic-probe", "symbolic-exclusion", "presence-only"] },
+        "expected": { "$ref": "#/$defs/copy_expectation" },
         "adapter_id": { "type": "string", "minLength": 1, "maxLength": 192 },
         "generator_id": { "type": "string", "minLength": 1, "maxLength": 192 }
       }
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "copy_mode": {
+      "enum": ["0644", "0755"]
+    },
+    "copy_expectation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "sha256"],
+          "properties": {
+            "kind": { "const": "file" },
+            "sha256": { "$ref": "#/$defs/sha256" },
+            "mode": { "$ref": "#/$defs/copy_mode" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "files"],
+          "properties": {
+            "kind": { "const": "tree" },
+            "files": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 4096,
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+              },
+              "additionalProperties": { "$ref": "#/$defs/sha256" }
+            },
+            "modes": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 4096,
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+              },
+              "additionalProperties": { "$ref": "#/$defs/copy_mode" }
+            }
+          }
+        }
+      ]
     },
     "rollback": {
       "type": "object",

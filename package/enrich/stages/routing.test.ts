@@ -1,14 +1,32 @@
 // package/enrich/stages/routing.test.ts -- unit tests for the routing stage.
-import { describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { execFileSync } from 'child_process';
-import { writeFileSync, chmodSync, mkdirSync } from 'fs';
+import { writeFileSync, chmodSync, mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import type { ResolvedContext } from '../contract';
-import { routing } from './routing';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BUN_BIN = process.execPath; // bun's own binary path when run under `bun test`
+const temporaryDirectories: string[] = [];
+
+afterEach(() => {
+  for (const path of temporaryDirectories.splice(0)) rmSync(path, { recursive: true, force: true });
+});
+
+function temporaryDirectory(prefix: string): string {
+  const path = mkdtempSync(join(tmpdir(), prefix));
+  temporaryDirectories.push(path);
+  return path;
+}
+
+function commandCodeShim(): string {
+  const path = temporaryDirectory('temperance-routing-shim-');
+  writeFileSync(join(path, 'command-code'), '#!/bin/sh\nexit 0\n');
+  chmodSync(join(path, 'command-code'), 0o755);
+  return path;
+}
 
 const base: ResolvedContext = {
   input: { prompt: 'refactor the auth module', cwd: '/tmp/proj', surface: 'claude' },
@@ -26,7 +44,11 @@ const base: ResolvedContext = {
  * regardless of what happens to be installed on the host running the
  * test suite.
  */
-function runRoutingWithEnv(prompt: string, path: string): { line: string; degraded: boolean } {
+function runRoutingWithEnv(
+  prompt: string,
+  path: string,
+  additionalEnvironment: Record<string, string> = {},
+): { line: string; degraded: boolean } {
   const script = `
     import { routing } from ${JSON.stringify(join(__dirname, 'routing.ts'))};
     const ctx = ${JSON.stringify({ ...base, input: { ...base.input, prompt } })};
@@ -35,7 +57,8 @@ function runRoutingWithEnv(prompt: string, path: string): { line: string; degrad
   const out = execFileSync(BUN_BIN, ['-e', script], {
     env: {
       PATH: path,
-      HOME: '/tmp/temperance-routing-test-fake-home',
+      HOME: temporaryDirectory('temperance-routing-home-'),
+      ...additionalEnvironment,
     },
     encoding: 'utf8',
   });
@@ -43,17 +66,9 @@ function runRoutingWithEnv(prompt: string, path: string): { line: string; degrad
 }
 
 describe('routing stage', () => {
-  it('emits backends/task/preferred when at least one backend is available', () => {
-    const r = routing(base);
-
-    // This repo's dev/CI environment is expected to have at least one
-    // backend detectable (command-code / kimi / grok / NVIDIA_API_KEY).
-    // If none are available here, skip rather than false-fail on host
-    // differences -- the zero-backends branch is covered deterministically
-    // below via a clean-env subprocess.
-    if (r.line === '') {
-      return;
-    }
+  it('emits backends/task/preferred when a synthetic backend is available', () => {
+    const shimDir = commandCodeShim();
+    const r = runRoutingWithEnv('refactor the auth module', `${shimDir}:/usr/bin:/bin`);
 
     expect(r.line.startsWith('routing: backends=')).toBe(true);
     expect(r.line).toContain('| task=');
@@ -76,12 +91,7 @@ describe('routing stage', () => {
     // Force a deterministic "backend available" case by shimming a fake
     // `command-code` onto PATH inside an otherwise clean env, so this
     // assertion does not depend on what's installed on the host.
-    const shimDir = '/tmp/temperance-routing-test-shim-bin';
-    execFileSync('mkdir', ['-p', shimDir]);
-    execFileSync('bash', [
-      '-c',
-      `printf '#!/bin/sh\\nexit 0\\n' > ${shimDir}/command-code && chmod +x ${shimDir}/command-code`,
-    ]);
+    const shimDir = commandCodeShim();
 
     const r = runRoutingWithEnv('refactor the auth module', `${shimDir}:/usr/bin:/bin`);
 
@@ -93,18 +103,13 @@ describe('routing stage', () => {
   });
 
   it('uses the shared classifier ordering: "quick refactor" -> long-horizon (forced backend via shim)', () => {
-    // routing.ts must defer to classify-task.sh, whose MBR-ordering classifies
-    // "quick refactor" as long-horizon (its OLD local classifier said "fast").
-    const shimDir = '/tmp/temperance-routing-test-shim-bin';
-    execFileSync('mkdir', ['-p', shimDir]);
-    execFileSync('bash', [
-      '-c',
-      `printf '#!/bin/sh\\nexit 0\\n' > ${shimDir}/command-code && chmod +x ${shimDir}/command-code`,
-    ]);
+    // The direct runtime dependency retains the reviewed ordering: refactor
+    // wins over quick, so the result stays long-horizon.
+    const shimDir = commandCodeShim();
     const r = runRoutingWithEnv('quick refactor the module', `${shimDir}:/usr/bin:/bin`);
     expect(r.line).toContain('| task=long-horizon');
-    expect(r.line).toContain('| portfolio=te-build');
-    expect(r.line).toContain('preferred=command-code:xiaomi/mimo-v2.5-pro');
+    expect(r.line).toContain('| portfolio=noesis-build');
+    expect(r.line).toContain('preferred=combo:noesis-build');
     expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);
   });
 
@@ -113,29 +118,13 @@ describe('routing stage', () => {
     // override env var must point routing.ts at the shared classifier. The stub
     // always classifies as "reasoning", distinct from the repo's
     // "refactor"->long-horizon, so a pass proves the override dir was used.
-    const shimDir = '/tmp/temperance-routing-test-shim-bin';
-    const routerDir = '/tmp/temperance-routerdir-test';
-    mkdirSync(shimDir, { recursive: true });
-    mkdirSync(routerDir, { recursive: true });
-    writeFileSync(`${shimDir}/command-code`, '#!/bin/sh\nexit 0\n');
-    chmodSync(`${shimDir}/command-code`, 0o755);
-    writeFileSync(`${routerDir}/classify-task.sh`, '#!/bin/sh\nprintf "reasoning\\tcommand-code:claude-fable-5\\n"\n');
-    chmodSync(`${routerDir}/classify-task.sh`, 0o755);
-
-    const script = `
-      import { routing } from ${JSON.stringify(join(__dirname, 'routing.ts'))};
-      const ctx = ${JSON.stringify({ ...base, input: { ...base.input, prompt: 'refactor the auth module' } })};
-      process.stdout.write(JSON.stringify(routing(ctx)));
-    `;
-    const out = execFileSync(BUN_BIN, ['-e', script], {
-      env: {
-        PATH: `${shimDir}:/usr/bin:/bin`,
-        HOME: '/tmp/temperance-routing-test-fake-home',
-        TEMPERANCE_ROUTER_DIR: routerDir,
-      },
-      encoding: 'utf8',
+    const shimDir = commandCodeShim();
+    const routerDir = temporaryDirectory('temperance-routerdir-');
+    writeFileSync(join(routerDir, 'classify-task.sh'), '#!/bin/sh\nprintf "reasoning\\tcommand-code:claude-fable-5\\n"\n');
+    chmodSync(join(routerDir, 'classify-task.sh'), 0o755);
+    const r = runRoutingWithEnv('refactor the auth module', `${shimDir}:/usr/bin:/bin`, {
+      TEMPERANCE_ROUTER_DIR: routerDir,
     });
-    const r = JSON.parse(out);
     expect(r.line).toContain('| task=reasoning');
     expect(r.line).toContain('preferred=command-code:claude-fable-5');
     expect(r.line.endsWith('| skill=temperance-parallel-dispatch')).toBe(true);

@@ -26,10 +26,14 @@ const KIMI_HEADERS = { "x-temperance-surface": "kimi" }
 const TEST_BLOCK = "<temperance-context>\nmode/tier: ALGORITHM / E3 | reason: test | source: classifier\n</temperance-context>"
 const ORIGINAL_AUTO_READY = process.env.TEMPERANCE_AUTO_READY
 const ORIGINAL_PROXY_LOG = process.env.TEMPERANCE_PROXY_LOG
+const ORIGINAL_STATE = process.env.TEMPERANCE_STATE
+const ORIGINAL_POLICY = process.env.TEMPERANCE_SESSION_POLICY
 
 beforeEach(() => {
   process.env.TEMPERANCE_AUTO_READY = "1"
   process.env.TEMPERANCE_PROXY_LOG = join(mkdtempSync(join(tmpdir(), "temperance-proxy-test-")), "routes.jsonl")
+  process.env.TEMPERANCE_STATE = mkdtempSync(join(tmpdir(), "temperance-proxy-state-test-"))
+  delete process.env.TEMPERANCE_SESSION_POLICY
 })
 
 afterAll(() => {
@@ -37,9 +41,32 @@ afterAll(() => {
   else process.env.TEMPERANCE_AUTO_READY = ORIGINAL_AUTO_READY
   if (ORIGINAL_PROXY_LOG === undefined) delete process.env.TEMPERANCE_PROXY_LOG
   else process.env.TEMPERANCE_PROXY_LOG = ORIGINAL_PROXY_LOG
+  if (ORIGINAL_STATE === undefined) delete process.env.TEMPERANCE_STATE
+  else process.env.TEMPERANCE_STATE = ORIGINAL_STATE
+  if (ORIGINAL_POLICY === undefined) delete process.env.TEMPERANCE_SESSION_POLICY
+  else process.env.TEMPERANCE_SESSION_POLICY = ORIGINAL_POLICY
 })
 
 describe("Temperance OpenAI proxy", () => {
+  test("selected session policy holds proxy and ACP traffic before network or planning", async () => {
+    writeFileSync(join(process.env.TEMPERANCE_STATE!, "session-policy.json"), JSON.stringify({
+      schema: "temperance.session-rail-policy.v1",
+      aliases: Object.fromEntries(["observe", "think", "plan", "build", "execute", "verify", "learn"].map((phase) => [phase, `work-${phase}`])),
+      longContextAliases: ["work-build"], minimumContextTokens: 900000, preferredContextTokens: 1000000,
+    }))
+    let calls = 0
+    const response = await handleProxyRequest(request({ model: "work-build", messages: [] }), {
+      upstreamFetch: (async () => { calls++; throw new Error("must not fetch") }) as typeof fetch,
+    })
+    expect(response.status).toBe(503)
+    expect((await response.json()).error.code).toBe("GATEWAY_ATTEMPT_ADMISSION_UNAVAILABLE")
+    expect(calls).toBe(0)
+    const health = await handleProxyRequest(new Request("http://localhost/health"))
+    const readiness = await health.json()
+    expect(readiness.ok).toBe(true)
+    expect(readiness.automatic_ready).toBe(false)
+    expect(readiness.automatic_unavailable_reason).toBe("SESSION_ALIAS_UNKNOWN")
+  })
   test("fails automatic routing closed when readiness evidence is absent", () => {
     const previousReady = process.env.TEMPERANCE_AUTO_READY
     const previousReason = process.env.TEMPERANCE_AUTO_UNAVAILABLE_REASON

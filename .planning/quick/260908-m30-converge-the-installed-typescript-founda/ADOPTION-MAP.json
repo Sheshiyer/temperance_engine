@@ -1,0 +1,933 @@
+{
+  "schema": "temperance.product-adoption-map.v1",
+  "researched_on": "2026-09-08",
+  "baseline_commit": "f21b3ef9c891fe02f10d0d0420fe30563718a5e7",
+  "baseline_worktree_alias": "RO06",
+  "source_root_alias": "FOUNDATION",
+  "source_lineage_document": "SOURCE-LINEAGE.md",
+  "scope": {
+    "manifest_declared_sha256": "4574d9cd458a102c8a42123cf35593484c52b3af06f883a49f6df027cd08d9f8",
+    "manifest_total_targets": 71,
+    "selected_owner": "product",
+    "selected_targets": 22,
+    "additional_reads": "Only named import/config/backup dependencies, applicable AGENTS.md, RO06 source owners/receipts, and directly relevant named tests."
+  },
+  "summary": {
+    "copy_missing": 10,
+    "semantic_hunks": 12,
+    "already_exact": 0,
+    "source_regular_files": 22,
+    "source_manifest_hash_matches": 22
+  },
+  "project_constraints": [
+    "Product Git ownership is separate from HOST models and credentials.",
+    "Preserve GSD planning/ISA acceptance, single active planner, and proposal-versus-claimed-approval boundaries.",
+    "Do not fork GSD core or create new retired dispatch aliases.",
+    "Source report only: no code, runtime, test, provider, service, installation, or Git mutation."
+  ],
+  "entries": [
+    {
+      "path": "package/router/task-classification.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/task-classification.ts",
+      "manifest_payload_sha256": "148d6d4a62ddcf9be3befe33a3c155839b892e8604f3f2ac31681682fd823e45",
+      "manifest_mode": "0644",
+      "source_sha256": "148d6d4a62ddcf9be3befe33a3c155839b892e8604f3f2ac31681682fd823e45",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/classify-task.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/classify-task.ts",
+      "manifest_payload_sha256": "1f12e7b09bff868b3e55e25a94780668712d15c4dd861d5b3a393ac5f3fd714b",
+      "manifest_mode": "0644",
+      "source_sha256": "1f12e7b09bff868b3e55e25a94780668712d15c4dd861d5b3a393ac5f3fd714b",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [
+        {
+          "specifier": "./task-classification",
+          "path": "package/router/task-classification.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        }
+      ],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [
+        "package/router/task-classification.ts"
+      ],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/classify-task.sh",
+      "source_relative_path": "integration/typescript-product/payload/package/router/classify-task.sh",
+      "manifest_payload_sha256": "47d9b31cb8dcf04d046e4fbef99ba083a76607cdae45fc821fc859a1b7bb6ed3",
+      "manifest_mode": "0755",
+      "source_sha256": "47d9b31cb8dcf04d046e4fbef99ba083a76607cdae45fc821fc859a1b7bb6ed3",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "dfb90dda51213d7e48ab3de7d2d4669081065d7d9d702a4d6ca89c71cd7508ac",
+      "candidate_mode": "0755",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "c1dfbcec514451ea12735ac7918fb9252ebec2de",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Adopt shared TypeScript classification while retaining sourced-shell function names and exact CLI streams.",
+        "Reconcile the reviewed HOST classifier-containment fix from b44abf9/cdd0cbc instead of copying the earlier installed wrapper unchanged.",
+        "Preserve product-relative module resolution and caller overrides."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/phase-resolution.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/phase-resolution.ts",
+      "manifest_payload_sha256": "1b8fb4ba57a23e5b5b031048acb75fc80045e5b2dafbd068c1ea02cf1f137de5",
+      "manifest_mode": "0644",
+      "source_sha256": "1b8fb4ba57a23e5b5b031048acb75fc80045e5b2dafbd068c1ea02cf1f137de5",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [
+        {
+          "specifier": "./task-classification",
+          "path": "package/router/task-classification.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        }
+      ],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [
+        "package/router/task-classification.ts"
+      ],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/routing-contract-cli.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/routing-contract-cli.ts",
+      "manifest_payload_sha256": "99ffe991c0d7dfdbcedb7b5a3981f10ce35a675e279979f52fefcbf96352140b",
+      "manifest_mode": "0644",
+      "source_sha256": "99ffe991c0d7dfdbcedb7b5a3981f10ce35a675e279979f52fefcbf96352140b",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [
+        {
+          "specifier": "./phase-resolution",
+          "path": "package/router/phase-resolution.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        },
+        {
+          "specifier": "./task-classification",
+          "path": "package/router/task-classification.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        }
+      ],
+      "source_nonrelative_imports": [
+        "node:fs"
+      ],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [
+        "package/router/task-classification.ts",
+        "package/router/phase-resolution.ts"
+      ],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/surface-convergence-contract.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/surface-convergence-contract.ts",
+      "manifest_payload_sha256": "e4310dc4e85d3d69dbc28e3bf89d50ececa3f0c725d44007e4dd77974b642f0c",
+      "manifest_mode": "0644",
+      "source_sha256": "e4310dc4e85d3d69dbc28e3bf89d50ececa3f0c725d44007e4dd77974b642f0c",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [
+        {
+          "specifier": "./effort-contract.ts",
+          "path": "package/router/effort-contract.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        }
+      ],
+      "source_nonrelative_imports": [
+        "node:fs"
+      ],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [
+        "package/router/effort-contract.ts"
+      ],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/effort-contract.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/effort-contract.ts",
+      "manifest_payload_sha256": "663fc5125568a8277e2005d53cf393138a2cd2df59c35e86ddd73d45247612c6",
+      "manifest_mode": "0644",
+      "source_sha256": "663fc5125568a8277e2005d53cf393138a2cd2df59c35e86ddd73d45247612c6",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/phase-capability-contract.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/phase-capability-contract.ts",
+      "manifest_payload_sha256": "17ef39fd094c2ece0238445a14ee6dcdb9a1e5f94074e10fc5e3d8b92ae1c46e",
+      "manifest_mode": "0644",
+      "source_sha256": "17ef39fd094c2ece0238445a14ee6dcdb9a1e5f94074e10fc5e3d8b92ae1c46e",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [
+        {
+          "specifier": "./effort-contract.ts",
+          "path": "package/router/effort-contract.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        },
+        {
+          "specifier": "./surface-convergence-contract.ts",
+          "path": "package/router/surface-convergence-contract.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        }
+      ],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [
+        "package/router/effort-contract.ts",
+        "package/router/surface-convergence-contract.ts"
+      ],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/gsd-command-install.mjs",
+      "source_relative_path": "integration/typescript-product/payload/package/router/gsd-command-install.mjs",
+      "manifest_payload_sha256": "4a69943ebdff4c5c7f79c46151e7cc74f1569c1abc5f39c9516d727c3d06f3fe",
+      "manifest_mode": "0644",
+      "source_sha256": "4a69943ebdff4c5c7f79c46151e7cc74f1569c1abc5f39c9516d727c3d06f3fe",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "9e32a44040a4649bf5162e05c678086baa40d43199541c3b3a5fc0942d9ad819",
+      "candidate_mode": "0755",
+      "source_local_imports": [
+        {
+          "specifier": "./phase-capability-contract.ts",
+          "path": "package/router/phase-capability-contract.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        },
+        {
+          "specifier": "./surface-convergence-contract.ts",
+          "path": "package/router/surface-convergence-contract.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        }
+      ],
+      "source_nonrelative_imports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "candidate_last_commit": "c1dfbcec514451ea12735ac7918fb9252ebec2de",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Adopt strict surface/effort/phase capability resolution with the three canonical maps as one source unit.",
+        "Preserve bounded rendering, explicit apply, backup/rollback, surface adapters and intentional special-command handling.",
+        "Keep direct execution of the adjacent backup wrapper and preserve the existing executable mode.",
+        "Do not replace upstream GSD workflow implementation or treat generated text as dispatch approval."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_candidate_executable_mode_unless_separately_reviewed",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/gsd-rail-map.json",
+      "source_relative_path": "integration/typescript-product/payload/package/router/gsd-rail-map.json",
+      "manifest_payload_sha256": "8dd2e27633a98e26d57f4f9de038b2173552800474ff2aa2d6017f67f653bd61",
+      "manifest_mode": "0644",
+      "source_sha256": "8dd2e27633a98e26d57f4f9de038b2173552800474ff2aa2d6017f67f653bd61",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "2288370d95b6f80203cddbaa38595b73935ac91580e676b84e144b4348b5ce77",
+      "candidate_mode": "0644",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "c1dfbcec514451ea12735ac7918fb9252ebec2de",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Migrate the command schema from inline combo/alchemy fields to stage/route, approval and execution-plane contracts.",
+        "Adopt with the strict surface parser, effort/phase modules and paired phase/alchemy maps.",
+        "Source-only map adoption must not mutate HOST live routing policy."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/phase-combo-map.json",
+      "source_relative_path": "integration/typescript-product/payload/package/router/phase-combo-map.json",
+      "manifest_payload_sha256": "7c51d28ba6927f7b55d3b3cac74b372c837ace656f49313ba86a911b2f5c4d12",
+      "manifest_mode": "0644",
+      "source_sha256": "7c51d28ba6927f7b55d3b3cac74b372c837ace656f49313ba86a911b2f5c4d12",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "b587ecc558298ae57baca24ddaeb5039192d102a71a90fd7d6308decea77b5df",
+      "candidate_mode": "0644",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "c1dfbcec514451ea12735ac7918fb9252ebec2de",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Reconcile canonical noesis phase/task mappings, compatibility aliases, coordinator and surface declarations with the paired schema.",
+        "Keep native routing/operator authority separate from advisory source mapping.",
+        "Do not blindly infer live provider authorization or availability from this historical payload."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/alchemy-stage-hub-map.json",
+      "source_relative_path": "integration/typescript-product/payload/package/router/alchemy-stage-hub-map.json",
+      "manifest_payload_sha256": "6edc3ddeb22eff5af2398c96c7ef42a0d0be655b8deb9a11b30aeca1bcaf6fc6",
+      "manifest_mode": "0644",
+      "source_sha256": "6edc3ddeb22eff5af2398c96c7ef42a0d0be655b8deb9a11b30aeca1bcaf6fc6",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/temperance-phase-dispatch.sh",
+      "source_relative_path": "integration/typescript-product/payload/package/router/temperance-phase-dispatch.sh",
+      "manifest_payload_sha256": "5a261584e84d8b89caa6ff04982287382c60d16958eb4ed9c845154a0ef2f571",
+      "manifest_mode": "0755",
+      "source_sha256": "5a261584e84d8b89caa6ff04982287382c60d16958eb4ed9c845154a0ef2f571",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "3c9abedb82cad9e0b6c9ae153b0dd16b6993cd139cbd6cfdb3db00b13830aa0e",
+      "candidate_mode": "0755",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "391a6dd08af35b87c7c5505aaaf7d286b36b2a46",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Replace duplicated resolution with the adjacent shared routing-contract CLI.",
+        "Add canonical noesis label recognition while preserving intended legacy read compatibility.",
+        "Port the reviewed resolver containment semantics without transplanting HOST ledger, voice or Manifest dispatch machinery."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/rail-announce.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/rail-announce.ts",
+      "manifest_payload_sha256": "7fb9ebf0fc4bf05ba40db351c83c253cdeaefd7ff9b483ba098bb3127dd13139",
+      "manifest_mode": "0644",
+      "source_sha256": "7fb9ebf0fc4bf05ba40db351c83c253cdeaefd7ff9b483ba098bb3127dd13139",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "0ade0d822324ec0dc68e9f8bd74a93f33810d679549de8c76bc3b09196c27da1",
+      "candidate_mode": "0644",
+      "source_local_imports": [
+        {
+          "specifier": "./task-classification",
+          "path": "package/router/task-classification.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        }
+      ],
+      "source_nonrelative_imports": [
+        "node:child_process",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "candidate_last_commit": "604f7031207fbbe1f6275354359893f66eda511f",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Use shared pure task classification by default, retaining explicit external adapter override.",
+        "Preserve PRODUCT mode/task-to-phase/display behavior; this product payload does not add HOST route-suggestion.ts."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/enrich/stages/routing.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/enrich/stages/routing.ts",
+      "manifest_payload_sha256": "1cd75d539c071fa613749234e2996a9ebf9fe853fbd42a248091d01e5571d000",
+      "manifest_mode": "0644",
+      "source_sha256": "1cd75d539c071fa613749234e2996a9ebf9fe853fbd42a248091d01e5571d000",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "127811038996f9c4f2168e05a98fb6162d56173cb9dc5a3387a1ce5d5fc2da7e",
+      "candidate_mode": "0644",
+      "source_local_imports": [
+        {
+          "specifier": "../../router/task-classification",
+          "path": "package/router/task-classification.ts",
+          "candidate_present": false,
+          "in_manifest": true
+        },
+        {
+          "specifier": "../contract",
+          "path": "package/enrich/contract.ts",
+          "candidate_present": true,
+          "in_manifest": false
+        }
+      ],
+      "source_nonrelative_imports": [
+        "child_process",
+        "fs",
+        "os",
+        "path",
+        "url"
+      ],
+      "candidate_last_commit": "a9dc0b4d0870b8941cf4a5d5bdd11d61589e24b1",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Use the shared pure classifier and retain explicit external-directory override.",
+        "Preserve canonical noesis combo propagation before optional portfolio lookup.",
+        "Close the declared installed enrichment/router relative-import topology before installed promotion."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/omniroute-codex.sh",
+      "source_relative_path": "integration/typescript-product/payload/package/router/omniroute-codex.sh",
+      "manifest_payload_sha256": "b4e9e7c0d0b66450daa1dbe0819c355964dcd7b98d1181c55b60045e020db496",
+      "manifest_mode": "0755",
+      "source_sha256": "b4e9e7c0d0b66450daa1dbe0819c355964dcd7b98d1181c55b60045e020db496",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "5550626bead0da993be43c6b37abcdc2a743b73d6a9793ab80b6147cdb7bb853",
+      "candidate_mode": "0755",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "9fd7f2769c0ea144bba8745ff660c616404d4347",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Add validated session/correlation headers and exact-model profile protection.",
+        "Recognize canonical execute lane and optional per-invocation local tool-surface reduction.",
+        "Fail on nonzero CLI exits without replaying effects; require explicit successful-empty retry opt-in.",
+        "Preserve the PRODUCT wrapper's simpler lifecycle and absence of automatic HOST voice/Manifest calls."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "scripts/wire-multi-backend.sh",
+      "source_relative_path": "integration/typescript-product/payload/scripts/wire-multi-backend.sh",
+      "manifest_payload_sha256": "71e94512a5a6ff2967761a31ade0f503a78776b386ad7bed2b1fc88eb8e7117e",
+      "manifest_mode": "0755",
+      "source_sha256": "71e94512a5a6ff2967761a31ade0f503a78776b386ad7bed2b1fc88eb8e7117e",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "6b79456c4d8430fa910adcfee37c847f1b52dade85193abc338b51ade9cd228c",
+      "candidate_mode": "0755",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "c1dfbcec514451ea12735ac7918fb9252ebec2de",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Add classify-task.ts, task-classification.ts, phase-resolution.ts and routing-contract-cli.ts beside the existing classifier in both install and revert link lists.",
+        "Do not broaden installer ownership to live maps, providers or unrelated surfaces."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "scripts/temperance-proxy-launchd.sh",
+      "source_relative_path": "integration/typescript-product/payload/scripts/temperance-proxy-launchd.sh",
+      "manifest_payload_sha256": "7d496356aff2d2dd7dfc9db1e3951c0306f804dd5db44a33cbb96f89a618319a",
+      "manifest_mode": "0755",
+      "source_sha256": "7d496356aff2d2dd7dfc9db1e3951c0306f804dd5db44a33cbb96f89a618319a",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "93f0dd6761b66f315bd2619f5de711edf652c947166149381e688267dbbb460d",
+      "candidate_mode": "0755",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "7f366d6ea046f924feb4c4d09500997d1068354f",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Add the four TypeScript classifier/resolver dependencies to the explicit router copy list.",
+        "Preserve existing proxy service ownership; do not execute this script during source adoption."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "scripts/install-gsd.sh",
+      "source_relative_path": "integration/typescript-product/payload/scripts/install-gsd.sh",
+      "manifest_payload_sha256": "d46807faa24b07784025c3d26e549e0e8efd1283ab23af87e73e7fa16800cf16",
+      "manifest_mode": "0755",
+      "source_sha256": "d46807faa24b07784025c3d26e549e0e8efd1283ab23af87e73e7fa16800cf16",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "9300c039c098560a8b841f56d187b475215aae9e4c100a34b91a2813d2ba7a31",
+      "candidate_mode": "0755",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "da5ece8b1cea11563e11bb04462eb5e8b6ad5411",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Update only the GSD-generator invocation and its dry-run text to include explicit --apply.",
+        "Retain its deprecated status; do not execute the installer as a verification shortcut."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "scripts/install-spine.sh",
+      "source_relative_path": "integration/typescript-product/payload/scripts/install-spine.sh",
+      "manifest_payload_sha256": "d039a55bd4b7c51255de420d626d9bd9a184b544aae8fd41b44494b8a9a8546a",
+      "manifest_mode": "0755",
+      "source_sha256": "d039a55bd4b7c51255de420d626d9bd9a184b544aae8fd41b44494b8a9a8546a",
+      "source_regular": true,
+      "candidate_kind": "file",
+      "candidate_sha256": "0cf07f1e5aec9d916a5abe46bf4cb12f83b40b62a629f44b399300cfafd7b875",
+      "candidate_mode": "0755",
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": "da5ece8b1cea11563e11bb04462eb5e8b6ad5411",
+      "disposition": "semantic_hunks",
+      "semantic_hunks": [
+        "Update only the GSD-generator invocation and its dry-run text to include explicit --apply.",
+        "Retain its deprecated status and avoid whole-router rsync as an adoption method."
+      ],
+      "copy_after": [],
+      "mode_action": "preserve_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/router/backup-if-changed.ts",
+      "source_relative_path": "integration/typescript-product/payload/package/router/backup-if-changed.ts",
+      "manifest_payload_sha256": "ba55926b26170cb265568f59e88525f5818d56ec64109609fa9b7f862e8bee20",
+      "manifest_mode": "0644",
+      "source_sha256": "ba55926b26170cb265568f59e88525f5818d56ec64109609fa9b7f862e8bee20",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [],
+      "source_nonrelative_imports": [
+        "node:fs",
+        "node:path"
+      ],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    },
+    {
+      "path": "package/bin/te-backup-if-changed",
+      "source_relative_path": "integration/typescript-product/payload/package/bin/te-backup-if-changed",
+      "manifest_payload_sha256": "e1f9eeae4a739ff85e03096c38d7270c6098ea70797020a4b8d2aab6ac23e7c1",
+      "manifest_mode": "0755",
+      "source_sha256": "e1f9eeae4a739ff85e03096c38d7270c6098ea70797020a4b8d2aab6ac23e7c1",
+      "source_regular": true,
+      "candidate_kind": "absent",
+      "candidate_sha256": null,
+      "candidate_mode": null,
+      "source_local_imports": [],
+      "source_nonrelative_imports": [],
+      "candidate_last_commit": null,
+      "disposition": "copy_missing",
+      "semantic_hunks": [],
+      "copy_after": [
+        "package/router/backup-if-changed.ts"
+      ],
+      "mode_action": "use_manifest_mode",
+      "provenance": "VERIFIED: PRODUCT-only manifest allowlist, regular-file/hash/mode comparison, RO06 Git metadata, scoped source diff and literal dependency references."
+    }
+  ],
+  "prospective_source_import_gaps": [
+    {
+      "consumer": "package/router/classify-task.ts",
+      "specifier": "./task-classification",
+      "path": "package/router/task-classification.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/phase-resolution.ts",
+      "specifier": "./task-classification",
+      "path": "package/router/task-classification.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/routing-contract-cli.ts",
+      "specifier": "./phase-resolution",
+      "path": "package/router/phase-resolution.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/routing-contract-cli.ts",
+      "specifier": "./task-classification",
+      "path": "package/router/task-classification.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/surface-convergence-contract.ts",
+      "specifier": "./effort-contract.ts",
+      "path": "package/router/effort-contract.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/phase-capability-contract.ts",
+      "specifier": "./effort-contract.ts",
+      "path": "package/router/effort-contract.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/phase-capability-contract.ts",
+      "specifier": "./surface-convergence-contract.ts",
+      "path": "package/router/surface-convergence-contract.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/gsd-command-install.mjs",
+      "specifier": "./phase-capability-contract.ts",
+      "path": "package/router/phase-capability-contract.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/gsd-command-install.mjs",
+      "specifier": "./surface-convergence-contract.ts",
+      "path": "package/router/surface-convergence-contract.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/router/rail-announce.ts",
+      "specifier": "./task-classification",
+      "path": "package/router/task-classification.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    },
+    {
+      "consumer": "package/enrich/stages/routing.ts",
+      "specifier": "../../router/task-classification",
+      "path": "package/router/task-classification.ts",
+      "candidate_present": false,
+      "in_manifest": true
+    }
+  ],
+  "unresolved_source_imports_outside_manifest": [],
+  "additional_named_dependencies": [
+    {
+      "consumer": "package/router/surface-convergence-contract.ts",
+      "paths": [
+        "package/router/gsd-rail-map.json",
+        "package/router/phase-combo-map.json",
+        "package/router/alchemy-stage-hub-map.json"
+      ],
+      "state": "All three are manifest targets; adopt paired schema and source modules atomically."
+    },
+    {
+      "consumer": "package/router/gsd-command-install.mjs",
+      "paths": [
+        "package/bin/te-backup-if-changed",
+        "package/router/backup-if-changed.ts"
+      ],
+      "state": "Both absent in RO06 and present in the manifest. Generator uses adjacent ../bin helper."
+    },
+    {
+      "consumer": "package/enrich/stages/routing.ts",
+      "paths": [
+        "package/enrich/contract.ts"
+      ],
+      "state": "Existing named source import resolves; no additional package import identified."
+    }
+  ],
+  "installed_dependency_gaps": [
+    {
+      "id": "enrichment_router_relative_path",
+      "source_consumer": "package/enrich/stages/routing.ts",
+      "source_specifier": "../../router/task-classification",
+      "declared_enrichment_destination": "TEMPERANCE_STATE/runtime/enrichment",
+      "resolved_installed_dependency": "TEMPERANCE_STATE/runtime/router/task-classification.ts",
+      "declared_router_destination": "TEMPERANCE_STATE/router",
+      "status": "source_resolves_but_declared_installed_layout_does_not",
+      "required_owner_task": "Reconcile enrichment/router destination topology and its loader through install-surface ownership; prove actual lifecycle COPY imports in a temporary root before installed promotion. Do not mask with undeclared copies or host fallback."
+    },
+    {
+      "id": "generator_adjacent_backup_helper",
+      "source_consumer": "package/router/gsd-command-install.mjs",
+      "required_installed_helper": "TEMPERANCE_STATE/bin/te-backup-if-changed",
+      "module_dependency": "TEMPERANCE_STATE/router/backup-if-changed.ts",
+      "status": "package_bin_has_no_pinned_COPY_source",
+      "required_owner_task": "Declare installation and rollback ownership for the adjacent helper or adopt an explicitly reviewed installed helper contract; prove generator refresh and restoration in the installed topology. Existing router COPY alone does not deliver package/bin."
+    }
+  ],
+  "preserve_RO06": [
+    {
+      "path": "package/contracts/routing-observation-receipt.v1.ts",
+      "sha256": "7c6c2e133057540c85e62642882031591fb7d1f151ea77c641487240a09b820b",
+      "action": "Preserve closed canonical routing-observation schema, separate from research activity."
+    },
+    {
+      "path": "scripts/sync-routing-observation-contract.mjs",
+      "sha256": "01efd3e1ac17544f011bb663a4d5b3fdc3b40757cb326a52ad7147c0d2ba10c4",
+      "action": "Preserve source-owned generation and check of router/bridge contract copies."
+    },
+    {
+      "path": "scripts/temperance-manifest-bridge-launchd.sh",
+      "sha256": "e2a6760772b130ce77bb2cec7698ff519b929cb61fcf6fe442d77cb46198c0dc",
+      "action": "Preserve RO06 explicit absolute runtime package root and source inspection behavior."
+    },
+    {
+      "path": "package/install-surface/scripts/sync-copy-expectations.ts",
+      "sha256": "4fe7ca5101028d3a551390590c2654e5a88f4fe05f3a309c508b78951d0bf43c",
+      "action": "Preserve immutable-commit inventory writer and read-only check; refresh generated expectations after reviewed source commit."
+    },
+    {
+      "path": "package/install-surface/src/cli.ts",
+      "sha256": "85b75eefa893c026f4d07906f1447e1576b27f0b6fea30c0079aeb8cb86769aa",
+      "action": "Preserve lifecycle/compiler owner; regenerate lock through write-lock command."
+    },
+    {
+      "path": "package/install-surface/copy-expectations.provenance.json",
+      "sha256": "98410b97e7c1810eb3304ba7a63fba86e51b7a239e028c1910bb9b816a943512",
+      "action": "Refresh with owning generator after source commit; do not hand-edit digests."
+    },
+    {
+      "path": "package/install-surface/install-surface-manifest.lock.json",
+      "sha256": "2c8afb4ca7b30e731b7f93524eeff8d8582bbb58392158e1582c2ab1d0b4bc09",
+      "action": "Refresh only with lock compiler after expectation changes."
+    }
+  ],
+  "preserve_RO06_behavior": [
+    "RO-00 committed-source COPY inventory, modes, prepared/non-copy recovery and drift-safe rollback.",
+    "RO-01 through RO-04 canonical receipt, generated parity, pure adapter, strict ingest/replay/registry admission and default opt-in policy.",
+    "RO-05 temporary installed receipt replay and RO-06 guarded complete-package CLI loading.",
+    "Explicit Manifest runtime package-root selection and separation of offline proof from listeners/PostgreSQL/live attribution."
+  ],
+  "expectation_refresh": {
+    "owner": "package/install-surface/scripts/sync-copy-expectations.ts",
+    "current_pinned_revision": "b386ea0868876414ff2839083d12d769428aaf2b",
+    "current_pinned_tree": "7cbdfa2eaf982a934ec991661c75a54991a2dc9b",
+    "current_COPY_records": 13,
+    "current_semantic_records": 20,
+    "affected_existing_COPY_records": [
+      "router.governed-runtime",
+      "enrichment.public-pipeline"
+    ],
+    "source_commit_required_before_refresh": true,
+    "planned_commands_not_run": [
+      [
+        "bun",
+        "--no-env-file",
+        "package/install-surface/scripts/sync-copy-expectations.ts",
+        "--revision",
+        "<FULL_REVIEWED_PRODUCT_COMMIT>",
+        "--write"
+      ],
+      [
+        "bun",
+        "--no-env-file",
+        "package/install-surface/scripts/sync-copy-expectations.ts",
+        "--revision",
+        "<FULL_REVIEWED_PRODUCT_COMMIT>",
+        "--check"
+      ],
+      [
+        "bun",
+        "--no-env-file",
+        "package/install-surface/src/cli.ts",
+        "write-lock"
+      ],
+      [
+        "node",
+        "scripts/sync-routing-observation-contract.mjs",
+        "--check"
+      ]
+    ],
+    "notes": [
+      "Run within the future product integration worktree, after source review and commit.",
+      "Verify declared ownership/eligibility/service fields remain unchanged for source-only adoption. A deliberate installer-layout/helper change needs its own reviewed semantic-record delta.",
+      "Existing expectation and lock hashes cover the old pinned source, not the newly adopted foundation.",
+      "Preserve executable mode 0755 for gsd-command-install.mjs unless a deliberate mode change is reviewed; the historical payload records 0644."
+    ]
+  },
+  "tests": {
+    "existing": [
+      {
+        "path": "tests/classify-task.sh",
+        "status": "existing_requires_semantic_expectation_review",
+        "sha256": "93999d9e57da335cba211f20b0e0237c761d43caa1e0a72eaab7f0c6fc23d296"
+      },
+      {
+        "path": "tests/router-hardening.sh",
+        "status": "existing_requires_semantic_expectation_review",
+        "sha256": "f8356777d47dec72899e5aa200254ad31ef86863d647d87e9c1559449a6356e8"
+      },
+      {
+        "path": "package/enrich/stages/routing.test.ts",
+        "status": "preserve_and_extend_for_direct_import",
+        "sha256": "a15453782089f3d39070bdbb10b65fda56e36ce3be0b2ee1a3f28276d1c0c72f"
+      },
+      {
+        "path": "tests/manifest-bridge-runtime-layout.test.ts",
+        "status": "preserve_RO06",
+        "sha256": "3d082d4c6d54ba90f5a9d7e82d74baad301c5e7bdb0d6bc4a55576fd3ebd731f"
+      },
+      {
+        "path": "tests/routing-observation-installed-layout.test.ts",
+        "status": "preserve_RO06",
+        "sha256": "71ea4a73dce8af8b1125c0f01838a106156d381d2a8402507c4b097194cc2ee7"
+      },
+      {
+        "path": "tests/manifest-bridge-installed-cli-smoke.ts",
+        "status": "preserve_RO06_opt_in_offline_smoke",
+        "sha256": "8e365aabcaad041f54ab7061fa2d6bb0a7a7640cd3ca064e459c79e4811574f1"
+      },
+      {
+        "path": "tests/sync-routing-observation-contract.test.ts",
+        "status": "preserve_RO06",
+        "sha256": "d5c80d5c578a45b93d4ba047e3215ec56871706e1449c7250f962eaa7de39739"
+      }
+    ],
+    "missing_named_product_test_paths": [
+      "package/router/task-classification.test.ts",
+      "package/router/phase-resolution.test.ts",
+      "package/router/classify-task-cli.test.ts",
+      "package/router/routing-contract-cli.test.ts",
+      "package/router/surface-convergence-contract.test.ts",
+      "package/router/effort-contract.test.ts",
+      "package/router/phase-capability-contract.test.ts",
+      "package/router/gsd-command-install.test.ts",
+      "package/router/backup-if-changed.test.ts",
+      "package/router/omniroute-codex.test.ts",
+      "package/router/omniroute-codex-transport.test.ts",
+      "package/router/rail-announce.test.ts"
+    ],
+    "historical_payload_harness": {
+      "source_relative_path": "integration/typescript-product/product-payload.test.ts",
+      "sha256": "5ca5672ff7f13acd9e2765f5fe92adfbd0b261d0122b56091a6ed129d9bc576b",
+      "scope": "Historical 22-target payload, temporary source replay, wrapper generation and backup restoration.",
+      "limitation": "Reads private MANIFEST.json.productRoot and historical preimages. Do not copy/run unchanged as RO06 acceptance or commit the private packet; adapt its behavior checks to the new immutable product baseline and synthetic roots."
+    },
+    "required_adoption_coverage": [
+      "Shared classifier/resolver CLI and sourced-shell compatibility, including reviewed runtime containment.",
+      "Canonical map/parser/effort/phase schema compatibility and GSD wrapper rendering with temporary destinations.",
+      "Backup wrapper plus generator refresh failure and restoration.",
+      "PRODUCT transport attribution/profile/retry behavior using fixture executables only.",
+      "Enrichment default classification and actual installed dependency path.",
+      "Preserve existing RO06 receipt/contract/installer/layout suites; no new package or test framework is needed by the inspected source imports."
+    ],
+    "all_tests_in_this_audit": "not_run"
+  },
+  "adoption_order": [
+    {
+      "step": 1,
+      "action": "Use a product integration worktree based on f21b3ef; preserve its source and review receipts."
+    },
+    {
+      "step": 2,
+      "action": "Hash-check and create the ten missing paths; add pure classifier/effort/backup before their dependent CLI/parser/helper paths."
+    },
+    {
+      "step": 3,
+      "action": "Adopt paired maps/surface modules/GSD generator and its adjacent backup helper as one semantic source unit; preserve generator executable mode."
+    },
+    {
+      "step": 4,
+      "action": "Reconcile classifier/phase containment and twelve existing consumers using only scoped hunks; preserve simpler PRODUCT lifecycle."
+    },
+    {
+      "step": 5,
+      "action": "Add/adapt finite fixture tests; reconcile stale legacy expectations. Preserve RO06 receipt and installer behavior."
+    },
+    {
+      "step": 6,
+      "action": "Commit reviewed source, regenerate COPY expectations from that immutable full commit, check them, then regenerate lock through its owner."
+    },
+    {
+      "step": 7,
+      "action": "Before installed promotion, close the two explicit installed dependency gaps with an owned layout/helper change and actual temporary installed-import/rollback proof."
+    }
+  ],
+  "limits": [
+    "Only two adoption documents were created.",
+    "No PRODUCT source, private manifest, raw payload, service, provider or Git state was changed.",
+    "Source/hash equality is not semantic, installer, live service or consumer acceptance.",
+    "No broad repository or private-content audit was performed."
+  ],
+  "confidence": "HIGH for finite source hashes, ownership and observed dependency gaps; future API/runtime acceptance requires scoped execution."
+}

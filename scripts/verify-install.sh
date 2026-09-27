@@ -107,23 +107,49 @@ done
 #   docs     — always scanned
 #   generated — pruned structurally below (dependency/vendor/build output is not
 #               source; pruning here is NOT suppression of source violations)
-#   fixtures-allowlisted — synthetic private-looking paths permitted ONLY under a
-#               fixtures/ directory matching the documented synthetic marker.
-#               Synthetic marker convention: paths under /Volumes/fixture/ are
-#               test scaffolding, never real host locations. The allowlist set
-#               ships EMPTY otherwise.
+#   vcs-metadata — `.git` is structurally pruned. A linked-worktree gitfile
+#               records the local checkout path and is not shipped source.
+#   grammar-literal — the escaped `\.craft-agent` regex token is source grammar,
+#               not a filesystem path. It is normalized before matching.
+#   synthetic-fixture — `/Volumes/fixture/` is the reserved fixture namespace,
+#               and one exact lifecycle negative-test line is permitted below.
+#               Both are normalized path-by-path, so a second private-looking
+#               value in the same source line still fails closed.
 #
 # Patterns are clone-location-generic: any absolute home path, any mounted
 # volume path, and session-store names. No maintainer-specific literals.
 #
-# Self-scan exclusion (role: guard-spec): the guard cannot scan files whose
-# purpose is to define or specify the guard itself — its own script, plus the
-# explicitly-enumerated phase planning docs that quote its patterns verbatim in
-# their verify commands. This set is enumerated below, never globbed; every
-# unclassified file still scans as source (fail-closed). Adding a file here
-# requires stating in that file why it must quote guard patterns.
+# The only path-shaped source grammar that can match the scanner is the
+# escaped regex token below. Removing exactly that token leaves any real path
+# on the same line visible to the normal private-path matcher.
+PRIVATE_PATH_PATTERN='/Users/[A-Za-z0-9_.-]+|/Volumes/[A-Za-z0-9_-]+/[^/]|\.craft-agent'
 
-GUARD_SPEC=" $ROOT/scripts/verify-install.sh $ROOT/.planning/phases/02-public-source-convergence/02-CONTEXT.md $ROOT/.planning/phases/02-public-source-convergence/02-01-PLAN.md $ROOT/.planning/phases/02-public-source-convergence/02-02-PLAN.md "
+is_allowed_synthetic_private_path_line() {
+  relative_path="$1"
+  line="$2"
+  synthetic_home_prefix='/Users/'
+  synthetic_line='          destination_symbolic: "'"$synthetic_home_prefix"'testuser/.config/test/file.txt", // PRIVATE_PATH_GUARD_FIXTURE: synthetic redaction rejection'
+
+  [ "$relative_path" = "package/install-surface/test/lifecycle.test.ts" ] \
+    && [ "$line" = "$synthetic_line" ]
+}
+
+normalize_private_path_grammar() {
+  # The escaped session-store token is valid regex syntax. Do not
+  # suppress an unescaped session-store name or any adjacent private path.
+  # `/Volumes/fixture/` is a deliberately fictional test namespace; strip only
+  # that path fragment, then match the rest of the same source line normally.
+  # A traversal segment is never fixture grammar because it could escape the
+  # synthetic root; leave it intact for the fail-closed matcher.
+  if printf '%s\n' "$1" | grep -q -E '/Volumes/fixture(/[^/]+)*/\.\.(/|$)'; then
+    printf '%s\n' "$1"
+    return
+  fi
+
+  printf '%s\n' "$1" | sed \
+    -e 's/\\\.craft-agent/<SESSION_STORE_REGEX>/g' \
+    -e 's#/Volumes/fixture/[A-Za-z0-9._/-]*#<SYNTHETIC_VOLUME>#g'
+}
 
 # Hits collect into a temp file rather than a captured pipeline: /bin/sh on
 # macOS is bash 3.2, whose parser cannot handle a case statement inside
@@ -136,20 +162,35 @@ hits_tmp=$(mktemp "${TMPDIR:-/tmp}/te-private-guard.XXXXXX")
     "$ROOT/CHANGELOG.md" "$ROOT/CONTRIBUTING.md" "$ROOT/CREDITS.md" \
     "$ROOT/ISA.md" "$ROOT/SECURITY.md" "$ROOT/UPSTREAM.md" \
     "$ROOT/install.sh" "$ROOT/uninstall.sh" "$ROOT/verify.sh" \
-    \( -name node_modules -o -name dist -o -name build \) -prune -o \
+    \( -name .git -o -name node_modules -o -name dist -o -name build \) -prune -o \
     -type f -print 2>/dev/null
   # root level: any file dropped at the repository top must also be scanned
-  # (fail-closed default extends to unenumerated top-level files)
-  find "$ROOT" -maxdepth 1 -type f -print 2>/dev/null
+  # (fail-closed default extends to unenumerated top-level files). Linked
+  # worktrees expose `.git` as a local-path gitfile, so prune it structurally.
+  find "$ROOT" -maxdepth 1 -type f ! -name .git -print 2>/dev/null
 } | sort -u \
 | while IFS= read -r candidate; do
-    case "$GUARD_SPEC" in *" $candidate "*) continue ;; esac
-    file_hits=$(grep -n -I -E '/Users/[A-Za-z0-9_.-]+|/Volumes/[A-Za-z0-9_-]+/[^/]|\.craft-agent' -- "$candidate" 2>/dev/null \
-      | grep -v '<OPERATOR_HOME>\|<PROJECT_VOLUME>\|<SESSION_STORE>\|/Volumes/fixture/' || true)
-    if [ -n "$file_hits" ]; then
-      printf '%s\n' "$file_hits" >> "$hits_tmp"
-      printf 'FILE:%s\n' "$candidate" >> "$hits_tmp"
-    fi
+    relative_path=${candidate#"$ROOT/"}
+    line_hits_tmp=$(mktemp "${TMPDIR:-/tmp}/te-private-line.XXXXXX")
+    grep -n -I -E "$PRIVATE_PATH_PATTERN" -- "$candidate" > "$line_hits_tmp" 2>/dev/null || true
+
+    while IFS= read -r hit; do
+      [ -n "$hit" ] || continue
+      line_number=${hit%%:*}
+      line=${hit#*:}
+
+      if is_allowed_synthetic_private_path_line "$relative_path" "$line"; then
+        continue
+      fi
+
+      normalized_line=$(normalize_private_path_grammar "$line")
+      if printf '%s\n' "$normalized_line" | grep -q -E "$PRIVATE_PATH_PATTERN"; then
+        printf '%s:%s\n' "$line_number" "$line" >> "$hits_tmp"
+        printf 'FILE:%s\n' "$candidate" >> "$hits_tmp"
+      fi
+    done < "$line_hits_tmp"
+
+    rm -f "$line_hits_tmp"
   done
 
 if [ -s "$hits_tmp" ]; then

@@ -1,18 +1,45 @@
 {
   "schema": "temperance.phase-combo-map.v2",
-  "updated": "2026-08-12",
+  "updated": "2026-08-29",
+  "coordinator": {
+    "lane": "noesis-orchestrator",
+    "provider": "omniroute",
+    "lease_scope": "exact-provider-connection-model",
+    "role": "cognitive phase coordinator; never a worker fleet head",
+    "supported_surfaces": [
+      "claude",
+      "codex",
+      "grok",
+      "opencode",
+      "cursor",
+      "antigravity",
+      "superset"
+    ]
+  },
+  "compatibility_aliases": {
+    "noesis-full": {
+      "target": "noesis-orchestrator",
+      "write_policy": "read-only-compatibility",
+      "expires_after": "2026-09-30",
+      "note": "Historical sessions may resolve this alias; new project contracts and generated adapters must never write it."
+    }
+  },
   "native_orchestrator": {
     "profile": "temperance-orchestrator",
-    "model": "gpt-5.6-sol",
-    "provider": "native-chatgpt",
-    "role": "babysit-only: classify, plan slices, dispatch, integrate, verify receipts \u2014 no bulk coding",
-    "babysit_only": true,
-    "never_fleet_head": true
+    "model": "noesis-orchestrator",
+    "provider": "omniroute",
+    "role": "session pin: classify/plan/dispatch via live OmniRoute capacity \u2014 never announce inactive Sol/Claude/Grok seats",
+    "babysit_only": false,
+    "never_fleet_head": false,
+    "resolve": "dynamic-from-provider-class-and-live-combo",
+    "note": "Hooks resolve native/head from provider-class + live combo stack. Codex is active again; Sol remains explicit opt-in and never becomes the native default."
   },
   "model_migrations": {
-    "gpt-5.6-sol": "babysit-only",
-    "gpt-5.6-sol-max": "babysit-only",
-    "note": "Sol stays the native Codex default. Algorithm fleet work uses te-plan/te-build/te-dispatch-paid — never rewrite Sol into a combo head."
+    "gpt-5.6-sol": "explicit-opt-in-only",
+    "gpt-5.6-sol-max": "explicit-opt-in-only",
+    "codex/gpt-5.6-sol": "explicit-opt-in-only",
+    "codex/gpt-5.6-sol-max": "explicit-opt-in-only",
+    "note": "Codex Spark is eligible after live recovery. Sol still requires provider-class.sol_policy.operator_authorized=true plus the quota/reset gate; never announce Sol as native."
   },
   "announce": {
     "style": "sigil \u00b7 STAGE \u00b7 PHASE \u00b7 n/7",
@@ -23,41 +50,127 @@
       "~/.temperance_engine/router/temperance-phase-dispatch.sh"
     ]
   },
+  "babysit_by_complexity": {
+    "comment": "Complexity selects the combo. Each combo HEAD is the babysit model for that band. Failover is health, not effort.",
+    "bands": [
+      {
+        "id": "lite",
+        "modes": [
+          "MINIMAL",
+          "NATIVE"
+        ],
+        "tiers": [
+          "E1"
+        ],
+        "combo": "noesis-fast",
+        "babysit": "nous/stealth/ox-alpha",
+        "pool": "noesis-fast-live-fleet",
+        "session": "Haiku / temperance-native / claude --model noesis-fast"
+      },
+      {
+        "id": "standard",
+        "modes": [
+          "ALGORITHM"
+        ],
+        "tiers": [
+          "E2",
+          "E3"
+        ],
+        "combos": [
+          "noesis-observe",
+          "noesis-plan",
+          "noesis-build",
+          "noesis-orchestrator",
+          "noesis-verify"
+        ],
+        "babysit": "bailian-coding-plan/qwen3.7-max",
+        "pool": "noesis-standard-live-fleet",
+        "session": "Sonnet / default Claude Code / temperance-auto ALGORITHM / temperance-algorithm"
+      },
+      {
+        "id": "max",
+        "modes": [
+          "ALGORITHM"
+        ],
+        "tiers": [
+          "E4",
+          "E5"
+        ],
+        "combos": [
+          "noesis-plan-max"
+        ],
+        "babysit": "cursor/claude-4.6-opus-high",
+        "pool": "cursor-composer",
+        "session": "Cursor Opus-high / noesis-plan-max (Claude OmniRoute hard-off \u2014 use cursor/ + BCP)"
+      }
+    ],
+    "execute_workers": {
+      "combo": "noesis-execute",
+      "head": "codex/gpt-5.3-codex-spark",
+      "note": "Current paid-fleet head after Codex recovery. Not a babysit rail; Parallel Execute only."
+    }
+  },
+  "claude_code_gateway": {
+    "comment": "Claude Code only has five Anthropic-shaped alias slots. Those five ARE the complexity bands across sessions. Classifier cannot swap ANTHROPIC_MODEL mid-session.",
+    "settings_file": "~/.claude/settings.json",
+    "base_url": "http://localhost:20128",
+    "env": {
+      "ANTHROPIC_MODEL": "noesis-orchestrator",
+      "ANTHROPIC_SMALL_FAST_MODEL": "noesis-fast",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "noesis-fast",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "noesis-build",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "noesis-plan-max"
+    },
+    "complexity_slots": {
+      "haiku_and_fast": "lite -> noesis-fast -> current live head nous/stealth/ox-alpha, then combo failover",
+      "sonnet_and_default": "standard ALGORITHM -> noesis-build through the Anthropic-shaped Gateway; Claude OmniRoute remains hard-off",
+      "opus": "E4/E5 -> noesis-plan-max -> cursor/claude-4.6-opus-high (Claude OmniRoute hard-off)"
+    },
+    "pin_explicitly": {
+      "noesis-execute": "parallel Execute workers only",
+      "noesis-verify": "Verify phase",
+      "noesis-observe": "Observe/Think/Learn",
+      "noesis-plan": "simple ALGORITHM plan through the current noesis-plan stack without Max burn",
+      "noesis-vision": "screenshots / Vision Bridge"
+    }
+  },
   "task_type_to_combo": {
-    "fast": "te-fast",
-    "balanced": "te-fast",
-    "creative": "te-creative",
-    "plan": "te-plan",
-    "planning": "te-plan",
-    "long-horizon": "te-build",
-    "reasoning": "te-reason",
-    "validation": "te-validate",
-    "dispatch": "te-dispatch-paid",
-    "parallel-worker": "te-dispatch-paid",
-    "inline": "te-fast",
-    "research": "te-write-research",
-    "evidence": "te-write-research",
-    "web-search": "te-write-research",
-    "investigate": "te-reason",
-    "plan-max": "te-plan-max",
-    "ralph": "te-build",
-    "optimize": "te-reason",
-    "media": "te-write-media",
-    "vision": "te-vision"
+    "fast": "noesis-fast",
+    "balanced": "noesis-fast",
+    "creative": "noesis-creative",
+    "plan": "noesis-plan",
+    "planning": "noesis-plan",
+    "long-horizon": "noesis-build",
+    "reasoning": "noesis-observe",
+    "validation": "noesis-verify",
+    "dispatch": "noesis-execute",
+    "parallel-worker": "noesis-execute",
+    "inline": "noesis-fast",
+    "research": "noesis-research",
+    "evidence": "noesis-research",
+    "web-search": "noesis-research",
+    "investigate": "noesis-observe",
+    "plan-max": "noesis-plan-max",
+    "ralph": "noesis-build",
+    "optimize": "noesis-observe",
+    "media": "noesis-media",
+    "vision": "noesis-vision",
+    "review": "noesis-review",
+    "provider-write-research": "noesis-alibaba"
   },
   "loop_contracts": {
     "ralph": {
       "pattern": "isolated feature loop (Maestro / ephemeral ISA)",
-      "combo": "te-build",
-      "swarm": "te-swarm-s",
-      "paid": "te-dispatch-paid",
-      "learn": "ISA reconcile ephemeral → master",
+      "combo": "noesis-build",
+      "swarm": "noesis-swarm",
+      "paid": "noesis-execute",
+      "learn": "ISA reconcile ephemeral \u2192 master",
       "anti": "Do not hand-edit combo stacks per Ralph iteration"
     },
     "optimize": {
       "pattern": "Karpathy/pi-autoresearch keep-discard",
-      "combo": "te-reason",
-      "verify": "te-validate",
+      "combo": "noesis-observe",
+      "verify": "noesis-verify",
       "measure": "routing-observations + usage_history error rates",
       "keep_discard": "~/.temperance_engine/state/routing-suggestions.json",
       "anti": "One variable per experiment; no full-DB backups"
@@ -65,13 +178,13 @@
     "classify_route": "~/.temperance_engine/router/classify-route.py"
   },
   "algorithm_phases": {
-    "Observe": "te-reason",
-    "Think": "te-reason",
-    "Plan": "te-plan",
-    "Build": "te-build",
-    "Execute": "te-dispatch-paid",
-    "Verify": "te-validate",
-    "Learn": "te-reason"
+    "Observe": "noesis-observe",
+    "Think": "noesis-observe",
+    "Plan": "noesis-plan",
+    "Build": "noesis-build",
+    "Execute": "noesis-execute",
+    "Verify": "noesis-verify",
+    "Learn": "noesis-observe"
   },
   "next_wave": {
     "cli": "temperance-next-wave",
@@ -81,8 +194,8 @@
     "enrich_injects": "dispatch: NEXT-WAVE \u2026 into temperance-context",
     "gh_sync": "com.temperance.engine.plan-issue-sync (hourly) or temperance-next-wave --sync",
     "execute": {
-      "parallel": "temperance-swarm-dispatch --request .planning/swarm-claim.json (claim required; combo te-dispatch-paid)",
-      "sequential": "temperance-phase-dispatch.sh Build|Execute \"\u2026\"  (combo te-build / te-dispatch-paid)"
+      "parallel": "temperance-swarm-dispatch --request .planning/swarm-claim.json (claim required; combo noesis-execute)",
+      "sequential": "temperance-phase-dispatch.sh Build|Execute \"\u2026\"  (combo noesis-build / noesis-execute)"
     },
     "auto_rule": "NEXT-WAVE is a proposal, never execution authority. Render and persist its options; dispatch only after a matching, unexpired human approval receipt confirms the option, plan fingerprint, policy hash, and bounded concurrency.",
     "approval_policy": {
@@ -90,8 +203,20 @@
       "default": "human_required",
       "receipt_kind": "approval.granted",
       "expires_after_ms": 600000,
-      "revalidate_before_dispatch": ["project_scope", "git_head", "source_fingerprints", "policy_hash", "quota_snapshot"],
-      "separate_approval_required_for": ["merge", "deploy", "github_sync", "skill_install", "credential_change"]
+      "revalidate_before_dispatch": [
+        "project_scope",
+        "git_head",
+        "source_fingerprints",
+        "policy_hash",
+        "quota_snapshot"
+      ],
+      "separate_approval_required_for": [
+        "merge",
+        "deploy",
+        "github_sync",
+        "skill_install",
+        "credential_change"
+      ]
     }
   },
   "session_limits": {
@@ -105,7 +230,7 @@
       "do_not": [
         "Copy ~/.omniroute/storage.sqlite as a combo backup",
         "Hand-edit every te-* stack for one quota event",
-        "Put Sol/Fable as default heads on te-fast/te-build/te-reason/te-swarm-s"
+        "Put Sol/Fable as default heads on noesis-fast/noesis-build/noesis-observe/noesis-swarm"
       ],
       "do": [
         "Read CodexBar GUI or `codexbar usage --provider codex --source auto` (Claude CLI often times out ~100-160s; use GUI)",
@@ -113,25 +238,25 @@
         "Update classify-task.sh model_for_type if Command Code deals changed",
         "Update lane-templates-from-live.json CC promo seats only",
         "Capacity lanes: python3 sync-provider-fleet.py --apply",
-        "Paid leftover: python3 rank-paid-fleet.py --apply-combo (add --include-sol only when Codex weekly remaining >=20% and reset <24h)",
+        "Paid leftover: python3 rank-paid-fleet.py --apply-combo (add --include-sol only after explicit operator authorization and when Codex weekly remaining >=20% with reset <24h)",
         "Or one command: ~/.temperance_engine/bin/temperance-session-rebalance --apply  (timer: --install-timer)",
         "Keep one combos-before.json per apply, never another full DB copy"
       ]
     },
     "rules": [
       "Before Execute fleet fan-out, prefer a fresh paid-fleet ranking if snapshot is >6h stale.",
-      "Seats with remaining_pct < 5 or is_exhausted are hard-ineligible for te-dispatch-paid.",
+      "Seats with remaining_pct < 5 or is_exhausted are hard-ineligible for noesis-execute.",
       "When Claude 5h session remaining < 25%, divert workers to Spark/Cursor/Antigravity-Gemini before Claude Max.",
-      "Never put Sol seats in te-dispatch-paid without explicit --include-sol authorization.",
-      "Capacity phases (Observe/Think/Plan/Build/Verify/Learn side work) stay on te-reason/te-plan/te-build/te-fast \u2014 do not burn Max session on babysit.",
+      "Never put Sol seats in noesis-execute without explicit --include-sol authorization.",
+      "Capacity phases (Observe/Think/Plan/Build/Verify/Learn side work) stay on noesis-observe/noesis-plan/noesis-build/noesis-fast \u2014 do not burn Max session on babysit.",
       "Kimi monthly-exhausted seats stay out of paid fleet even if 5h/weekly rate windows look free.",
       "SuperGrok (grok-cli/*) is a paid seat; include via rank-paid-fleet when rem>=20%.",
-      "Canonical docs: ~/.temperance_engine/docs/ROUTING.md \u2014 Sol-first planning docs archived.",
-      "plan-max \u2192 te-plan-max (Fable/Sol/Opus); only when complexity signals fire.",
-      "MINIMAL/NATIVE never select te-plan-max (floor te-fast).",
+      "Canonical docs: primary ~/.temperance_engine/docs/ROUTING.md plus the eight-file routing corpus in canonical_docs.routing_corpus.",
+      "plan-max \u2192 noesis-plan-max (Fable/Sol/Opus); only when complexity signals fire.",
+      "MINIMAL/NATIVE never select noesis-plan-max (floor noesis-fast).",
       "Screenshots/settings audits \u2192 prefer plan-max + Vision Bridge (gemini/gemini-2.5-flash).",
-      "te-plan-max must emit TASK GRAPH + SWARM handoff; never one-round micro-fix as done.",
-      "te-swarm-s is capacity fan-out only; never Sol/Fable heads on swarm."
+      "noesis-plan-max must emit TASK GRAPH + SWARM handoff; never one-round micro-fix as done.",
+      "noesis-swarm is capacity fan-out only; never Sol/Fable heads on swarm."
     ],
     "provider_windows": {
       "claude": [
@@ -155,8 +280,8 @@
       ]
     },
     "notes": [
-      "Execute fleet is te-dispatch-paid only (ranked paid seats + SuperGrok).",
-      "Capacity phases stay on te-reason/te-plan/te-build/te-fast \u2014 do not burn Sol/Fable as silent defaults.",
+      "Execute fleet is noesis-execute only (ranked paid seats + SuperGrok).",
+      "Capacity phases stay on noesis-observe/noesis-plan/noesis-build/noesis-fast \u2014 do not burn Sol/Fable as silent defaults.",
       "Sol/Fable/Opus are explicit pins when user wants max creative/planning spend.",
       "Legacy Sol-first docs archived under docs/archive/*-pre-routing-cleanup/"
     ]
@@ -165,15 +290,15 @@
     "single": "~/.temperance_engine/router/omniroute-codex.sh <combo> \"<task>\"",
     "fleet": "temperance-batch --foreground --tasks tasks.json --concurrency 4 --worktree",
     "profile": "codex --profile <combo>",
-    "paid_fleet_combo": "te-dispatch-paid",
+    "paid_fleet_combo": "noesis-execute",
     "rank_before_fleet": "python3 ~/.agents/skills/temperance-parallel-dispatch/scripts/rank-paid-fleet.py --apply-combo"
   },
   "forbidden_on_orchestrator": [
     "Do not implement multi-file changes in the native session when a combo is recommended.",
-    "Do not use legacy te-dispatch; use te-dispatch-paid.",
+    "Do not use legacy noesis-execute; use noesis-execute.",
     "Do not pin Sol as worker fleet head without explicit authorization.",
     "Do not pin exhausted Antigravity Claude seats when quota_snapshots show remaining 0.",
-    "Do not burn Claude Max 5h session on capacity-class side-quests (use te-fast)."
+    "Do not burn Claude Max 5h session on capacity-class side-quests (use noesis-fast)."
   ],
   "search_evidence": {
     "gateway": "http://127.0.0.1:20128/v1/search",
@@ -198,21 +323,36 @@
         "tavily-search"
       ]
     },
-    "combo": "te-write-research"
+    "combo": "noesis-research"
   },
-  "canonical_docs": "~/.temperance_engine/docs/ROUTING.md",
+  "canonical_docs": {
+    "primary": "~/.temperance_engine/docs/ROUTING.md",
+    "routing_corpus": [
+      "~/.temperance_engine/ROUTING-DOCTRINE.md",
+      "~/.temperance_engine/CAPABILITY-ROUTING.md",
+      "~/.temperance_engine/OMNIROUTE-SURFACES.md",
+      "~/.temperance_engine/ACP-INTEGRATION-PLAN.md",
+      "~/.temperance_engine/PROVIDER-FLEET-RUNBOOK.md",
+      "~/.temperance_engine/SESSION-CAPTURE-20260824.md",
+      "~/.temperance_engine/TRIVECTOR-ROADMAP.md",
+      "~/.temperance_engine/COMBO-ARCHITECTURE-PLAN.md"
+    ]
+  },
+  "schema_extensions": {
+    "canonical_docs": "Backward-compatible v2 field extension. Consumers must accept either the legacy string path or an object with primary and routing_corpus; no runtime consumer dereferenced this field when extended on 2026-08-24."
+  },
   "temperance_modes": {
     "description": "OpenCode 5 modes \u2194 combo selection",
     "modes": {
       "temperance-auto": "classifier: mode MINIMAL|NATIVE|ALGORITHM + task_type \u2192 combo",
-      "temperance-native": "pin te-fast (MINIMAL/NATIVE capacity)",
-      "temperance-algorithm": "pin te-algorithm; Plan slices may hard-route te-plan-max when task_type=plan-max",
-      "temperance-continuity": "pin te-build",
-      "temperance-planner": "complexity-aware: te-plan or te-plan-max from classify-task.sh"
+      "temperance-native": "pin noesis-fast (MINIMAL/NATIVE capacity)",
+      "temperance-algorithm": "pin noesis-orchestrator; Plan slices may hard-route noesis-plan-max when task_type=plan-max",
+      "temperance-continuity": "pin noesis-build",
+      "temperance-planner": "complexity-aware: noesis-plan or noesis-plan-max from classify-task.sh"
     },
     "complexity": {
-      "simple_plan": "te-plan",
-      "complex_plan": "te-plan-max",
+      "simple_plan": "noesis-plan",
+      "complex_plan": "noesis-plan-max",
       "signals": [
         "architecture decision",
         "system design",
@@ -222,10 +362,48 @@
       ]
     }
   },
-  "algorithm_phases_notes": "Default Plan phase uses te-plan. When classifier returns plan-max (complex ALGORITHM planning), use te-plan-max instead.",
+  "algorithm_phases_notes": "Default Plan phase uses noesis-plan. When classifier returns plan-max (complex ALGORITHM planning), use noesis-plan-max instead.",
+  "algorithm_phase_extra": {
+    "Observe": {
+      "sequence": []
+    },
+    "Think": {
+      "parallel": [
+        "noesis-council"
+      ],
+      "parallel_when": [
+        "E3",
+        "E4",
+        "E5",
+        "discuss-phase",
+        "review"
+      ]
+    },
+    "Plan": {
+      "sequence": []
+    },
+    "Build": {
+      "sequence": []
+    },
+    "Execute": {
+      "sequence": [
+        "noesis-build",
+        "noesis-execute"
+      ]
+    },
+    "Verify": {
+      "sequence": [
+        "noesis-verify",
+        "noesis-review"
+      ]
+    },
+    "Learn": {
+      "sequence": []
+    }
+  },
   "vision": {
     "bridge_model": "gemini/gemini-2.5-flash",
-    "combo": "te-vision",
+    "combo": "noesis-vision",
     "settings_keys": [
       "visionBridgeEnabled",
       "visionBridgeModel",
@@ -235,15 +413,15 @@
     ]
   },
   "plan_max_pipeline": {
-    "plan": "te-plan-max",
+    "plan": "noesis-plan-max",
     "deep_pass_outputs": [
       "MACRO MAP",
       "DEEP PASS",
       "TASK GRAPH",
       "HANDOFF"
     ],
-    "swarm": "te-swarm-s",
-    "paid": "te-dispatch-paid",
+    "swarm": "noesis-swarm",
+    "paid": "noesis-execute",
     "artifacts": [
       ".planning/DEEP-PASS.md",
       ".planning/tasks.md",
@@ -252,8 +430,8 @@
     ],
     "commands": {
       "make_tasklist": "python/bash make-tasklist from tasks bullets",
-      "swarm_batch": "temperance-batch with model te-swarm-s for capacity slices",
-      "paid_batch": "temperance-batch with te-dispatch-paid for paid implement"
+      "swarm_batch": "temperance-batch with model noesis-swarm for capacity slices",
+      "paid_batch": "temperance-batch with noesis-execute for paid implement"
     },
     "skill_discovery": [
       "For each capability gap, run temperance-discover-skills.sh",
@@ -270,7 +448,7 @@
     "index": "~/.agents/skill-clusters/skill-index.json",
     "tier_apply": "cd ~/.agents/skill-clusters && node scripts/tier.mjs --apply",
     "public_find": "npx skills find \"<need>\"",
-    "plan_max_rule": "On te-plan/te-plan-max deep pass, emit SKILL GAPS in TASK GRAPH with resolve path local|skillsmp|install",
+    "plan_max_rule": "On noesis-plan/noesis-plan-max deep pass, emit SKILL GAPS in TASK GRAPH with resolve path local|skillsmp|install",
     "startup_policy": {
       "primary_path": "~/.agents/skills",
       "source_of_truth": "~/.agents/skill-clusters",
@@ -296,5 +474,111 @@
       "skill_routing_doc": "~/.temperance_engine/docs/SKILL-ROUTING.md"
     },
     "repo_map": "node ~/.agents/skill-clusters/scripts/repo-skill-map.mjs [cwd] [--prompt] [--inject|--json|--write]"
+  },
+  "superset_grok": {
+    "comment": "Grok CLI default babysit is native grok-4.6 (SuperGrok). Lite/max pin OmniRoute custom models via wrapper inject. Terminal launcher ~/.local/bin/grok and Superset ~/.superset/bin/grok both source superset-grok-inject.sh.",
+    "wrapper": "~/.superset/bin/grok",
+    "terminal_wrapper": "~/.local/bin/grok",
+    "inject": "~/.temperance_engine/bin/superset-grok-inject.sh",
+    "config": "~/.grok/config.toml",
+    "default_native": "grok-4.6",
+    "presets": {
+      "grok": {
+        "band": "standard",
+        "model": "grok-4.6",
+        "babysit": "native-supergrok"
+      },
+      "lite": {
+        "band": "lite",
+        "model": "noesis-fast",
+        "babysit": "nous/stealth/ox-alpha"
+      },
+      "max": {
+        "band": "max",
+        "model": "noesis-plan-max",
+        "babysit": "cursor/claude-4.6-opus-high"
+      }
+    }
+  },
+  "superset_opencode": {
+    "comment": "OpenCode default_agent is temperance-auto (per-turn OmniRoute). Superset wrapper must NOT set OPENCODE_CONFIG_DIR to ~/.superset/hooks/opencode (plugin-only). Notify plugin lives in ~/.config/opencode/plugins.",
+    "wrapper": "~/.superset/bin/opencode",
+    "inject": "~/.temperance_engine/bin/superset-opencode-inject.sh",
+    "config": "~/.config/opencode/opencode.json",
+    "default_agent": "temperance-auto",
+    "presets": {
+      "opencode": {
+        "band": "standard",
+        "agent": "temperance-auto",
+        "model": "temperance/temperance-auto"
+      },
+      "lite": {
+        "band": "lite",
+        "agent": "temperance-native",
+        "model": "temperance/noesis-fast"
+      },
+      "max": {
+        "band": "max",
+        "agent": "temperance-algorithm",
+        "model": "temperance/noesis-orchestrator"
+      }
+    }
+  },
+  "slash_commands": {
+    "canonical": "~/.temperance_engine/commands/gsd",
+    "core": [
+      "gsd-discuss-phase.md",
+      "gsd-do.md",
+      "gsd-doctor.md",
+      "gsd-execute-phase.md",
+      "gsd-fast.md",
+      "gsd-goal.md",
+      "gsd-help.md",
+      "gsd-new-project.md",
+      "gsd-next.md",
+      "gsd-pause-work.md",
+      "gsd-plan-phase.md",
+      "gsd-progress.md",
+      "gsd-review.md",
+      "gsd-update.md"
+    ],
+    "link_from": [
+      "~/.grok/commands",
+      "~/.claude/commands",
+      "~/.config/opencode/command"
+    ],
+    "keep_opencode_extras": true,
+    "claude_goal_alias": "~/.claude/commands/goal.md -> gsd-goal.md"
+  },
+  "superset_claude": {
+    "comment": "Superset Claude execute seat. Default coordinator pin noesis-orchestrator. Wrapper sources superset-claude-inject.sh.",
+    "wrapper": "~/.superset/bin/claude",
+    "inject": "~/.temperance_engine/bin/superset-claude-inject.sh",
+    "config_dir": "~/.claude",
+    "presets": {
+      "claude": {
+        "band": "standard",
+        "model": "noesis-orchestrator",
+        "babysit": "noesis-orchestrator"
+      },
+      "claude-lite": {
+        "band": "lite",
+        "model": "noesis-fast",
+        "babysit": "nous/stealth/ox-alpha"
+      },
+      "claude-max": {
+        "band": "max",
+        "model": "noesis-plan-max",
+        "babysit": "cursor/claude-4.6-opus-high"
+      },
+      "temperance-engine": {
+        "band": "standard",
+        "model": "noesis-orchestrator",
+        "babysit": "noesis-orchestrator",
+        "preset_id": "temperance-engine",
+        "command": "claude",
+        "note": "Primary coordination lane. noesis-full is compatibility-only; phase workers use their canonical noesis-* lanes."
+      }
+    }
   }
 }

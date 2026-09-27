@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import manifest from "./omniroute-portfolios.json";
+import phaseComboMap from "./phase-combo-map.json";
 import { resolvePortfolio } from "./omniroute-portfolios";
 
 const expectedMappings = {
@@ -9,7 +10,7 @@ const expectedMappings = {
   reasoning: "noesis-observe",
   validation: "noesis-verify",
   creative: "noesis-creative",
-  balanced: "noesis-build",
+  balanced: "noesis-fast",
 } as const;
 
 describe("resolvePortfolio", () => {
@@ -40,7 +41,7 @@ describe("resolvePortfolio", () => {
   test("returns direct when neither named nor compatibility combo exists", () => {
     expect(resolvePortfolio("balanced", [])).toEqual({
       task_type: "balanced",
-      requested_portfolio: "noesis-build",
+      requested_portfolio: "noesis-fast",
       selected_model: null,
       source: "direct",
       enforcement: "shadow",
@@ -48,7 +49,15 @@ describe("resolvePortfolio", () => {
   });
 
   test("normalizes unknown types to balanced without classifying prompt text", () => {
-    expect(resolvePortfolio("invent-a-new-type", ["noesis-build"]).task_type).toBe("balanced");
+    expect(resolvePortfolio("invent-a-new-type", ["noesis-fast"]).task_type).toBe("balanced");
+  });
+
+  test("keeps shared task portfolios contained by the canonical phase map", () => {
+    const taskTypeToCombo = (phaseComboMap as { task_type_to_combo: Record<string, string> }).task_type_to_combo;
+    expect(manifest.task_type_portfolios).toEqual(expectedMappings);
+    for (const [taskType, portfolio] of Object.entries(expectedMappings)) {
+      expect(taskTypeToCombo[taskType]).toBe(portfolio);
+    }
   });
 
   test("manifest stores combo names but no provider or model membership", () => {

@@ -20,6 +20,20 @@ run bun test package/enrich
 run bun test package/adapters/command-code/context-sources-line.test.ts
 run bash tests/command-code-context-sources.sh
 run bun test package/router/routing-policy.test.ts
+run bun test \
+  package/router/session-rail.test.ts \
+  package/router/phase-projection.v4.test.ts \
+  package/router/surface-portability.test.ts
+run bun test \
+  package/router/v4-cutover-plan.test.ts \
+  package/router/v4-cutover-executor.test.ts \
+  package/router/v4-cutover-apply.test.ts \
+  package/router/v4-cutover-journal.test.ts \
+  package/router/v4-macos-cutover-runtime.test.ts \
+  package/router/v4-macos-host-adapter.test.ts \
+  package/router/v4-macos-replacement-services.test.ts \
+  package/router/v4-portable-replacement.test.ts \
+  package/router/v4-replacement-proof.test.ts
 run bun test package/router/omniroute-portfolios.test.ts
 run bun test package/router/omniroute-native-control-plane.test.ts
 run bun test package/router/omniroute-context-preview.test.ts
@@ -42,6 +56,7 @@ run bash tests/omniroute-temperance-combos.sh
 run bash tests/omniroute-planner-quota.sh
 run bash tests/omniroute-memory-sync.sh
 run bash tests/omniroute-autostart-launchd.sh
+run bash tests/omniroute-native-integration-live-guard.sh
 run bash tests/omniroute-native-integration.sh
 run bash tests/omniroute-claude.sh
 run bash tests/omniroute-opencode.sh

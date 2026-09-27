@@ -85,4 +85,63 @@ describe("strict v1 schema validation", () => {
       padding: "x".repeat(MAX_FRAGMENT_BYTES),
     })).toBe(false);
   });
+
+  test("accepts explicit COPY file and tree expectations with modes", () => {
+    const fragment = fixture("valid-fragment.v1.json") as {
+      records: Array<{ verification: Record<string, unknown> }>;
+    };
+    fragment.records[0].verification = {
+      method: "sha256",
+      expected: {
+        kind: "tree",
+        files: {
+          "index.ts": `sha256:${"a".repeat(64)}`,
+          "nested/worker.ts": `sha256:${"b".repeat(64)}`,
+        },
+        modes: {
+          "index.ts": "0644",
+          "nested/worker.ts": "0755",
+        },
+      },
+    };
+
+    expect(validateFragment(fragment)).toBe(true);
+    fragment.records[0].verification = {
+      method: "sha256",
+      expected: { kind: "file", sha256: `sha256:${"a".repeat(64)}`, mode: "0755" },
+    };
+    expect(validateFragment(fragment)).toBe(true);
+  });
+
+  test("rejects malformed COPY expectation hashes and unsafe tree keys", () => {
+    const fragment = fixture("valid-fragment.v1.json") as {
+      records: Array<{ verification: Record<string, unknown> }>;
+    };
+    fragment.records[0].verification = {
+      method: "sha256",
+      expected: {
+        kind: "tree",
+        files: {
+          "../escape.ts": "sha256:not-a-digest",
+        },
+      },
+    };
+
+    expect(validateFragment(fragment)).toBe(false);
+  });
+
+  test("rejects unsupported or incomplete COPY mode declarations", () => {
+    const fragment = fixture("valid-fragment.v1.json") as {
+      records: Array<{ verification: Record<string, unknown> }>;
+    };
+    fragment.records[0].verification = {
+      method: "sha256",
+      expected: {
+        kind: "tree",
+        files: { "index.ts": `sha256:${"a".repeat(64)}` },
+        modes: { "index.ts": "0777" },
+      },
+    };
+    expect(validateFragment(fragment)).toBe(false);
+  });
 });

@@ -36,9 +36,9 @@ fi
 INSTALLER="${TEMPERANCE_ROOT}/package/router/gsd-command-install.mjs"
 if test -f "$INSTALLER"; then
   if is_dry_run; then
-    printf 'DRY_RUN: node %s\n' "$INSTALLER"
+    printf 'DRY_RUN: node %s --apply\n' "$INSTALLER"
   else
-    node "$INSTALLER"
+    node "$INSTALLER" --apply
   fi
   say "See docs/gsd-manifest-spine.md for picker-before-IAB and /gsd:doctor."
 else

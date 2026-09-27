@@ -34,6 +34,8 @@ function makeContext(stateRoot: string, overrides?: Partial<DoctorContextV2>): D
       pulse: "http://127.0.0.1:31337",
     },
     io: {
+      readBytes: async () => { throw new Error("unused COPY byte probe"); },
+      readdir: async () => { throw new Error("unused COPY tree probe"); },
       readFile: async (path: string) => readFileSync(path, "utf8"),
       lstat: async (path: string) => lstatSync(path),
       realpath: async (path: string) => path,

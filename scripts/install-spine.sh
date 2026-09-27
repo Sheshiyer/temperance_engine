@@ -124,9 +124,9 @@ fi
 if test "$GSD" = "install"; then
   if test -f "$ROOT/package/router/gsd-command-install.mjs"; then
     if is_dry_run; then
-      printf 'DRY_RUN: node package/router/gsd-command-install.mjs\n'
+      printf 'DRY_RUN: node package/router/gsd-command-install.mjs --apply\n'
     else
-      node "$ROOT/package/router/gsd-command-install.mjs"
+      node "$ROOT/package/router/gsd-command-install.mjs" --apply
     fi
   fi
 fi

@@ -8,6 +8,29 @@ set -uo pipefail
 MODEL="${1:-${TEMPERANCE_OMNIROUTE_MODEL:-temperance-coding}}"
 TASK="${2:-}"
 [[ -n "$TASK" ]] || { echo "usage: $0 MODEL TASK" >&2; exit 2; }
+
+# Common execution boundary for phase, batch, and parallel dispatch. Selected
+# policy must hold before looking up Codex, accessing Keychain, or networking;
+# phase-less callers still require the model to be a policy-admitted alias.
+source_path="${BASH_SOURCE[0]}"
+while [ -L "$source_path" ]; do
+  source_dir="$(cd -P "$(dirname "$source_path")" && pwd)"
+  source_path="$(readlink "$source_path")"
+  case "$source_path" in /*) ;; *) source_path="$source_dir/$source_path" ;; esac
+done
+ROUTER_DIR="$(cd -P "$(dirname "$source_path")" && pwd)"
+unset source_path source_dir
+# Keep successful control-plane diagnostics out of the worker completion
+# stream: the dispatcher must still recognize blank model output as failure.
+if admission_result="$("${TEMPERANCE_BUN:-bun}" --no-env-file --config=/dev/null \
+  "$ROUTER_DIR/session-admission-cli.ts" --alias "$MODEL")"; then
+  unset admission_result
+else
+  admission_status=$?
+  printf '%s\n' "$admission_result" >&2
+  exit "$admission_status"
+fi
+
 command -v codex >/dev/null 2>&1 || { echo "codex CLI is required for the OmniRoute agent backend" >&2; exit 127; }
 
 BASE_URL="${TEMPERANCE_OMNIROUTE_BASE_URL:-http://127.0.0.1:20128/v1}"
@@ -35,12 +58,18 @@ if [[ -n "$CORRELATION_ID" && ! "$CORRELATION_ID" =~ ^[A-Za-z0-9._:-]+$ ]]; then
   exit 2
 fi
 
+SESSION_TAG="${TEMPERANCE_SESSION_TAG:-}"
+if [[ -n "$SESSION_TAG" && ! "$SESSION_TAG" =~ ^[A-Za-z0-9._:-]+$ ]]; then
+  echo "invalid TEMPERANCE_SESSION_TAG" >&2
+  exit 2
+fi
+
 # The fleet's smallest context rail is Codex Spark (128k). Advertise that real
 # ceiling whenever Spark can be selected so Codex compacts before OmniRoute
 # rotates a request onto it. Other portfolios retain their existing 200k
 # contract. Both values remain explicitly overridable for catalog migrations.
 case "$MODEL" in
-  te-dispatch|codex/gpt-5.3-codex-spark)
+  noesis-execute|te-dispatch|codex/gpt-5.3-codex-spark)
     MODEL_CONTEXT_WINDOW="${TEMPERANCE_OMNIROUTE_MODEL_CONTEXT_WINDOW:-128000}"
     MODEL_AUTO_COMPACT_TOKEN_LIMIT="${TEMPERANCE_OMNIROUTE_AUTO_COMPACT_TOKEN_LIMIT:-108000}"
     ;;
@@ -80,16 +109,18 @@ args=(
   --color never
 )
 
-if [[ -n "$CORRELATION_ID" ]]; then
-  args+=(
-    -c "model_providers.omniroute.http_headers={\"X-Temperance-Correlation-ID\"=\"$CORRELATION_ID\"}"
-  )
+if [[ -n "$CORRELATION_ID" || -n "$SESSION_TAG" ]]; then
+  http_header_pairs=()
+  [[ -z "$CORRELATION_ID" ]] || http_header_pairs+=("\"X-Temperance-Correlation-ID\"=\"$CORRELATION_ID\"" "\"x-request-id\"=\"$CORRELATION_ID\"")
+  [[ -z "$SESSION_TAG" ]] || http_header_pairs+=("\"x-omniroute-session-id\"=\"$SESSION_TAG\"")
+  http_headers_toml="$(IFS=,; echo "${http_header_pairs[*]}")"
+  args+=(-c "model_providers.omniroute.http_headers={${http_headers_toml}}")
 fi
 
 # OmniRoute's profile generator writes this file from the live catalog. The
 # inline provider flags above keep the backend portable when the profile is not
 # installed, while loading it when present preserves its model limits.
-if [[ -f "${CODEX_HOME:-$HOME/.codex}/$CODEX_PROFILE.config.toml" ]]; then
+if [[ "$MODEL" == "$CODEX_PROFILE" && -f "${CODEX_HOME:-$HOME/.codex}/$CODEX_PROFILE.config.toml" ]]; then
   args+=(--profile "$CODEX_PROFILE")
 fi
 if [[ "${TEMPERANCE_OMNIROUTE_CODEX_ISOLATED:-}" == "0" ]]; then
@@ -98,23 +129,39 @@ else
   args+=(--ignore-user-config)
 fi
 
+# Optional per-invocation reduction for text/shell workers. The installed CLI's
+# `features list` declares these flags; no user configuration is rewritten.
+# This does not promise isolation from separately configured project MCP servers.
+# Preserve shell tools, sandbox, execpolicy rules, hooks and hook trust.
+TOOL_SURFACE="${TEMPERANCE_OMNIROUTE_CODEX_TOOL_SURFACE:-default}"
+case "$TOOL_SURFACE" in
+  default) ;;
+  local)
+    for feature in apps plugins browser_use browser_use_external browser_use_full_cdp_access computer_use image_generation multi_agent multi_agent_v2; do
+      args+=(--disable "$feature")
+    done
+    args+=(-c 'web_search="disabled"')
+    ;;
+  *) echo "invalid TEMPERANCE_OMNIROUTE_CODEX_TOOL_SURFACE (expected default or local)" >&2; exit 2 ;;
+esac
+
 # ROOT_URL is validated by the router's /v1/models probe before dispatch. Keep
 # it in the environment for diagnostics without duplicating a second network
 # preflight on every parallel task.
 #
-# Known issue (2026-08-02): the omniroute gateway (npm package, not this repo)
-# intermittently truncates streamed completions to a single partial chunk —
-# reproduced directly against /v1/responses and /v1/chat/completions, in both
-# stream and non-stream mode, independent of Codex. Root cause sits in the
-# gateway's minified server bundle (no source maps available to patch safely).
-# Mitigation here: detect a fully-empty last-message (the failure signature
-# actually observed through Codex) and retry a bounded number of times before
-# giving up, so callers see occasional extra latency instead of silent empty
-# output. This does NOT catch partial-but-nonempty truncation — callers
-# handling untrusted-length content should still sanity-check results.
+# An empty final message alone cannot identify a gateway failure. Retrying can
+# replay tool effects, so successful empty exits require explicit idempotency
+# opt-in. This starts a fresh turn, not a durable continuation. Nonzero exits preserve the original
+# failure immediately, without replaying potentially completed tool effects.
+# A nonempty final message proves transport completion, not task acceptance.
 MAX_ATTEMPTS="${TEMPERANCE_OMNIROUTE_MAX_ATTEMPTS:-4}"
 [[ "$MAX_ATTEMPTS" =~ ^[1-9][0-9]*$ ]] || {
   echo "invalid TEMPERANCE_OMNIROUTE_MAX_ATTEMPTS" >&2
+  exit 2
+}
+RETRY_EMPTY="${TEMPERANCE_OMNIROUTE_RETRY_EMPTY:-0}"
+[[ "$RETRY_EMPTY" == "0" || "$RETRY_EMPTY" == "1" ]] || {
+  echo "invalid TEMPERANCE_OMNIROUTE_RETRY_EMPTY (expected 0 or 1)" >&2
   exit 2
 }
 
@@ -130,15 +177,35 @@ while (( attempt <= MAX_ATTEMPTS )); do
     codex "${args[@]}" -o "$LAST_MESSAGE_FILE" -- "$TASK" </dev/null 2>"$STDERR_FILE"
   codex_exit=$?
 
+  if (( codex_exit != 0 )); then
+    FAILURE_REASON="codex_nonzero_exit"
+    if grep -Eqi 'request\.tools|function_declarations' "$STDERR_FILE" && \
+       grep -Eqi 'schema|invalid (value|argument)' "$STDERR_FILE"; then
+      FAILURE_REASON="tool_schema_rejected"
+    fi
+    echo "error: omniroute attempt $attempt/$MAX_ATTEMPTS failed ($FAILURE_REASON; Codex exit $codex_exit)" >&2
+    cat "$STDERR_FILE" >&2
+    exit "$codex_exit"
+  fi
+
   if [[ -s "$LAST_MESSAGE_FILE" ]]; then
     cat "$LAST_MESSAGE_FILE"
     exit 0
   fi
 
-  echo "warning: omniroute attempt $attempt/$MAX_ATTEMPTS returned empty output (known gateway truncation bug) — retrying" >&2
   cat "$STDERR_FILE" >&2
+  if [[ "$RETRY_EMPTY" != "1" ]]; then
+    FAILURE_REASON="empty_output_retry_not_authorized"
+    echo "error: omniroute returned no final message; tool effects may already exist, so a fresh-turn retry requires explicit idempotency opt-in" >&2
+    exit 1
+  fi
+  if (( attempt == MAX_ATTEMPTS )); then
+    FAILURE_REASON="empty_output_exhausted"
+    echo "error: omniroute produced no final message after $MAX_ATTEMPTS successful CLI exits; cause unconfirmed" >&2
+    exit 1
+  fi
+  echo "warning: omniroute attempt $attempt/$MAX_ATTEMPTS returned no final message with exit 0 — retrying" >&2
   attempt=$((attempt + 1))
 done
 
-echo "error: omniroute produced empty output after $MAX_ATTEMPTS attempts — gateway truncation bug, not a Codex or skill-loading issue" >&2
-exit "${codex_exit:-1}"
+exit 1

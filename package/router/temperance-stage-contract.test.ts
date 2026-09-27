@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { phaseMeta } from "./phase-projection.v4";
 
 import {
   STAGE_CAPABILITIES,
@@ -13,6 +14,21 @@ import {
 } from "./temperance-stage-contract";
 
 describe("Temperance seven-stage contract", () => {
+  test("derives alchemy, ordinal, and kosha from the shared V4 projection", () => {
+    for (const profile of STAGE_CAPABILITIES) {
+      const projection = phaseMeta(profile.id);
+      expect(profile.ordinal).toBe(projection.step);
+      expect(profile.alchemical).toBe(projection.stage);
+      expect(profile.kosha).toBe(projection.kosha);
+    }
+    expect(STAGE_CAPABILITIES.map(({ alchemical }) => alchemical)).toEqual([
+      "NIGREDO", "ALBEDO", "CITRINITAS", "CITRINITAS", "RUBEDO", "RUBEDO", "RUBEDO",
+    ]);
+    expect(STAGE_CAPABILITIES.map(({ kosha }) => kosha)).toEqual([
+      "MANOMAYA", "VIJNANAMAYA", "VIJNANAMAYA", "ANNAMAYA", "PRANAMAYA", "VIJNANAMAYA", "ANANDAMAYA",
+    ]);
+  });
+
   test("keeps the canonical alchemical order and stage count", () => {
     expect(STAGE_IDS).toEqual(["observe", "think", "plan", "build", "execute", "verify", "learn"]);
     expect(STAGE_CAPABILITIES.map(({ ordinal }) => ordinal)).toEqual([1, 2, 3, 4, 5, 6, 7]);

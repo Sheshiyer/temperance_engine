@@ -2,11 +2,21 @@
   "name": "temperance-install-surface",
   "private": true,
   "type": "module",
+  "packageManager": "bun@1.3.5",
   "scripts": {
     "test": "bun test",
+    "typecheck": "bunx tsc --noEmit -p tsconfig.json",
+    "build": "bun build src/cli.ts --target=bun --outdir=dist --packages=external",
+    "start": "bun run src/cli.ts",
+    "verify": "bun run typecheck && bun test && bun run build",
     "doctor": "bun run src/cli.ts doctor"
   },
   "dependencies": {
+    "@opentui/core": "0.5.11",
     "ajv": "8.20.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.5",
+    "typescript": "5.9.3"
   }
 }

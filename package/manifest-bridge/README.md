@@ -240,3 +240,18 @@ TEMPERANCE_CONTROL_DATABASE_URL='postgresql://…' bun test
 
 The remaining worker-receipt and terminal-closure release gates are tracked in
 [../../docs/ORCHESTRATION-GAP-REGISTER.md](../../docs/ORCHESTRATION-GAP-REGISTER.md).
+
+## Explicit launcher package layout
+
+The platform launcher defaults to the repository package at
+`package/manifest-bridge`. Set `TEMPERANCE_MANIFEST_RUNTIME_ROOT` to an absolute
+package root to select the install-surface COPY destination instead, such as
+`$TEMPERANCE_STATE/runtime/manifest-bridge`. Both the CLI path and launchd working
+directory use that selected package. An invalid explicit root fails; the
+launcher does not search for another installation.
+
+`bash scripts/temperance-manifest-bridge-launchd.sh source` validates Bun and the
+selected source file, then prints the CLI path and package root without changing
+services. This path check does not verify dependency installation, service
+startup or provider execution. The package's locked dependencies still need
+separate installation verification before launching a deployed bridge.

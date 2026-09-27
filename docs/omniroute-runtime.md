@@ -139,6 +139,14 @@ owned virtual pool and is never silently promoted into a Temperance portfolio.
   (te-write/te-write-critique) and
   `scripts/omniroute-temperance-writer-expansion.sh`
   (te-write-research/te-write-media)
+
+### Codex Spark capacity boundary
+
+The checked-in dispatch contract treats `codex/gpt-5.3-codex-spark` as a
+direct capacity slot with a 128k context limit and a text-only boundary. Its
+preview allowance has a separate rate limit, so it never becomes a governed
+task portfolio or a silent fallback for one.
+
 - Availability/quota reconciler: `scripts/omniroute-temperance-reconcile.sh`,
   driven by `package/router/omniroute-fallback-policy.json` (schema
   temperance-fallback-v1; registered as `fallback_policy` in

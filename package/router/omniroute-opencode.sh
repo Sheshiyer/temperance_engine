@@ -4,6 +4,21 @@ set -euo pipefail
 # OpenCode expands {env:OMNIROUTE_API_KEY} from its governed provider config.
 # Resolve that value from Keychain at launch rather than persisting it in JSON.
 
+source_path="${BASH_SOURCE[0]}"
+while [ -L "$source_path" ]; do
+  source_dir="$(cd -P "$(dirname "$source_path")" && pwd)"
+  source_path="$(readlink "$source_path")"
+  case "$source_path" in /*) ;; *) source_path="$source_dir/$source_path" ;; esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$source_path")" && pwd)"
+unset source_path source_dir
+
+# The actual model may be selected interactively or from OpenCode config.
+# Unknown selection is not permission to bypass a selected session policy;
+# the current adapter cannot verify its per-attempt enforcement contract.
+"${TEMPERANCE_BUN:-bun}" --no-env-file --config=/dev/null \
+  "$SCRIPT_DIR/session-admission-cli.ts" --alias "opencode-unresolved-model" >&2 || exit "$?"
+
 USER_NAME="${USER:-$(id -un)}"
 KEYCHAIN_SERVICE="${TEMPERANCE_OMNIROUTE_KEYCHAIN_SERVICE:-OmniRoute Temperance API Key}"
 SECURITY_BIN="${TEMPERANCE_SECURITY_BIN:-/usr/bin/security}"
