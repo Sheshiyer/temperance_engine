@@ -1091,22 +1091,22 @@ Implement Tasks 1–7 as an integrated modular Mac lifecycle in the existing ins
 
 ### Modular Mac execution — 2026-10-01
 
-- [ ] ISC-813: Modular Mac Task 1: workstation fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-814: Modular Mac Task 1: always-on-node fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-815: Modular Mac Task 1: recovery fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-816: Modular Mac Task 1: unknown snapshot field is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-817: Modular Mac Task 1: unsupported major returns UPGRADE_REQUIRED (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-818: Modular Mac Task 1: duplicate module reference is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-819: Modular Mac Task 1: missing release digest is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-820: Modular Mac Task 1: missing module lock digest is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-821: Modular Mac Task 1: invalid evidence time is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-822: Modular Mac Task 1: private credential payload is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-823: Modular Mac Task 1: native session identifier is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-824: Modular Mac Task 1: organ input and artifact references remain distinct (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-825: Modular Mac Task 1: contract source substitution is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-826: Modular Mac Task 1: stale owner evidence is held (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-827: Modular Mac Task 1: Adytum parity remains held (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-828: Modular Mac Task 1: capability-hit flags grant no admission (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-813: Modular Mac Task 1: workstation fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-814: Modular Mac Task 1: always-on-node fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-815: Modular Mac Task 1: recovery fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-816: Modular Mac Task 1: unknown snapshot field is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-817: Modular Mac Task 1: unsupported major returns UPGRADE_REQUIRED (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-818: Modular Mac Task 1: duplicate module reference is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-819: Modular Mac Task 1: missing release digest is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-820: Modular Mac Task 1: missing module lock digest is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-821: Modular Mac Task 1: invalid evidence time is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-822: Modular Mac Task 1: private credential payload is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-823: Modular Mac Task 1: native session identifier is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-824: Modular Mac Task 1: organ input and artifact references remain distinct (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-825: Modular Mac Task 1: contract source substitution is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-826: Modular Mac Task 1: stale owner evidence is held (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-827: Modular Mac Task 1: Adytum parity remains held (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [x] ISC-828: Modular Mac Task 1: capability-hit flags grant no admission (probe: Task 1 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-829: Modular Mac Task 2: inspect makes zero write calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-830: Modular Mac Task 2: inspect makes zero network calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-831: Modular Mac Task 2: inspect makes zero authentication calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
@@ -2536,6 +2536,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 
 ## Changelog
 
+- 2026-10-01: Modular Mac Task 1 source contracts accepted after fresh independent r5 review. Canonical five operating and six cognitive organs, six Will desks, bounded independent input/work/artifact/consumer/verdict joins, per-stage and verdict age, nested closure/privacy, and both scoped Mac profile positives are implemented; every assessment retains false execution authority. ISC-813..828 now have focused executable evidence. Tasks 2–8 remain pending.
+
 - 2026-08-02: Added a separate offline native CLI readiness inspector for six reviewed OmniRoute 3.8.48 files. Exact digest, version, source-type, and marker equality now gate the non-authorizing instant receipt; package/module-graph integrity, transport, replay, authentication, semantic qualification, mutation, and promotion remain explicitly false. Fifteen focused tests, native integration, the canonical verifier, post-build Advisor hardening, and independent Cato PASS completed with protected projections unchanged. The failed Forge attempt made no edits, so ISC-612 remains open rather than being rewritten after the fact.
 
 - 2026-08-02 | conjectured: default user-configuration isolation plus happy-path owner-only artifact permissions were sufficient for bounded external workers.
@@ -3385,3 +3387,5 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - ISC-810: changelog readback — `0.6.0` states that per-attempt gateway context enforcement and durable checkpoint recovery are not qualified; the exact 9router 0.5.75 pin is unchanged.
 - ISC-811: canonical verification — `./scripts/verify-all.sh` exited 0 on 2026-09-19 and printed `Temperance Engine full verification passed`, including 980 passing Bun tests and the shell/install/rollback/dispatcher/doctor suites. Install-surface typecheck/build, README continuity, and 18-record COPY verification also passed. Independent read-only release and admission-output reviews reported no blocking findings. GitHub publication remains gated on Verify for the exact pushed candidate, whose result is recorded in the release notes.
 - ISC-812: public guard — the unchanged private-path guard and its regression suite passed inside the canonical run; no host binding, credentials, private operator logs, or personal project capsules are staged for this release.
+
+- 2026-10-01 Modular Mac Task 1, ISC-813..828: integrated exact Bun 1.3.5 focused migration-contract suite passed 277 tests / 761 assertions; source TypeScript check passed. Fresh independent source review replayed earlier counterexamples against valid workstation and always-on-node five-organ input chains with zero unexpected outcomes. Four owned contract/schema/fixture/test paths only; final retained patch SHA-256 063660a02b5206e9c764e316108c262e243fb702e16369cd952abe86f1f7c91e includes a final test-only constructed-path cleanup. Source compatibility remains nonauthoritative for runtime, installation, owner enrollment and physical device proof; visible unselected Adytum parity holds persist.
