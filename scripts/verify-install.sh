@@ -64,6 +64,10 @@ check_file "$ROOT/docs/gsd-goal-handoff.md"
 check_file "$ROOT/package/manifest-zone/src/GsdDeck.tsx"
 check_file "$ROOT/docs/gsd-manifest-spine.md"
 check_file "$ROOT/scripts/install-spine.sh"
+check_file "$ROOT/docs/modular-mac-lifecycle.md"
+check_file "$ROOT/package/install-surface/docs/guided-onboarding.md"
+check_file "$ROOT/package/install-surface/docs/agent-operations.md"
+check_file "$ROOT/scripts/build-migration-kit.sh"
 
 if grep -R --include='*.ts' --include='*.mjs' --include='*.sh' -n -E "/Users/[A-Za-z0-9_.-]+" \
   "$ROOT/package/hooks" "$ROOT/package/router/gsd-command-install.mjs" "$ROOT/scripts/install-spine.sh" 2>/dev/null \
@@ -111,7 +115,7 @@ done
 #               records the local checkout path and is not shipped source.
 #   grammar-literal — the escaped `\.craft-agent` regex token is source grammar,
 #               not a filesystem path. It is normalized before matching.
-#   synthetic-fixture — `/Volumes/fixture/` is the reserved fixture namespace,
+#   synthetic-fixture — exact plan examples use a reserved volume namespace,
 #               and one exact lifecycle negative-test line is permitted below.
 #               Both are normalized path-by-path, so a second private-looking
 #               value in the same source line still fails closed.
@@ -122,13 +126,16 @@ done
 # The only path-shaped source grammar that can match the scanner is the
 # escaped regex token below. Removing exactly that token leaves any real path
 # on the same line visible to the normal private-path matcher.
-PRIVATE_PATH_PATTERN='/Users/[A-Za-z0-9_.-]+|/Volumes/[A-Za-z0-9_-]+/[^/]|\.craft-agent'
+PRIVATE_PATH_PATTERN='/Users/[A-Za-z0-9_.-]+|/Volumes/[A-Za-z0-9_.-]+(/|$)|\.craft-agent'
 
 is_allowed_synthetic_private_path_line() {
   relative_path="$1"
   line="$2"
   synthetic_home_prefix='/Users/'
   synthetic_line='          destination_symbolic: "'"$synthetic_home_prefix"'testuser/.config/test/file.txt", // PRIVATE_PATH_GUARD_FIXTURE: synthetic redaction rejection'
+
+  fixture_prefix='/Vol''umes/fixture/'
+  [ "$relative_path" = 'docs/fixture-example.md' ] && [ "$line" = 'const fixtureRoot = "'"$fixture_prefix"'private-path-guard";' ] && return 0
 
   [ "$relative_path" = "package/install-surface/test/lifecycle.test.ts" ] \
     && [ "$line" = "$synthetic_line" ]
@@ -137,18 +144,19 @@ is_allowed_synthetic_private_path_line() {
 normalize_private_path_grammar() {
   # The escaped session-store token is valid regex syntax. Do not
   # suppress an unescaped session-store name or any adjacent private path.
-  # `/Volumes/fixture/` is a deliberately fictional test namespace; strip only
-  # that path fragment, then match the rest of the same source line normally.
-  # A traversal segment is never fixture grammar because it could escape the
-  # synthetic root; leave it intact for the fail-closed matcher.
-  if printf '%s\n' "$1" | grep -q -E '/Volumes/fixture(/[^/]+)*/\.\.(/|$)'; then
-    printf '%s\n' "$1"
-    return
+  # Only the existing plan's embedded synthetic tests admit this namespace.
+  # Other source files and adjacent private values remain fail closed.
+  synthetic_prefix='/Vol''umes/fixture/'
+  value=$(printf '%s\n' "$1" | sed -e 's/\\\.craft-agent/<SESSION_STORE_REGEX>/g')
+  if [ "$2" = 'docs/superpowers/plans/2026-08-05-vault-session-map.md' ] \
+    && ! printf '%s\n' "$value" | grep -q -E "${synthetic_prefix}([^/]+/)*\\.\\.(/|$)"; then
+    value=$(printf '%s\n' "$value" | sed -e "s#${synthetic_prefix}[A-Za-z0-9._/-]*#<SYNTHETIC_VOLUME>#g")
   fi
-
-  printf '%s\n' "$1" | sed \
-    -e 's/\\\.craft-agent/<SESSION_STORE_REGEX>/g' \
-    -e 's#/Volumes/fixture/[A-Za-z0-9._/-]*#<SYNTHETIC_VOLUME>#g'
+  if [ "$2" = 'package/manifest-zone/src/ProjectActionRail.tsx' ]; then
+    display_path='/Vol''umes/[.][.][.]/project'
+    value=$(printf '%s\n' "$value" | sed -e "s#placeholder=\"${display_path}\"#placeholder=\"<DISPLAY_PATH>\"#g")
+  fi
+  printf '%s\n' "$value"
 }
 
 # Hits collect into a temp file rather than a captured pipeline: /bin/sh on
@@ -183,7 +191,7 @@ hits_tmp=$(mktemp "${TMPDIR:-/tmp}/te-private-guard.XXXXXX")
         continue
       fi
 
-      normalized_line=$(normalize_private_path_grammar "$line")
+      normalized_line=$(normalize_private_path_grammar "$line" "$relative_path")
       if printf '%s\n' "$normalized_line" | grep -q -E "$PRIVATE_PATH_PATTERN"; then
         printf '%s:%s\n' "$line_number" "$line" >> "$hits_tmp"
         printf 'FILE:%s\n' "$candidate" >> "$hits_tmp"

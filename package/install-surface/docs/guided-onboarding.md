@@ -39,3 +39,56 @@ Use `--telemetry` to record bounded local metadata, `--health --json` for a fres
 health snapshot, and `--logs --json` for recent events.
 See [agent operations](agent-operations.md) for the full runnable flow,
 argument/state handoff, privacy boundaries, and exit-code semantics.
+
+
+## Manual bootstrap
+
+Obtain the reviewed verifier script and its independently supplied SHA-256
+from the operator or pinned release channel. Verify that script before running
+it. The adjacent archive sidecar alone does not establish trust.
+
+The arm64 kit bootstrap requires stock macOS `/bin/bash` 3.2, `/usr/bin/perl`
+(with Digest::SHA, File::Path and Fcntl), `/usr/bin/gzip`, and `shasum`.
+Missing tools produce a bootstrap HOLD before payload extraction. No Git,
+Bun, Node, Python, Homebrew or agent CLI is needed to verify the kit.
+
+1. Use the trusted verifier to check and publish the kit into an **absent**
+   directory beneath a private parent you own:
+   ```sh
+   /bin/bash ./verify-migration-kit.sh \
+     --archive "temperance-engine-${VERSION}-arm64.tar.gz" \
+     --expected-digest "sha256:${TRUSTED_ARCHIVE_SHA256}" \
+     --extract-to "$HOME/temperance-kit"
+   ```
+   Supply `VERSION` and `TRUSTED_ARCHIVE_SHA256` from the reviewed channel.
+   Even an existing empty destination is refused. Failed verification leaves
+   no payload destination.
+2. Verify the bundled Bun 1.3.5 binary before using it:
+   ```sh
+   cd "$HOME/temperance-kit"
+   printf '%s  %s\n' \
+     66262f09134f780b1563bd1ae3dad13ea7d2ac669f8a5754f924b3c82abcc8f3 \
+     toolchain/bun-1.3.5-arm64 | shasum -a 256 -c -
+   ./toolchain/bun-1.3.5-arm64 --version
+   ```
+   Require both a successful checksum check and the exact version `1.3.5`.
+   The kit already includes frozen dependencies; do not fetch dependencies as
+   an implicit bootstrap step.
+3. Inspect the existing installer plan:
+   ```sh
+   sh install.sh --dry-run
+   ```
+   Actual installation, client authentication and service activation require
+   the reviewed destination packet and their prerequisites. The legacy
+   installer may need external upstream tools for selected modules; a closed
+   install-surface CLI does not establish an offline install of every module.
+
+The alternative manual Bun ZIP procedure, exact ZIP checksum, builder inputs
+and publication limits are in
+[the modular Mac lifecycle](../../../docs/modular-mac-lifecycle.md).
+The current distributable toolchain is arm64 only. x64 and other portable-kit
+architectures remain held pending independent pin and runtime verification.
+All personal overlay requests are held before effects; changing the overlay
+schema alone cannot remove that hold. Both composed Mac profiles and the new
+migration views need the Tasks 1–6 integration rebuild. Task 8 remains a
+physical-device acceptance gate.

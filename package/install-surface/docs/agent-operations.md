@@ -96,3 +96,34 @@ recording fails, the operation result reports telemetry `unavailable`; runtime
 configuration is not reported failed solely because optional telemetry failed.
 These events aid debugging but are **not authorization or recovery receipts**.
 Existing governed mutation receipts retain their separate authority.
+
+
+## Portable kit evidence and pending integration
+
+Use the trusted manual bootstrap in
+[guided onboarding](guided-onboarding.md) and the
+[modular Mac lifecycle](../../../docs/modular-mac-lifecycle.md) before invoking
+any packaged runtime. The verifier requires the independently supplied archive
+digest and publishes only after raw archive and inner-manifest verification.
+Missing stock Perl/gzip prerequisites hold extraction. The builder requires an
+explicit approved source commit, explicit verified cache, frozen dependencies
+and an independently reviewed frozen-tree digest; package SRI alone does not
+authenticate an unpacked directory.
+
+The kit checks the exact Bun 1.3.5 / OpenTUI 0.5.11 pins, actual arm64 Mach-O
+native asset, complete dependency set and committed manifest expectations.
+Existing compiled CLI/native synthetic PTY evidence is a retained prerequisite.
+It does not prove the new migration views or the Tasks 1–6 integrated rebuild.
+The current accepted base has enrichment COPY mismatches and a separately held
+private `atlasRecall.ts` source. Preserve the build hold until its owning source
+classification and manifest reconciliation are reviewed; do not blindly refresh
+hashes or promote private source to make a build pass.
+
+Both `workstation` and `always-on-node` composition and migration/controller/TUI
+execution must be checked after Tasks 1–6 integrate. This packaging suite tests
+an explicitly synthetic CLI/manifest with the real frozen dependencies, plus
+legacy installer dry-run flags. It cannot certify those future profile flows.
+Task 8 physical bootstrap, device identity, FileVault recovery, power/network
+loss, backup/restore and native callback proof remain owner-operated hardware
+gates. All personal overlay requests remain held with zero effects. No schema
+version change is presented as an accepted overlay upgrade.

@@ -53,6 +53,61 @@ for arg in "$@"; do
   esac
 done
 
+# ── Architecture and private-overlay gate (BEFORE all mutations) ─────────────
+# Detect OS and CPU. Unsupported combinations hold all effects. A private
+# overlay cannot override an architecture hold.
+_UNAME_OS=$(uname -s 2>/dev/null || true)
+_UNAME_ARCH=$(uname -m 2>/dev/null || true)
+_ARCH_HELD=0
+
+case "$_UNAME_OS" in
+  Darwin)
+    case "$_UNAME_ARCH" in
+      arm64|x86_64) ;;
+      *)
+        printf 'UNSUPPORTED_PLATFORM: architecture %s/%s is not supported by the portable kit\n' \
+          "$_UNAME_OS" "$_UNAME_ARCH" >&2
+        printf 'Hold: no effects applied. Review docs/modular-mac-lifecycle.md and re-run on supported hardware.\n' >&2
+        _ARCH_HELD=1
+        ;;
+    esac
+    ;;
+  Linux)
+    case "$_UNAME_ARCH" in
+      x86_64|aarch64|arm64) ;;
+      *)
+        printf 'UNSUPPORTED_PLATFORM: architecture %s/%s is not supported by the portable kit\n' \
+          "$_UNAME_OS" "$_UNAME_ARCH" >&2
+        printf 'Hold: no effects applied. Review docs/modular-mac-lifecycle.md and re-run on supported hardware.\n' >&2
+        _ARCH_HELD=1
+        ;;
+    esac
+    ;;
+  *)
+    printf 'UNSUPPORTED_PLATFORM: OS %s is not supported by the portable kit\n' \
+      "$_UNAME_OS" >&2
+    printf 'Hold: no effects applied. Review docs/modular-mac-lifecycle.md and re-run on supported hardware.\n' >&2
+    _ARCH_HELD=1
+    ;;
+esac
+
+if [ "$_ARCH_HELD" -eq 1 ]; then
+  exit 1
+fi
+
+# Private-overlay gate: no personal-overlay adapter has been reviewed or merged.
+# Any TEMPERANCE_PRIVATE_OVERLAY request is unconditionally HELD before any
+# effect. JSON schema string matching alone is not schema validation, and no
+# reviewed adapter exists for any overlay schema version.
+# The existing in-memory host-binding composer is a separate seam and is not
+# activated by this environment variable.
+if [ -n "${TEMPERANCE_PRIVATE_OVERLAY:-}" ]; then
+  printf 'OVERLAY_HOLD: personal overlay adapter not yet reviewed or merged\n' >&2
+  printf 'Hold: no effects applied. All personal overlay requests are held until\n' >&2
+  printf 'a reviewed adapter is merged. Unset TEMPERANCE_PRIVATE_OVERLAY to proceed.\n' >&2
+  exit 1
+fi
+
 export TEMPERANCE_ROOT="$ROOT_DIR"
 export TEMPERANCE_DRY_RUN="$DRY_RUN"
 export TEMPERANCE_VOICE_MODE="$VOICE_MODE"
