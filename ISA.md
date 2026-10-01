@@ -1139,22 +1139,22 @@ Implement Tasks 1–7 as an integrated modular Mac lifecycle in the existing ins
 - [x] ISC-858: Modular Mac Task 3: plan binds source release digest (probe: Task 3 focused adversarial test/kit/PTY receipt).
 - [x] ISC-859: Modular Mac Task 3: plan binds private binding digest (probe: Task 3 focused adversarial test/kit/PTY receipt).
 - [x] ISC-860: Modular Mac Task 3: plan declares exact verification and rollback requirements (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-861: Modular Mac Task 4: owned fixture transaction uses existing lifecycle journal (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-862: Modular Mac Task 4: unowned identical fixture remains unowned (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-863: Modular Mac Task 4: differing user file remains byte exact (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-864: Modular Mac Task 4: changed source digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-865: Modular Mac Task 4: changed lock digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-866: Modular Mac Task 4: changed binding digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-867: Modular Mac Task 4: changed destination invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-868: Modular Mac Task 4: changed preimage invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-869: Modular Mac Task 4: before-append fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-870: Modular Mac Task 4: after-append fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-871: Modular Mac Task 4: stage fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-872: Modular Mac Task 4: promotion fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-873: Modular Mac Task 4: receipt fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-874: Modular Mac Task 4: conflicting observed bytes require manual recovery (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-875: Modular Mac Task 4: concurrent writers cannot both admit (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-876: Modular Mac Task 4: rollback restores exact owned preimages (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-861: Modular Mac Task 4: owned fixture transaction uses existing lifecycle journal (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-862: Modular Mac Task 4: unowned identical fixture remains unowned (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-863: Modular Mac Task 4: differing user file remains byte exact (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-864: Modular Mac Task 4: changed source digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-865: Modular Mac Task 4: changed lock digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-866: Modular Mac Task 4: changed binding digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-867: Modular Mac Task 4: changed destination invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-868: Modular Mac Task 4: changed preimage invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-869: Modular Mac Task 4: before-append fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-870: Modular Mac Task 4: after-append fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-871: Modular Mac Task 4: stage fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-872: Modular Mac Task 4: promotion fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-873: Modular Mac Task 4: receipt fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-874: Modular Mac Task 4: conflicting observed bytes require manual recovery (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-875: Modular Mac Task 4: concurrent writers cannot both admit (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [x] ISC-876: Modular Mac Task 4: rollback restores exact owned preimages (probe: Task 4 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-877: Modular Mac Task 5: inspect action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-878: Modular Mac Task 5: export action declares its explicit write (probe: Task 5 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-879: Modular Mac Task 5: diff action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
@@ -3407,3 +3407,5 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-10-01 COPY provenance correction prerequisite: regenerated the existing 18-record supplemental inventory against accepted source 25d617d386adea39906e63bdb7f7d4716284e3c6 with the pinned Bun 1.3.5 generator. Immediate check passed; all six fragment files and both package locks remained byte-identical. The public enrichment expectation digest and source-tree object now match the accepted public source. The reference commit is the reviewed inventory input; the enclosing kit separately binds its complete build commit. Independent rebuilt-artifact review, final Tasks 4–6 and physical Task 8 remain pending. No private Atlas or runtime configuration was promoted.
 
 - 2026-10-01 source-candidate kit r4 prerequisite: immutable source 01d564c60cf9689abfe360fe98c12e103658fa4e built 723 committed source files plus the reviewed 21-package Bun/native closure. Independently captured archive SHA-256 c8067b49bdec3f1db72e18f6c83b0760333ee3f8977d9cf0c00f812fd5e878d2 passed stock pre-extraction USTAR and inner checks. Fresh independent review passed all 18 COPY source-object/expectation receipts, 173 payload files, both locks, exact binary hashes, full payload privacy checks and private Atlas exclusion; the generator-input commit/tree is correctly distinct from the enclosing build commit. Source-foundation only: final Tasks 4–6, rebuilt release closure, actual clean-root bootstrap and physical Task 8 remain pending; no ISC-909..924 acceptance, host install, provider activation or publication follows.
+
+- 2026-10-01 Modular Mac Task 4, ISC-861..876: exact five-path R6 source candidate passed fresh independent CORE and DISK reviews, including closed foreign journal fields/order/manifest bindings and valid interrupted/resume/rollback histories. Parent pinned Bun 1.3.5 integrated fourteen-suite replay passed 679 tests / 23116 assertions, with source and strict owned-test TypeScript checks passing; 1246 interruption cases remain covered. Frozen candidate patch SHA-256 b6964d0cd3d5c5a5b0601a4034c9f032d57c33420f266f34aa5ff54b5bb6f30f. Recovery reuses the existing journal, preimages, receipts and exclusive transaction claim. Explicit fresh owner-authenticated terminal release supports verified completed or unpublished attempts; malformed/foreign/unknown state holds, without implicit takeover or renewed mutation permission. Atomic no-replace IO is required for mutations; no production owner/native adapter, physical target, service activation, cross-process generic journal lock or power-loss durability is accepted. Source fixture acceptance only; Tasks 5–8 remain separate.

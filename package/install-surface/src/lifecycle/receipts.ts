@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 import { canonical } from "../canonical-json.ts";
-import type { LifecycleIO } from "./journal.ts";
+import { readLifecycleMetadata, type LifecycleIO, type TransactionBinding } from "./journal.ts";
 
 // ─── Receipt schema ──────────────────────────────────────────────────────────
 
@@ -35,6 +35,9 @@ export interface Receipt {
   steps: ReceiptStep[];
   user_content_preserved: string[];
   manifest_after_digest?: `sha256:${string}`;
+  transaction_binding?: TransactionBinding;
+  surface_manifest_sha256?: string;
+  recovery_outcome?: "applied" | "rolled-back";
 }
 
 // ─── Redaction ────────────────────────────────────────────────────────────────
@@ -87,6 +90,9 @@ export interface ReceiptInput {
   steps: ReceiptStep[];
   user_content_preserved: string[];
   manifest_after_digest?: `sha256:${string}`;
+  transaction_binding?: TransactionBinding;
+  surface_manifest_sha256?: string;
+  recovery_outcome?: "applied" | "rolled-back";
 }
 
 /**
@@ -108,7 +114,7 @@ export async function writeReceipt(
 
   // Write receipt
   const receiptPath = join(txDir, "receipt.json");
-  await io.writeFileAtomic(receiptPath, canonical(receipt));
+  await io.writeFileAtomic(receiptPath, canonical(receipt), { mode: 0o600 });
 
   return receipt;
 }
@@ -123,12 +129,14 @@ export async function readReceipt(
   txid: string,
   stateRoot: string,
   io: LifecycleIO,
+  privateMetadata = false,
 ): Promise<Receipt | null> {
   const txDir = join(stateRoot, "transactions", txid);
   const receiptPath = join(txDir, "receipt.json");
 
   try {
-    const content = await io.readFile(receiptPath);
+    const content = await readLifecycleMetadata(io, stateRoot, receiptPath, privateMetadata);
+    if (content === null) return null;
     const receipt = JSON.parse(content) as Receipt;
 
     // Validate schema
