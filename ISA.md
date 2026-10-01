@@ -1107,22 +1107,22 @@ Implement Tasks 1–7 as an integrated modular Mac lifecycle in the existing ins
 - [x] ISC-826: Modular Mac Task 1: stale owner evidence is held (probe: Task 1 focused adversarial test/kit/PTY receipt).
 - [x] ISC-827: Modular Mac Task 1: Adytum parity remains held (probe: Task 1 focused adversarial test/kit/PTY receipt).
 - [x] ISC-828: Modular Mac Task 1: capability-hit flags grant no admission (probe: Task 1 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-829: Modular Mac Task 2: inspect makes zero write calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-830: Modular Mac Task 2: inspect makes zero network calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-831: Modular Mac Task 2: inspect makes zero authentication calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-832: Modular Mac Task 2: integrated task-chain fixture is inspectable (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-833: Modular Mac Task 2: Hermes plant fixture is inspectable (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-834: Modular Mac Task 2: denied root is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-835: Modular Mac Task 2: missing volume is reported unknown (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-836: Modular Mac Task 2: nonregular artifact is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-837: Modular Mac Task 2: traversal is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-838: Modular Mac Task 2: symlink root is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-839: Modular Mac Task 2: malformed service metadata is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-840: Modular Mac Task 2: unsupported native artifact is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-841: Modular Mac Task 2: export rejects private fields before writing (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-842: Modular Mac Task 2: export bytes round-trip to the same digest (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-843: Modular Mac Task 2: authentication pending appears in diff (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-844: Modular Mac Task 2: derived knowledge drift appears as a finding (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-829: Modular Mac Task 2: inspect makes zero write calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-830: Modular Mac Task 2: inspect makes zero network calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-831: Modular Mac Task 2: inspect makes zero authentication calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-832: Modular Mac Task 2: integrated task-chain fixture is inspectable (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-833: Modular Mac Task 2: Hermes plant fixture is inspectable (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-834: Modular Mac Task 2: denied root is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-835: Modular Mac Task 2: missing volume is reported unknown (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-836: Modular Mac Task 2: nonregular artifact is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-837: Modular Mac Task 2: traversal is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-838: Modular Mac Task 2: symlink root is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-839: Modular Mac Task 2: malformed service metadata is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-840: Modular Mac Task 2: unsupported native artifact is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-841: Modular Mac Task 2: export rejects private fields before writing (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-842: Modular Mac Task 2: export bytes round-trip to the same digest (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-843: Modular Mac Task 2: authentication pending appears in diff (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [x] ISC-844: Modular Mac Task 2: derived knowledge drift appears as a finding (probe: Task 2 focused adversarial test/kit/PTY receipt).
 - [x] ISC-845: Modular Mac Task 3: workstation composes without optional native packs (probe: Task 3 focused adversarial test/kit/PTY receipt).
 - [x] ISC-846: Modular Mac Task 3: always-on node composes without desktop packs (probe: Task 3 focused adversarial test/kit/PTY receipt).
 - [x] ISC-847: Modular Mac Task 3: Anti: Snow Gloves is not a required dependency (probe: Task 3 focused adversarial test/kit/PTY receipt).
@@ -3397,3 +3397,5 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-10-01 portable-kit foundation prerequisite: eight owned source paths passed fresh independent r5 archive/bootstrap/privacy review. The verifier requires an independently supplied outer digest, closes and bounds raw USTAR before extraction, and preserves occupied destinations. Frozen vendor text is scanned with six exact path/full-file-hash/fragment exceptions; adjacent private data is refused. Producer and parent stock macOS Bash 3.2 suites each passed all 66 behavioral checks using the real 21-dependency closure and verified Bun 1.3.5/native arm64 bytes with synthetic CLI/manifest fixtures; integrated source verifier and unchanged path-guard regression suite also passed. Current integrated source kit build, final Tasks 1–6 closure and physical Task 8 remain pending; ISC-909..924 are not accepted by this prerequisite. Publication is explicitly non-atomic and assumes operator-controlled parent directories.
 
 - 2026-10-01 Modular Mac Task 3, ISC-845..860: fresh independent r2 review passed the normal proposal-then-final-digest-review sequence and its stale/future/expired/substituted-context negatives. Planning consumes pinned source context; a later independent review binds the completed plan digest, with generated_at <= reviewed_at <= now < expires_at and source-context freshness. Parent integrated Tasks 1–3 focused suite passed 334 tests / 1158 assertions with exact Bun 1.3.5 and source TypeScript passed. Two planner paths only; both profiles, ownership, DAG, runtime-isolation and unsupported router holds pass. Plans remain PROPOSED with false execution authority; Task 4 separately verifies fresh destination/preimages and exclusive ownership.
+
+- 2026-10-01 Modular Mac Task 2, ISC-829..844: fresh independent r2 review measured zero content IO under an insufficient byte budget, bounded cumulative reads and held file growth. Target-only comparisons preserve unknown destination holds; duplicate knowledge/toolchain identities are held deterministically in either order/side. The valid five-organ inspect chain, independently reread export digest and competing-writer preservation passed. Parent integrated Tasks 1–3 suite passed 334 tests / 1158 assertions with exact Bun 1.3.5 and source TypeScript passed. Seven bounded IO/inspect/export/diff/test paths only; every projection grants false execution authority. Stable owner-controlled parents remain required; no physical, runtime or live owner readiness follows.
