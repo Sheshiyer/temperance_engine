@@ -9,12 +9,206 @@ BUILD="$ROOT/scripts/build-migration-kit.sh"; VERIFY="$ROOT/scripts/verify-migra
 : "${KIT_EXPECTED_VENDOR_DIGEST:?independently reviewed tree digest required}"
 BUN="$TOOLCHAIN_CACHE_DIR/bun-1.3.5-arm64/bun"; VENDOR_DIR=$(cd "$KIT_VENDOR_DIR" && pwd)
 SANDBOX=$(mktemp -d "${TMPDIR:-/tmp}/te-kit-test.XXXXXX"); trap 'rm -rf "$SANDBOX"' EXIT
+SANDBOX=$(cd "$SANDBOX" && pwd -P)
 PASS=0
 ok(){ PASS=$((PASS+1)); printf 'PASS: %s\n' "$*"; }
 fail(){ printf 'FAIL: %s\n%s\n' "$*" "${OUTPUT:-}" >&2; exit 1; }
 sha(){ shasum -a 256 "$1" | awk '{print $1}'; }
 run(){ set +e; OUTPUT=$("$@" 2>&1); RC=$?; set -e; }
 refused(){ [ "$RC" -ne 0 ] && printf '%s\n' "$OUTPUT" | grep -q "$1" || fail "expected refusal $1 (rc=$RC)"; ok "$1"; }
+# Actual source installer, not the synthetic archive fixture below. Child-only
+# uname values are compatibility inputs, not physical-platform acceptance.
+BOOT="$SANDBOX/actual-bootstrap"; mkdir "$BOOT"
+git -C "$ROOT" archive HEAD | tar -xf - -C "$BOOT"
+cp "$ROOT/install.sh" "$BOOT/install.sh"; cp "$ROOT/scripts/lib.sh" "$BOOT/scripts/lib.sh"
+mkdir "$SANDBOX/bootstrap-bin"
+cat > "$SANDBOX/bootstrap-bin/uname" <<'SH'
+#!/bin/sh
+case "$1" in -s) printf '%s\n' "$FIXTURE_OS";; -m) printf '%s\n' "$FIXTURE_ARCH";; *) exit 1;; esac
+SH
+chmod +x "$SANDBOX/bootstrap-bin/uname"
+ln -s /bin/sh "$SANDBOX/bootstrap-bin/sh"
+ln -s /usr/bin/dirname "$SANDBOX/bootstrap-bin/dirname"
+run env -i PATH="$SANDBOX/bootstrap-bin" /bin/sh -c 'for tool in bun git brew node codegraph; do if command -v "$tool" >/dev/null 2>&1; then exit 1; fi; done'
+[ "$RC" = 0 ] || fail 'ambient developer tool visible in minimal child PATH'
+ok 'minimal child PATH excludes ambient Bun, Git, Homebrew, Node and CodeGraph'
+
+cat > "$SANDBOX/provenance.json" <<'JSON'
+{"schema":"temperance.kit-provenance.v1","source_commit":"1111111111111111111111111111111111111111","source_tree":"git-tree:2222222222222222222222222222222222222222","registry_lock_sha256":"3333333333333333333333333333333333333333333333333333333333333333","install_manifest_lock_sha256":"4444444444444444444444444444444444444444444444444444444444444444","reviewed_vendor_digest":"sha256:5555555555555555555555555555555555555555555555555555555555555555","bun":"1.3.5","opentui":"0.5.11","ajv":"8.20.0","typescript":"5.9.3","native":{"path":"package/install-surface/node_modules/@opentui/core-darwin-arm64/libopentui.dylib","format":"Mach-O","arch":"arm64","sha256":"6666666666666666666666666666666666666666666666666666666666666666","authority":"observation-bound-to-reviewed-vendor-tree"},"pending":["Task8 physical acceptance"]}
+JSON
+# Deliberately fictional metadata: compatibility assertions, never release trust.
+cp "$SANDBOX/provenance.json" "$BOOT/KIT-PROVENANCE.json"
+bootstrap(){
+ local dest="$1" os="$2" arch="$3"; shift 3
+ run env -i PATH="$SANDBOX/bootstrap-bin" HOME="$dest/home" TMPDIR="$SANDBOX" \
+  PAI_HOME="$dest/pai" CLAUDE_CONFIG_DIR="$dest/pai" CODEX_HOME="$dest/codex" \
+  OPENCODE_HOME="$dest/opencode" CURSOR_HOME="$dest/cursor" AGENTS_HOME="$dest/agents" \
+  XDG_CONFIG_HOME="$dest/config" TEMPERANCE_STATE="$dest/state" TEMPERANCE_STATE_DIR="$dest/state" \
+  TEMPERANCE_BACKUP_DIR="$dest/backups" TEMPERANCE_ALLOW_LIVE_INSPECTION=0 \
+  FIXTURE_OS="$os" FIXTURE_ARCH="$arch" /bin/sh "$BOOT/install.sh" "$@"
+}
+D="$SANDBOX/bootstrap-incompatible"
+bootstrap "$D" Darwin x86_64; refused KIT_PLATFORM_HOLD
+[ ! -e "$D" ] || fail 'kit architecture hold wrote destination'
+bootstrap "$D" Linux arm64; refused KIT_PLATFORM_HOLD
+[ ! -e "$D" ] || fail 'kit OS hold wrote destination'
+for variant in malformed unknown boolean duplicate native pin escaped oversized link hardlink directory missing manifest; do
+ cp "$SANDBOX/provenance.json" "$BOOT/KIT-PROVENANCE.json"
+ case "$variant" in
+ malformed) printf '{' > "$BOOT/KIT-PROVENANCE.json" ;;
+ unknown) perl -pi -e 's/"schema":/"unknown":true,"schema":/' "$BOOT/KIT-PROVENANCE.json" ;;
+ boolean) perl -pi -e 's/"bun":"1.3.5"/"bun":true/' "$BOOT/KIT-PROVENANCE.json" ;;
+ duplicate) perl -pi -e 's/"schema":/"bun":"1.3.5","schema":/' "$BOOT/KIT-PROVENANCE.json" ;;
+ native) perl -pi -e 's/"arch":"arm64"/"arch":"x64"/' "$BOOT/KIT-PROVENANCE.json" ;;
+ pin) perl -pi -e 's/"bun":"1.3.5"/"bun":"1.3.50"/' "$BOOT/KIT-PROVENANCE.json" ;;
+ escaped) perl -pi -e 's/1\.3\.5/1\\u002e3.5/' "$BOOT/KIT-PROVENANCE.json" ;;
+ oversized) /usr/bin/perl -e 'print " " x 8193' > "$BOOT/KIT-PROVENANCE.json" ;;
+ link) rm "$BOOT/KIT-PROVENANCE.json"; ln -s "$SANDBOX/provenance.json" "$BOOT/KIT-PROVENANCE.json" ;;
+ hardlink) rm "$BOOT/KIT-PROVENANCE.json"; ln "$SANDBOX/provenance.json" "$BOOT/KIT-PROVENANCE.json" ;;
+ directory) rm "$BOOT/KIT-PROVENANCE.json"; mkdir "$BOOT/KIT-PROVENANCE.json" ;;
+ missing) rm "$BOOT/KIT-PROVENANCE.json"; mkdir "$BOOT/toolchain" ;;
+ manifest) rm "$BOOT/KIT-PROVENANCE.json"; touch "$BOOT/INNER-MANIFEST.sha256" ;;
+ esac
+ bootstrap "$D" Darwin arm64; refused KIT_METADATA_HOLD
+ [ ! -e "$D" ] || fail 'metadata hold wrote destination'
+ [ ! -d "$BOOT/KIT-PROVENANCE.json" ] || rmdir "$BOOT/KIT-PROVENANCE.json"
+ rm -f "$BOOT/KIT-PROVENANCE.json" "$BOOT/INNER-MANIFEST.sha256"; [ ! -d "$BOOT/toolchain" ] || rmdir "$BOOT/toolchain"
+done
+cp "$SANDBOX/provenance.json" "$BOOT/KIT-PROVENANCE.json"
+for flag in --with-spine --with-relay --with-voice --with-claude --with-codex --with-opencode --with-cursor --with-gsd --with-manifest --force; do
+ bootstrap "$D" Darwin arm64 "$flag"; refused BOOTSTRAP_OPTION_HOLD
+ [ ! -e "$D" ] || fail 'optional activation hold wrote destination'
+done
+bootstrap "$D" Darwin arm64 --dry-run
+[ "$RC" = 0 ] && [ ! -e "$D" ] || fail 'minimal kit dry-run wrote state'
+printf '%s\n' "$OUTPUT" | grep -q 'dry-run complete: no files created' || fail 'dry-run completion overclaims installed files'
+ok 'minimal kit dry-run is zero-write'
+D="$SANDBOX/bootstrap-preservation"; mkdir -p "$D/home" "$D/codex/hooks" "$D/config"
+printf 'arbitrary changed instructions\n' > "$D/home/AGENTS.md"; chmod 0600 "$D/home/AGENTS.md"
+printf 'user resolver config\n' > "$D/codex/hooks/skill_cluster_resolver.mjs"; chmod 0640 "$D/codex/hooks/skill_cluster_resolver.mjs"
+printf 'UNRELATED\n' > "$D/config/sentinel"
+BEFORE=$(/usr/bin/perl -MDigest::SHA=sha256_hex -e 'for(@ARGV){open my $f,"<",$_ or die;local $/;my $b=<$f>;print sha256_hex($b)," ",(stat($_))[2]&0777,"\n";}' "$D/home/AGENTS.md" "$D/codex/hooks/skill_cluster_resolver.mjs" "$D/config/sentinel")
+bootstrap "$D" Darwin arm64
+[ "$RC" = 0 ] || fail 'actual minimal kit installer'
+bootstrap "$D" Darwin arm64 --skip-voice --skip-claude --skip-codex --skip-opencode --skip-cursor --skip-gsd --skip-manifest --skip-relay
+[ "$RC" = 0 ] || fail 'repeat actual minimal kit installer'
+AFTER=$(/usr/bin/perl -MDigest::SHA=sha256_hex -e 'for(@ARGV){open my $f,"<",$_ or die;local $/;my $b=<$f>;print sha256_hex($b)," ",(stat($_))[2]&0777,"\n";}' "$D/home/AGENTS.md" "$D/codex/hooks/skill_cluster_resolver.mjs" "$D/config/sentinel")
+[ "$BEFORE" = "$AFTER" ] && [ ! -e "$D/backups" ] || fail 'changed user bytes/modes/sentinel or backups'
+ok 'actual minimal kit repeats preserve arbitrary user bytes, modes, sentinel; no backups'
+D="$SANDBOX/bootstrap-fresh"; bootstrap "$D" Darwin arm64
+[ "$RC" = 0 ] && cmp -s "$D/home/AGENTS.md" "$BOOT/templates/AGENTS.md" && cmp -s "$D/codex/hooks/skill_cluster_resolver.mjs" "$BOOT/package/skill-resolvers/skill_cluster_resolver.mjs" || fail 'fresh generic bootstrap files'
+[ "$(stat -f %Lp "$D/home/AGENTS.md")" = "$(stat -f %Lp "$BOOT/templates/AGENTS.md")" ] && [ "$(stat -f %Lp "$D/codex/hooks/skill_cluster_resolver.mjs")" = "$(stat -f %Lp "$BOOT/package/skill-resolvers/skill_cluster_resolver.mjs")" ] || fail 'new generic file modes differ from owned sources'
+chmod 0600 "$D/home/AGENTS.md"
+bootstrap "$D" Darwin arm64
+[ "$RC" = 0 ] && [ "$(stat -f %Lp "$D/home/AGENTS.md")" = 600 ] && [ ! -e "$D/backups" ] || fail 'identical existing file mode/backups changed'
+ok 'fresh actual bootstrap and identical repeat preserve mode without duplicate backups'
+for absent in pai opencode cursor config state backups; do [ ! -e "$D/$absent" ] || fail "minimal bootstrap entered optional $absent surface"; done
+ok 'minimal kit default creates only generic surfaces with no optional activation'
+rm "$D/home/AGENTS.md"; ln -s missing-target "$D/home/AGENTS.md"
+bootstrap "$D" Darwin arm64
+[ "$RC" = 0 ] && [ "$(readlink "$D/home/AGENTS.md")" = missing-target ] && [ ! -e "$D/home/missing-target" ] || fail 'dangling destination link followed/replaced'
+ok 'existing destination link preserved without following it'
+printf 'linked user bytes\n' > "$D/home/target"; chmod 0640 "$D/home/target"
+rm "$D/home/AGENTS.md"; ln -s target "$D/home/AGENTS.md"
+bootstrap "$D" Darwin arm64
+[ "$RC" = 0 ] && [ "$(readlink "$D/home/AGENTS.md")" = target ] && [ "$(cat "$D/home/target")" = 'linked user bytes' ] && [ "$(stat -f %Lp "$D/home/target")" = 640 ] || fail 'linked existing file mutated'
+ok 'existing symlink and target bytes/mode remain unchanged'
+rm "$D/home/AGENTS.md"; ln "$D/home/target" "$D/home/AGENTS.md"
+bootstrap "$D" Darwin arm64
+[ "$RC" = 0 ] && [ "$(stat -f %l "$D/home/target")" = 2 ] && [ "$(cat "$D/home/target")" = 'linked user bytes' ] || fail 'hardlinked existing file mutated'
+ok 'existing hardlinked configuration preserved without adoption'
+D="$SANDBOX/bootstrap-linked-parent"; mkdir -p "$D/elsewhere" "$D/codex"; ln -s "$D/elsewhere" "$D/codex/hooks"
+bootstrap "$D" Darwin arm64; refused BOOTSTRAP_PATH_HOLD
+[ ! -e "$D/home" ] && [ -z "$(ls -A "$D/elsewhere")" ] || fail 'linked parent refusal had effects'
+for parent in home codex/hooks agents; do
+ D="$SANDBOX/bootstrap-file-parent-${parent//\//-}"; mkdir -p "$D/codex"
+ printf 'FOREIGN_PARENT\n' > "$D/$parent"; chmod 0640 "$D/$parent"
+ bootstrap "$D" Darwin arm64; refused BOOTSTRAP_PATH_HOLD
+ [ "$(cat "$D/$parent")" = FOREIGN_PARENT ] && [ "$(stat -f %Lp "$D/$parent")" = 640 ] && [ ! -e "$D/home/AGENTS.md" ] || fail 'non-directory parent refusal had effects'
+done
+# Check both owned sources before a first output; this fixture never modifies
+# the real checkout or dereferences its substitute source link.
+mv "$BOOT/package/skill-resolvers/skill_cluster_resolver.mjs" "$SANDBOX/resolver-source"
+ln -s "$SANDBOX/resolver-source" "$BOOT/package/skill-resolvers/skill_cluster_resolver.mjs"
+D="$SANDBOX/bootstrap-linked-source"; bootstrap "$D" Darwin arm64; refused BOOTSTRAP_PATH_HOLD
+[ ! -e "$D" ] || fail 'unsafe source hold wrote destination'
+rm "$BOOT/package/skill-resolvers/skill_cluster_resolver.mjs"
+mv "$SANDBOX/resolver-source" "$BOOT/package/skill-resolvers/skill_cluster_resolver.mjs"
+# Both generic sources must have exactly one link, at preflight and again at
+# copy time. Link changes below are deterministic disposable fixture steps,
+# not a claim to exhaustively reproduce adversarial filesystem races.
+source_snapshot(){ /usr/bin/perl -MDigest::SHA -e 'for(@ARGV){my @s=lstat $_;open my $f,"<",$_ or die;print join(" ",$s[0],$s[1],$s[2],$s[3],Digest::SHA->new(256)->addfile($f)->hexdigest),"\n";}' "$@"; }
+bootstrap_library(){
+ local dest="$1"; shift
+ run env -i PATH="$SANDBOX/bootstrap-bin" HOME="$dest/home" TMPDIR="$SANDBOX" \
+  PAI_HOME="$dest/pai" CLAUDE_CONFIG_DIR="$dest/pai" CODEX_HOME="$dest/codex" \
+  OPENCODE_HOME="$dest/opencode" CURSOR_HOME="$dest/cursor" AGENTS_HOME="$dest/agents" \
+  XDG_CONFIG_HOME="$dest/config" TEMPERANCE_STATE="$dest/state" TEMPERANCE_STATE_DIR="$dest/state" \
+  TEMPERANCE_BACKUP_DIR="$dest/backups" TEMPERANCE_ALLOW_LIVE_INSPECTION=0 TEMPERANCE_DRY_RUN=0 \
+  /bin/sh -c '. "$1/scripts/lib.sh"; shift; preserve_bootstrap "$@"' sh "$BOOT" "$@"
+}
+for source in templates/AGENTS.md package/skill-resolvers/skill_cluster_resolver.mjs; do
+ source_name="${source##*/}"
+ mv "$BOOT/$source" "$SANDBOX/source-saved"
+ printf 'FOREIGN_SOURCE_BYTES\n' > "$SANDBOX/foreign-source"; chmod 0640 "$SANDBOX/foreign-source"
+ ln "$SANDBOX/foreign-source" "$BOOT/$source"
+ BEFORE=$(source_snapshot "$BOOT/$source" "$SANDBOX/foreign-source")
+ D="$SANDBOX/bootstrap-source-hardlink-$source_name"; bootstrap "$D" Darwin arm64
+ refused BOOTSTRAP_PATH_HOLD
+ [ ! -e "$D" ] && [ "$BEFORE" = "$(source_snapshot "$BOOT/$source" "$SANDBOX/foreign-source")" ] || fail 'source hardlink preflight changed output or foreign fixture'
+ ok "hardlinked $source_name refused before bootstrap effects with foreign bytes/mode/links intact"
+ rm "$BOOT/$source" "$SANDBOX/foreign-source"; mv "$SANDBOX/source-saved" "$BOOT/$source"
+ for transition in same_inode_link foreign_link_swap; do
+  D="$SANDBOX/bootstrap-source-transition-$source_name-$transition"
+  bootstrap_library "$D" sources "$BOOT/$source"
+  [ "$RC" = 0 ] || fail 'single-link source preflight unexpectedly refused'
+  if [ "$transition" = same_inode_link ]; then
+   ln "$BOOT/$source" "$SANDBOX/foreign-source"
+  else
+   mv "$BOOT/$source" "$SANDBOX/source-saved"
+   printf 'SWAPPED_FOREIGN_SOURCE\n' > "$SANDBOX/foreign-source"; chmod 0600 "$SANDBOX/foreign-source"
+   ln "$SANDBOX/foreign-source" "$BOOT/$source"
+  fi
+  BEFORE=$(source_snapshot "$BOOT/$source" "$SANDBOX/foreign-source")
+  bootstrap_library "$D" copy "$BOOT/$source" "$D/new/target"
+  refused BOOTSTRAP_PATH_HOLD
+  [ ! -e "$D" ] && [ "$BEFORE" = "$(source_snapshot "$BOOT/$source" "$SANDBOX/foreign-source")" ] || fail 'copy-time source hardlink hold changed destination or foreign fixture'
+  ok "$source_name $transition after preflight refused at copy time without effects"
+  rm "$SANDBOX/foreign-source"
+  if [ "$transition" = foreign_link_swap ]; then rm "$BOOT/$source"; mv "$SANDBOX/source-saved" "$BOOT/$source"; fi
+ done
+done
+# Instrumented absolute-tool absence: only the disposable script copy changes.
+# PATH alone cannot simulate absence of the stock absolute Perl prerequisite.
+cp "$BOOT/install.sh" "$SANDBOX/install-before-missing-tool"
+/usr/bin/perl -pi -e 's{/usr/bin/perl}{/nonexistent-bootstrap-fixture/perl}g' "$BOOT/install.sh"
+D="$SANDBOX/bootstrap-no-perl"; bootstrap "$D" Darwin arm64; refused KIT_METADATA_HOLD
+[ ! -e "$D" ] || fail 'instrumented missing kit Perl wrote state'
+cp "$SANDBOX/install-before-missing-tool" "$BOOT/install.sh"
+ok 'instrumented absolute Perl absence holds; no host tool renamed or removed'
+mv "$SANDBOX/bootstrap-bin/uname" "$SANDBOX/fixture-uname"
+D="$SANDBOX/bootstrap-no-uname"; bootstrap "$D" Darwin arm64; refused KIT_PLATFORM_HOLD
+[ ! -e "$D" ] || fail 'missing PATH uname wrote state'
+mv "$SANDBOX/fixture-uname" "$SANDBOX/bootstrap-bin/uname"
+# Explicit source-checkout safe mode, versus unchanged legacy dry-run platform support.
+rm "$BOOT/KIT-PROVENANCE.json"
+D="$SANDBOX/bootstrap-source"; bootstrap "$D" Linux x86_64 --preserve-existing
+[ "$RC" = 0 ] && [ -f "$D/home/AGENTS.md" ] || fail 'explicit source preservation mode'
+ok 'source checkout explicitly opts into minimal preservation mode'
+bootstrap "$SANDBOX/bootstrap-source-option" Linux x86_64 --preserve-existing --with-voice --skip-voice
+refused BOOTSTRAP_OPTION_HOLD
+[ ! -e "$SANDBOX/bootstrap-source-option" ] || fail 'later skip bypassed optional activation hold'
+cp "$BOOT/scripts/lib.sh" "$SANDBOX/lib-before-missing-tool"
+/usr/bin/perl -pi -e 's{/usr/bin/perl}{/nonexistent-bootstrap-fixture/perl}g' "$BOOT/scripts/lib.sh"
+D="$SANDBOX/bootstrap-source-no-perl"; bootstrap "$D" Linux x86_64 --preserve-existing; refused BOOTSTRAP_PREREQ_HOLD
+[ ! -e "$D" ] || fail 'instrumented missing source-mode Perl wrote state'
+cp "$SANDBOX/lib-before-missing-tool" "$BOOT/scripts/lib.sh"
+bootstrap "$SANDBOX/bootstrap-source-plan" Linux x86_64 --dry-run --skip-voice --skip-claude --skip-codex --skip-opencode --skip-cursor --skip-gsd --skip-manifest --skip-relay
+# Legacy verifier requires Node, intentionally absent from stock PATH; reaching
+# legacy mode output is sufficient here, never a successful install claim.
+printf '%s\n' "$OUTPUT" | grep -q 'Temperance Engine installer' || fail 'legacy source platform compatibility changed'
+ok 'legacy source platform support retained (dry-run only)'
+
 commit_fixture(){ git -C "$1" add -A; git -C "$1" -c user.name=Fixture -c user.email=test@fixture.local commit -qm fixture; }
 make_fixture(){
  local fx="$1"
@@ -210,8 +404,8 @@ for ov in '{"schema":"temperance.overlay.v1"}' '{"schema":"temperance.overlay.v2
  refused OVERLAY_HOLD
  [ "$(cat "$SANDBOX/config/user.txt")" = KEEP ] && [ -z "$(find "$SANDBOX/home" "$SANDBOX/state" -type f -print)" ] || fail 'overlay/config state changed'
 done
-for f in install.sh scripts/build-migration-kit.sh scripts/verify-migration-kit.sh scripts/verify-install.sh tests/migration-kit.sh; do /bin/bash -n "$ROOT/$f"; done
+for f in install.sh scripts/build-migration-kit.sh scripts/verify-migration-kit.sh scripts/verify-install.sh tests/migration-kit.sh scripts/lib.sh; do /bin/bash -n "$ROOT/$f"; done
 ok 'stock Bash syntax'
 ! grep -n 'bun.sh/install' "$ROOT/package/install-surface/docs/guided-onboarding.md" "$ROOT/docs/modular-mac-lifecycle.md" || fail 'unpinned bootstrap'
 ok 'manual bootstrap avoids unpinned installer'
-printf '\n%d checks passed. Synthetic closure only. Tasks 1–6 profile/CLI integration and Task 8 physical acceptance pending.\n' "$PASS"
+printf '\n%d checks passed. Synthetic archive closure plus actual-source minimal bootstrap. Tasks 1–6 profile/CLI integration and Task 8 physical acceptance pending.\n' "$PASS"

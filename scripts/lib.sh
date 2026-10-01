@@ -16,7 +16,84 @@ run_cmd() {
   fi
 }
 
+# Safe bootstrap only: path-based parent guards and exclusive file creation.
+# Existing leaves (including links) are never read, changed, adopted or backed up.
+# Parent directories must remain under caller control; this is not a hostile
+# same-user ancestor-race boundary or a lifecycle rollback implementation.
+preserve_bootstrap() {
+  [ -x /usr/bin/perl ] || { say 'BOOTSTRAP_PREREQ_HOLD: stock Perl unavailable' >&2; return 1; }
+  /usr/bin/perl - "${TEMPERANCE_DRY_RUN:-0}" "$@" <<'PRESERVE_BOOTSTRAP'
+use strict; use warnings; use Fcntl qw(:DEFAULT); use Errno qw(ENOENT EEXIST); use Digest::SHA;
+my($dry,$action,@args)=@ARGV;
+sub hold {die "BOOTSTRAP_PATH_HOLD: unsafe or unavailable generic destination; no overwrite\n"}
+sub normalized {
+ my $p=shift; $p=~m{\A/} && $p!~/[\x00-\x1f\x7f]/ or hold();
+ # Stock macOS aliases only; arbitrary parent symlinks remain forbidden.
+ for my $alias ('tmp','var') {if($p=~m{\A/$alias(?:/|$)} && -l "/$alias"){readlink("/$alias") eq "private/$alias" || readlink("/$alias") eq "/private/$alias" or hold();$p=~s{\A/$alias}{/private/$alias};}}
+ my @parts=grep {length}split m{/},$p;for(@parts){$_ ne '.' && $_ ne '..' or hold();}
+ return '/'.join('/',@parts);
+}
+sub parents {
+ my($path,$create,$include_leaf)=@_;my @parts=grep {length}split m{/},$path;pop @parts unless $include_leaf;my $p='';
+ for(@parts){$p.='/'.$_;my @s=lstat $p;
+  if(@s){-d _ && !-l _ or hold();}
+  elsif($! != ENOENT){hold();}
+  elsif($create){mkdir($p,0700) or hold();}
+ }
+}
+sub source_current {
+ my($path,$in,$device,$inode)=@_;my @opened=stat $in;my @now=lstat $path;
+ @opened && @now && -f _ && !-l _ && $opened[3]==1 && $now[3]==1
+  && $opened[0]==$device && $opened[1]==$inode
+  && $now[0]==$device && $now[1]==$inode or hold();
+}
+if($action eq 'check'){for(@args){parents(normalized($_),0,0);}exit 0;}
+if($action eq 'sources'){
+ for my $source(@args){
+  parents(normalized($source),0,0);
+  my @src=lstat $source;@src && -f _ && !-l _ && $src[3]==1 or hold();
+  sysopen(my $in,$source,O_RDONLY|O_NOFOLLOW) or hold();
+  source_current($source,$in,$src[0],$src[1]);
+  Digest::SHA->new(256)->addfile($in);
+  source_current($source,$in,$src[0],$src[1]);close($in) or hold();
+ }
+ exit 0;
+}
+if($action eq 'directory'){my $p=normalized($args[0]);parents($p,!$dry,1);exit 0;}
+$action eq 'copy' or hold();my($source,$destination)=@args;my $p=normalized($destination);
+parents($p,0,0);my @existing=lstat $p;
+if(@existing){print "PRESERVED_EXISTING: $destination\n";exit 0;} $! == ENOENT or hold();
+parents(normalized($source),0,0);
+my @src=lstat $source;@src && -f _ && !-l _ && $src[3]==1 or hold();
+sysopen(my $in,$source,O_RDONLY|O_NOFOLLOW) or hold();
+source_current($source,$in,$src[0],$src[1]);my $mode=$src[2]&0777;
+if($dry){print "DRY_RUN: create absent generic file $destination\n";exit 0;}
+parents($p,1,0);
+source_current($source,$in,$src[0],$src[1]);
+if(!sysopen(my $unused,$p,O_RDWR|O_CREAT|O_EXCL,$mode)){
+ $! == EEXIST or hold();print "PRESERVED_EXISTING: $destination\n";exit 0;
+} else {
+ my $out=$unused;my @owned=stat $out;
+ my $ok=eval {
+  chmod($mode,$out)==1 or die;my $expected=Digest::SHA->new(256);
+  while(1){
+   source_current($source,$in,$src[0],$src[1]);
+   my $n=read($in,my $bytes,65536);defined($n) or die;
+   source_current($source,$in,$src[0],$src[1]);
+   last unless $n;$expected->add($bytes);print {$out} $bytes or die;
+  }
+  seek($out,0,0) or die;Digest::SHA->new(256)->addfile($out)->hexdigest eq $expected->hexdigest or die;
+  ((stat($out))[2]&0777)==$mode or die;
+  source_current($source,$in,$src[0],$src[1]);close($out) or die;close($in) or die;1;
+ };
+ if(!$ok){my @now=lstat $p;unlink($p) if @now && $now[0]==$owned[0] && $now[1]==$owned[1];hold();}
+ print "CREATED_GENERIC: $destination\n";
+}
+PRESERVE_BOOTSTRAP
+}
+
 ensure_dir() {
+  if [ "${TEMPERANCE_PRESERVE_EXISTING:-0}" = 1 ]; then preserve_bootstrap directory "$1"; return; fi
   if is_dry_run; then
     printf 'DRY_RUN: mkdir -p %s\n' "$1"
   else
@@ -41,6 +118,7 @@ backup_file() {
 }
 
 install_file() {
+  if [ "${TEMPERANCE_PRESERVE_EXISTING:-0}" = 1 ]; then preserve_bootstrap copy "$1" "$2"; return; fi
   install_src="$1"
   install_dest="$2"
   ensure_dir "$(dirname "$install_dest")"
@@ -77,6 +155,7 @@ is_live_operator_surface() {
 # install_operator_file: like install_file, but skips (with a warning)
 # writing over an existing live operator surface unless TEMPERANCE_FORCE=1.
 install_operator_file() {
+  if [ "${TEMPERANCE_PRESERVE_EXISTING:-0}" = 1 ]; then install_file "$1" "$2"; return; fi
   op_src="$1"
   op_dest="$2"
   if test "${TEMPERANCE_FORCE:-0}" != "1" && is_live_operator_surface "$op_dest" "$op_src"; then
