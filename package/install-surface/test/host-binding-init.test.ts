@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -7,6 +7,9 @@ import { parseHostBindingInitArgs } from "../src/onboarding/host-binding-init-cl
 import { createHostBinding, writePrivateHostBinding } from "../src/onboarding/host-binding-init.ts";
 import type { HostProfileV1 } from "../src/onboarding/public-contracts.ts";
 
+// Binding values use fictional roots; only disposable output directories exist.
+const fixtureProjects = "/fixture/volumes/projects";
+const fixturePrivateProjects = "/fixture/volumes/private-projects";
 const roots: string[] = [];
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
@@ -31,14 +34,14 @@ describe("private host binding initializer", () => {
     expect(parseHostBindingInitArgs([
       "--host-profile", "/profiles/noesis.json",
       "--output", "/private/host-binding.json",
-      "--set", "PROJECT_ROOT", "/Volumes/projects",
+      "--set", "PROJECT_ROOT", fixtureProjects,
       "--secret-reference", "GATEWAY_KEY", "temperance.gateway", "default",
       "--alias", "noesis-plan", "planning-seat",
       "--volume", "projects", "PROJECT_ROOT", "PROJECT_VOLUME_UUID", "TEST-UUID",
     ])).toEqual({
       hostProfilePath: "/profiles/noesis.json",
       outputPath: "/private/host-binding.json",
-      variables: { PROJECT_ROOT: "/Volumes/projects" },
+      variables: { PROJECT_ROOT: fixtureProjects },
       secretReferences: { GATEWAY_KEY: { store: "macos-keychain", service: "temperance.gateway", account: "default" } },
       routingAliases: [{ alias: "noesis-plan", combo: "planning-seat" }],
       volumeBindings: [{ id: "projects", mount_path_variable: "PROJECT_ROOT", volume_uuid_variable: "PROJECT_VOLUME_UUID", volume_uuid: "TEST-UUID" }],
@@ -55,7 +58,7 @@ describe("private host binding initializer", () => {
     roots.push(root);
     chmodSync(root, 0o700);
     const binding = createHostBinding(profile, {
-      variables: { PROJECT_ROOT: "/Volumes/projects", ROUTER_URL: "http://127.0.0.1:20128" },
+      variables: { PROJECT_ROOT: fixtureProjects, ROUTER_URL: "http://127.0.0.1:20128" },
       secretReferences: { GATEWAY_KEY: { store: "macos-keychain", service: "temperance.gateway", account: "default" } },
       routingAliases: [{ alias: "noesis-plan", combo: "planning-seat" }],
       volumeBindings: [{ id: "projects", mount_path_variable: "PROJECT_ROOT", volume_uuid_variable: "PROJECT_VOLUME_UUID", volume_uuid: "TEST-UUID" }],
@@ -82,8 +85,70 @@ describe("private host binding initializer", () => {
     })).toThrow("HOST_BINDING_INIT_IDENTITY_UNAVAILABLE");
   });
 
-  test("CLI observes the current Mac without echoing private variable values", async () => {
-    if (process.platform !== "darwin") return;
+  test.skipIf(process.platform !== "darwin")("CLI uses synthetic host values and preserves exclusive private output", async () => {
+    const root = mkdtempSync(join(tmpdir(), "temperance-host-binding-synthetic-cli-"));
+    roots.push(root);
+    chmodSync(root, 0o700);
+    const bin = join(root, "bin");
+    mkdirSync(bin, { mode: 0o700 });
+    const sysctl = join(bin, "sysctl");
+    // This child-only PATH contains no real sysctl fallback. Shell builtins
+    // return fictional values and record which observations the CLI requested.
+    writeFileSync(sysctl, [
+      "#!/bin/sh",
+      '[ "$#" -eq 2 ] && [ "$1" = "-n" ] || exit 1',
+      'printf "%s\\n" "$2" >> "$0.calls"',
+      'case "$2" in',
+      '  hw.model) printf "%s\\n" "FixtureMac1,1" ;;',
+      '  machdep.cpu.brand_string) printf "%s\\n" "Fixture Chip" ;;',
+      '  *) exit 1 ;;',
+      'esac',
+      "",
+    ].join("\n"), { mode: 0o700 });
+    const profilePath = join(root, "profile.json");
+    const outputPath = join(root, "binding.json");
+    writeFileSync(profilePath, JSON.stringify({
+      schema: "temperance.host-profile.v1", version: { major: 1, minor: 0 }, id: "binding-cli-test",
+      variables: [{ name: "PROJECT_ROOT", kind: "absolute-path", required: true }],
+      secret_references: [], preselected_modules: [], required_routing_aliases: [],
+    }));
+    const run = async () => {
+      const child = Bun.spawn([
+        process.execPath, "src/cli.ts", "host-binding-init",
+        "--host-profile", profilePath, "--output", outputPath,
+        "--set", "PROJECT_ROOT", fixturePrivateProjects,
+      ], {
+        cwd: join(import.meta.dir, ".."),
+        env: { ...process.env, PATH: bin, TEMPERANCE_ALLOW_LIVE_INSPECTION: "0" },
+        stdout: "pipe", stderr: "pipe",
+      });
+      const [code, stdout, stderr] = await Promise.all([
+        child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
+      ]);
+      return { code, stdout, stderr };
+    };
+    const first = await run();
+    expect(first.code, first.stderr).toBe(0);
+    expect(JSON.parse(first.stdout)).toMatchObject({
+      schema: "temperance.host-binding-init-receipt.v1", profile_id: "binding-cli-test",
+      variable_names: ["PROJECT_ROOT"], output_created: true,
+      host_identity: { hardware_model: "FixtureMac1,1", chip_model: "Fixture Chip" },
+    });
+    expect(readFileSync(`${sysctl}.calls`, "utf8")).toBe("hw.model\nmachdep.cpu.brand_string\n");
+    expect(first.stdout).not.toContain(fixturePrivateProjects);
+    expect(statSync(outputPath).mode & 0o777).toBe(0o600);
+    const original = readFileSync(outputPath, "utf8");
+    expect(JSON.parse(original).variables.PROJECT_ROOT).toBe(fixturePrivateProjects);
+    const second = await run();
+    expect(second.code).toBe(64);
+    expect(second.stderr).toContain("HOST_BINDING_INIT_OUTPUT_EXISTS");
+    expect(second.stdout).toBe("");
+    expect(readFileSync(outputPath, "utf8")).toBe(original);
+    expect(statSync(outputPath).mode & 0o777).toBe(0o600);
+  });
+
+  test.skipIf(process.platform !== "darwin" || process.env.TEMPERANCE_ALLOW_LIVE_INSPECTION !== "1")(
+    "CLI observes the current Mac without echoing private variable values (opt-in live inspection)", async () => {
     const root = mkdtempSync(join(tmpdir(), "temperance-host-binding-cli-"));
     roots.push(root);
     chmodSync(root, 0o700);
@@ -95,10 +160,10 @@ describe("private host binding initializer", () => {
       secret_references: [], preselected_modules: [], required_routing_aliases: [],
     }));
     const child = Bun.spawn([
-      "bun", "run", "src/cli.ts", "host-binding-init",
+      process.execPath, "src/cli.ts", "host-binding-init",
       "--host-profile", profilePath,
       "--output", outputPath,
-      "--set", "PROJECT_ROOT", "/Volumes/private-projects",
+      "--set", "PROJECT_ROOT", fixturePrivateProjects,
     ], { cwd: join(import.meta.dir, ".."), stdout: "pipe", stderr: "pipe" });
     const [code, stdout, stderr] = await Promise.all([
       child.exited, new Response(child.stdout).text(), new Response(child.stderr).text(),
@@ -112,7 +177,7 @@ describe("private host binding initializer", () => {
       output_created: true,
     });
     expect(receipt.host_identity.hardware_model).not.toBe("unknown");
-    expect(stdout).not.toContain("/Volumes/private-projects");
+    expect(stdout).not.toContain(fixturePrivateProjects);
     expect(statSync(outputPath).mode & 0o777).toBe(0o600);
   });
 });

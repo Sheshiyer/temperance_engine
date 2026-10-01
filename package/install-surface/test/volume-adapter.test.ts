@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 import { probeVolumeBinding, type VolumeProbeIO } from "../src/onboarding/volume-adapter.ts";
 
-const input = { mount_path: "/Volumes/madara", expected_uuid: "EXPECTED-UUID", required_subtree: "2026/Projects/thoughtseed" };
+// The probe IO below is synthetic: no real mount or host inventory is read.
+const input = { mount_path: "/fixture/volumes/data", expected_uuid: "EXPECTED-UUID", required_subtree: "projects/example-workspace" };
 function io(overrides: Partial<VolumeProbeIO> = {}): VolumeProbeIO {
   return {
     platform: "darwin",

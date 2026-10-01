@@ -3,14 +3,15 @@ import { describe, expect, test } from "bun:test";
 import { composeOnboardingProfile } from "../src/onboarding/composition.ts";
 import type { HostBindingV1, HostProfileV1, ProjectCapsuleV1 } from "../src/onboarding/public-contracts.ts";
 
+// Pure in-memory fixture paths and labels; no operator mount is discovered.
 const profile: HostProfileV1 = {
   schema: "temperance.host-profile.v1",
   version: { major: 1, minor: 0 },
   id: "personal-overlay",
   variables: [
     { name: "PROJECT_ROOT", kind: "absolute-path", required: true },
-    { name: "MADARA_ROOT", kind: "absolute-path", required: false },
-    { name: "MADARA_UUID", kind: "volume-uuid", required: false },
+    { name: "FIXTURE_VOLUME_ROOT", kind: "absolute-path", required: false },
+    { name: "FIXTURE_VOLUME_UUID", kind: "volume-uuid", required: false },
   ],
   secret_references: [{ name: "GATEWAY_KEY", required: true }],
   preselected_modules: ["provider.9router"],
@@ -21,19 +22,19 @@ const binding: HostBindingV1 = {
   schema: "temperance.host-binding.v1",
   version: { major: 1, minor: 0 },
   profile_id: "personal-overlay",
-  variables: { PROJECT_ROOT: "/private/projects", MADARA_ROOT: "/Volumes/madara" },
+  variables: { PROJECT_ROOT: "/fixture/projects", FIXTURE_VOLUME_ROOT: "/fixture/volumes/data" },
   secret_references: { GATEWAY_KEY: { store: "macos-keychain", service: "temperance.gateway", account: "primary" } },
   routing_aliases: [{ alias: "noesis-build", combo: "noesis-build" }],
-  volume_bindings: [{ id: "madara", mount_path_variable: "MADARA_ROOT", volume_uuid_variable: "MADARA_UUID", volume_uuid: "ABCD-1234" }],
+  volume_bindings: [{ id: "fixture-volume", mount_path_variable: "FIXTURE_VOLUME_ROOT", volume_uuid_variable: "FIXTURE_VOLUME_UUID", volume_uuid: "ABCD-1234" }],
 };
 
 const capsule: ProjectCapsuleV1 = {
   schema: "temperance.project-capsule.v1",
   version: { major: 1, minor: 0 },
-  id: "project.cambium",
-  repository_identity: "github.com/example/cambium",
+  id: "project.example-app",
+  repository_identity: "github.com/example/example-app",
   root_variable: "PROJECT_ROOT",
-  relative_path: "cambium",
+  relative_path: "example-app",
   access: "read-only",
   approved: true,
 };
@@ -41,10 +42,10 @@ const capsule: ProjectCapsuleV1 = {
 describe("hand-in-glove profile composition", () => {
   test("joins portable declarations to private bindings without adding secret values", () => {
     const composed = composeOnboardingProfile(profile, binding, { projectCapsules: [capsule] });
-    expect(composed.variables).toEqual({ PROJECT_ROOT: "/private/projects", MADARA_ROOT: "/Volumes/madara", MADARA_UUID: "ABCD-1234" });
+    expect(composed.variables).toEqual({ PROJECT_ROOT: "/fixture/projects", FIXTURE_VOLUME_ROOT: "/fixture/volumes/data", FIXTURE_VOLUME_UUID: "ABCD-1234" });
     expect(composed.secret_references).toEqual(binding.secret_references);
     expect(composed.routing_aliases).toEqual([{ alias: "noesis-build", combo: "noesis-build" }]);
-    expect(composed.project_enrollments).toEqual([{ id: "project.cambium", root_variable: "PROJECT_ROOT", approved: true, access: "read-only" }]);
+    expect(composed.project_enrollments).toEqual([{ id: "project.example-app", root_variable: "PROJECT_ROOT", approved: true, access: "read-only" }]);
     expect(JSON.stringify(composed)).not.toContain("secret-value");
   });
 
@@ -63,7 +64,7 @@ describe("hand-in-glove profile composition", () => {
     };
     const withoutVariable: HostBindingV1 = {
       ...binding,
-      volume_bindings: [{ id: "madara", mount_path_variable: "MADARA_ROOT", volume_uuid: "ABCD-1234" }],
+      volume_bindings: [{ id: "fixture-volume", mount_path_variable: "FIXTURE_VOLUME_ROOT", volume_uuid: "ABCD-1234" }],
     };
     expect(() => composeOnboardingProfile(ambiguous, withoutVariable)).toThrow("HOST_BINDING_VOLUME_UUID_VARIABLE_AMBIGUOUS");
   });

@@ -3,6 +3,7 @@ import { defaultBoundId } from "../package/manifest-zone/src/boundProjects";
 import { isRealProjectId, scopeQuery, scopeSnapshot } from "../package/manifest-zone/src/scopeSnapshot";
 import type { ManifestSnapshot, ProjectSummary } from "../package/manifest-zone/src/manifest";
 
+// Synthetic project identities and roots keep scope selection clone-independent.
 function project(partial: Partial<ProjectSummary> & Pick<ProjectSummary, "project_id" | "cwd">): ProjectSummary {
   return {
     name: partial.name || partial.project_id,
@@ -19,60 +20,60 @@ describe("isRealProjectId / scopeQuery", () => {
     expect(isRealProjectId("")).toBe(false);
     expect(isRealProjectId("all")).toBe(false);
     expect(isRealProjectId(null)).toBe(false);
-    expect(isRealProjectId("temperance-engine-7799042f99")).toBe(true);
+    expect(isRealProjectId("temperance-engine-2222222222")).toBe(true);
   });
 
   test("scopeQuery omits empty and all", () => {
     expect(scopeQuery("")).toBe(null);
     expect(scopeQuery("all")).toBe(null);
-    expect(scopeQuery("temperance-engine-7799042f99")).toBe("?project_id=temperance-engine-7799042f99");
+    expect(scopeQuery("temperance-engine-2222222222")).toBe("?project_id=temperance-engine-2222222222");
   });
 });
 
 describe("defaultBoundId", () => {
-  const parkarea = project({
-    project_id: "parkarea-aleph-0e7333c235",
-    name: "parkarea",
-    cwd: "/Volumes/madara/2026/Projects/thoughtseed/parkarea/parkarea-aleph",
+  const exampleApp = project({
+    project_id: "example-app-1111111111",
+    name: "example-app",
+    cwd: "/fixture/projects/example-app",
   });
   const glove = project({
-    project_id: "temperance-engine-7799042f99",
+    project_id: "temperance-engine-2222222222",
     name: "temperance_engine",
-    cwd: "/Volumes/madara/2026/Projects/thoughtseed/temperance_engine",
+    cwd: "/fixture/projects/temperance_engine",
   });
 
   test("glove hashed cwd wins over hottest-event bound[0]", () => {
-    expect(defaultBoundId([parkarea, glove], null)).toBe("temperance-engine-7799042f99");
+    expect(defaultBoundId([exampleApp, glove], null)).toBe("temperance-engine-2222222222");
   });
 
   test("glove hashed id matches without relying on missing temperance_engine slug", () => {
     const hashedOnly = project({
-      project_id: "temperance-engine-7799042f99",
-      cwd: "/tmp/other-checkout",
+      project_id: "temperance-engine-2222222222",
+      cwd: "/fixture/projects/alternate-checkout",
     });
-    expect(defaultBoundId([parkarea, hashedOnly], null)).toBe("temperance-engine-7799042f99");
+    expect(defaultBoundId([exampleApp, hashedOnly], null)).toBe("temperance-engine-2222222222");
   });
 
   test("honors a bound query id", () => {
-    expect(defaultBoundId([parkarea, glove], "parkarea-aleph-0e7333c235")).toBe("parkarea-aleph-0e7333c235");
+    expect(defaultBoundId([exampleApp, glove], "example-app-1111111111")).toBe("example-app-1111111111");
   });
 
   test("ignores query all", () => {
-    expect(defaultBoundId([parkarea, glove], "all")).toBe("temperance-engine-7799042f99");
+    expect(defaultBoundId([exampleApp, glove], "all")).toBe("temperance-engine-2222222222");
   });
 });
 
 describe("scopeSnapshot", () => {
-  const selected = "temperance-engine-7799042f99";
+  const selected = "temperance-engine-2222222222";
   const snapshot = {
     event_count: 99,
     recent_events: [
-      { id: "a", project_id: "parkarea-aleph-0e7333c235" },
+      { id: "a", project_id: "example-app-1111111111" },
       { id: "b", project_id: selected },
       { id: "c" },
     ],
     agents: {
-      x: { project_id: "parkarea-aleph-0e7333c235" },
+      x: { project_id: "example-app-1111111111" },
       y: { project_id: selected },
       z: { name: "unlabeled" },
     },
@@ -80,7 +81,7 @@ describe("scopeSnapshot", () => {
     waves: {},
     sessions: {},
     approvals: {},
-    projects: { [selected]: { name: "glove" }, "parkarea-aleph-0e7333c235": { name: "parkarea" } },
+    projects: { [selected]: { name: "glove" }, "example-app-1111111111": { name: "example-app" } },
   } as unknown as ManifestSnapshot;
 
   test("keeps selected events and drops missing project_id", () => {

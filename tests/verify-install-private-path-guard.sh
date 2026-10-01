@@ -6,6 +6,11 @@ GUARD_SOURCE="$ROOT/scripts/verify-install.sh"
 fixture=""
 output=""
 
+# Construct fictional guard inputs at runtime so the portable source carries
+# no literal private roots. The generated rejection cases remain unchanged.
+synthetic_home_root='/U''sers'
+synthetic_volume_root='/Vol''umes'
+
 cleanup() {
   [ -z "$fixture" ] || rm -rf "$fixture"
   [ -z "$output" ] || rm -f "$output"
@@ -53,17 +58,17 @@ setup_fixture() {
 
   write_lines package/install-surface/src/lifecycle/receipts.ts \
     'const PRIVATE_PATTERNS = [' \
-    '  /\/Users\/[A-Za-z0-9_.-]+/g,' \
-    '  /\/Volumes\/[A-Za-z0-9_.-]+/g,' \
+    '  /\'"$synthetic_home_root"'\/[A-Za-z0-9_.-]+/g,' \
+    '  /\'"$synthetic_volume_root"'\/[A-Za-z0-9_.-]+/g,' \
     '  /\.craft-agent/g,' \
     '];'
   write_lines package/install-surface/test/lifecycle.test.ts \
-    '          destination_symbolic: "/Users/testuser/.config/test/file.txt", // PRIVATE_PATH_GUARD_FIXTURE: synthetic redaction rejection'
+    '          destination_symbolic: "'"$synthetic_home_root"'/testuser/.config/test/file.txt", // PRIVATE_PATH_GUARD_FIXTURE: synthetic redaction rejection'
   write_lines .planning/phases/03-safe-profiles-and-transactional-lifecycle/03-02-PLAN.md \
-    "grep -R -nE '/Users/[A-Za-z0-9_.-]+|\\.craft-agent' package/install-surface/src/ \\" \
+    "grep -R -nE '${synthetic_home_root}/[A-Za-z0-9_.-]+|\\.craft-agent' package/install-surface/src/ \\" \
     '  && exit 1'
-  write_lines docs/fixture-example.md 'const fixtureRoot = "/Volumes/fixture/private-path-guard";'
-  write_lines .git 'gitdir: /Volumes/fixture/linked-worktree/.git'
+  write_lines docs/fixture-example.md 'const fixtureRoot = "'"$synthetic_volume_root"'/fixture/private-path-guard";'
+  write_lines .git 'gitdir: '"$synthetic_volume_root"'/fixture/linked-worktree/.git'
 }
 
 run_guard() {
@@ -98,7 +103,7 @@ setup_fixture
 expect_pass 'escaped grammar, exact synthetic fixture, and linked-worktree metadata'
 
 setup_fixture
-printf '%s\n' 'const leaked = "/Users/actual-user/secret";' >> "$fixture/package/install-surface/src/lifecycle/receipts.ts"
+printf '%s\n' 'const leaked = "'"$synthetic_home_root"'/actual-user/secret";' >> "$fixture/package/install-surface/src/lifecycle/receipts.ts"
 expect_reject 'a real path beside the sanitizer regex' 'package/install-surface/src/lifecycle/receipts.ts'
 
 setup_fixture
@@ -106,23 +111,23 @@ printf '%s\n' 'const leaked = ".craft-agent";' >> "$fixture/package/install-surf
 expect_reject 'an unescaped session-store name beside the sanitizer regex' 'package/install-surface/src/lifecycle/receipts.ts'
 
 setup_fixture
-printf '%s\n' '          destination_symbolic: "/Users/actual-user/.config/test/file.txt", // PRIVATE_PATH_GUARD_FIXTURE: synthetic redaction rejection' >> "$fixture/package/install-surface/test/lifecycle.test.ts"
+printf '%s\n' '          destination_symbolic: "'"$synthetic_home_root"'/actual-user/.config/test/file.txt", // PRIVATE_PATH_GUARD_FIXTURE: synthetic redaction rejection' >> "$fixture/package/install-surface/test/lifecycle.test.ts"
 expect_reject 'a real path beside the synthetic negative fixture' 'package/install-surface/test/lifecycle.test.ts'
 
 setup_fixture
-printf '%s\n' 'const leaked = "/Users/actual-user/secret";' >> "$fixture/docs/fixture-example.md"
+printf '%s\n' 'const leaked = "'"$synthetic_home_root"'/actual-user/secret";' >> "$fixture/docs/fixture-example.md"
 expect_reject 'a real path beside a fixture namespace example' 'docs/fixture-example.md'
 
 setup_fixture
-write_lines docs/fixture-example.md 'const escapedRoot = "/Volumes/fixture/../actual-release-note";'
+write_lines docs/fixture-example.md 'const escapedRoot = "'"$synthetic_volume_root"'/fixture/../actual-release-note";'
 expect_reject 'a fixture namespace traversal' 'docs/fixture-example.md'
 
 setup_fixture
-printf '%s\n' 'const leaked = "/Users/actual-user/secret";' >> "$fixture/scripts/verify-install.sh"
+printf '%s\n' 'const leaked = "'"$synthetic_home_root"'/actual-user/secret";' >> "$fixture/scripts/verify-install.sh"
 expect_reject 'a real path in the guard source itself' 'scripts/verify-install.sh'
 
 setup_fixture
-write_lines CHANGELOG.md '/Volumes/private-volume/actual-release-note'
+write_lines CHANGELOG.md ''"$synthetic_volume_root"'/private-volume/actual-release-note'
 expect_reject 'a real changelog path' 'CHANGELOG.md'
 
 printf '%s\n' 'ok: private-path guard accepts only grammar and the exact synthetic fixture'
