@@ -5,7 +5,8 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { loadLock } from "../../load.ts";
 import { producerAvailability, spliceManagedBlock } from "../../lifecycle/non-copy.ts";
 import { validateSurfaceManifest, type SurfaceLeaf, type SurfaceManifest } from "../../lifecycle/prepared-surface.ts";
-import type { SurfaceRecord, TransformSurfaceRecord } from "../../types.ts";
+import type { LaunchAgentSurfaceRecord, SurfaceRecord, TransformSurfaceRecord } from "../../types.ts";
+import { renderPlist, sha256Hex } from "../../lifecycle/launchagent.ts";
 import type { DoctorCheck, DoctorContext, DoctorSection } from "../model.ts";
 
 function digest(value: string | Uint8Array): string {
@@ -456,6 +457,154 @@ function observeRegenerate(record: Extract<SurfaceRecord, { class: "REGENERATE" 
   });
 }
 
+async function observeLaunchAgent(
+  record: LaunchAgentSurfaceRecord,
+  context: DoctorContext,
+): Promise<DoctorCheck> {
+  const root = boundRoot(record, context);
+  const destPath = destinationPath(record, context);
+  const renderedPlist = renderPlist(record.plist_template, record.bindings);
+  const expectedHash = sha256Hex(renderedPlist);
+
+  // Walk every path component from the bound root to the leaf using lstat.
+  // Any symlink in an ancestor or at the leaf is an unsafe link and must not
+  // be read or matched. Hardlinked files (nlink > 1) and non-regular files
+  // are similarly rejected. A broken symlink lstat()s as a symlink so it also
+  // reaches the UNSAFE branch — it cannot produce ABSENT.
+  try {
+    await safeDirectory(context, root, "LAUNCHAGENT_PLIST_UNSAFE");
+    let cursor = root;
+    const segments = relative(root, destPath).split(sep);
+    for (const [index, segment] of segments.entries()) {
+      context.signal.throwIfAborted();
+      cursor = resolve(cursor, segment);
+      const stat = await context.io.lstat(cursor);
+      if (stat.isSymbolicLink()) throw new Error("LAUNCHAGENT_PLIST_UNSAFE");
+      if (index < segments.length - 1 && !stat.isDirectory()) throw new Error("LAUNCHAGENT_PLIST_UNSAFE");
+      if (index === segments.length - 1) {
+        // Leaf: must be a regular file with exactly one hard link and no setuid bits.
+        if (!stat.isFile() || stat.nlink !== 1 || (stat.mode & 0o7000) !== 0) {
+          throw new Error("LAUNCHAGENT_PLIST_UNSAFE");
+        }
+      }
+    }
+  } catch (error) {
+    // Abort must propagate — never map it to a doctor result.
+    if (context.signal.aborted) throw error;
+    if (error instanceof Error && error.name === "AbortError") throw error;
+    if (missing(error)) {
+      return result(record, {
+        expected_state: "installed plist present at destination",
+        actual_state: "plist absent",
+        condition: "UNAVAILABLE",
+        reason_code: "LAUNCHAGENT_PLIST_ABSENT",
+        severity: "warning",
+        actionable: true,
+        remediation: "Run a reviewed lifecycle install to deploy this LaunchAgent.",
+        evidence: ["plist-sha256"],
+      });
+    }
+    if ((error as Error).message === "LAUNCHAGENT_PLIST_UNSAFE") {
+      return result(record, {
+        expected_state: "regular non-linked plist file at destination",
+        actual_state: "symlink, hardlink, or non-regular file at destination path",
+        condition: "UNAVAILABLE",
+        reason_code: "LAUNCHAGENT_PLIST_UNSAFE",
+        severity: "warning",
+        actionable: true,
+        remediation: "Remove the unsafe link and run a reviewed lifecycle install to deploy the canonical plist.",
+        evidence: ["plist-sha256"],
+      });
+    }
+    return result(record, {
+      expected_state: "installed plist readable at destination",
+      actual_state: "plist unreadable",
+      condition: "UNAVAILABLE",
+      reason_code: "LAUNCHAGENT_PLIST_UNREADABLE",
+      severity: "warning",
+      actionable: true,
+      remediation: "Ensure the destination is readable, then run a reviewed lifecycle install.",
+      evidence: ["plist-sha256"],
+    });
+  }
+
+  // Path is safe; read and compare content.
+  // Both before and after stats are independently verified as safe regular
+  // files (non-symlink, nlink=1, no setuid). This guards against a replacement
+  // that happens between the walk lstat and the pre-read lstat or between the
+  // read and the post-read lstat.
+  try {
+    context.signal.throwIfAborted();
+    const before = await context.io.lstat(destPath);
+    safeRegularMode(before, "LAUNCHAGENT_PLIST_UNSAFE");
+    const installedContent = await context.io.readFile(destPath);
+    context.signal.throwIfAborted();
+    const after = await context.io.lstat(destPath);
+    safeRegularMode(after, "LAUNCHAGENT_PLIST_UNSAFE");
+    if (!sameFile(before, after)) {
+      return result(record, {
+        expected_state: "installed plist readable at destination",
+        actual_state: "plist changed during read",
+        condition: "UNAVAILABLE",
+        reason_code: "LAUNCHAGENT_PLIST_UNSAFE",
+        severity: "warning",
+        actionable: true,
+        remediation: "Remove the unsafe link and run a reviewed lifecycle install to deploy the canonical plist.",
+        evidence: ["plist-sha256"],
+      });
+    }
+    const actualHash = sha256Hex(installedContent);
+    if (actualHash === expectedHash) {
+      return result(record, {
+        expected_state: "installed plist matches rendered template sha256",
+        actual_state: "plist present and sha256 matches",
+        condition: "PASS",
+        reason_code: "LAUNCHAGENT_PLIST_MATCH",
+        severity: "info",
+        actionable: false,
+        remediation: "None.",
+        evidence: ["plist-sha256"],
+      });
+    }
+    return result(record, {
+      expected_state: "installed plist matches rendered template sha256",
+      actual_state: "plist present but sha256 mismatch",
+      condition: "DRIFT",
+      reason_code: "LAUNCHAGENT_PLIST_DRIFT",
+      severity: "warning",
+      actionable: true,
+      remediation: "Run a reviewed lifecycle install to restore the expected plist.",
+      evidence: ["plist-sha256"],
+    });
+  } catch (error) {
+    // Abort must propagate — never map it to a doctor result.
+    if (context.signal.aborted) throw error;
+    if (error instanceof Error && error.name === "AbortError") throw error;
+    if (error instanceof Error && error.message === "LAUNCHAGENT_PLIST_UNSAFE") {
+      return result(record, {
+        expected_state: "regular non-linked plist at destination",
+        actual_state: "symlink, hardlink, or file replaced during read",
+        condition: "UNAVAILABLE",
+        reason_code: "LAUNCHAGENT_PLIST_UNSAFE",
+        severity: "warning",
+        actionable: true,
+        remediation: "Remove the unsafe link and run a reviewed lifecycle install to deploy the canonical plist.",
+        evidence: ["plist-sha256"],
+      });
+    }
+    return result(record, {
+      expected_state: "installed plist readable at destination",
+      actual_state: "plist unreadable",
+      condition: "UNAVAILABLE",
+      reason_code: "LAUNCHAGENT_PLIST_UNREADABLE",
+      severity: "warning",
+      actionable: true,
+      remediation: "Ensure the destination is readable, then run a reviewed lifecycle install.",
+      evidence: ["plist-sha256"],
+    });
+  }
+}
+
 async function observeRecord(
   record: SurfaceRecord,
   context: DoctorContext,
@@ -489,6 +638,7 @@ async function observeRecord(
 
   if (record.class === "REGENERATE") return observeRegenerate(record);
   if (record.class === "COPY") return observeCopy(record, context);
+  if (record.class === "LAUNCHAGENT") return observeLaunchAgent(record, context);
   return observeTransform(record, context, binding);
 }
 

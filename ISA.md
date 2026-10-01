@@ -2963,6 +2963,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 
 ## Verification
 
+- Modular Mac baseline prerequisite (2026-10-01): source-only LaunchAgent doctor repair and nonrecursive file-unlink type fixes accepted after independent r2 review. Exact Bun 1.3.5 runs 112 focused tests with 325 assertions and zero failures; TypeScript 5.9.3 exits zero. Static and injected linked leaf, hardlink, broken link, changed identity and cancellation cases are covered. This proves bounded path-based file observation, not service runtime health or atomic containment against every same-user filesystem race. No launchd, host/runtime, provider, credential, vault, cloud or physical Mac effect occurred. Tasks 1–8 implementation criteria remain independently pending.
+
 - ISC-750: directory enumeration — The report classifies all 70 Thoughtseed immediate children: 68 directories and 2 files.
 - ISC-751: directory enumeration — The report classifies all 57 Tryambakam immediate children: 41 directories and 16 files.
 - ISC-754: source inspection — The report identifies the Workbench app sources, bundler artifact, Worker embed, catalog sources, and digest-bound authority contract.
