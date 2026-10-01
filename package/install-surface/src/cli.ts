@@ -251,6 +251,22 @@ function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
 
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "migrate") {
+    const { runMigrationCli } = await import("./migration/cli-args.ts");
+    const abort = new AbortController();
+    const cancel = () => abort.abort();
+    process.on("SIGINT", cancel);
+    process.on("SIGTERM", cancel);
+    try {
+      const result = await runMigrationCli(process.argv.slice(3), { signal: abort.signal });
+      process.stdout.write(JSON.stringify(result.view) + "\n");
+      process.exitCode = result.exitCode;
+    } finally {
+      process.off("SIGINT", cancel);
+      process.off("SIGTERM", cancel);
+    }
+    return;
+  }
   if (command === "host-binding-init") {
     try {
       const args = parseHostBindingInitArgs(process.argv.slice(3));

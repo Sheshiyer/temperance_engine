@@ -1155,22 +1155,22 @@ Implement Tasks 1–7 as an integrated modular Mac lifecycle in the existing ins
 - [x] ISC-874: Modular Mac Task 4: conflicting observed bytes require manual recovery (probe: Task 4 focused adversarial test/kit/PTY receipt).
 - [x] ISC-875: Modular Mac Task 4: concurrent writers cannot both admit (probe: Task 4 focused adversarial test/kit/PTY receipt).
 - [x] ISC-876: Modular Mac Task 4: rollback restores exact owned preimages (probe: Task 4 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-877: Modular Mac Task 5: inspect action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-878: Modular Mac Task 5: export action declares its explicit write (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-879: Modular Mac Task 5: diff action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-880: Modular Mac Task 5: plan action is effect-free (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-881: Modular Mac Task 5: status action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-882: Modular Mac Task 5: apply requires exact reviewed digest (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-883: Modular Mac Task 5: resume requires fresh preflight (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-884: Modular Mac Task 5: rollback requires matching generation (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-885: Modular Mac Task 5: unknown action identifier is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-886: Modular Mac Task 5: unknown CLI flag is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-887: Modular Mac Task 5: arbitrary command payload is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-888: Modular Mac Task 5: expired review is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-889: Modular Mac Task 5: changed review is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-890: Modular Mac Task 5: pending authentication remains recoverable (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-891: Modular Mac Task 5: successful projection does not imply profile ready (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-892: Modular Mac Task 5: Ctrl-C preserves incomplete or unknown outcome (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-877: Modular Mac Task 5: inspect action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-878: Modular Mac Task 5: export action declares its explicit write (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-879: Modular Mac Task 5: diff action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-880: Modular Mac Task 5: plan action is effect-free (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-881: Modular Mac Task 5: status action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-882: Modular Mac Task 5: apply requires exact reviewed digest (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-883: Modular Mac Task 5: resume requires fresh preflight (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-884: Modular Mac Task 5: rollback requires matching generation (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-885: Modular Mac Task 5: unknown action identifier is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-886: Modular Mac Task 5: unknown CLI flag is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-887: Modular Mac Task 5: arbitrary command payload is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-888: Modular Mac Task 5: expired review is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-889: Modular Mac Task 5: changed review is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-890: Modular Mac Task 5: pending authentication remains recoverable (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-891: Modular Mac Task 5: successful projection does not imply profile ready (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [x] ISC-892: Modular Mac Task 5: Ctrl-C preserves incomplete or unknown outcome (probe: Task 5 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-893: Modular Mac Task 6: Antecedent: 80x24 keyboard navigation reaches scenario selection (probe: Task 6 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-894: Modular Mac Task 6: 120x40 renders list and detail (probe: Task 6 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-895: Modular Mac Task 6: workstation guided flow is selectable (probe: Task 6 focused adversarial test/kit/PTY receipt).
@@ -3411,3 +3411,5 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-10-01 Modular Mac Task 4, ISC-861..876: exact five-path R6 source candidate passed fresh independent CORE and DISK reviews, including closed foreign journal fields/order/manifest bindings and valid interrupted/resume/rollback histories. Parent pinned Bun 1.3.5 integrated fourteen-suite replay passed 679 tests / 23116 assertions, with source and strict owned-test TypeScript checks passing; 1246 interruption cases remain covered. Frozen candidate patch SHA-256 b6964d0cd3d5c5a5b0601a4034c9f032d57c33420f266f34aa5ff54b5bb6f30f. Recovery reuses the existing journal, preimages, receipts and exclusive transaction claim. Explicit fresh owner-authenticated terminal release supports verified completed or unpublished attempts; malformed/foreign/unknown state holds, without implicit takeover or renewed mutation permission. Atomic no-replace IO is required for mutations; no production owner/native adapter, physical target, service activation, cross-process generic journal lock or power-loss durability is accepted. Source fixture acceptance only; Tasks 5–8 remain separate.
 
 - 2026-10-01 portable minimal-bootstrap prerequisite: exact three-path R2 patch SHA-256 e948509b4a8b489e5b8cd83cfb993f96bec35e07cef42a171e211730a99e25f3 passed fresh independent source review with eleven actual-installer/library scenarios, carrying the unchanged R1 installer CORE pass. Parent stock Bash replay passed all 123 checks (57 actual-source bootstrap and 66 archive-foundation cases); source verifier, shell syntax and unchanged privacy-regression checks passed. A first source-verifier invocation lacked its required root variable and was corrected without repeating or relabeling the completed suite. Minimal kit mode creates only absent generic instructions/resolver leaves, preserves all existing leaves/bytes/modes, disables optional activation, and rejects malformed/incompatible metadata and unsafe source links before writes. Source verification uses real Node for JSON parsing; the minimal installer does not require an ambient agent, Bun, Git, Homebrew, Node or CodeGraph. Platform/provenance fixtures are synthetic, publication assumes controlled stable ancestors and is not a whole-install transaction. Full paired-profile/controller/TUI release qualification and physical Task 8 remain pending; all ISC-909..924 stay unchecked.
+
+- 2026-10-02 Task 5 source acceptance: frozen total five-path R3 patch SHA-256 5ace1a495d4ba0625590ff2bece64b12c19fc9489de80370e92ea441da475746 passed fresh independent CORE and CLI reviews. CORE independently authored 87 passing tests/452 assertions; CLI exercised actual compiled ownerless entry, both equal profiles, safe snapshot preservation, review projection and descriptor/cancellation boundaries. Parent source and strict owned-test checks passed; corrected full integration replay passed 1,226 tests, one explicit opt-in live-Mac skip, zero failures and 26,511 assertions. The first parent run used a restrictive inherited creation mask that changed fixture modes and failed 60 tests; its logs remain retained, and only child fixture umask was corrected to 0022 before the successful replay, with unchanged source hashes. The shared closed view/action controller exposes exact safe source/plan/binding and step/rollback requirements, separate historical review/current release evidence and unknown availability; fixed headless grammar, data-only array guards and cancellation preserve actual outcomes. JavaScript Proxy reflection, controlled-parent/ABA and slow-IO limits remain explicit. ISC-877..892 are source/disposable-fixture acceptance only; actual migration TUI/PTY, final kit, production owner adapter, installed readiness and physical Task 8 remain pending. No host/provider/router/cloud/native-store activation or Snow Gloves integration follows.
