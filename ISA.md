@@ -1123,22 +1123,22 @@ Implement Tasks 1–7 as an integrated modular Mac lifecycle in the existing ins
 - [ ] ISC-842: Modular Mac Task 2: export bytes round-trip to the same digest (probe: Task 2 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-843: Modular Mac Task 2: authentication pending appears in diff (probe: Task 2 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-844: Modular Mac Task 2: derived knowledge drift appears as a finding (probe: Task 2 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-845: Modular Mac Task 3: workstation composes without optional native packs (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-846: Modular Mac Task 3: always-on node composes without desktop packs (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-847: Modular Mac Task 3: Anti: Snow Gloves is not a required dependency (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-848: Modular Mac Task 3: foreign Cambium lifecycle path is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-849: Modular Mac Task 3: foreign Snow Gloves lifecycle path is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-850: Modular Mac Task 3: dependency cycle is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-851: Modular Mac Task 3: duplicate owner is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-852: Modular Mac Task 3: conflicting target destination is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-853: Modular Mac Task 3: Node 22 and Node 26 use separate environments (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-854: Modular Mac Task 3: unavailable destination disk is held (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-855: Modular Mac Task 3: unknown capacity blocks admission (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-856: Modular Mac Task 3: OmniRoute unsupported adapter is held (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-857: Modular Mac Task 3: occupied 20128 blocks implicit 9router install (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-858: Modular Mac Task 3: plan binds source release digest (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-859: Modular Mac Task 3: plan binds private binding digest (probe: Task 3 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-860: Modular Mac Task 3: plan declares exact verification and rollback requirements (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-845: Modular Mac Task 3: workstation composes without optional native packs (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-846: Modular Mac Task 3: always-on node composes without desktop packs (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-847: Modular Mac Task 3: Anti: Snow Gloves is not a required dependency (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-848: Modular Mac Task 3: foreign Cambium lifecycle path is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-849: Modular Mac Task 3: foreign Snow Gloves lifecycle path is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-850: Modular Mac Task 3: dependency cycle is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-851: Modular Mac Task 3: duplicate owner is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-852: Modular Mac Task 3: conflicting target destination is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-853: Modular Mac Task 3: Node 22 and Node 26 use separate environments (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-854: Modular Mac Task 3: unavailable destination disk is held (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-855: Modular Mac Task 3: unknown capacity blocks admission (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-856: Modular Mac Task 3: OmniRoute unsupported adapter is held (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-857: Modular Mac Task 3: occupied 20128 blocks implicit 9router install (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-858: Modular Mac Task 3: plan binds source release digest (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-859: Modular Mac Task 3: plan binds private binding digest (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [x] ISC-860: Modular Mac Task 3: plan declares exact verification and rollback requirements (probe: Task 3 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-861: Modular Mac Task 4: owned fixture transaction uses existing lifecycle journal (probe: Task 4 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-862: Modular Mac Task 4: unowned identical fixture remains unowned (probe: Task 4 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-863: Modular Mac Task 4: differing user file remains byte exact (probe: Task 4 focused adversarial test/kit/PTY receipt).
@@ -3395,3 +3395,5 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-10-01 public enrichment source prerequisite: fourteen scoped source/fragment/lock paths passed fresh independent review, including pinned Bun 1.3.5 isolated 40-test and 33-test replay; parent integrated 100 tests / 362 assertions and install-surface source typecheck passed. Only enrichment.public-pipeline lock record changed, with all 29 public files and modes matching current bytes; Atlas adapter bytes remain recoverable in Git and the ignored preimage. The unrelated adapter-inclusive Manifest Bridge nullable/undefined TS2322 diagnostic remains a documented baseline limitation. No public Atlas promotion, installed runtime change, provider activation or Task 7 release/physical acceptance is inferred.
 
 - 2026-10-01 portable-kit foundation prerequisite: eight owned source paths passed fresh independent r5 archive/bootstrap/privacy review. The verifier requires an independently supplied outer digest, closes and bounds raw USTAR before extraction, and preserves occupied destinations. Frozen vendor text is scanned with six exact path/full-file-hash/fragment exceptions; adjacent private data is refused. Producer and parent stock macOS Bash 3.2 suites each passed all 66 behavioral checks using the real 21-dependency closure and verified Bun 1.3.5/native arm64 bytes with synthetic CLI/manifest fixtures; integrated source verifier and unchanged path-guard regression suite also passed. Current integrated source kit build, final Tasks 1–6 closure and physical Task 8 remain pending; ISC-909..924 are not accepted by this prerequisite. Publication is explicitly non-atomic and assumes operator-controlled parent directories.
+
+- 2026-10-01 Modular Mac Task 3, ISC-845..860: fresh independent r2 review passed the normal proposal-then-final-digest-review sequence and its stale/future/expired/substituted-context negatives. Planning consumes pinned source context; a later independent review binds the completed plan digest, with generated_at <= reviewed_at <= now < expires_at and source-context freshness. Parent integrated Tasks 1–3 focused suite passed 334 tests / 1158 assertions with exact Bun 1.3.5 and source TypeScript passed. Two planner paths only; both profiles, ownership, DAG, runtime-isolation and unsupported router holds pass. Plans remain PROPOSED with false execution authority; Task 4 separately verifies fresh destination/preimages and exclusive ownership.
