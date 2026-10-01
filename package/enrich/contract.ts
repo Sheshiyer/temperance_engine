@@ -8,22 +8,8 @@ export interface ContextSourcePointers {
   pai: string | null;
   gsd: string | null;
   skills: string | null;
+  /** Reserved compatibility field; the public pipeline always emits null. */
   atlas: string | null;
-}
-
-/** Atlas operational metadata resolved from atlas-context.json. Null when absent/unreadable. */
-export interface AtlasMetadata {
-  containerPath: string;
-  waveStatus: string;
-  mountCommand: string;
-  unmountCommand: string;
-  designPlanPath: string;
-  implPlanPath: string;
-  isaPath: string;
-  sessionProgressToolPath: string;
-  workDir: string;
-  lastVerified: string;
-  containsTranscript: boolean;
 }
 
 /** Resolved by the I/O resolver from live files; stages are PURE over this. */
@@ -49,8 +35,6 @@ export interface ResolvedContext {
   } | null;
   /** Optional for backwards-compatible pure-stage fixtures; resolver always supplies it. */
   contextSources?: ContextSourcePointers;
-  /** Atlas operational metadata (never session content). Null when unavailable. */
-  atlasMetadata?: AtlasMetadata | null;
 }
 
 /** A stage returns one context line. Empty line => omitted from the block. */

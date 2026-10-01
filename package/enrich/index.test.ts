@@ -1,12 +1,44 @@
 // package/enrich/index.test.ts -- assembler integration tests for enrich().
-// Exercises the real resolver + all six real stages end-to-end (no stage/resolver mocking here),
+// Exercises the real resolver + all eight public stages end-to-end (no stage/resolver mocking here),
 // asserting the shape of the <temperance-context> block for representative prompts, plus a
 // latency smoke check. The fail-open (resolve throws) case lives in index.failopen.test.ts so its
 // module mock cannot leak into these assertions.
-import { describe, expect, spyOn, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import * as childProcess from 'node:child_process';
 import { enrich } from './index';
 import * as resolverModule from './resolver';
 import type { EnrichInput } from './contract';
+
+let fixtureRoot: string;
+let fixtureHome: string;
+let fixtureCwd: string;
+let priorHome: string | undefined;
+beforeAll(() => {
+  fixtureRoot = realpathSync(mkdtempSync(join(tmpdir(), 'enrich-assembler-')));
+  fixtureHome = join(fixtureRoot, 'home');
+  fixtureCwd = join(fixtureRoot, 'project');
+  for (const directory of [join(fixtureHome, '.claude/MEMORY/STATE'),
+    join(fixtureHome, '.Codex/PAI/Algorithm'), join(fixtureHome, '.agents/skill-clusters'),
+    join(fixtureCwd, '.planning')]) mkdirSync(directory, { recursive: true });
+  writeFileSync(join(fixtureHome, '.Codex/PAI/Algorithm/LATEST'), 'PAI_BODY_CANARY');
+  writeFileSync(join(fixtureHome, '.agents/skill-clusters/skill-index.json'), 'SKILLS_BODY_CANARY');
+  writeFileSync(join(fixtureCwd, '.planning/STATE.md'), 'GSD_BODY_CANARY');
+  writeFileSync(join(fixtureHome, '.claude/MEMORY/STATE/atlas-context.json'), JSON.stringify({
+    containerPath: '/PRIVATE_CONTAINER_MARKER', containsTranscript: false,
+    mountCommand: 'PRIVATE_MOUNT_COMMAND', sessionProgressToolPath: '/PRIVATE_SESSION_TOOL',
+    body: 'PRIVATE_BODY_AND_SESSION_MARKER',
+  }));
+  priorHome = process.env.HOME;
+  process.env.HOME = fixtureHome;
+});
+afterAll(() => {
+  if (priorHome === undefined) delete process.env.HOME;
+  else process.env.HOME = priorHome;
+  rmSync(fixtureRoot, { recursive: true, force: true });
+});
 
 function baseInput(prompt: string): EnrichInput {
   // Point cwd at an empty temp-ish path with no ISA/.planning so the block stays deterministic:
@@ -77,6 +109,38 @@ describe('enrich() assembler integration', () => {
       expect(lines).toHaveLength(1);
       expect(lines[0]).toContain('"material":"pointers-only"');
       expect(lines[0]).not.toMatch(/[\r\u2028\u2029]/u);
+    }
+  });
+
+  test('public assembler retains non-private pointers and never executes next-wave instructions', async () => {
+    const helper = join(fixtureHome, '.temperance_engine/router/temperance-next-wave.mjs');
+    mkdirSync(join(fixtureHome, '.temperance_engine/router'), { recursive: true });
+    writeFileSync(helper, '// fixture only; execution intercepted');
+    const run = spyOn(childProcess, 'execFileSync').mockReturnValue(JSON.stringify({
+      wave: { action: 'dispatch', reason: 'pending work', mode: 'parallel', phase: '7',
+        combo: 'noesis-execute', tasks: [{ id: 'task-7' }] },
+      agent_instruction: 'PRIVATE_EXECUTION_COMMAND',
+    }));
+    try {
+      const block = await enrich({ prompt: 'recall atlas previous session and plan the work', cwd: fixtureCwd, surface: 'codex' });
+      const line = block.split('\n').find(line => line.startsWith('context-sources: '))!;
+      expect(JSON.parse(line.slice('context-sources: '.length))).toEqual({
+        pai: join(fixtureHome, '.Codex/PAI/Algorithm/LATEST'),
+        gsd: join(fixtureCwd, '.planning/STATE.md'),
+        skills: join(fixtureHome, '.agents/skill-clusters/skill-index.json'),
+        atlas: null, material: 'pointers-only',
+      });
+      expect(block).toContain('NEXT-WAVE PROPOSAL');
+      expect(block).toContain('matching approval receipt');
+      expect(block).not.toContain('atlas-recall:');
+      expect(block).not.toContain('PRIVATE_');
+      expect(block).not.toContain('BODY_CANARY');
+      expect(block).not.toContain('auto-execute');
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(run.mock.calls[0]?.[1]).toEqual([helper, '--cwd', fixtureCwd, '--json']);
+    } finally {
+      run.mockRestore();
+      rmSync(join(fixtureHome, '.temperance_engine'), { recursive: true, force: true });
     }
   });
 

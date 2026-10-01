@@ -18,7 +18,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import type { AtlasMetadata, EnrichInput, ResolvedContext } from './contract';
+import type { EnrichInput, ResolvedContext } from './contract';
 import { resolveContextSources } from './contextSources';
 
 export interface ResolveOptions { home?: string; }
@@ -36,7 +36,6 @@ function emptyContext(input: EnrichInput): ResolvedContext {
     planningState: null,
     nextWave: null,
     contextSources: { pai: null, gsd: null, skills: null, atlas: null },
-    atlasMetadata: null,
   };
 }
 
@@ -303,38 +302,6 @@ function resolvePlanning(cwd: string): { planningPresent: boolean; planningState
     return { planningPresent: false, planningState: null };
   }
 }
-// -- Atlas metadata resolution ------------------------------------------------
-
-function resolveAtlasMetadata(atlasPath: string | null | undefined): AtlasMetadata | null {
-  if (!atlasPath) return null;
-  try {
-    const raw = readTextOrNull(atlasPath);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    // Validate required string fields and containsTranscript boolean.
-    if (typeof parsed.containerPath !== 'string' || !parsed.containerPath) return null;
-    if (typeof parsed.containsTranscript !== 'boolean') return null;
-    // All string fields default to '' if missing/wrong type.
-    return {
-      containerPath: String(parsed.containerPath ?? ''),
-      waveStatus: typeof parsed.waveStatus === 'string' ? parsed.waveStatus : '',
-      mountCommand: typeof parsed.mountCommand === 'string' ? parsed.mountCommand : '',
-      unmountCommand: typeof parsed.unmountCommand === 'string' ? parsed.unmountCommand : '',
-      designPlanPath: typeof parsed.designPlanPath === 'string' ? parsed.designPlanPath : '',
-      implPlanPath: typeof parsed.implPlanPath === 'string' ? parsed.implPlanPath : '',
-      isaPath: typeof parsed.isaPath === 'string' ? parsed.isaPath : '',
-      sessionProgressToolPath: typeof parsed.sessionProgressToolPath === 'string' ? parsed.sessionProgressToolPath : '',
-      workDir: typeof parsed.workDir === 'string' ? parsed.workDir : '',
-      lastVerified: typeof parsed.lastVerified === 'string' ? parsed.lastVerified : '',
-      containsTranscript: parsed.containsTranscript === true,
-    };
-  } catch {
-    return null;
-  }
-}
-
-
 // -- Public entry point -------------------------------------------------------
 
 export async function resolve(input: EnrichInput, opts: ResolveOptions = {}): Promise<ResolvedContext> {
@@ -407,13 +374,6 @@ export async function resolve(input: EnrichInput, opts: ResolveOptions = {}): Pr
     } catch {
       ctx.contextSources = { pai: null, gsd: null, skills: null, atlas: null };
     }
-    // Atlas metadata (operational pointers only, never session content).
-    try {
-      ctx.atlasMetadata = resolveAtlasMetadata(ctx.contextSources?.atlas);
-    } catch {
-      ctx.atlasMetadata = null;
-    }
-
 
     return ctx;
   } catch {

@@ -85,20 +85,7 @@ function gsdPointer(cwd: string): string | null {
 }
 
 /**
- * Resolve the Session Atlas operational context metadata file.
- * Only resolves ~/.claude/MEMORY/STATE/atlas-context.json under safety rules.
- * Returns canonical path or null — never reads file body.
- */
-function atlasPointer(home: string): string | null {
-  if (!safeAbsolutePath(home)) return null;
-  const rootPath = join(home, '.claude', 'MEMORY', 'STATE');
-  const canonicalRoot = canonicalDirectory(rootPath, 'trusted-symlink-root');
-  if (!canonicalRoot) return null;
-  return fixedFile(rootPath, canonicalRoot, ['atlas-context.json']);
-}
-
-/**
- * Resolve four fixed, client-owned context pointers. Each source is isolated:
+ * Resolve three fixed, client-owned context pointers plus a reserved null. Each source is isolated:
  * an unsafe or absent source becomes null without suppressing its safe peers.
  * This module deliberately performs metadata/path operations only.
  */
@@ -107,6 +94,6 @@ export function resolveContextSources(input: ResolveContextSourcesInput): Contex
     pai: isolated(() => homePointer(input.home, ['.Codex', 'PAI'], ['Algorithm', 'LATEST'])),
     gsd: isolated(() => gsdPointer(input.cwd)),
     skills: isolated(() => homePointer(input.home, ['.agents', 'skill-clusters'], ['skill-index.json'])),
-    atlas: isolated(() => atlasPointer(input.home)),
+    atlas: null,
   };
 }

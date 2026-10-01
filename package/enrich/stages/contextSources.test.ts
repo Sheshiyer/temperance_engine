@@ -23,7 +23,7 @@ describe('contextSources stage', () => {
       atlas: '/safe/MEMORY/STATE/atlas-context.json',
     }));
     expect(result.line).toBe(
-      'context-sources: {"pai":"/safe/PAI/Algorithm/LATEST","gsd":"/safe/project/.planning/STATE.md","skills":"/safe/skills/skill-index.json","atlas":"/safe/MEMORY/STATE/atlas-context.json","material":"pointers-only"}',
+      'context-sources: {"pai":"/safe/PAI/Algorithm/LATEST","gsd":"/safe/project/.planning/STATE.md","skills":"/safe/skills/skill-index.json","atlas":null,"material":"pointers-only"}',
     );
     expect(result.degraded).toBe(false);
     expect(result.line.split('context-sources: ').length - 1).toBe(1);
@@ -33,8 +33,18 @@ describe('contextSources stage', () => {
     const commandCode = ctx({ pai: '/safe/pai', gsd: '/safe/gsd', skills: '/safe/skills', atlas: '/safe/atlas' });
     commandCode.input.surface = 'command-code';
     expect(contextSources(commandCode).line).toBe(
-      'context-sources: {"pai":"/safe/pai","gsd":"/safe/gsd","skills":"/safe/skills","atlas":"/safe/atlas","material":"pointers-only"}',
+      'context-sources: {"pai":"/safe/pai","gsd":"/safe/gsd","skills":"/safe/skills","atlas":null,"material":"pointers-only"}',
     );
+  });
+
+  test('ignores injected private metadata pointers without accessing their values', () => {
+    const sources = { pai: '/safe/pai', gsd: null, skills: null, get atlas(): string {
+      throw new Error('private metadata must not be accessed');
+    } };
+    expect(contextSources(ctx(sources))).toEqual({
+      line: 'context-sources: {"pai":"/safe/pai","gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}',
+      degraded: false,
+    });
   });
 
   test('normalizes partial, empty, and optional legacy contexts independently', () => {
@@ -72,8 +82,8 @@ describe('contextSources stage', () => {
       atlas: '/safe/atlas',
     }));
     expect(result).toEqual({
-      line: 'context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":"/safe/atlas","material":"pointers-only"}',
-      degraded: false,
+      line: 'context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}',
+      degraded: true,
     });
   });
 

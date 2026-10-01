@@ -16,7 +16,7 @@ function normalized(value: ContextSourcePointers | undefined): ContextSourcePoin
     pai: pointer(value?.pai),
     gsd: pointer(value?.gsd),
     skills: pointer(value?.skills),
-    atlas: pointer(value?.atlas),
+    atlas: null,
   };
 }
 

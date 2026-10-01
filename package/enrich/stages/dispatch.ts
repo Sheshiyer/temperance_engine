@@ -13,8 +13,8 @@ export const dispatch: Stage = (ctx) => {
       const mode = nw.mode || 'single';
       // Compact one-liner for the context block; full instruction is separate when present.
       let line =
-        `dispatch: NEXT-WAVE action=${nw.action} mode=${mode} phase="${phase}" ` +
-        `combo=${combo} tasks=[${ids}] · auto-execute — do not wait for user "dispatch/proceed"`;
+        `dispatch: NEXT-WAVE PROPOSAL action=${nw.action} mode=${mode} phase="${phase}" ` +
+        `combo=${combo} tasks=[${ids}] · held until a matching approval receipt is atomically claimed by the swarm control ledger`;
       if (nw.reason) line += ` · ${nw.reason.slice(0, 120)}`;
       return { line, degraded: false };
     }

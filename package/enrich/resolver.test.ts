@@ -1,8 +1,10 @@
 // package/enrich/resolver.test.ts -- unit tests for the ONLY I/O stage.
 // Builds a throwaway fixture home + cwd on disk, exercises the resolution chain against real
 // files, and asserts the fail-open contract. Run: bun test package/enrich/resolver.ts
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync, utimesSync } from 'node:fs';
+import * as fs from 'node:fs';
+import * as childProcess from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { EnrichInput } from './contract';
@@ -135,6 +137,64 @@ describe('resolve()', () => {
     expect(ctx.isa!.antiCriteria).toContain('never scan the whole cluster tree');
     // ...and does NOT swallow ordinary (non-anti) criteria lines.
     expect(ctx.isa!.antiCriteria).not.toContain('enrich() never throws');
+  });
+
+  test('ignores private metadata for both default and explicit homes without reading its body', async () => {
+    const privateDir = join(home, '.claude', 'MEMORY', 'STATE');
+    mkdirSync(privateDir, { recursive: true });
+    const privateFile = join(privateDir, 'atlas-context.json');
+    writeFileSync(privateFile, JSON.stringify({
+      containerPath: '/PRIVATE_CONTAINER_MARKER', containsTranscript: false,
+      mountCommand: 'PRIVATE_MOUNT_COMMAND', sessionProgressToolPath: '/PRIVATE_SESSION_TOOL',
+      body: 'PRIVATE_BODY_AND_SESSION_MARKER',
+    }));
+    const readPaths: string[] = [];
+    const original = fs.readFileSync;
+    const spy = spyOn(fs, 'readFileSync').mockImplementation(((path: Parameters<typeof fs.readFileSync>[0], ...args: unknown[]) => {
+      readPaths.push(String(path));
+      return (original as Function)(path, ...args);
+    }) as typeof fs.readFileSync);
+    const priorHome = process.env.HOME;
+    process.env.HOME = home;
+    try {
+      for (const options of [undefined, { home }]) {
+        const ctx = await resolve(mk({ prompt: 'recall previous atlas session' }), options);
+        expect(ctx.contextSources?.atlas).toBeNull();
+        expect(Object.hasOwn(ctx, 'atlasMetadata')).toBe(false);
+        expect(JSON.stringify(ctx)).not.toContain('PRIVATE_');
+        expect(JSON.stringify(ctx)).not.toContain(privateFile);
+        expect(ctx.isaPath).toBe(join(cwd, 'ISA.md'));
+      }
+      expect(readPaths).not.toContain(privateFile);
+      expect(readPaths).toContain(join(cwd, 'ISA.md'));
+    } finally {
+      spy.mockRestore();
+      if (priorHome === undefined) delete process.env.HOME;
+      else process.env.HOME = priorHome;
+    }
+  });
+
+  test('next-wave uses only the fixture helper and returns a summary without executing its instruction', async () => {
+    const fixtureHome = join(root, 'wave-home');
+    const helper = join(fixtureHome, '.temperance_engine', 'router', 'temperance-next-wave.mjs');
+    mkdirSync(join(fixtureHome, '.temperance_engine', 'router'), { recursive: true });
+    writeFileSync(helper, '// synthetic helper; process execution is intercepted');
+    const run = spyOn(childProcess, 'execFileSync').mockReturnValue(JSON.stringify({
+      wave: { action: 'dispatch', reason: 'pending work', mode: 'parallel', phase: '7',
+        combo: 'noesis-execute', tasks: [{ id: 'task-7' }] },
+      agent_instruction: 'DO_NOT_EXECUTE_THIS_FIXTURE_INSTRUCTION',
+    }));
+    try {
+      const ctx = await resolve(mk(), { home: fixtureHome });
+      expect(ctx.nextWave?.action).toBe('dispatch');
+      expect(ctx.nextWave?.taskIds).toEqual(['task-7']);
+      expect(ctx.planningPresent).toBe(true);
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(run.mock.calls[0]?.[0]).toBe('node');
+      expect(run.mock.calls[0]?.[1]).toEqual([helper, '--cwd', cwd, '--json']);
+    } finally {
+      run.mockRestore();
+    }
   });
 
   test('memory fields are PATHS under the fixture home, never file bodies', async () => {

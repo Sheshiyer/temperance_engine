@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 import {
   mkdirSync,
   mkdtempSync,
@@ -9,6 +9,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
+import * as fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -79,8 +80,28 @@ describe('resolveContextSources()', () => {
       pai: f.paiTarget,
       gsd: f.gsdTarget,
       skills: f.skillsTarget,
-      atlas: f.atlasTarget,
+      atlas: null,
     });
+  });
+
+  test('never probes the nearby private metadata path', () => {
+    const f = fixture();
+    const probes: string[] = [];
+    const original = fs.lstatSync;
+    const spy = spyOn(fs, 'lstatSync').mockImplementation(((path: Parameters<typeof fs.lstatSync>[0], ...args: unknown[]) => {
+      probes.push(String(path));
+      return (original as Function)(path, ...args);
+    }) as typeof fs.lstatSync);
+    try {
+      const pointers = resolveContextSources({ home: f.home, cwd: f.cwd });
+      expect(pointers.atlas).toBeNull();
+      expect(probes.some((path) => path.includes('atlas-context.json') || path.includes('/MEMORY/STATE'))).toBe(false);
+      expect(pointers.pai).toBe(f.paiTarget);
+      expect(pointers.gsd).toBe(f.gsdTarget);
+      expect(pointers.skills).toBe(f.skillsTarget);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test('degrades each missing source independently', () => {
@@ -91,7 +112,7 @@ describe('resolveContextSources()', () => {
       pai: null,
       gsd: null,
       skills: f.skillsTarget,
-      atlas: f.atlasTarget,
+      atlas: null,
     });
   });
 
@@ -130,7 +151,7 @@ describe('resolveContextSources()', () => {
       pai: null,
       gsd: f.gsdTarget,
       skills: realpathSync(join(escapedSkills, 'skill-index.json')),
-      atlas: f.atlasTarget,
+      atlas: null,
     });
   });
 
@@ -157,7 +178,7 @@ describe('resolveContextSources()', () => {
     expect(pointers.gsd).toBeNull();
     expect(pointers.pai).toBe(f.paiTarget);
     expect(pointers.skills).toBe(f.skillsTarget);
-    expect(pointers.atlas).toBe(f.atlasTarget);
+    expect(pointers.atlas).toBeNull();
   });
 
   test('rejects directory and FIFO candidates', () => {
