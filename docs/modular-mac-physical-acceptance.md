@@ -4,7 +4,7 @@ Status: prepared procedure, physical acceptance pending. Neither destination
 has been supplied or observed. Every ISC-925–940 remains open. This document
 is a blank owner run sheet, not an installation command or evidence receipt.
 
-Authority: [Task 8 plan](superpowers/plans/2026-10-01-modular-mac.md#task-8-perform-the-two-physical-acceptance-flows),
+Authority: [Task 8 plan](superpowers/plans/2026-10-01-modular-mac.md),
 [design](superpowers/specs/2026-10-01-modular-mac-design.md), and
 [ISA](../ISA.md). Use the exact reviewed release and its verified interface
 when Tasks 1–7 are accepted. Do not turn illustrative or proposed command
