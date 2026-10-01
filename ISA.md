@@ -1,14 +1,14 @@
 ---
 project: temperance_engine
-task: Repair GSD stalls and execute glove Phase 1
+task: Implement integrated modular Mac lifecycle and rich TUI
 effort: E4
 effort_source: classifier
-phase: build
+phase: plan
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 712/834
+progress: 712/962
 mode: interactive
 started: 2026-06-12
-updated: 2026-09-19T14:22:31Z
+updated: 2026-10-01T13:56:09.012896+00:00
 ---
 
 ## Problem
@@ -240,6 +240,11 @@ identity, portfolio-specific knowledge records, portable project packets,
 old-path knowledge capsules, fresh-client pickup, and exact rollback while
 leaving Thoughtseed Labs, native session stores, Paseo, and every other folder
 untouched.
+
+
+### Modular Mac execution — 2026-10-01
+
+Implement Tasks 1–7 as an integrated modular Mac lifecycle in the existing install surface, with shared headless/TUI actions and existing journal recovery. Full migration acceptance additionally requires Task 8 physical workstation and always-on-node receipts; Snow Gloves remains outside both profiles.
 
 ## Criteria
 
@@ -1083,6 +1088,138 @@ untouched.
 - [x] ISC-811: The `0.6.0` source candidate passes the canonical verification suite.
 - [x] ISC-812: Anti: the `0.6.0` public candidate contains no private absolute home path rejected by the existing guard.
 
+
+### Modular Mac execution — 2026-10-01
+
+- [ ] ISC-813: Modular Mac Task 1: workstation fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-814: Modular Mac Task 1: always-on-node fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-815: Modular Mac Task 1: recovery fixture validates (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-816: Modular Mac Task 1: unknown snapshot field is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-817: Modular Mac Task 1: unsupported major returns UPGRADE_REQUIRED (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-818: Modular Mac Task 1: duplicate module reference is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-819: Modular Mac Task 1: missing release digest is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-820: Modular Mac Task 1: missing module lock digest is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-821: Modular Mac Task 1: invalid evidence time is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-822: Modular Mac Task 1: private credential payload is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-823: Modular Mac Task 1: native session identifier is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-824: Modular Mac Task 1: organ input and artifact references remain distinct (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-825: Modular Mac Task 1: contract source substitution is rejected (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-826: Modular Mac Task 1: stale owner evidence is held (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-827: Modular Mac Task 1: Adytum parity remains held (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-828: Modular Mac Task 1: capability-hit flags grant no admission (probe: Task 1 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-829: Modular Mac Task 2: inspect makes zero write calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-830: Modular Mac Task 2: inspect makes zero network calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-831: Modular Mac Task 2: inspect makes zero authentication calls (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-832: Modular Mac Task 2: integrated task-chain fixture is inspectable (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-833: Modular Mac Task 2: Hermes plant fixture is inspectable (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-834: Modular Mac Task 2: denied root is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-835: Modular Mac Task 2: missing volume is reported unknown (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-836: Modular Mac Task 2: nonregular artifact is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-837: Modular Mac Task 2: traversal is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-838: Modular Mac Task 2: symlink root is rejected (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-839: Modular Mac Task 2: malformed service metadata is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-840: Modular Mac Task 2: unsupported native artifact is held (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-841: Modular Mac Task 2: export rejects private fields before writing (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-842: Modular Mac Task 2: export bytes round-trip to the same digest (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-843: Modular Mac Task 2: authentication pending appears in diff (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-844: Modular Mac Task 2: derived knowledge drift appears as a finding (probe: Task 2 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-845: Modular Mac Task 3: workstation composes without optional native packs (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-846: Modular Mac Task 3: always-on node composes without desktop packs (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-847: Modular Mac Task 3: Anti: Snow Gloves is not a required dependency (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-848: Modular Mac Task 3: foreign Cambium lifecycle path is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-849: Modular Mac Task 3: foreign Snow Gloves lifecycle path is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-850: Modular Mac Task 3: dependency cycle is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-851: Modular Mac Task 3: duplicate owner is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-852: Modular Mac Task 3: conflicting target destination is rejected (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-853: Modular Mac Task 3: Node 22 and Node 26 use separate environments (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-854: Modular Mac Task 3: unavailable destination disk is held (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-855: Modular Mac Task 3: unknown capacity blocks admission (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-856: Modular Mac Task 3: OmniRoute unsupported adapter is held (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-857: Modular Mac Task 3: occupied 20128 blocks implicit 9router install (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-858: Modular Mac Task 3: plan binds source release digest (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-859: Modular Mac Task 3: plan binds private binding digest (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-860: Modular Mac Task 3: plan declares exact verification and rollback requirements (probe: Task 3 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-861: Modular Mac Task 4: owned fixture transaction uses existing lifecycle journal (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-862: Modular Mac Task 4: unowned identical fixture remains unowned (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-863: Modular Mac Task 4: differing user file remains byte exact (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-864: Modular Mac Task 4: changed source digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-865: Modular Mac Task 4: changed lock digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-866: Modular Mac Task 4: changed binding digest invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-867: Modular Mac Task 4: changed destination invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-868: Modular Mac Task 4: changed preimage invalidates reviewed plan (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-869: Modular Mac Task 4: before-append fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-870: Modular Mac Task 4: after-append fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-871: Modular Mac Task 4: stage fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-872: Modular Mac Task 4: promotion fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-873: Modular Mac Task 4: receipt fault is recoverable from disk (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-874: Modular Mac Task 4: conflicting observed bytes require manual recovery (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-875: Modular Mac Task 4: concurrent writers cannot both admit (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-876: Modular Mac Task 4: rollback restores exact owned preimages (probe: Task 4 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-877: Modular Mac Task 5: inspect action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-878: Modular Mac Task 5: export action declares its explicit write (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-879: Modular Mac Task 5: diff action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-880: Modular Mac Task 5: plan action is effect-free (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-881: Modular Mac Task 5: status action is read-only (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-882: Modular Mac Task 5: apply requires exact reviewed digest (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-883: Modular Mac Task 5: resume requires fresh preflight (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-884: Modular Mac Task 5: rollback requires matching generation (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-885: Modular Mac Task 5: unknown action identifier is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-886: Modular Mac Task 5: unknown CLI flag is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-887: Modular Mac Task 5: arbitrary command payload is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-888: Modular Mac Task 5: expired review is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-889: Modular Mac Task 5: changed review is rejected (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-890: Modular Mac Task 5: pending authentication remains recoverable (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-891: Modular Mac Task 5: successful projection does not imply profile ready (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-892: Modular Mac Task 5: Ctrl-C preserves incomplete or unknown outcome (probe: Task 5 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-893: Modular Mac Task 6: Antecedent: 80x24 keyboard navigation reaches scenario selection (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-894: Modular Mac Task 6: 120x40 renders list and detail (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-895: Modular Mac Task 6: workstation guided flow is selectable (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-896: Modular Mac Task 6: always-on-node guided flow is selectable (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-897: Modular Mac Task 6: Ecosystem connections show evidence (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-898: Modular Mac Task 6: Organs show input trigger artifact consumer verdict (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-899: Modular Mac Task 6: Will desks remain role filters (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-900: Modular Mac Task 6: Knowledge separates canonical and derived refs (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-901: Modular Mac Task 6: TUI enabled actions equal agent enabled actions (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-902: Modular Mac Task 6: review shows source plan and binding digests (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-903: Modular Mac Task 6: review shows intended effects and rollback (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-904: Modular Mac Task 6: selection produces zero lifecycle effects (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-905: Modular Mac Task 6: held authentication is rendered as text (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-906: Modular Mac Task 6: missing native renderer leaves headless recovery usable (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-907: Modular Mac Task 6: terminal disconnect restores terminal state (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-908: Modular Mac Task 6: real synthetic PTY flow reaches recovery screen (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-909: Modular Mac Task 7: release artifact verifies checksum closure (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-910: Modular Mac Task 7: lockfiles remain at reviewed pins (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-911: Modular Mac Task 7: native assets match supported target architecture (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-912: Modular Mac Task 7: missing Bun is explained before agent bootstrap (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-913: Modular Mac Task 7: missing Git is explained before clone entry (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-914: Modular Mac Task 7: missing Homebrew has an explicit manual handoff (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-915: Modular Mac Task 7: unsupported architecture is refused (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-916: Modular Mac Task 7: disposable state-root install has no old-volume dependency (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-917: Modular Mac Task 7: shipping payload contains no personal checkout path (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-918: Modular Mac Task 7: shipping payload contains no credentials (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-919: Modular Mac Task 7: shipping payload contains no native sessions (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-920: Modular Mac Task 7: workstation profile is recorded in receipt (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-921: Modular Mac Task 7: always-on-node profile is recorded in receipt (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-922: Modular Mac Task 7: repeat install preserves changed user config (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-923: Modular Mac Task 7: release and binding rollback remain compatible (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-924: Modular Mac Task 7: unsupported private overlay stays held (probe: Task 7 focused adversarial test/kit/PTY receipt).
+- [ ] ISC-925: Modular Mac Task 8: workstation target identity is reviewed (probe: physical owner receipt).
+- [ ] ISC-926: Modular Mac Task 8: node target identity is reviewed (probe: physical owner receipt).
+- [ ] ISC-927: Modular Mac Task 8: workstation independent backup is verified (probe: physical owner receipt).
+- [ ] ISC-928: Modular Mac Task 8: node independent backup is verified (probe: physical owner receipt).
+- [ ] ISC-929: Modular Mac Task 8: workstation trusted bootstrap is physically observed (probe: physical owner receipt).
+- [ ] ISC-930: Modular Mac Task 8: node fresh scoped identity is issued (probe: physical owner receipt).
+- [ ] ISC-931: Modular Mac Task 8: workstation fresh sign-in is physically observed (probe: physical owner receipt).
+- [ ] ISC-932: Modular Mac Task 8: node bounded job is independently verified (probe: physical owner receipt).
+- [ ] ISC-933: Modular Mac Task 8: workstation headless artifact is independently verified (probe: physical owner receipt).
+- [ ] ISC-934: Modular Mac Task 8: workstation native callback is independently verified (probe: physical owner receipt).
+- [ ] ISC-935: Modular Mac Task 8: node stop excludes late result (probe: physical owner receipt).
+- [ ] ISC-936: Modular Mac Task 8: node duplicate writer count is zero (probe: physical owner receipt).
+- [ ] ISC-937: Modular Mac Task 8: workstation cold boot is rehearsed (probe: physical owner receipt).
+- [ ] ISC-938: Modular Mac Task 8: node cold boot and remote recovery are rehearsed (probe: physical owner receipt).
+- [ ] ISC-939: Modular Mac Task 8: workstation independent restore matches exact artifact (probe: physical owner receipt).
+- [ ] ISC-940: Modular Mac Task 8: node independent restore matches exact artifact (probe: physical owner receipt).
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -1886,6 +2023,140 @@ untouched.
 | ISC-811 | release | canonical verification | exit zero | `./scripts/verify-all.sh` |
 | ISC-812 | privacy | existing public-path guard | exit zero, guard unchanged | `./verify.sh` |
 
+
+### Modular Mac execution — 2026-10-01
+
+| isc | type | check | threshold | tool |
+|---|---|---|---|---|
+| ISC-813 | executable | workstation fixture validates | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-814 | executable | always-on-node fixture validates | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-815 | executable | recovery fixture validates | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-816 | executable | unknown snapshot field is rejected | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-817 | executable | unsupported major returns UPGRADE_REQUIRED | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-818 | executable | duplicate module reference is rejected | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-819 | executable | missing release digest is rejected | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-820 | executable | missing module lock digest is rejected | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-821 | executable | invalid evidence time is rejected | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-822 | executable | private credential payload is rejected | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-823 | executable | native session identifier is rejected | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-824 | executable | organ input and artifact references remain distinct | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-825 | executable | contract source substitution is rejected | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-826 | executable | stale owner evidence is held | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-827 | executable | Adytum parity remains held | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-828 | executable | capability-hit flags grant no admission | one passing owner-bound probe | Task 1 focused adversarial test/kit/PTY receipt |
+| ISC-829 | executable | inspect makes zero write calls | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-830 | executable | inspect makes zero network calls | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-831 | executable | inspect makes zero authentication calls | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-832 | executable | integrated task-chain fixture is inspectable | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-833 | executable | Hermes plant fixture is inspectable | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-834 | executable | denied root is held | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-835 | executable | missing volume is reported unknown | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-836 | executable | nonregular artifact is rejected | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-837 | executable | traversal is rejected | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-838 | executable | symlink root is rejected | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-839 | executable | malformed service metadata is held | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-840 | executable | unsupported native artifact is held | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-841 | executable | export rejects private fields before writing | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-842 | executable | export bytes round-trip to the same digest | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-843 | executable | authentication pending appears in diff | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-844 | executable | derived knowledge drift appears as a finding | one passing owner-bound probe | Task 2 focused adversarial test/kit/PTY receipt |
+| ISC-845 | executable | workstation composes without optional native packs | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-846 | executable | always-on node composes without desktop packs | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-847 | executable | Anti: Snow Gloves is not a required dependency | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-848 | executable | foreign Cambium lifecycle path is rejected | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-849 | executable | foreign Snow Gloves lifecycle path is rejected | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-850 | executable | dependency cycle is rejected | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-851 | executable | duplicate owner is rejected | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-852 | executable | conflicting target destination is rejected | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-853 | executable | Node 22 and Node 26 use separate environments | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-854 | executable | unavailable destination disk is held | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-855 | executable | unknown capacity blocks admission | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-856 | executable | OmniRoute unsupported adapter is held | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-857 | executable | occupied 20128 blocks implicit 9router install | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-858 | executable | plan binds source release digest | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-859 | executable | plan binds private binding digest | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-860 | executable | plan declares exact verification and rollback requirements | one passing owner-bound probe | Task 3 focused adversarial test/kit/PTY receipt |
+| ISC-861 | executable | owned fixture transaction uses existing lifecycle journal | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-862 | executable | unowned identical fixture remains unowned | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-863 | executable | differing user file remains byte exact | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-864 | executable | changed source digest invalidates reviewed plan | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-865 | executable | changed lock digest invalidates reviewed plan | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-866 | executable | changed binding digest invalidates reviewed plan | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-867 | executable | changed destination invalidates reviewed plan | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-868 | executable | changed preimage invalidates reviewed plan | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-869 | executable | before-append fault is recoverable from disk | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-870 | executable | after-append fault is recoverable from disk | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-871 | executable | stage fault is recoverable from disk | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-872 | executable | promotion fault is recoverable from disk | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-873 | executable | receipt fault is recoverable from disk | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-874 | executable | conflicting observed bytes require manual recovery | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-875 | executable | concurrent writers cannot both admit | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-876 | executable | rollback restores exact owned preimages | one passing owner-bound probe | Task 4 focused adversarial test/kit/PTY receipt |
+| ISC-877 | executable | inspect action is read-only | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-878 | executable | export action declares its explicit write | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-879 | executable | diff action is read-only | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-880 | executable | plan action is effect-free | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-881 | executable | status action is read-only | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-882 | executable | apply requires exact reviewed digest | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-883 | executable | resume requires fresh preflight | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-884 | executable | rollback requires matching generation | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-885 | executable | unknown action identifier is rejected | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-886 | executable | unknown CLI flag is rejected | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-887 | executable | arbitrary command payload is rejected | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-888 | executable | expired review is rejected | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-889 | executable | changed review is rejected | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-890 | executable | pending authentication remains recoverable | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-891 | executable | successful projection does not imply profile ready | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-892 | executable | Ctrl-C preserves incomplete or unknown outcome | one passing owner-bound probe | Task 5 focused adversarial test/kit/PTY receipt |
+| ISC-893 | executable | Antecedent: 80x24 keyboard navigation reaches scenario selection | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-894 | executable | 120x40 renders list and detail | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-895 | executable | workstation guided flow is selectable | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-896 | executable | always-on-node guided flow is selectable | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-897 | executable | Ecosystem connections show evidence | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-898 | executable | Organs show input trigger artifact consumer verdict | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-899 | executable | Will desks remain role filters | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-900 | executable | Knowledge separates canonical and derived refs | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-901 | executable | TUI enabled actions equal agent enabled actions | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-902 | executable | review shows source plan and binding digests | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-903 | executable | review shows intended effects and rollback | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-904 | executable | selection produces zero lifecycle effects | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-905 | executable | held authentication is rendered as text | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-906 | executable | missing native renderer leaves headless recovery usable | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-907 | executable | terminal disconnect restores terminal state | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-908 | executable | real synthetic PTY flow reaches recovery screen | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-909 | executable | release artifact verifies checksum closure | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-910 | executable | lockfiles remain at reviewed pins | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-911 | executable | native assets match supported target architecture | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-912 | executable | missing Bun is explained before agent bootstrap | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-913 | executable | missing Git is explained before clone entry | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-914 | executable | missing Homebrew has an explicit manual handoff | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-915 | executable | unsupported architecture is refused | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-916 | executable | disposable state-root install has no old-volume dependency | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-917 | executable | shipping payload contains no personal checkout path | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-918 | executable | shipping payload contains no credentials | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-919 | executable | shipping payload contains no native sessions | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-920 | executable | workstation profile is recorded in receipt | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-921 | executable | always-on-node profile is recorded in receipt | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-922 | executable | repeat install preserves changed user config | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-923 | executable | release and binding rollback remain compatible | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-924 | executable | unsupported private overlay stays held | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
+| ISC-925 | physical | workstation target identity is reviewed | one passing owner-bound probe | physical owner receipt |
+| ISC-926 | physical | node target identity is reviewed | one passing owner-bound probe | physical owner receipt |
+| ISC-927 | physical | workstation independent backup is verified | one passing owner-bound probe | physical owner receipt |
+| ISC-928 | physical | node independent backup is verified | one passing owner-bound probe | physical owner receipt |
+| ISC-929 | physical | workstation trusted bootstrap is physically observed | one passing owner-bound probe | physical owner receipt |
+| ISC-930 | physical | node fresh scoped identity is issued | one passing owner-bound probe | physical owner receipt |
+| ISC-931 | physical | workstation fresh sign-in is physically observed | one passing owner-bound probe | physical owner receipt |
+| ISC-932 | physical | node bounded job is independently verified | one passing owner-bound probe | physical owner receipt |
+| ISC-933 | physical | workstation headless artifact is independently verified | one passing owner-bound probe | physical owner receipt |
+| ISC-934 | physical | workstation native callback is independently verified | one passing owner-bound probe | physical owner receipt |
+| ISC-935 | physical | node stop excludes late result | one passing owner-bound probe | physical owner receipt |
+| ISC-936 | physical | node duplicate writer count is zero | one passing owner-bound probe | physical owner receipt |
+| ISC-937 | physical | workstation cold boot is rehearsed | one passing owner-bound probe | physical owner receipt |
+| ISC-938 | physical | node cold boot and remote recovery are rehearsed | one passing owner-bound probe | physical owner receipt |
+| ISC-939 | physical | workstation independent restore matches exact artifact | one passing owner-bound probe | physical owner receipt |
+| ISC-940 | physical | node independent restore matches exact artifact | one passing owner-bound probe | physical owner receipt |
+
 ## Features
 
 | name | satisfies | depends_on | parallelizable |
@@ -1981,6 +2252,20 @@ untouched.
 | Phase 1 provenance contract execution | ISC-795..ISC-805 | approved 01-01 and 01-02 plans | no |
 | Phase 1 read-only control plane verification | ISC-806..ISC-808 | approved 01-03 plan, dirty-tree commit boundary | no |
 | 0.6.0 additive v4 feature release | ISC-809..ISC-812 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
+
+
+### Modular Mac execution — 2026-10-01
+
+| name | satisfies | depends_on | parallelizable |
+|---|---|---|---|
+| Modular Mac Task 1 | ISC-813..ISC-828 | none | bounded sequential |
+| Modular Mac Task 2 | ISC-829..ISC-844 | Task 1 | yes |
+| Modular Mac Task 3 | ISC-845..ISC-860 | Task 1 | yes |
+| Modular Mac Task 4 | ISC-861..ISC-876 | Task 3 | bounded sequential |
+| Modular Mac Task 5 | ISC-877..ISC-892 | Tasks 2–4 | bounded sequential |
+| Modular Mac Task 6 | ISC-893..ISC-908 | Task 5 | bounded sequential |
+| Modular Mac Task 7 | ISC-909..ISC-924 | Tasks 1–6 for final closure | yes |
+| Modular Mac Task 8 | ISC-925..ISC-940 | Task 7 plus actual targets | bounded sequential |
 
 ## Architecture
 
@@ -2238,6 +2523,16 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-08-04 18:20 IST: The six-file packet draft is present with packet digest `be0d69efec00bc2bd769b4f54e2160e45fea93c80897952a8ff22f79fa6a72c8`. The fresh owner-only dry-run `/tmp/temperance-canary-packet.GWGuFG/thoughtseed-brand-atlas.plan.json` is mode `0600`, SHA-256 `fe78fc1cb2556ae66e86b26705406c628e8a81be1142ae8b7db04b207ab397f8`, `ready:false`, and holds on `packet_identity_pending_teamforge` plus `working_tree_not_clean`; exact checked-in path consumers remain empty and the destination remains absent.
 
 - 2026-09-19 14:10 UTC: refined: The owner requests a minor version bump and GitHub publication of the current v4 integration. Product `VERSION` moves from 0.5.4 to 0.6.0; v4 names the architecture, not a product major. ISC-800 records the earlier Phase 1 freeze and is historical, not an instruction to downgrade the current product. The separate v1.1 milestone and its clean-host platform gates remain incomplete. Noesis stays optional; no host generation, credentials, provider pin, or session-policy activation changes follow from publication. Release operations stay single-author because version, candidate commit, and tag form one sequential chain. The optional Advisor returned exit 1 and is not counted as approval.
+
+
+### Modular Mac execution — 2026-10-01
+
+- 2026-10-01: refined: owner explicitly requested full-plan execution through Temperance Parallel Dispatch; proposal-only Task 1–2 limit is superseded. Source work stays in isolated distribution worktrees.
+- 2026-10-01: effort E4, auto; cross-cutting source implementation spans typed ecosystem joins, lifecycle durability, CLI/TUI and release closure.
+- 2026-10-01: non-Sol noesis-execute workers replace Algorithm auto-Forge because the explicitly invoked dispatch skill excludes Sol seats. No provider or combo configuration is rewritten.
+- 2026-10-01: batch workers must not commit; dispatcher captures staged patches against HEAD and removes worker branches. Exact task commits are made after parent integration/review.
+- 2026-10-01: physical proof is pending actual target and independent backup details. Source completion cannot satisfy physical criteria.
+- 2026-10-01: primary dirty files remain untouched; native app worktree creation cannot target the other repository, so ignored .worktrees is the applicable fallback.
 
 ## Changelog
 
