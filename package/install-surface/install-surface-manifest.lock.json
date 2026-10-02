@@ -1015,7 +1015,7 @@
             "temperance-goal.mjs": "sha256:e82a8b956ab089cf991fc7f8095946e68e3ea7f6289c8e2edc6e0d4b85576fb8",
             "temperance-manifest.mjs": "sha256:9f37f4394dacc6b6ce38647c4254601daa3859314302106bdf67fdfb18d99224",
             "temperance-next-wave.mjs": "sha256:14e049c3ec62d828784d2a465eeb087ea93abd4ace12515db710bbc28591a5e7",
-            "temperance-openai-proxy.mock.ts": "sha256:6ffc94ddc512f35c35669b5e8e5290011420b81761ddd01271bd176e6edec53c",
+            "temperance-openai-proxy.mock.ts": "sha256:3fbb1952ab375510cee7c86f7659827ee1fe82911cb9a2de6e6b2f8668f93e3b",
             "temperance-openai-proxy.test.ts": "sha256:63ce3098f16234b9aa23c102f2b8c6fea7961708e4fbea46b015c27a76712cde",
             "temperance-openai-proxy.ts": "sha256:2b9ec20fb7e54b98480a7d42f9cf93ef289be199f1e28f5a3d7448e3e6e357b9",
             "temperance-phase-dispatch.sh": "sha256:5612055fdebf71b4a104abe14076b103f7e520eb1b4cee53ef03e92e509c8bb4",
