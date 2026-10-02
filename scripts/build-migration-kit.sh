@@ -534,7 +534,7 @@ LOCK_SHA256=$(sha256_file "$PAYLOAD/package/install-surface/bun.lock")
 MANIFEST_LOCK_SHA256=$(sha256_file "$PAYLOAD/package/install-surface/install-surface-manifest.lock.json")
 NATIVE_SHA256=$(sha256_file "$PAYLOAD/package/install-surface/node_modules/@opentui/core-darwin-arm64/libopentui.dylib")
 cat > "$PAYLOAD/KIT-PROVENANCE.json" <<PROVENANCE
-{"schema":"temperance.kit-provenance.v1","source_commit":"$GIT_COMMIT","source_tree":"git-tree:$SOURCE_TREE_DIGEST","registry_lock_sha256":"$LOCK_SHA256","install_manifest_lock_sha256":"$MANIFEST_LOCK_SHA256","reviewed_vendor_digest":"$EXPECTED_VENDOR_DIGEST","bun":"1.3.5","opentui":"0.5.11","ajv":"8.20.0","typescript":"5.9.3","native":{"path":"package/install-surface/node_modules/@opentui/core-darwin-arm64/libopentui.dylib","format":"Mach-O","arch":"arm64","sha256":"$NATIVE_SHA256","authority":"observation-bound-to-reviewed-vendor-tree"},"pending":["Tasks1-6 integrated source/runtime","Task8 physical acceptance"]}
+{"schema":"temperance.kit-provenance.v1","source_commit":"$GIT_COMMIT","source_tree":"git-tree:$SOURCE_TREE_DIGEST","registry_lock_sha256":"$LOCK_SHA256","install_manifest_lock_sha256":"$MANIFEST_LOCK_SHA256","reviewed_vendor_digest":"$EXPECTED_VENDOR_DIGEST","bun":"1.3.5","opentui":"0.5.11","ajv":"8.20.0","typescript":"5.9.3","native":{"path":"package/install-surface/node_modules/@opentui/core-darwin-arm64/libopentui.dylib","format":"Mach-O","arch":"arm64","sha256":"$NATIVE_SHA256","authority":"observation-bound-to-reviewed-vendor-tree"},"pending":["Task7 final immutable artifact/runtime qualification for this archive","Task8 physical acceptance"]}
 PROVENANCE
 
 # ── Inner checksum manifest (every regular member exactly once, sorted) ───────
@@ -595,9 +595,9 @@ cat > "$PUBLISH_TMP/kit-meta.json" <<METAEOF
     "cli_built": true
   },
   "pending_gates": [
-    "final_release_readiness: parent rebuilds accepted source after Tasks 1-6",
+    "final_release_readiness: independent qualification of this immutable archive pending",
     "physical_device_proof: Task 8 hardware acceptance pending",
-    "tui_native_runtime_proof: pending downstream integration"
+    "tui_native_runtime_proof: independent qualification of this archive pending"
   ]
 }
 METAEOF
@@ -633,4 +633,4 @@ say "  commit:          $GIT_COMMIT"
 say "  archive:         $KIT_OUT/$ARCHIVE_NAME"
 say "  artifact digest: sha256:$ARTIFACT_SHA256"
 say "  members:         $MANIFEST_MEMBERS"
-say "  PENDING (separate gate): final release readiness after Tasks 1-6; physical Task 8 proof"
+say "  PENDING (separate gate): independent immutable archive/runtime qualification; physical Task 8 proof"

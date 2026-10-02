@@ -1,129 +1,215 @@
 # Agent and human operator flow
 
-The guided TUI and headless commands share `wizard.ts`, its action IDs, and its
-dependency gates. Neither renderer is an alternative permission system.
-Noesis is optional; omit personal profile/binding arguments on a generic host.
+The modular migration CLI and TUI use the same validated controller view and
+action contract. Source Tasks 1–6, including the TUI and split production build,
+are accepted with bounded disposable-runtime evidence. The source includes no
+default production owner. Final Task 7 immutable-artifact/runtime qualification
+and Task 8 physical acceptance remain pending. Physical migration is a separate
+owner-approved gate, not a source-product completion prerequisite. Keep source,
+compiled-fixture, final-artifact and destination-readiness claims separate.
 
-Run from `package/install-surface` in the reviewed Temperance source checkout:
+## Migration command grammar
+
+After independent kit verification and bundled-runtime checking, invoke the
+compiled entry from the kit root:
 
 ```sh
-# Human or agent-controlled PTY: arrow keys and Enter; d health, l local logs.
-bun src/cli.ts onboard --tui --telemetry
-
-# Agent: enumerate the same ordered steps and currently enabled actions.
-bun src/cli.ts onboard --agent
-bun src/cli.ts onboard --agent --step host --action continue
-
-# Fresh eligibility, management observations, install doctor, session admission.
-bun src/cli.ts onboard --health --json
-
-# Existing low-level doctor remains available; read-only, no implicit repair.
-bun src/cli.ts doctor --report v2 --section install --json
-bun src/cli.ts doctor --report v2 --section runtime --json
-
-# Local operator events, never raw provider/service logs.
-bun src/cli.ts onboard --logs --json --limit 50
+./toolchain/bun-1.3.5-arm64 package/install-surface/dist/cli.js migrate --json
+./toolchain/bun-1.3.5-arm64 package/install-surface/dist/cli.js migrate --snapshot "$PUBLIC_SNAPSHOT" --json
 ```
 
-Add the same `--catalog`, `--host-profile`, `--host-binding`,
-`--project-capsules`, and `--wizard-state` inputs to TUI/agent/health invocations
-when using a personal overlay. Do not include these inputs with `--logs`.
-`--project-capsules-out` is supported only with TUI/agent; in agent mode it
-declares a possible save destination but **does not write to it**.
+The accepted action grammar is below. Uppercase values denote explicit references
+or a valid operation ID/digest, not filenames that the CLI automatically trusts.
 
-## Agent instructions
+```text
+migrate [--snapshot FILE] [--json]
+migrate inspect [--json]
+migrate export --manifest-only --output REF [--json]
+migrate diff --bundle REF --host-binding REF [--json]
+migrate plan --profile workstation|always-on-node|recovery [--json]
+migrate apply --plan REF --reviewed-digest sha256:HEX [--json]
+migrate status --operation TXID [--json]
+migrate resume --operation TXID --reviewed-digest sha256:HEX [--json]
+migrate rollback --operation TXID --reviewed-digest sha256:HEX [--json]
+migrate release --operation TXID --reviewed-digest sha256:HEX [--json]
+migrate cancel [--json]
+migrate request-sign-in [--json]
+```
 
-1. Run `onboard --agent` with the explicitly selected profile inputs. Parse JSON;
-   do not scrape ANSI output as the authoritative state.
-2. Read `steps`, `step`, `state`, and `actions`. Use only an enabled action ID
-   returned for that step. Never invent a shell command from display text.
-3. Submit one `--action ID`. Carry returned `state.step` using `--step`,
-   `selected_candidate_ids` using comma-separated `--project-select`, and
-   `requested_module_ids` using comma-separated `--select` into the next call.
-   To represent an explicitly empty module set, use `--select ,`.
-4. Navigation and pending project selections are transient. Module selection
-   and deferral invoke the same fresh dependency planner as the TUI. `refresh`,
-   `health`, and `logs` are read-only actions; health/log results are included
-   in the response. No action here persists approvals or activates an organ.
-5. On `handoff.status=required`, stop automation at that boundary. Provider
-   sign-in, combo seating/review, project saving, and final confirmation return
-   to `onboard --tui --step STEP` with the same pending-state arguments.
-   Ask the operator to complete sign-in or the exact-change review. Do not
-   send confirmation keystrokes merely because an action is enabled.
-6. After handoff, re-read state and run health. An observation is not an
-   admission receipt; never infer a working 1M session from model/alias counts.
+The CLI additionally admits `migrate [--snapshot FILE] --tui`.
+It refuses `--tui --json`, action-plus-TUI forms, unknown/duplicate flags and the
+literal `view` subcommand. Snapshot loading is available on the bare view form;
+it is not a general flag for actions. There is no shell installer `--profile`
+flag, CLI owner-file flag, migration module-selection flag or migration project
+approval flag.
 
-Agents can run the TUI through a supported PTY and send arrow/Enter keys for
-navigation and inspection. Use the JSON interface for reliable unattended reads.
-This does not authorize bypassing host computer-use restrictions or interacting
-with a user's unrelated terminal sessions.
+| Action | Effect and production boundary |
+|---|---|
+| Bare view / explicit public snapshot | Public projection; no host discovery or owner creation |
+| Inspect, diff, plan, status | Read-only owner operations; held when required ports/inputs are absent |
+| Export | Local manifest write through an explicit owner seam; never label it read-only or a full data backup |
+| Apply, resume, rollback, release | Reviewed local transaction requests using the existing lifecycle executor and fresh owner checks |
+| Cancel | Cancels the current controller operation and observes settlement; a new CLI process does not control another process's transaction |
+| Request-sign-in | Human handoff only; authentication is not performed |
 
-## Health meanings
+The production CLI provides no inspection/export/comparison/planning/recovery
+owner ports. Valid grammar therefore does not imply those actions can execute.
+They report held conditions such as `OWNER_ADAPTER_UNAVAILABLE`. Profile selection,
+viewing, cancellation and handoff cannot manufacture missing authority.
+`--host-binding` in a migration diff is an opaque owner-resolved reference to a
+comparison target; it does not instruct the CLI to load a private host-binding
+file or reinterpret one as a public target.
 
-- Dependencies report prerequisite eligibility, not active organ operation.
-- Routing distinguishes adapter version, live management access, provider
-  catalog records, and live model counts. Alias draft choices are not proof
-  of persisted combo membership; selected-module admission supplies actual
-  alias prerequisite holds.
-- Install checks use the existing read-only doctor and reviewed inventory.
-- Session admission checks the selected optional local policy. An absent
-  policy is not proof of context capacity. The current gateway adapter hold
-  remains visible. No inference request is sent by these commands.
-- Obsidian application presence does not prove its tunnel/dashboard health.
-  This feature does not add automatic remediation, a health server, or a
-  background monitoring daemon.
+## Read the validated result
 
-`--health` exits 0 only when its required configuration checks pass; 1 means
-held/unavailable. `--agent` exits 0 for a valid projection, even with disabled
-actions or required handoffs: inspect the JSON, not just the process exit.
-Invalid arguments/actions return 64 with a safe reason code.
+Parse `temperance.migration.view.v1` JSON rather than scraping terminal text.
+Inspect `command`, `outcome`, `effect_class`, findings, action availability,
+handoffs and operation identity together. Evidence dimensions remain separate;
+a supplied source snapshot does not become observed destination evidence.
+An enabled action is an available request interface, not authorization.
 
-## Local telemetry and logs
+Exit 64 means invalid arguments/input/projection; 2 covers manual recovery or
+unknown effects and unverified terminal results. Exit 0 covers completed view
+operations and verified terminal results under the controller's action-specific
+rules. Other held, awaiting-human, cancelled or incomplete outcomes use 1.
+Release succeeds only with its current released/VERIFIED result. A historical
+committed or rolled-back operation must not override a currently uncertain or
+refused request. An exit code alone is insufficient to decide the next action.
 
-`--telemetry` opts in per TUI/agent/health invocation. It records only fixed
-event/action names, step, outcome, duration, numeric counts, timestamp, and a
-random run ID. No prompts, project paths, credentials, provider responses,
-connection identifiers, callback URLs, or model outputs are logged.
+The safe Review projection carries exact plan/source joins and step requirements,
+historical final-review status and any separately acquired release-only context.
+Its review validation is structural; freshness and independently observed release
+evidence are not certified by displaying them. `execution_authorized:false`
+remains explicit. Backup inventory, last durable step and restoration verification
+are not exposed by this owner API and must stay UNKNOWN. An external test's disk
+observations cannot silently become new public ABI fields.
 
-Storage is `${TEMPERANCE_STATE:-$HOME/.temperance}/operator-events/events.v1.jsonl`.
-The directory is owner-only (0700), the file owner-only (0600); the ring is
-bounded to 1 MiB and 4096 events. Old events age out locally. There is no export
-or network destination. `--logs` is read-only and does not create missing state.
-Use `--run UUID` to filter a session; `--limit` accepts 1–200.
+## Trusted integration and recovery
 
-Unsafe or malformed log files are rejected, not dumped or overwritten. If
-recording fails, the operation result reports telemetry `unavailable`; runtime
-configuration is not reported failed solely because optional telemetry failed.
-These events aid debugging but are **not authorization or recovery receipts**.
-Existing governed mutation receipts retain their separate authority.
+An embedded trusted host can supply the existing `MigrationOwnerPorts` in code.
+The production CLI has no JSON/file option that constructs those ports. Keep
+independent source pins, complete planner inputs, final review, exact operation
+txid/claim nonce, owned steps and root/binding identity outside returned view
+objects. Matching returned plan digests, file possession and UI consent are not
+an authenticated owner decision.
 
+Each request resolves its operation and final review independently. Recovery
+reauthenticates the requested action and rereads fresh inputs/current destination
+facts through the existing authority and IO seams. Unknown remote outcomes,
+changed release/module-lock/binding/configuration-generation identities, foreign
+preimages and stale reviews hold. The controller forwards recovery to the
+existing executor; the journal, receipts, prepared outputs, custody records and
+preimages remain the transaction evidence. Do not add a parallel journal or
+execute a plan by scraping its presentation.
 
-## Portable kit evidence and pending integration
+Repeat apply on an existing txid is refused by `TRANSACTION_EXISTS`; do not treat
+that hold as repeated success or mint a new txid to evade it. Status/resume
+reopen the retained operation. Compatible rollback requires authenticated prior
+state and actual matching preimages/modes; a shell backup or current file with
+matching bytes alone is insufficient. Unsupported atomic no-replace custody
+remains an explicit hold rather than a check-then-rename fallback.
 
-Use the trusted manual bootstrap in
-[guided onboarding](guided-onboarding.md) and the
-[modular Mac lifecycle](../../../docs/modular-mac-lifecycle.md) before invoking
-any packaged runtime. The verifier requires the independently supplied archive
-digest and publishes only after raw archive and inner-manifest verification.
-Missing stock Perl/gzip prerequisites hold extraction. The builder requires an
-explicit approved source commit, explicit verified cache, frozen dependencies
-and an independently reviewed frozen-tree digest; package SRI alone does not
-authenticate an unpacked directory.
+After original review expiry, terminal release requires a fresh independent
+release-only context bound to the original review, plan, txid/nonce, state root
+and current terminal evidence. It does not renew mutation authority. Repeated
+release must preserve terminal artifacts. Refusal, interrupted response or
+unknown effect requires reobservation/reconciliation, not blind replay.
+External sign-ins remain separately owned and are not reversed by cancellation
+or rollback.
 
-The kit checks the exact Bun 1.3.5 / OpenTUI 0.5.11 pins, actual arm64 Mach-O
-native asset, complete dependency set and committed manifest expectations.
-Existing compiled CLI/native synthetic PTY evidence is a retained prerequisite.
-It does not prove the new migration views or the Tasks 1–6 integrated rebuild.
-The current accepted base has enrichment COPY mismatches and a separately held
-private `atlasRecall.ts` source. Preserve the build hold until its owning source
-classification and manifest reconciliation are reviewed; do not blindly refresh
-hashes or promote private source to make a build pass.
+## TUI and profile scope
 
-Both `workstation` and `always-on-node` composition and migration/controller/TUI
-execution must be checked after Tasks 1–6 integrate. This packaging suite tests
-an explicitly synthetic CLI/manifest with the real frozen dependencies, plus
-legacy installer dry-run flags. It cannot certify those future profile flows.
-Task 8 physical bootstrap, device identity, FileVault recovery, power/network
-loss, backup/restore and native callback proof remain owner-operated hardware
-gates. All personal overlay requests remain held with zero effects. No schema
-version change is presented as an accepted overlay upgrade.
+The TUI’s ten sections are Ecosystem, Organs, Work, Knowledge, Machine,
+Modules, Access, Services, Handoffs and Recovery. Both base profiles share the
+same model; `recovery` provides a recovery scenario with apply disabled.
+Selected destination, retained snapshot and retained plan profiles are distinct.
+The six Will desks are display filters, not new agents or scheduling grants.
+Module toggles and a complete project inventory are not exposed. Missing
+required/optional/drift and recovery facts remain UNKNOWN.
+
+Follow only displayed enabled action IDs. Enter/confirmation requests the shared
+controller action and still requires fresh owner checks. Ctrl-C and pending-action
+cancel await actual settlement. If a TTY or native renderer is unavailable, the
+entry emits `NATIVE_TUI_UNAVAILABLE` and suggests the JSON/status forms; it does
+not create an owner, report restoration or certify a service. Accepted compiled disposable cases exercised Help/resize anchors and native
+fallback; final immutable-kit qualification remains pending. Full Review and
+individual filter choices have source/TestRenderer coverage, while the actual
+rich cases visited the Filter menu without selecting every value. SIGKILL, lost
+PTYs and power loss do not imply cleanup. See the [bounded Task 6 evidence](../../../docs/modular-mac-lifecycle.md#accepted-task-6-evidence-and-its-limits)
+for descriptor observation limits and the separate interrupted-operation reopen
+cases. Closed-channel terminal state remains unavailable; no restoration is
+inferred from headless recovery.
+
+The reviewed growth contract preserves source lineage, independent consumer
+verdicts/freshness and Adytum topic-parity holds. Capability-hit modes stay
+disabled. Snow Gloves is an external nonauthorizing reference, excluded from
+both base profile selections. None of these references is provider, device,
+enrollment, publishing or learning-promotion evidence.
+
+## Legacy onboarding agents
+
+`onboard --agent` and `onboard --tui` share the existing sequential wizard,
+its action IDs and dependency gates. They have a different contract from
+`migrate`. In a reviewed source environment, existing forms include:
+
+```sh
+bun src/cli.ts onboard --agent
+bun src/cli.ts onboard --agent --step host --action continue
+bun src/cli.ts onboard --health --json
+bun src/cli.ts onboard --logs --json --limit 50
+bun src/cli.ts doctor --report v2 --section install --json
+```
+
+These examples run from `package/install-surface` with the reviewed toolchain.
+Use the same explicit catalog/profile/binding/project-capsule/preference inputs
+when returning to that wizard. `--project-capsules-out` enables a potential save
+destination only for TUI/agent; agent projection does not itself persist approvals.
+Do not pass profile inputs to `--logs` or reuse wizard state as migration authority.
+
+Read returned `steps`, `step`, `state` and enabled `actions`. Carry returned
+`state.step` through `--step`, candidate IDs through `--project-select`, and
+requested modules through `--select` on the next legacy call. `--select ,`
+represents an explicitly empty request. Navigation is transient; fresh dependency
+planning governs selection/deferral. Stop at `handoff.status=required` for
+provider sign-in, exact combo review, project saving or final confirmation.
+Use an owned supported PTY only for explicitly authorized human interaction.
+
+Legacy `--agent` exit 0 means a valid projection, even with disabled actions or
+handoffs; `--health` exit 0 means its required configuration checks passed and
+1 means held/unavailable. Invalid arguments/actions return 64. Neither result
+is modular migration admission, actual organ/service operation, or session
+capacity proof. Existing personal composition stays an explicit private input;
+it does not implement the shell installer's held personal-overlay adapter.
+
+Legacy `--telemetry` opts into bounded local event metadata for TUI/agent/health.
+It records fixed event/action labels, counts, timing and a random run identifier,
+not prompts, project paths, credentials, callback addresses or provider/model
+bodies. Logs use owner-only directory/file permissions, a 1 MiB/4096-event ring
+and no network destination. `--logs` is read-only and rejects unsafe/malformed
+files; `--limit` accepts 1–200 and `--run` filters a run identifier. Optional
+telemetry failure is reported separately. These events are not owner grants or
+transaction recovery receipts, and these telemetry flags are not migration flags.
+
+## Evidence boundaries
+
+Use the [bootstrap guide](guided-onboarding.md) and
+[lifecycle guide](../../../docs/modular-mac-lifecycle.md) for the actual minimal
+skip/preserve command. It creates absent generic surfaces only; it does not run
+full Node-dependent repository verification or select a migration profile.
+Legacy optional source installation retains broader update/backup behavior.
+
+The historical enrichment COPY mismatch was resolved in reviewed foundation
+source; private `atlasRecall.ts` remains excluded. That foundation archive is not
+the final integrated kit. Keep exact committed source A, complete split build and
+dependency closure, outer archive hash and independent verification identities.
+An external qualification receipt B names A's immutable artifact; no rebuild is
+needed merely to include B's acceptance wording. A real source fix requires a
+new reviewed commit, build and digest.
+
+`verify.sh`, broader source/shell-mock suites, strict static checking, compiled
+entry checks, archive validation, actual extracted-kit/SDK/PTY cases and physical
+acceptance are separate evidence. Local mocks do not demonstrate live providers;
+fictional owner harnesses do not demonstrate a shipping production owner. Final
+Task 7 cases still await final source/artifact admission and qualification.
+Task 8 target/access, identity, cold boot, FileVault, callbacks, power/network
+recovery and actual backup/restore remain owner-operated physical gates.

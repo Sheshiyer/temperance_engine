@@ -1,94 +1,178 @@
-# Guided onboarding
+# Guided onboarding and modular migration
 
-`onboard --tui` is a sequential wizard, not a tabbed dashboard:
+The modular migration surface, shared controller, TUI and split production build
+are accepted source with bounded disposable-runtime evidence. Final Task 7
+immutable-artifact qualification and Task 8 physical acceptance remain pending.
+Physical migration is a separate owner-approved gate; source-product completion
+does not require a physical target. The existing `onboard` wizard is a separate
+legacy interface, described at the end of this guide.
 
-1. Host — review the machine and explicitly selected personal profile, if any.
-2. Projects — inspect existing approvals and mapped folders/repositories; select new approvals explicitly.
-3. Providers — choose a provider and complete 9Router-owned sign-in.
-4. Combos — select ordered live model members for each alias, then review the exact 9Router changes.
-5. Organs and tools — request capabilities, re-probe dependencies, or explicitly defer held options.
-6. Integrations — review application prerequisites without treating presence as live service health.
-7. Review — confirm requested configuration and project approvals with Enter or y.
+## Begin with the verified kit
 
-Use the arrow keys to choose a visible action and Enter to activate it. Back and
-Continue are ordinary action rows. OAuth, combo setup, and refresh return to the
-current step with pending selections preserved. Cancel does not save pending
-project or module choices; completed provider authorizations are owned by
-9Router and are not undone by cancelling the outer wizard.
+Obtain the verifier and its expected checksum through the reviewed channel,
+check the verifier before running it, and supply an independently trusted archive
+digest. The adjacent archive sidecar does not establish trust by itself.
 
-## Persistence and authority
+```sh
+/bin/bash ./verify-migration-kit.sh \
+  --archive "temperance-engine-${VERSION}-arm64.tar.gz" \
+  --expected-digest "sha256:${TRUSTED_ARCHIVE_SHA256}" \
+  --extract-to "$HOME/temperance-kit"
+```
 
-- `--project-capsules` loads approved project access; `--project-capsules-out` explicitly enables saving new approvals. Existing capsules are preserved.
-- `--wizard-state` loads/saves owner-only requested-module preferences for this profile. Every launch re-probes; saved preferences are not admission or activation grants.
-- Provider sign-in requires an explicit provider action. Credentials stay in 9Router.
-- Combo setup currently supports a fresh combo/key state with existing OAuth providers. Existing combos, gateway keys, and occupied Keychain references are held, not overwritten.
-- Seating choices alone do not authorize writes. A separate exact-plan review binds ordered members, alias mappings, and the gateway reference into the apply digest.
-- Final wizard confirmation does not install every selected organ, certify a tunnel/dashboard, or establish 900k–1M context capacity. Those capabilities need their own operational evidence.
+The destination must be absent beneath a private parent you control. Stock macOS
+Bash 3.2, Perl with the required standard modules, gzip and shasum verify the
+archive without Git, Node, Bun, Homebrew or an agent client. Missing tools or
+invalid archive structure hold before payload creation. Publication is exclusive
+file creation, not atomic directory publication; changed destination identity
+holds cleanup. See the [lifecycle guide](../../../docs/modular-mac-lifecycle.md)
+for exact prerequisites, pins, bounds and publication limits.
 
-Generic Temperance needs no Noesis profile, mounted personal volume, or provider.
-Personal paths and Keychain references belong in the explicitly supplied private
-host binding, not in the portable core.
+Use the same minimal bootstrap for either intended base profile:
 
-## Agents, health and telemetry
+```sh
+cd "$HOME/temperance-kit"
+sh install.sh --preserve-existing \
+  --skip-voice --skip-claude --skip-codex --skip-opencode --skip-cursor \
+  --skip-gsd --skip-manifest --skip-relay --dry-run
+```
 
-The same workflow is available as `onboard --agent`; `--step` and `--action`
-operate on the shared controller without persisting approvals or bypassing
-sign-in/review. The TUI exposes doctor/health and local event inspection via
-visible actions or `d` / `l`; closing either report returns to the same step.
-Use `--telemetry` to record bounded local metadata, `--health --json` for a fresh
-health snapshot, and `--logs --json` for recent events.
-See [agent operations](agent-operations.md) for the full runnable flow,
-argument/state handoff, privacy boundaries, and exit-code semantics.
+Inspect the plan and remove `--dry-run` to perform it. This creates only absent
+generic AGENTS/resolver outputs and required directories. Existing leaves are
+preserved without adoption or redundant backups; linked or nondirectory parents
+and unsafe sources hold. Portable-kit detection automatically enables this mode.
+It skips optional client/voice/service setup and CodeGraph, and rejects force or
+requested `--with-*` activation before effects. Malformed provenance, unsupported
+kit platform and nonempty private-overlay requests also hold. Its success message
+describes minimal bootstrap only. There is no shell `--profile` option.
 
+Before using packaged JavaScript, check the bundled Bun binary:
 
-## Manual bootstrap
+```sh
+printf '%s  %s\n' \
+  66262f09134f780b1563bd1ae3dad13ea7d2ac669f8a5754f924b3c82abcc8f3 \
+  toolchain/bun-1.3.5-arm64 | /usr/bin/shasum -a 256 -c -
+./toolchain/bun-1.3.5-arm64 --version
+```
 
-Obtain the reviewed verifier script and its independently supplied SHA-256
-from the operator or pinned release channel. Verify that script before running
-it. The adjacent archive sidecar alone does not establish trust.
+Require checksum success and exact version `1.3.5`. The arm64 kit contains frozen
+dependencies. Do not fetch them as an implicit bootstrap step. Other kit targets
+remain held pending their independent toolchain/native verification.
 
-The arm64 kit bootstrap requires stock macOS `/bin/bash` 3.2, `/usr/bin/perl`
-(with Digest::SHA, File::Path and Fcntl), `/usr/bin/gzip`, and `shasum`.
-Missing tools produce a bootstrap HOLD before payload extraction. No Git,
-Bun, Node, Python, Homebrew or agent CLI is needed to verify the kit.
+## Open modular migration
 
-1. Use the trusted verifier to check and publish the kit into an **absent**
-   directory beneath a private parent you own:
-   ```sh
-   /bin/bash ./verify-migration-kit.sh \
-     --archive "temperance-engine-${VERSION}-arm64.tar.gz" \
-     --expected-digest "sha256:${TRUSTED_ARCHIVE_SHA256}" \
-     --extract-to "$HOME/temperance-kit"
-   ```
-   Supply `VERSION` and `TRUSTED_ARCHIVE_SHA256` from the reviewed channel.
-   Even an existing empty destination is refused. Failed verification leaves
-   no payload destination.
-2. Verify the bundled Bun 1.3.5 binary before using it:
-   ```sh
-   cd "$HOME/temperance-kit"
-   printf '%s  %s\n' \
-     66262f09134f780b1563bd1ae3dad13ea7d2ac669f8a5754f924b3c82abcc8f3 \
-     toolchain/bun-1.3.5-arm64 | shasum -a 256 -c -
-   ./toolchain/bun-1.3.5-arm64 --version
-   ```
-   Require both a successful checksum check and the exact version `1.3.5`.
-   The kit already includes frozen dependencies; do not fetch dependencies as
-   an implicit bootstrap step.
-3. Inspect the existing installer plan:
-   ```sh
-   sh install.sh --dry-run
-   ```
-   Actual installation, client authentication and service activation require
-   the reviewed destination packet and their prerequisites. The legacy
-   installer may need external upstream tools for selected modules; a closed
-   install-surface CLI does not establish an offline install of every module.
+From the verified kit root:
 
-The alternative manual Bun ZIP procedure, exact ZIP checksum, builder inputs
-and publication limits are in
-[the modular Mac lifecycle](../../../docs/modular-mac-lifecycle.md).
-The current distributable toolchain is arm64 only. x64 and other portable-kit
-architectures remain held pending independent pin and runtime verification.
-All personal overlay requests are held before effects; changing the overlay
-schema alone cannot remove that hold. Both composed Mac profiles and the new
-migration views need the Tasks 1–6 integration rebuild. Task 8 remains a
-physical-device acceptance gate.
+```sh
+./toolchain/bun-1.3.5-arm64 package/install-surface/dist/cli.js migrate --json
+./toolchain/bun-1.3.5-arm64 package/install-surface/dist/cli.js migrate --snapshot "$PUBLIC_SNAPSHOT" --json
+./toolchain/bun-1.3.5-arm64 package/install-surface/dist/cli.js migrate --tui
+./toolchain/bun-1.3.5-arm64 package/install-surface/dist/cli.js migrate --snapshot "$PUBLIC_SNAPSHOT" --tui
+```
+
+`--snapshot` accepts an explicitly supplied, validated public snapshot. It does
+not discover the host or load a private binding/owner adapter. `--tui` cannot be
+combined with `--json` or an action subcommand. The literal `migrate view`
+subcommand is not accepted; bare `migrate` is the view command.
+
+The scenario picker offers `workstation`, `always-on-node`, and `recovery`.
+Both base profiles use the same modular contracts and can share the same module
+selection/backend. Scenario selection is local display/controller state. It
+does not rewrite the retained source snapshot, reissue a plan or choose a node's
+service role. The interface labels selected destination, retained source and
+retained plan profiles separately. Apply is disabled for the recovery scenario.
+
+## Ten sections
+
+| Section | What the supplied evidence can show |
+|---|---|
+| Ecosystem | Organ relationships, owner/contract/source, dependencies, trigger, artifact, consumer, verdict and freshness |
+| Organs | Five operating and six cognitive organs, their separate admission/runtime/verification facts and Will role filters |
+| Work | Bound work references and declared cell effects; broader project inventory remains UNKNOWN |
+| Knowledge | Versioned knowledge references and freshness; no private body copying |
+| Machine | Source/destination/plan context, declared toolchain needs and compatibility observations; no identity issuance |
+| Modules | Logical module references and retained plan steps; module toggling/install selection is not exposed by this controller |
+| Access | Separate evidence dimensions and a request-sign-in human handoff |
+| Services | Supplied organ runtime/verification observations; no service probe or activation |
+| Handoffs | Explicit human handoffs and supplied consumer lineage/acknowledgment |
+| Recovery | Current operation and available owner actions; backup availability, last durable step and restoration verification remain UNKNOWN |
+
+The operating organs are Genesis, Taste, Hands, Will and Cortex. The cognitive
+organs are Vestibule, Adytum, Nutrix, Auspex, Circulator and Praeceptor. The six
+Will desks—head-of-marketing, copywriter, creative-strategist, launch-lead,
+seo-lead and analyst—filter roles inside Will; they are not new agents or organs.
+Reviewed growth references retain independent source/version/digest and verdict
+requirements. Missing Adytum topic-parity evidence remains a hold. Capability-hit
+mode declarations remain disabled and grant no scheduling or enrollment.
+Snow Gloves remains external and excluded from both base profiles.
+
+## Navigation and action requests
+
+Use `g` for sections, `[`/`]` for adjacent sections, `s` for scenarios, `a` for
+actions, `r` for the safe Review screen, `w` for Will roles, and `f` for filters.
+Arrow, Home/End and Page Up/Down keys navigate. Tab/Shift-Tab changes visible
+focus; `/` searches supplied rows; Enter opens details or an explicit request.
+Escape returns, and `q` backs out before closing. `?` opens help. Search and
+filters change presentation only; required/optional/drifted facts remain UNKNOWN
+when absent. Layout adapts between a single panel and list/detail presentation,
+with per-section position and detail bookmarks.
+
+Enabled actions request the same controller operation used by JSON clients.
+Consent does not authenticate an owner or grant a fresh review. The production
+migration entry injects no owner ports, so inspection, export, comparison,
+planning and recovery operations are held without a trusted integration.
+`request-sign-in` produces a handoff and performs no authentication. Selection
+alone never installs or activates a module.
+
+Review displays the acquired plan's source/binding joins and proposed steps,
+historical final work review, and any current release-only context. A digest match
+or displayed structure does not prove freshness, ownership, observed backups or
+restoration. Trusted integrations must independently supply those prerequisites
+when the requested action runs.
+
+Ctrl-C asks the controller to cancel and waits for possible effects to settle.
+Cancellation cannot reverse an external sign-in or make an uncertain operation
+safe to repeat. Native TUI/terminal failure emits `NATIVE_TUI_UNAVAILABLE` with a
+headless suggestion. Use `migrate --json` for the public view or the documented
+status grammar for an owner-resolved operation; status remains held if the
+production entry has no owner. Native failure is not automatically a clean
+terminal-restoration or rollback receipt. Hard termination, closed PTYs and
+power loss require their own evidence.
+
+The accepted disposable compiled-TUI cases covered both profiles, all ten
+sections, all six Will roles, search/focus, held owners, Help/resize anchors and
+Recovery. Full Review behavior and individual filter choices have separate
+source/TestRenderer coverage; the actual cases visited the Filter menu only.
+Recorded terminal modes and positive dimensions matched through a bounded fresh
+descriptor observation before close/drain. This does not establish shell job
+control or kernel-generated Ctrl-C. The separate hard-close cases retained an
+interrupted operation and reopened it in another process; terminal state after
+connection loss was unavailable. See the [lifecycle evidence limits](../../../docs/modular-mac-lifecycle.md#accepted-task-6-evidence-and-its-limits).
+Final archive qualification remains a separate required check.
+
+## Legacy `onboard` wizard
+
+`onboard --tui` retains its sequential Host → Projects → Providers → Combos →
+Organs and tools → Integrations → Review workflow. It is not the ten-section
+modular migration surface. Its existing explicit profile/binding, project-capsule
+and preference arguments have their own contracts; they do not supply migration
+owner ports or bypass the installer's personal-overlay hold.
+
+In that wizard, arrows and Enter choose visible actions. Back/Continue are action
+rows; `d`/`l` open health/local events and return to the current step. Cancelling
+does not save pending project/module choices; already completed provider
+authorizations remain owned by the provider adapter. Project saving requires
+`--project-capsules-out`; `--wizard-state` stores requested-module preferences,
+which are re-probed and never become activation grants.
+
+Legacy provider sign-in and exact combo/key review are separate explicit owner
+actions. Occupied combo/key references remain held where the adapter cannot
+support them. Final wizard confirmation does not certify organ operation, service
+health, session capacity or either modular migration profile. Generic Temperance
+requires no personal profile, mounted personal volume or provider.
+
+See [agent operations](agent-operations.md) for separate migration and legacy
+headless grammar. Source checks, compiler checks, shell mocks, compiled-entry
+checks and final archive/PTY/OS-IO qualification have distinct evidence. Final
+Task 7 remains pending final source/artifact admission and qualification; Task 8
+physical bootstrap, identity, recovery and backup/restore remain owner-operated.
