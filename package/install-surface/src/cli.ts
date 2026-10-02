@@ -257,13 +257,38 @@ async function main(): Promise<void> {
     const cancel = () => abort.abort();
     process.on("SIGINT", cancel);
     process.on("SIGTERM", cancel);
+    let outputClosed = false;
+    const streamClosed = () => { outputClosed = true; };
+    process.stdout.on("error", streamClosed);
+    process.stderr.on("error", streamClosed);
+    const writePublic = async (stream: NodeJS.WriteStream, text: string) => {
+      if (stream.destroyed) return;
+      // Keep the CLI-owned error listener through the asynchronous write/error turn.
+      await new Promise<void>(done => { try { stream.write(text, () => setImmediate(done)); } catch { outputClosed = true; done(); } });
+    };
+    const diagnostic = () => writePublic(process.stderr, "NATIVE_TUI_UNAVAILABLE; use migrate --json or migrate status --operation OPERATION --json.\n");
     try {
-      const result = await runMigrationCli(process.argv.slice(3), { signal: abort.signal });
-      process.stdout.write(JSON.stringify(result.view) + "\n");
+      const result = await runMigrationCli(process.argv.slice(3), { signal: abort.signal, present: async (controller, signal) => {
+        try {
+          if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error("TTY_REQUIRED");
+          const { runMigrationTui } = await import("./migration/tui.ts");
+          const result = await runMigrationTui(controller, { signal });
+          if (result.presentation !== "closed") {
+            await diagnostic();
+          }
+          return result;
+        } catch {
+          await diagnostic();
+          return controller.dispatch({ action: "cancel" });
+        }
+      } });
+      if (!outputClosed) await writePublic(process.stdout, JSON.stringify(result.view) + "\n");
       process.exitCode = result.exitCode;
     } finally {
       process.off("SIGINT", cancel);
       process.off("SIGTERM", cancel);
+      process.stdout.off("error", streamClosed);
+      process.stderr.off("error", streamClosed);
     }
     return;
   }

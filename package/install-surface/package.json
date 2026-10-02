@@ -6,7 +6,7 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit -p tsconfig.json",
-    "build": "bun build src/cli.ts --target=bun --outdir=dist --packages=external",
+    "build": "bun build src/cli.ts --target=bun --outdir=dist --packages=external --splitting --minify-identifiers",
     "start": "bun run src/cli.ts",
     "verify": "bun run typecheck && bun test && bun run build",
     "doctor": "bun run src/cli.ts doctor"

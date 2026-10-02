@@ -3,12 +3,12 @@ project: temperance_engine
 task: Implement integrated modular Mac lifecycle and rich TUI
 effort: E4
 effort_source: classifier
-phase: plan
-iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 712/962
+phase: execute
+iteration: 2026-10-01-modular-mac-implementation
+progress: 808/962
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-01T13:56:09.012896+00:00
+updated: 2026-10-02T04:22:05.378977+00:00
 ---
 
 ## Problem
@@ -1171,22 +1171,22 @@ Implement Tasks 1–7 as an integrated modular Mac lifecycle in the existing ins
 - [x] ISC-890: Modular Mac Task 5: pending authentication remains recoverable (probe: Task 5 focused adversarial test/kit/PTY receipt).
 - [x] ISC-891: Modular Mac Task 5: successful projection does not imply profile ready (probe: Task 5 focused adversarial test/kit/PTY receipt).
 - [x] ISC-892: Modular Mac Task 5: Ctrl-C preserves incomplete or unknown outcome (probe: Task 5 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-893: Modular Mac Task 6: Antecedent: 80x24 keyboard navigation reaches scenario selection (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-894: Modular Mac Task 6: 120x40 renders list and detail (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-895: Modular Mac Task 6: workstation guided flow is selectable (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-896: Modular Mac Task 6: always-on-node guided flow is selectable (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-897: Modular Mac Task 6: Ecosystem connections show evidence (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-898: Modular Mac Task 6: Organs show input trigger artifact consumer verdict (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-899: Modular Mac Task 6: Will desks remain role filters (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-900: Modular Mac Task 6: Knowledge separates canonical and derived refs (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-901: Modular Mac Task 6: TUI enabled actions equal agent enabled actions (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-902: Modular Mac Task 6: review shows source plan and binding digests (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-903: Modular Mac Task 6: review shows intended effects and rollback (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-904: Modular Mac Task 6: selection produces zero lifecycle effects (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-905: Modular Mac Task 6: held authentication is rendered as text (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-906: Modular Mac Task 6: missing native renderer leaves headless recovery usable (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-907: Modular Mac Task 6: terminal disconnect restores terminal state (probe: Task 6 focused adversarial test/kit/PTY receipt).
-- [ ] ISC-908: Modular Mac Task 6: real synthetic PTY flow reaches recovery screen (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-893: Modular Mac Task 6: Antecedent: 80x24 keyboard navigation reaches scenario selection (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-894: Modular Mac Task 6: 120x40 renders list and detail (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-895: Modular Mac Task 6: workstation guided flow is selectable (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-896: Modular Mac Task 6: always-on-node guided flow is selectable (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-897: Modular Mac Task 6: Ecosystem connections show evidence (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-898: Modular Mac Task 6: Organs show input trigger artifact consumer verdict (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-899: Modular Mac Task 6: Will desks remain role filters (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-900: Modular Mac Task 6: Knowledge separates canonical and derived refs (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-901: Modular Mac Task 6: TUI enabled actions equal agent enabled actions (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-902: Modular Mac Task 6: review shows source plan and binding digests (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-903: Modular Mac Task 6: review shows intended effects and rollback (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-904: Modular Mac Task 6: selection produces zero lifecycle effects (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-905: Modular Mac Task 6: held authentication is rendered as text (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-906: Modular Mac Task 6: missing native renderer leaves headless recovery usable (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-907: Modular Mac Task 6: graceful close restores exact terminal modes and dimensions before cleanup; hard connection loss preserves the settled operation for a distinct-process headless recovery, with closed-channel terminal state explicitly unavailable (probe: Task 6 focused adversarial test/kit/PTY receipt).
+- [x] ISC-908: Modular Mac Task 6: real synthetic PTY flow reaches recovery screen (probe: Task 6 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-909: Modular Mac Task 7: release artifact verifies checksum closure (probe: Task 7 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-910: Modular Mac Task 7: lockfiles remain at reviewed pins (probe: Task 7 focused adversarial test/kit/PTY receipt).
 - [ ] ISC-911: Modular Mac Task 7: native assets match supported target architecture (probe: Task 7 focused adversarial test/kit/PTY receipt).
@@ -2122,7 +2122,7 @@ Implement Tasks 1–7 as an integrated modular Mac lifecycle in the existing ins
 | ISC-904 | executable | selection produces zero lifecycle effects | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
 | ISC-905 | executable | held authentication is rendered as text | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
 | ISC-906 | executable | missing native renderer leaves headless recovery usable | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
-| ISC-907 | executable | terminal disconnect restores terminal state | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
+| ISC-907 | executable | graceful close restores exact terminal modes and dimensions before cleanup; hard connection loss preserves the settled operation for a distinct-process headless recovery, with closed-channel terminal state explicitly unavailable | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
 | ISC-908 | executable | real synthetic PTY flow reaches recovery screen | one passing owner-bound probe | Task 6 focused adversarial test/kit/PTY receipt |
 | ISC-909 | executable | release artifact verifies checksum closure | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
 | ISC-910 | executable | lockfiles remain at reviewed pins | one passing owner-bound probe | Task 7 focused adversarial test/kit/PTY receipt |
@@ -3413,3 +3413,12 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-10-01 portable minimal-bootstrap prerequisite: exact three-path R2 patch SHA-256 e948509b4a8b489e5b8cd83cfb993f96bec35e07cef42a171e211730a99e25f3 passed fresh independent source review with eleven actual-installer/library scenarios, carrying the unchanged R1 installer CORE pass. Parent stock Bash replay passed all 123 checks (57 actual-source bootstrap and 66 archive-foundation cases); source verifier, shell syntax and unchanged privacy-regression checks passed. A first source-verifier invocation lacked its required root variable and was corrected without repeating or relabeling the completed suite. Minimal kit mode creates only absent generic instructions/resolver leaves, preserves all existing leaves/bytes/modes, disables optional activation, and rejects malformed/incompatible metadata and unsafe source links before writes. Source verification uses real Node for JSON parsing; the minimal installer does not require an ambient agent, Bun, Git, Homebrew, Node or CodeGraph. Platform/provenance fixtures are synthetic, publication assumes controlled stable ancestors and is not a whole-install transaction. Full paired-profile/controller/TUI release qualification and physical Task 8 remain pending; all ISC-909..924 stay unchecked.
 
 - 2026-10-02 Task 5 source acceptance: frozen total five-path R3 patch SHA-256 5ace1a495d4ba0625590ff2bece64b12c19fc9489de80370e92ea441da475746 passed fresh independent CORE and CLI reviews. CORE independently authored 87 passing tests/452 assertions; CLI exercised actual compiled ownerless entry, both equal profiles, safe snapshot preservation, review projection and descriptor/cancellation boundaries. Parent source and strict owned-test checks passed; corrected full integration replay passed 1,226 tests, one explicit opt-in live-Mac skip, zero failures and 26,511 assertions. The first parent run used a restrictive inherited creation mask that changed fixture modes and failed 60 tests; its logs remain retained, and only child fixture umask was corrected to 0022 before the successful replay, with unchanged source hashes. The shared closed view/action controller exposes exact safe source/plan/binding and step/rollback requirements, separate historical review/current release evidence and unknown availability; fixed headless grammar, data-only array guards and cancellation preserve actual outcomes. JavaScript Proxy reflection, controlled-parent/ABA and slow-IO limits remain explicit. ISC-877..892 are source/disposable-fixture acceptance only; actual migration TUI/PTY, final kit, production owner adapter, installed readiness and physical Task 8 remain pending. No host/provider/router/cloud/native-store activation or Snow Gloves integration follows.
+
+
+- 2026-10-02 Task 6 source and disposable-runtime acceptance, ISC-893..908: exact eight-path R5 patch SHA-256 c1c5bc72b3c8ef585643fed4418aec1ce9b253c08a57183ba61ef3141c7b8a03 passed fresh independent CORE and UI source reviews. Final parent source regression used an exclusive hash-bound 2,030-input closure with Bun 1.3.5: 1,270 tests passed, one explicit opt-in live-Mac test skipped, zero failures, 27,432 assertions and 68 files. Source and strict owned-test TypeScript checks passed. All 28 genuinely generated split build files match the saved runtime payload, including entry SHA-256 e4cf7450069af3c9ec3baa6c092f2ce046d980d0ffc3dc73f6a64c009dcd55c7. Earlier build-import sensitivity negatives and long-detail Help/resize regressions remain retained. The complete test log was scanned programmatically and every non-pass line and multiline continuation inspected; this is not a claim of a literal full raw-log prose read.
+
+  Four actual compiled OpenTUI cases covered workstation and always-on-node equally at 80x24 with q and 120x40 with explicit Ctrl-C input. Fresh independent data review reproduced all 46/50/46/50 saved checkpoint frames from their raw transcripts. The four actual cases covered all ten sections, six Will-role rows, search, focus, held-owner presentation, Help/back, logical detail anchors across resize, and Recovery. The final source/TestRenderer regression separately covers full Review projections, digests, intended effects, rollback, and Review navigation. Final cancelled/no-effect public views match the same-copy headless snapshot and actions; owner actions remain held with OWNER_ADAPTER_UNAVAILABLE. The Filter menu/back path was exercised; individual filter values are covered by source tests rather than every value being selected in these four runtime cases. Input sequences and transcripts are separately saved, so no finer interleaved event timing is inferred.
+
+  A separate actual missing-native-asset case passed the bounded diagnostic, no-effect cancellation and headless parity gates with independent saved-data review. For all five graceful/native cases, original pre-child terminal identities were joined to exact named-path and fresh read-only descriptor observations. Exact 220-byte terminal modes and positive dimensions matched before successful fresh-descriptor and original-slave closes and drain. Every owned child was reaped, with no forced cleanup, and all recorded source, payload and provenance integrity checks passed. These fixtures attach genuine PTY descriptors after setsid without fixture-assigned controlling terminals. Literal Ctrl-C bytes and direct resize signals do not prove terminal-generated signals, foreground process groups, job control, persistent-shell equivalence, guaranteed absence of later application controlling-terminal acquisition or native internals. Same-reopened-device state equality does not prove old-open-description continuity, zero OS-open effects, application-only causation, hostile ancestor ABA protection or universal Darwin behavior. Earlier incomplete and strict zero-dimension HOLD records remain unchanged.
+
+  Two separately scoped actual hard-close cases, one per profile, passed independent full durable-data review. Each closed the owned terminal connection after a real exclusive rename, awaited shared cancellation and retained INTERRUPTED/incomplete status without a commit-step, completed receipt or false success. A distinct OS process reopened the same operation headlessly and reproduced the full saved state, preserving owned destination/preimage bytes, foreign custody and sentinel modes. Closed-channel terminal state is explicitly unavailable; restoration is not claimed. These are synthetic-owner temporary-root operations using existing journal/preimages/receipts/claim and bounded native IO, not production owner enrollment, power-loss durability or physical migration acceptance. No host/provider/router/cloud/native-store activation follows; final Task 7 kit qualification and physical ISC-925..940 remain unchecked. Cambium, Temperance and connected organs stay one ecosystem with Snow Gloves excluded.

@@ -441,12 +441,14 @@ if find "$PAYLOAD" -type l | grep -q .; then refuse 'UNSAFE_ENTRY: remaining sta
 # ── Build install-surface CLI from committed source in isolated staging ──────
 # We build with the verified bun binary against the frozen vendor tree; we never
 # execute working-tree source and never mutate the shared dependency cache.
+# Preserve dynamic import boundaries; identifier minification avoids duplicate
+# exported binding names in Bun 1.3.5 split chunks. All chunks enter the manifest.
 BUILT_CLI=0
 if [ -x "$PAYLOAD/toolchain/bun-${BUN_REQUIRED}-${KIT_ARCH}" ]; then
   _bunbin="$PAYLOAD/toolchain/bun-${BUN_REQUIRED}-${KIT_ARCH}"
   if "$_bunbin" --version 2>/dev/null | grep -qx "$BUN_REQUIRED"; then
     if ( cd "$PAYLOAD/package/install-surface" \
-         && "$_bunbin" build ./src/cli.ts --target bun --packages=external --outfile ./dist/cli.js >/dev/null 2>&1 ); then
+         && "$_bunbin" build ./src/cli.ts --target bun --packages=external --splitting --minify-identifiers --outdir ./dist >/dev/null 2>&1 ); then
       BUILT_CLI=1
       say "ok: built install-surface CLI (dist/cli.js) with verified bun"
     fi

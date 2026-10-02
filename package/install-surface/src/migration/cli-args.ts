@@ -2,7 +2,7 @@
  * The only default reader loads an explicitly named already-public snapshot.
  */
 import { createMigrationController, readSuppliedMigrationSnapshot, validateMigrationRequest, migrationExitCode, type MigrationRequest, type MigrationOwnerPorts, type MigrationCommandResult, type MigrationCode } from './controller.ts';
-export interface MigrationCliArgs {json:boolean;request:MigrationRequest|null;snapshotPath?:string}
+export interface MigrationCliArgs {json:boolean;tui?:true;request:MigrationRequest|null;snapshotPath?:string}
 export class MigrationArgumentError extends Error {readonly code='ARGUMENT_INVALID';constructor(){super('ARGUMENT_INVALID');}}
 const bad=():never=>{throw new MigrationArgumentError();};
 /** Copy only dense ordinary own string data. No caller iterator, method or
@@ -28,18 +28,18 @@ export function parseMigrationArgs(argv:readonly string[]):MigrationCliArgs {
   const args=copyArgumentData(argv);
   const command=args[0]&&!args[0].startsWith('-')?args.shift()!:null;
   const grammar:Record<string,readonly string[]>={
-    view:['--snapshot','--json'],inspect:['--json'],export:['--manifest-only','--output','--json'],diff:['--bundle','--host-binding','--json'],plan:['--profile','--json'],apply:['--plan','--reviewed-digest','--json'],resume:['--operation','--reviewed-digest','--json'],status:['--operation','--json'],rollback:['--operation','--reviewed-digest','--json'],release:['--operation','--reviewed-digest','--json'],cancel:['--json'],'request-sign-in':['--json'],
+    view:['--snapshot','--json','--tui'],inspect:['--json'],export:['--manifest-only','--output','--json'],diff:['--bundle','--host-binding','--json'],plan:['--profile','--json'],apply:['--plan','--reviewed-digest','--json'],resume:['--operation','--reviewed-digest','--json'],status:['--operation','--json'],rollback:['--operation','--reviewed-digest','--json'],release:['--operation','--reviewed-digest','--json'],cancel:['--json'],'request-sign-in':['--json'],
   };
   if(command!==null&&(!Object.hasOwn(grammar,command)||command==='view'))return bad();
   const allowed=grammar[command??'view'];if(!allowed)return bad();
   const flags=new Map<string,string|true>();
   for(let i=0;i<args.length;i++) {
     const flag=args[i]!;if(!allowed.includes(flag)||flags.has(flag))return bad();
-    if(flag==='--json'||flag==='--manifest-only')flags.set(flag,true);
+    if(flag==='--json'||flag==='--manifest-only'||flag==='--tui')flags.set(flag,true);
     else {const value=args[++i];if(!value||value.startsWith('-'))return bad();flags.set(flag,value);}
   }
-  const json=flags.has('--json');
-  if(command===null)return {json,request:null,...(flags.has('--snapshot')?{snapshotPath:flags.get('--snapshot') as string}:{})};
+  const json=flags.has('--json');if(json&&flags.has('--tui'))return bad();
+  if(command===null)return {json,...(flags.has('--tui')?{tui:true as const}:{}),request:null,...(flags.has('--snapshot')?{snapshotPath:flags.get('--snapshot') as string}:{})};
   let request:unknown;
   switch(command) {
     case 'inspect':case 'cancel':case 'request-sign-in':request={action:command};break;
@@ -61,7 +61,7 @@ async function failure(code:MigrationCode):Promise<MigrationCommandResult> {
 /** Callable by a trusted headless host; process signals are wired only by main.
  * Production CLI injects no owner ports. No JSON option can create one.
  */
-export async function runMigrationCli(argv:readonly string[],options:{ports?:MigrationOwnerPorts;snapshot?:unknown;signal?:AbortSignal}={}):Promise<MigrationCommandResult> {
+export async function runMigrationCli(argv:readonly string[],options:{ports?:MigrationOwnerPorts;snapshot?:unknown;signal?:AbortSignal;present?:(controller:ReturnType<typeof createMigrationController>,signal?:AbortSignal)=>Promise<MigrationCommandResult>}={}):Promise<MigrationCommandResult> {
   let parsed:MigrationCliArgs;try {parsed=parseMigrationArgs(argv);}catch{return failure('ARGUMENT_INVALID');}
   if(options.signal?.aborted)return failure('CANCELLED');
   let snapshot=options.snapshot;
@@ -73,6 +73,7 @@ export async function runMigrationCli(argv:readonly string[],options:{ports?:Mig
   }
   const controller=createMigrationController({snapshot,ports:options.ports});
   if(controller.view().outcome==='invalid')return {view:controller.view(),exitCode:64};
+  if(parsed.tui)return options.present?options.present(controller,options.signal):failure('ARGUMENT_INVALID');
   if(parsed.request)return controller.dispatch(parsed.request,{signal:options.signal});
   return {view:controller.view(),exitCode:0};
 }

@@ -3,7 +3,7 @@ import { parseMigrationArgs, runMigrationCli } from '../src/migration/cli-args.t
 
 test('closed parser accepts bare snapshot view only', () => {
   expect(parseMigrationArgs(['--snapshot','fictional.json','--json'])).toEqual({json:true,snapshotPath:'fictional.json',request:null});
-  for(const args of [['--tui'],['apply','--snapshot','fictional.json'],['--json','--json'],['--snapshot'],['--yes'],['--','anything']]) {
+  for(const args of [['--tui','--json'],['apply','--snapshot','fictional.json'],['--json','--json'],['--snapshot'],['--yes'],['--','anything']]) {
     expect(()=>parseMigrationArgs(args)).toThrow('ARGUMENT_INVALID');
   }
 });
@@ -17,7 +17,7 @@ test('bare CLI succeeds as projection while mutation with no owner holds', async
 import { afterAll, afterEach, beforeAll } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { readSuppliedMigrationSnapshot, validateMigrationView, migrationExitCode, type MigrationOwnerPorts } from '../src/migration/controller.ts';
 import { nodeMigrationReadIO, type MigrationReadIO } from '../src/migration/adapter.ts';
 import { MAX_MIGRATION_SNAPSHOT_BYTES } from '../src/migration/contracts.ts';
@@ -35,7 +35,7 @@ test('all admitted command forms accept a consistent JSON selector',()=>{
   }
 });
 test('parser matrix denies unknown/duplicate/extra/missing flags and authority injection',()=>{
-  const bad=[['constructor'],['toString'],['__proto__'],['view'],['select-profile'],['--tui'],['--snapshot','a','--snapshot','b'],['--snapshot',''],['--snapshot','--json'],['--snapshot','a','inspect'],['export','--output','a'],['export','--manifest-only'],['export','--manifest-only','--output','a','--output','b'],['diff','--bundle','a'],['diff','--host-binding','b'],['plan','--profile','browser-worker'],['plan','--profile','workstation','--profile','always-on-node'],['apply','--plan','a','--reviewed-digest','a'.repeat(64)],['status','--operation','../private'],['status','--operation',txid,'--reviewed-digest',hash],['inspect','extra'],['inspect','--bundle','a'],['apply','--plan','a','--reviewed-digest',hash,'--snapshot','a'],['--json','inspect'],['--json\n'],Array(17).fill('--json'),['--snapshot','a'.repeat(4097)]];
+  const bad=[['constructor'],['toString'],['__proto__'],['view'],['select-profile'],['--tui','--json'],['--snapshot','a','--snapshot','b'],['--snapshot',''],['--snapshot','--json'],['--snapshot','a','inspect'],['export','--output','a'],['export','--manifest-only'],['export','--manifest-only','--output','a','--output','b'],['diff','--bundle','a'],['diff','--host-binding','b'],['plan','--profile','browser-worker'],['plan','--profile','workstation','--profile','always-on-node'],['apply','--plan','a','--reviewed-digest','a'.repeat(64)],['status','--operation','../private'],['status','--operation',txid,'--reviewed-digest',hash],['inspect','extra'],['inspect','--bundle','a'],['apply','--plan','a','--reviewed-digest',hash,'--snapshot','a'],['--json','inspect'],['--json\n'],Array(17).fill('--json'),['--snapshot','a'.repeat(4097)]];
   for(const flag of ['--yes','--force','--authority','--claim-nonce','--shell','--backend','--module','--'])for(const base of forms)bad.push([...base,flag]);
   for(const args of bad)expect(()=>parseMigrationArgs(args),JSON.stringify(args)).toThrow('ARGUMENT_INVALID');
 });
@@ -97,15 +97,99 @@ let buildRoot:string,entry:string;
 beforeAll(async()=>{
   buildRoot=await fs.realpath(await fs.mkdtemp(join(tmpdir(),'task5-compiled-')));
   await fs.symlink(resolve(import.meta.dir,'../node_modules'),join(buildRoot,'node_modules'));
-  const build=await Bun.build({entrypoints:[resolve(import.meta.dir,'../src/cli.ts')],outdir:buildRoot,target:'bun',packages:'external'});
-  expect(build.success).toBe(true);entry=join(buildRoot,'cli.js');
+  // Use the shipping command's flags; only relocate its output into this test's private directory.
+  const pkg=JSON.parse(await fs.readFile(resolve(import.meta.dir,'../package.json'),'utf8'));
+  const args:string[]=pkg.scripts.build.split(' ');
+  expect(args.slice(0,3)).toEqual(['bun','build','src/cli.ts']);
+  const out=args.indexOf('--outdir=dist');expect(out).toBeGreaterThan(0);args[out]=`--outdir=${buildRoot}`;
+  const build=Bun.spawn([process.execPath,...args.slice(1)],{cwd:resolve(import.meta.dir,'..'),env:{...process.env,BUN_CONFIG_NO_CLEAR_TERMINAL:'1'},stdout:'pipe',stderr:'pipe'});
+  const [exit,stdout,stderr]=await Promise.all([build.exited,new Response(build.stdout).text(),new Response(build.stderr).text()]);
+  expect(exit,stdout+stderr).toBe(0);entry=join(buildRoot,'cli.js');
 });
 afterAll(async()=>{if(buildRoot)await fs.rm(buildRoot,{recursive:true,force:true});});
 async function compiled(args:string[],root:string) {
-  const env={PATH:'/usr/bin:/bin',HOME:root,CODEX_HOME:join(root,'codex'),CLAUDE_CONFIG_DIR:join(root,'claude'),TEMPERANCE_STATE:join(root,'state'),XDG_CONFIG_HOME:join(root,'config'),XDG_DATA_HOME:join(root,'data'),XDG_STATE_HOME:join(root,'xdg-state'),TMPDIR:root,CI:'1'};
+  const env={PATH:'/usr/bin:/bin',HOME:root,CODEX_HOME:join(root,'codex'),CLAUDE_CONFIG_DIR:join(root,'claude'),TEMPERANCE_STATE:join(root,'state'),XDG_CONFIG_HOME:join(root,'config'),XDG_DATA_HOME:join(root,'data'),XDG_STATE_HOME:join(root,'xdg-state'),TMPDIR:root,CI:'1',LIVE:'0',TEMPERANCE_ALLOW_LIVE_INSPECTION:'0',DO_NOT_TRACK:'1'};
   const child=Bun.spawn([process.execPath,'--no-env-file','--config=/dev/null',entry,'migrate',...args],{cwd:root,env,stdout:'pipe',stderr:'pipe'});
   const [out,err,exit]=await Promise.all([new Response(child.stdout).text(),new Response(child.stderr).text(),child.exited]);return {out,err,exit};
 }
+test('shipping compiled entry has no eager native dependency and retains lazy UI chunks',async()=>{
+  const scanner=new Bun.Transpiler({loader:'js',target:'bun'}),visited=new Set<string>(),lazy=new Set<string>();
+  async function walk(file:string):Promise<void>{
+    if(visited.has(file))return;visited.add(file);
+    for(const ref of scanner.scanImports(await fs.readFile(file,'utf8'))){
+      if(ref.kind==='dynamic-import'){if(ref.path.startsWith('.'))lazy.add(resolve(dirname(file),ref.path));continue;}
+      expect(ref.path,'eager native import in '+relative(buildRoot,file)).not.toMatch(/^(?:@opentui(?:\/|$)|bun:ffi$|node:ffi$)/);
+      if(ref.path.startsWith('.')){
+        const next=resolve(dirname(file),ref.path);expect(next.startsWith(buildRoot+sep)).toBe(true);await walk(next);
+      }
+    }
+  }
+  await walk(entry);expect(lazy.size).toBeGreaterThan(0);
+  for(const file of lazy){expect(file.startsWith(buildRoot+sep)).toBe(true);expect((await fs.stat(file)).isFile()).toBe(true);}
+});
+test('same compiled closure remains headless with copied native asset or core module absent',async()=>{
+  const root=await temporary(),copy=join(root,'compiled');await fs.mkdir(copy);
+  for(const name of await fs.readdir(buildRoot))if(name.endsWith('.js'))await fs.copyFile(join(buildRoot,name),join(copy,name));
+  await fs.cp(resolve(import.meta.dir,'../node_modules'),join(copy,'node_modules'),{recursive:true});
+  const native=join(copy,'node_modules/@opentui/core-darwin-arm64/libopentui.dylib');
+  expect((await fs.stat(native)).isFile()).toBe(true);await fs.unlink(native);
+  const home=join(root,'home');await fs.mkdir(home);const snapshot=join(home,'public.json');await fs.writeFile(snapshot,JSON.stringify(workstationSnapshot),{mode:0o600});
+  for(const unavailable of ['native-asset','native-module']){
+  if(unavailable==='native-module')await fs.rm(join(copy,'node_modules/@opentui/core'),{recursive:true});
+  for(const args of [['--json'],['--snapshot',snapshot,'--json'],['status','--operation',txid,'--json']]){
+    const child=Bun.spawn([process.execPath,'--no-env-file','--config=/dev/null',join(copy,'cli.js'),'migrate',...args],{cwd:home,env:{PATH:'/usr/bin:/bin',HOME:home,TMPDIR:home,XDG_CONFIG_HOME:join(home,'config'),XDG_STATE_HOME:join(home,'state'),XDG_DATA_HOME:join(home,'data'),CODEX_HOME:join(home,'codex'),CLAUDE_CONFIG_DIR:join(home,'claude'),OPENCODE_HOME:join(home,'opencode'),CURSOR_HOME:join(home,'cursor'),PAI_HOME:join(home,'pai'),TEMPERANCE_STATE:join(home,'state'),TEMPERANCE_STATE_DIR:join(home,'state'),LIVE:'0',TEMPERANCE_ALLOW_LIVE_INSPECTION:'0',DO_NOT_TRACK:'1',CI:'1'},stdout:'pipe',stderr:'pipe'});
+    const [out,err,exit]=await Promise.all([new Response(child.stdout).text(),new Response(child.stderr).text(),child.exited]);
+    expect(err).toBe('');expect(exit).toBe(args[0]==='status'?1:0);const view=JSON.parse(out);expect(validateMigrationView(view)).toBe(true);expect(view.execution_authorized).toBe(false);
+    if(args[0]==='--snapshot')expect(view.snapshot).toEqual(workstationSnapshot);
+    if(args[0]==='status')expect(view.outcome).toBe('held');
+    expect(await fs.readdir(home)).toEqual(['public.json']);
+  }
+  }
+  expect(await fs.exists(native)).toBe(false);
+},20000);
+test('compiled headless paths never attempt UI or FFI resolution even when import errors could be caught',async()=>{
+  const root=await temporary(),copy=join(root,'compiled');await fs.mkdir(copy);
+  for(const name of await fs.readdir(buildRoot))if(name.endsWith('.js'))await fs.copyFile(join(buildRoot,name),join(copy,name));
+  await fs.symlink(resolve(import.meta.dir,'../node_modules'),join(copy,'node_modules'));
+  const scanner=new Bun.Transpiler({loader:'js',target:'bun'});
+  const uiChunks:string[]=[];
+  for(const name of await fs.readdir(copy))if(name.endsWith('.js')){
+    const source=await fs.readFile(join(copy,name),'utf8');
+    if(scanner.scan(source).exports.includes('runMigrationTui'))uiChunks.push(name);
+  }
+  expect(uiChunks).toHaveLength(1);
+  const marker=join(root,'resolution-attempts.jsonl'),preload=join(root,'sentinel.ts');
+  // Observe attempted resolution BEFORE export linking or module evaluation. Rejecting here
+  // also prevents the negative control from evaluating the real native dependency.
+  await fs.writeFile(preload,`import { plugin } from 'bun';\nimport { appendFileSync } from 'node:fs';\nplugin({name:'headless-resolution-sentinel',setup(build){build.onResolve({filter:/^(?:@opentui(?:\\/|$)|bun:ffi$|node:ffi$)/},args=>{appendFileSync(${JSON.stringify(marker)},JSON.stringify({phase:'resolve',specifier:args.path})+'\\n');throw new Error('FORBIDDEN_UI_RESOLUTION');});}});\n`);
+  const control=join(copy,'caught-eager-control.js');
+  // This deliberately broken startup catches a real emitted UI chunk's import failure,
+  // then runs the untouched shipping entry. Its successful output cannot prove isolation.
+  await fs.writeFile(control,`await import(${JSON.stringify('./'+uiChunks[0])}).catch(()=>{});\nawait import('./cli.js');\n`);
+  for(const snapshot of [workstationSnapshot,alwaysOnNodeSnapshot]){
+    const home=join(root,snapshot.profile);await fs.mkdir(home);
+    const publicPath=join(home,'public.json');await fs.writeFile(publicPath,JSON.stringify(snapshot),{mode:0o600});
+    for(const args of [['--json'],['--snapshot',publicPath,'--json'],['status','--operation',txid,'--json']]){
+      let controlView:unknown;
+      for(const caughtEager of [true,false]){
+        await fs.writeFile(marker,'');
+        const child=Bun.spawn([process.execPath,'--no-env-file','--config=/dev/null','--preload',preload,join(copy,caughtEager?'caught-eager-control.js':'cli.js'),'migrate',...args],{cwd:home,env:{PATH:'/usr/bin:/bin',HOME:home,TMPDIR:home,XDG_CONFIG_HOME:join(home,'config'),XDG_STATE_HOME:join(home,'state'),XDG_DATA_HOME:join(home,'data'),CODEX_HOME:join(home,'codex'),CLAUDE_CONFIG_DIR:join(home,'claude'),OPENCODE_HOME:join(home,'opencode'),CURSOR_HOME:join(home,'cursor'),PAI_HOME:join(home,'pai'),TEMPERANCE_STATE:join(home,'state'),TEMPERANCE_STATE_DIR:join(home,'state'),LIVE:'0',TEMPERANCE_ALLOW_LIVE_INSPECTION:'0',DO_NOT_TRACK:'1',CI:'1'},stdout:'pipe',stderr:'pipe'});
+        const [out,err,exit]=await Promise.all([new Response(child.stdout).text(),new Response(child.stderr).text(),child.exited]);
+        expect(err).toBe('');expect(exit).toBe(args[0]==='status'?1:0);
+        const view=JSON.parse(out);expect(validateMigrationView(view)).toBe(true);expect(view.execution_authorized).toBe(false);
+        if(args[0]==='--snapshot')expect(view.snapshot).toEqual(snapshot);
+        if(args[0]==='status')expect(view.outcome).toBe('held');
+        const attempts=(await fs.readFile(marker,'utf8')).split('\n').filter(Boolean).map(line=>JSON.parse(line));
+        if(caughtEager){
+          expect(attempts.length).toBeGreaterThan(0);
+          for(const attempt of attempts){expect(attempt.phase).toBe('resolve');expect(attempt.specifier).toMatch(/^(?:@opentui(?:\/|$)|bun:ffi$|node:ffi$)/);}
+          controlView=view;
+        }else{expect(attempts).toEqual([]);expect(view).toEqual(controlView);}
+        expect(await fs.readdir(home)).toEqual(['public.json']);
+      }
+    }
+  }
+},20000);
 test('actual compiled bare CLI is headless and creates no state roots or selected profile',async()=>{
   const root=await temporary(),before=await fs.readdir(root),result=await compiled(['--json'],root);
   expect(result.err).toBe('');expect(result.exit).toBe(0);const view=JSON.parse(result.out);expect(validateMigrationView(view)).toBe(true);expect(view.profile).toBeNull();expect(view.evidence.auth).toBe('unknown');expect(await fs.readdir(root)).toEqual(before);
@@ -172,4 +256,49 @@ test('R3 parser copies ordinary frozen argv data and sanitizes detectably invali
   const invalid:unknown[]=[null,{},'inspect',Object.create(null),new Proxy(['inspect'],{getOwnPropertyDescriptor(){throw new Error('/private/canary');}})];
   const revoked=Proxy.revocable(['inspect'],{});revoked.revoke();invalid.push(revoked.proxy);
   for(const value of invalid){expect(()=>parseMigrationArgs(value as string[])).toThrow('ARGUMENT_INVALID');const result=await runMigrationCli(value as string[]);expect(result.exitCode).toBe(64);expect(result.view.findings).toEqual([{code:'ARGUMENT_INVALID'}]);expect(JSON.stringify(result)).not.toContain('/private');}
+});
+
+test('Task6 presentation grammar is explicit and the callback receives one already loaded controller',async()=>{
+  expect(parseMigrationArgs(['--tui'])).toEqual({json:false,tui:true,request:null});
+  expect(parseMigrationArgs(['--snapshot','public.json','--tui'])).toEqual({json:false,tui:true,request:null,snapshotPath:'public.json'});
+  for(const argv of [['--tui','--json'],['--tui','--tui'],['apply','--plan','a','--reviewed-digest',hash,'--tui'],['inspect','--tui']])expect(()=>parseMigrationArgs(argv)).toThrow('ARGUMENT_INVALID');
+  const {file}=await publicFile();let calls=0;
+  const result=await runMigrationCli(['--snapshot',file,'--tui'],{present:async controller=>{calls++;expect(controller.view().snapshot).toEqual(workstationSnapshot);return controller.dispatch({action:'select-profile',profile:'always-on-node'});}});
+  expect(calls).toBe(1);expect(result.view.profile).toBe('always-on-node');expect(result.view.snapshot).toEqual(workstationSnapshot);
+});
+
+test('Task6 actual compiled nonTTY fallback is fixed, preserves cancellation and rejects conflicting presentation before native import',async()=>{
+  const root=await temporary();
+  for(const args of [['--tui'],['--tui','--json'],['apply','--plan','private-plan','--reviewed-digest','sha256:'+'a'.repeat(64),'--tui']]){
+    const result=await compiled(args,root),view=JSON.parse(result.out);expect(validateMigrationView(view)).toBe(true);expect(view.execution_authorized).toBe(false);
+    if(args.length===1){expect(result.exit).toBe(1);expect(result.err).toBe('NATIVE_TUI_UNAVAILABLE; use migrate --json or migrate status --operation OPERATION --json.\n');expect(view.outcome).toBe('cancelled');}else{expect(result.exit).toBe(64);expect(result.err).toBe('');}
+    expect(await fs.readdir(root)).toEqual([]);
+  }
+});
+test('Task6 actual compiled final write tolerates a closed output pipe without raw EPIPE or stack',async()=>{
+  const root=await temporary(),child=Bun.spawn([process.execPath,'--no-env-file','--config=/dev/null',entry,'migrate','--json'],{cwd:root,env:{HOME:root,PATH:'/usr/bin:/bin',TEMPERANCE_ALLOW_LIVE_INSPECTION:'0'},stdout:'pipe',stderr:'pipe'});
+  await child.stdout.cancel();const [error,status]=await Promise.all([new Response(child.stderr).text(),child.exited]);expect(error).toBe('');expect(status).toBe(0);expect(await fs.readdir(root)).toEqual([]);
+});
+for(const uncertain of [false,true])test(`Task6 synthetic CLI entry preserves ${uncertain?'unknown':'completed'} export exit after presentation failure`,async()=>{
+  const root=await temporary(),output=join(root,'public-export.json'),script=join(root,'synthetic-cli.ts');
+  const argsPath=resolve(import.meta.dir,'../src/migration/cli-args.ts'),tuiPath=resolve(import.meta.dir,'../src/migration/tui.ts'),cliPath=resolve(import.meta.dir,'../src/cli.ts'),exportPath=resolve(import.meta.dir,'../src/migration/export.ts'),fixturePath=resolve(import.meta.dir,'migration-fixtures.ts');
+  // Trusted test-host injection only. No production CLI flag or owner adapter is added.
+  await fs.writeFile(script,`
+import {mock} from 'bun:test';
+import {runMigrationCli as originalRun} from ${JSON.stringify(argsPath)};
+import {nodeMigrationExportIO} from ${JSON.stringify(exportPath)};
+import {workstationSnapshot} from ${JSON.stringify(fixturePath)};
+const ports={manifestExport:{io:{...nodeMigrationExportIO,publish:async(a,b)=>{await nodeMigrationExportIO.publish(a,b);${uncertain?"throw new Error('/private/export-canary');":""}}}}};
+const trustedRun=originalRun;
+mock.module(${JSON.stringify(argsPath)},()=>({runMigrationCli:(argv,options)=>trustedRun(argv,{...options,snapshot:workstationSnapshot,ports})}));
+mock.module(${JSON.stringify(tuiPath)},()=>({runMigrationTui:async(controller)=>{await controller.dispatch({action:'export',output:${JSON.stringify(output)},manifest_only:true});throw new Error('/private/renderer-canary');}}));
+Object.defineProperty(process.stdin,'isTTY',{value:true});Object.defineProperty(process.stdout,'isTTY',{value:true});
+process.argv=[process.execPath,${JSON.stringify(cliPath)},'migrate','--tui'];
+await import(${JSON.stringify(cliPath)});
+`);
+  const env={PATH:'/usr/bin:/bin',HOME:root,TMPDIR:root,CODEX_HOME:join(root,'codex'),CLAUDE_CONFIG_DIR:join(root,'claude'),OPENCODE_HOME:join(root,'opencode'),CURSOR_HOME:join(root,'cursor'),AGENTS_HOME:join(root,'agents'),PAI_HOME:join(root,'pai'),TEMPERANCE_STATE:join(root,'state'),TEMPERANCE_STATE_DIR:join(root,'state'),XDG_CONFIG_HOME:join(root,'config'),XDG_STATE_HOME:join(root,'state'),XDG_DATA_HOME:join(root,'data'),LIVE:'0',TEMPERANCE_ALLOW_LIVE_INSPECTION:'0',DO_NOT_TRACK:'1'};
+  const child=Bun.spawn([process.execPath,'--no-env-file','--config=/dev/null',script],{cwd:root,env,stdout:'pipe',stderr:'pipe'});
+  const [out,err,exit]=await Promise.all([new Response(child.stdout).text(),new Response(child.stderr).text(),child.exited]);
+  expect(err).toBe('NATIVE_TUI_UNAVAILABLE; use migrate --json or migrate status --operation OPERATION --json.\n');
+  const view=JSON.parse(out);expect(validateMigrationView(view)).toBe(true);expect(view.outcome).toBe(uncertain?'unknown-effect':'completed');expect(view.effect_class).toBe('local-manifest-write');expect(exit).toBe(migrationExitCode(view));expect(exit).toBe(uncertain?2:0);expect(view.execution_authorized).toBe(false);expect(await fs.stat(output).then(s=>s.isFile())).toBe(true);expect(out+err).not.toContain('canary');
 });

@@ -228,7 +228,8 @@ lock.records=[lock.records.find(r=>r.class==='NEVER-SHIP')];
 fs.writeFileSync(fx+'/package/install-surface/install-surface-manifest.lock.json',JSON.stringify(lock));
 fs.writeFileSync(fx+'/package/install-surface/fragments/boundary.json',JSON.stringify({records:lock.records}));
 JS
- printf 'export const synthetic = true; console.log("SYNTHETIC_ONLY");\n' > "$fx/package/install-surface/src/cli.ts"
+ printf 'export const synthetic = true; console.log("SYNTHETIC_ONLY"); if (process.argv.includes("--lazy-fixture")) console.log((await import("./lazy-fixture.ts")).value);\n' > "$fx/package/install-surface/src/cli.ts"
+ printf 'export const value = "SYNTHETIC_LAZY_CHUNK";\n' > "$fx/package/install-surface/src/lazy-fixture.ts"
  commit_fixture "$fx"
 }
 build(){ local fx="$1"; shift; run /bin/bash "$fx/scripts/build-migration-kit.sh" --vendor-dir "$VENDOR_DIR" "$@"; }
@@ -333,6 +334,26 @@ run /bin/bash "$VERIFY" --archive "$ARCH" --expected-digest "sha256:$DIGEST" --e
 [ -s "$SANDBOX/verified/package/install-surface/node_modules/@opentui/core-darwin-arm64/libopentui.dylib" ] || fail 'native payload missing'
 [ -z "$(find "$SANDBOX/verified" -type l -print)" ] || fail 'archive contains links'
 ok 'closed synthetic kit verifies/extracts committed bytes, native asset, no links'
+# Generated lazy chunks are part of the same authenticated kit closure.
+DIST="$SANDBOX/verified/package/install-surface/dist"
+CHUNK=$(find "$DIST" -type f -name '*.js' ! -name 'cli.js' | LC_ALL=C sort | head -n 1)
+[ -n "$CHUNK" ] && [ -s "$CHUNK" ] || fail 'shipping build erased the lazy chunk boundary'
+CHUNK_REL=${CHUNK#"$SANDBOX/verified/"}
+grep -Fqx "$(sha "$CHUNK")  $CHUNK_REL" "$SANDBOX/verified/INNER-MANIFEST.sha256" || fail 'generated chunk absent from authenticated manifest'
+run "$BUN" --no-env-file --config=/dev/null "$DIST/cli.js" --lazy-fixture
+[ "$RC" = 0 ] && printf '%s\n' "$OUTPUT" | grep -qx SYNTHETIC_LAZY_CHUNK || fail 'authenticated lazy chunk could not load'
+ok 'shipping build emits authenticated loadable lazy chunks'
+for mutation in omitted tampered; do
+ CHANGED="$SANDBOX/chunk-$mutation"; mkdir "$CHANGED"; cp -R "$SANDBOX/verified/." "$CHANGED/"
+ if [ "$mutation" = omitted ]; then rm "$CHANGED/$CHUNK_REL"; else printf '\nCHANGED\n' >> "$CHANGED/$CHUNK_REL"; fi
+ MUTATED_ARCH="$SANDBOX/temperance-engine-chunk-$mutation-arm64.tar.gz"
+ (cd "$CHANGED" && COPYFILE_DISABLE=1 tar --format=ustar -czf "$MUTATED_ARCH" .)
+ run /bin/bash "$VERIFY" --archive "$MUTATED_ARCH" --expected-digest "sha256:$(sha "$MUTATED_ARCH")" --extract-to "$SANDBOX/chunk-$mutation-out"
+ [ "$RC" -ne 0 ] && [ ! -e "$SANDBOX/chunk-$mutation-out" ] || fail 'changed chunk extracted despite inner authentication'
+ case "$mutation" in omitted) printf '%s\n' "$OUTPUT" | grep -q 'MISSING' || fail 'missing chunk refusal';; tampered) printf '%s\n' "$OUTPUT" | grep -q 'INNER checksum mismatch' || fail 'tampered chunk refusal';; esac
+ ok "authenticated generated chunk $mutation refused before extraction"
+done
+
 printf 'KEEP\n' > "$SANDBOX/green/sentinel"
 build "$FX" --commit HEAD --out "$SANDBOX/green"; refused OUTPUT_OCCUPIED
 [ "$(cat "$SANDBOX/green/sentinel")" = KEEP ] || fail 'existing output changed'
