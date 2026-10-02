@@ -4,6 +4,7 @@
 const port = Number(process.env.TEMPERANCE_MOCK_PORT || 22330)
 
 Bun.serve({
+  hostname: "127.0.0.1",
   port,
   fetch: async (request) => {
     const url = new URL(request.url)

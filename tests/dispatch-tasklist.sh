@@ -68,11 +68,15 @@ chmod +x "$DIR/tests/fixtures/mock-backend"
 export PATH="$DIR/tests/fixtures:$PATH"
 ln -sf mock-backend "$DIR/tests/fixtures/command-code"
 run=$(mktemp -d)
-payload='[{"id":"INJ","task":"run $(touch /tmp/pwned) and say \"don'\''t\" now","backend":"command-code","model":"x"}]'
+injection_marker="$TEST_STATE_DIR/injection-executed"
+# JSON encoding and the expected value share literal task bytes. Even a broken
+# dispatcher can only create the attempted marker inside this owned fixture.
+injection_task=$(printf 'run $(touch "%s") and say "don\047t" now\nsecond line' "$injection_marker")
+payload=$(jq -cn --arg task "$injection_task" '[{id:"INJ",task:$task,backend:"command-code",model:"x"}]')
 printf '%s' "$payload" | "$W" --foreground --out "$run" --tasks - >/dev/null 2>&1
 got=$(sed -n '/MOCK_OUTPUT_START/,/MOCK_OUTPUT_END/p' "$run/INJ.out" | sed '1d;$d')
-check "task text passed literally (no eval)" 'run $(touch /tmp/pwned) and say "don'\''t" now' "$got"
-[[ -e /tmp/pwned ]] && { echo "FAIL - injection executed!"; fail=1; rm -f /tmp/pwned; }
+check "task text passed literally (no eval)" "$injection_task" "$got"
+[[ -e "$injection_marker" ]] && { echo "FAIL - injection executed inside fixture!"; fail=1; }
 rm -f "$DIR/tests/fixtures/command-code"
 
 # Backend adapters may expose optional normalized usage/cost through the
