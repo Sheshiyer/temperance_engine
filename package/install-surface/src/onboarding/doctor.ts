@@ -1,7 +1,8 @@
 import type { DoctorSection } from "../types.ts";
 import type { OnboardingModuleResolution, OnboardingPlanV1 } from "./contracts.ts";
 
-function softHold(module: OnboardingModuleResolution): boolean {
+/** A held modular or optional organ is a degraded convenience, not a broken host. */
+export function softHold(module: OnboardingModuleResolution): boolean {
   return module.organ !== undefined && !module.required && module.organ.tier !== "required";
 }
 

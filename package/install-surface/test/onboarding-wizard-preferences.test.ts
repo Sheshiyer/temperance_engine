@@ -37,3 +37,10 @@ test("unsafe or symlinked preferences are never overwritten", () => {
   expect(() => writeWizardPreferences(link, preferences, modules)).toThrow("WIZARD_PREFERENCES_UNSAFE");
   expect(JSON.parse(readFileSync(file, "utf8"))).toEqual(preferences);
 });
+test("a save can replace preferences that name a module retired since they were written", () => {
+  const file = path();
+  writeWizardPreferences(file, { ...preferences, selected_module_ids: ["local-core", "retired-tool"] }, [...modules, "retired-tool"]);
+  expect(() => writeWizardPreferences(file, preferences, modules)).toThrow("WIZARD_PREFERENCES_INVALID");
+  writeWizardPreferences(file, preferences, modules, [...modules, "retired-tool"]);
+  expect(readWizardPreferences(file, profile, modules)).toEqual(preferences);
+});

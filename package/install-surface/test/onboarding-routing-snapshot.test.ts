@@ -7,6 +7,7 @@ import { createOnboardingPlan } from "../src/onboarding/planner.ts";
 import { renderOnboardingText } from "../src/onboarding/presentation.ts";
 import { readOnboardingRoutingSnapshot } from "../src/onboarding/routing-snapshot.ts";
 import type { HostProfileV1 } from "../src/onboarding/public-contracts.ts";
+import { retiredModuleNotice } from "../src/onboarding/profile-selection.ts";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
@@ -98,7 +99,8 @@ test("CLI doctor and plain text use bound routing while JSON retains its existin
     });
     const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
     expect(code).not.toBe(64);
-    expect(stderr).toBe("");
+    // The legacy host profile preselects the retired 9Router module: the only stderr is that notice.
+    expect(stderr).toBe(retiredModuleNotice("provider.9router"));
     return stdout;
   };
   for (const flags of [[], ["--doctor"]]) {

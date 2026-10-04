@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { DoctorCondition } from "../types.ts";
 import type { OnboardingPlanV1 } from "./contracts.ts";
 import type { NineRouterRoutingSurface } from "./nine-router-provider-capabilities.ts";
+import { softHold } from "./doctor.ts";
 
 export const OPERATOR_HEALTH_SCHEMA = "temperance.operator-health.v1" as const;
 export type OperatorHealthStatus = "PASS" | "HOLD" | "UNAVAILABLE";
@@ -128,7 +129,9 @@ export function projectOperatorHealth(options: OperatorHealthOptions): OperatorH
     } else {
       const reasons = [...new Set(module.holds.map(({ reason_code }) => MODULE_REASONS.has(reason_code) ? reason_code : "MODULE_PREREQUISITES_UNVERIFIED"))].sort();
       if (reasons.length === 0) reasons.push("MODULE_PREREQUISITES_UNVERIFIED");
-      for (const reason of reasons) add({ id: `${id}.${reason.toLowerCase()}`, group: "dependencies", status: "HOLD", required: true,
+      // Same rule as the doctor projection: a held modular/optional organ warns, it does not hold the host.
+      const required = !softHold(module);
+      for (const reason of reasons) add({ id: `${id}.${reason.toLowerCase()}`, group: "dependencies", status: "HOLD", required,
         reason_code: reason, summary: "A selected module prerequisite is held.", next_action: moduleAction(reason), verification_scope: "prerequisites" });
     }
   }

@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 import {
   OMNIROUTE_PACKAGE,
@@ -13,7 +16,8 @@ import { createOnboardingViewModel, renderOnboardingText } from "../src/onboardi
 import { validateOnboardingCatalog, validateOnboardingProfile } from "../src/onboarding/schema.ts";
 import { createSystemProbeAdapter, type OnboardingProbeIO } from "../src/onboarding/system-adapter.ts";
 import { toggleOnboardingModuleSelection } from "../src/onboarding/tui.ts";
-import { withoutRetiredModules } from "../src/onboarding/profile-selection.ts";
+import { retiredIdsOutsideCatalog, retiredModuleNotice, withoutRetiredModules } from "../src/onboarding/profile-selection.ts";
+import { projectOperatorHealth } from "../src/onboarding/operator-health.ts";
 import { completeOnboardingWizard, createOnboardingWizardState, createOnboardingWizardView, handleOnboardingWizardKey } from "../src/onboarding/wizard.ts";
 
 const profile = (overrides: Partial<OnboardingProfileV1> = {}): OnboardingProfileV1 => ({
@@ -175,6 +179,48 @@ describe("organ planning", () => {
     expect(plan.operating_mode).toBe("read-only-degraded");
   });
 
+  test("a required organ held by the unplugged volume and by another failure stays blocked", async () => {
+    const catalog = createCoreOnboardingCatalog();
+    catalog.modules.find(({ id }) => id === "storage.knowledge-volume")!.requires.push({ id: "volume-tool", kind: "binary", executable: "volume-tool" });
+    const vaultProfile = profile({
+      required_modules: ["storage.knowledge-volume"],
+      secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } },
+      variables: { ...createCoreOnboardingProfile().variables, KNOWLEDGE_VOLUME_ROOT: "/mnt/vault", KNOWLEDGE_VOLUME_UUID: "U", KNOWLEDGE_VAULT_RELATIVE_PATH: "v" },
+    });
+    const unplugged = { "knowledge-volume-mount": { available: false, reason_code: "MOUNT_ABSENT" as const } };
+    expect((await createOnboardingPlan({ catalog, profile: vaultProfile, adapter: allAvailable(unplugged) })).operating_mode).toBe("read-only-degraded");
+    const plan = await createOnboardingPlan({ catalog, profile: vaultProfile, adapter: allAvailable({ ...unplugged, "volume-tool": { available: false, reason_code: "BINARY_MISSING" } }) });
+    expect(plan.operating_mode).toBe("blocked");
+  });
+
+  test("a required organ blocked through the volume and by its own connector stays blocked", async () => {
+    const vaultProfile = profile({
+      required_modules: ["tunnel.knowledge-vault"],
+      secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } },
+      variables: { ...createCoreOnboardingProfile().variables, KNOWLEDGE_VOLUME_ROOT: "/mnt/vault", KNOWLEDGE_VOLUME_UUID: "U", KNOWLEDGE_VAULT_RELATIVE_PATH: "v", KNOWLEDGE_VAULT_SERVER_AGENT: "a.server", KNOWLEDGE_VAULT_TUNNEL_AGENT: "a.tunnel" },
+    });
+    const unplugged = { "knowledge-volume-mount": { available: false, reason_code: "MOUNT_ABSENT" as const } };
+    const catalog = createCoreOnboardingCatalog();
+    expect((await createOnboardingPlan({ catalog, profile: vaultProfile, adapter: allAvailable(unplugged) })).operating_mode).toBe("read-only-degraded");
+    const plan = await createOnboardingPlan({ catalog, profile: vaultProfile, adapter: allAvailable({ ...unplugged, "knowledge-vault-tunnel-agent": { available: false, reason_code: "LAUNCH_AGENT_ABSENT" } }) });
+    expect(plan.operating_mode).toBe("blocked");
+  });
+
+  test("health keeps a held optional organ out of the required holds", async () => {
+    const plan = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } } }),
+      adapter: allAvailable({ "obsidian-application": { available: false, reason_code: "APPLICATION_MISSING" } }),
+      selections: new Set(["integration.obsidian-rest"]),
+    });
+    expect(plan.modules.find(({ id }) => id === "integration.obsidian-rest")?.status).toBe("blocked");
+    const report = projectOperatorHealth({ plan, observedAt: "2026-10-04T00:00:00.000Z" });
+    const held = report.checks.filter(({ id }) => id.startsWith("dependencies.integration.obsidian-rest."));
+    expect(held.length).toBeGreaterThan(0);
+    expect(held.every(({ status, required }) => status === "HOLD" && !required)).toBe(true);
+    expect(report.checks.find(({ id }) => id === "dependencies.provider.omniroute")).toMatchObject({ status: "PASS", required: true });
+  });
+
   test("the TUI toggle refuses to turn off a required organ but toggles optional ones", async () => {
     const plan = await createOnboardingPlan({ catalog: createCoreOnboardingCatalog(), profile: profile(), adapter: allAvailable() });
     const selected = new Set(plan.modules.filter(({ requested }) => requested).map(({ id }) => id));
@@ -294,7 +340,8 @@ describe("required organ semantics (review follow-ups)", () => {
   });
 
   test("an unplugged volume cannot mask a required organ broken for another reason", async () => {
-    const variables = { ...createCoreOnboardingProfile().variables, KNOWLEDGE_VOLUME_ROOT: "/mnt/vault", KNOWLEDGE_VOLUME_UUID: "U", KNOWLEDGE_VAULT_RELATIVE_PATH: "v" };
+    // Bind every label so the vault tunnel's only possible hold is its unplugged dependency.
+    const variables = { ...createCoreOnboardingProfile().variables, KNOWLEDGE_VOLUME_ROOT: "/mnt/vault", KNOWLEDGE_VOLUME_UUID: "U", KNOWLEDGE_VAULT_RELATIVE_PATH: "v", KNOWLEDGE_VAULT_SERVER_AGENT: "a.server", KNOWLEDGE_VAULT_TUNNEL_AGENT: "a.tunnel" };
     const unplugged = { "knowledge-volume-mount": { available: false, reason_code: "MOUNT_ABSENT" as const } };
     const degraded = await createOnboardingPlan({
       catalog: createCoreOnboardingCatalog(),
@@ -406,5 +453,45 @@ describe("organs in the 0.6.0 setup wizard", () => {
     const ids = host.rows.map(({ id }) => id);
     expect(ids).toEqual(expect.arrayContaining(["host.provider.omniroute", "host.memory.temperance", "host.storage.knowledge-volume"]));
     expect(ids).not.toContain("host.provider.9router");
+  });
+});
+
+describe("organ registry CLI", () => {
+  async function onboardAgent(files: { profile: object; preferences?: object }, extra: string[]) {
+    const root = mkdtempSync(join(tmpdir(), "organ-cli-"));
+    const profilePath = join(root, "profile.json");
+    const preferencesPath = join(root, "preferences.json");
+    writeFileSync(profilePath, JSON.stringify(files.profile));
+    if (files.preferences) writeFileSync(preferencesPath, JSON.stringify(files.preferences), { mode: 0o600 });
+    const child = Bun.spawn([process.execPath, "src/cli.ts", "onboard", "--profile", profilePath, "--wizard-state", preferencesPath, "--agent", ...extra], {
+      cwd: resolve(import.meta.dir, ".."), stdin: "ignore", stdout: "pipe", stderr: "pipe",
+    });
+    const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+    return { code, stdout, stderr, preferencesPath };
+  }
+
+  test("saved preferences that name a retired module load with a notice instead of failing", async () => {
+    const core = { ...createCoreOnboardingProfile(), id: "organ-cli" };
+    const { code, stdout, stderr } = await onboardAgent({
+      profile: core,
+      preferences: { schema: "temperance.onboarding-preferences.v1", profile_id: core.id, selected_module_ids: ["integration.mail-mcp", "provider.9router"] },
+    }, []);
+    expect(code).toBe(0);
+    expect(stderr).toBe(retiredModuleNotice("provider.9router"));
+    expect(JSON.parse(stdout).state.requested_module_ids).toContain("integration.mail-mcp");
+    expect(JSON.parse(stdout).state.requested_module_ids).not.toContain("provider.9router");
+  }, 60_000);
+
+  test("the agent can request save-organs as an explicit-confirmation handoff without writing", async () => {
+    const { code, stdout, preferencesPath } = await onboardAgent({ profile: { ...createCoreOnboardingProfile(), id: "organ-cli" } }, ["--step", "modules", "--action", "save-organs"]);
+    expect(code).toBe(0);
+    expect(JSON.parse(stdout).handoff).toMatchObject({ kind: "save-organs", authority: "explicit-confirmation", execution: "not-performed" });
+    expect(existsSync(preferencesPath)).toBe(false);
+  }, 60_000);
+
+  test("retired organ ids carry a replacement hint", () => {
+    expect(retiredModuleNotice("integration.omniroute-a2a")).toContain("integration.hermes-a2a");
+    expect(retiredIdsOutsideCatalog(createCoreOnboardingCatalog())).toEqual(["integration.company-omniroute", "integration.omniroute-a2a", "provider.9router"]);
+    expect(retiredIdsOutsideCatalog(createLegacyNineRouterCatalog())).not.toContain("provider.9router");
   });
 });

@@ -27,7 +27,7 @@ import {
 } from "./onboarding/contract-schema.ts";
 import { createCoreOnboardingCatalog, createCoreOnboardingProfile, createLegacyNineRouterCatalog } from "./onboarding/core-catalog.ts";
 import { projectOnboardingDoctorSection } from "./onboarding/doctor.ts";
-import { withoutRetiredModules } from "./onboarding/profile-selection.ts";
+import { retiredIdsOutsideCatalog, retiredModuleNotice, withoutRetiredModules } from "./onboarding/profile-selection.ts";
 import { createOnboardingPlan } from "./onboarding/planner.ts";
 import { validateOnboardingCatalog, validateOnboardingProfile } from "./onboarding/schema.ts";
 import { createSystemProbeAdapter } from "./onboarding/system-adapter.ts";
@@ -432,9 +432,7 @@ async function main(): Promise<void> {
       // notice instead of failing, unless the catalog in use still carries it (the legacy repair flow).
       const retired = withoutRetiredModules(profile, plannedCatalog);
       const planningProfile = retired.profile;
-      if (retired.dropped.length > 0) {
-        process.stderr.write(`temperance onboard: ignoring retired module ${retired.dropped.join(", ")}; OmniRoute is the default router\n`);
-      }
+      for (const id of retired.dropped) process.stderr.write(retiredModuleNotice(id));
       const buildPlan = async (selections?: ReadonlySet<string>): Promise<OnboardingPlanV1> => {
         const discovery = hostProfile && hostBinding
         ? discoverProjectCandidates(hostProfile, hostBinding, {
@@ -455,7 +453,11 @@ async function main(): Promise<void> {
       const moduleIds = plannedCatalog.modules.map(({ id }) => id);
       // Organ choices live beside the host-private profile unless an explicit --wizard-state path is given.
       const wizardStatePath = args.wizardStatePath ?? (hostPrivateProfilePath ? defaultOnboardingPreferencesPath() : undefined);
-      const savedPreferences = wizardStatePath ? readWizardPreferences(resolve(wizardStatePath), planningProfile.id, moduleIds) : undefined;
+      // Saved choices may predate a module's retirement: accept those ids, then drop them with the same notice.
+      const retiredIds = retiredIdsOutsideCatalog(plannedCatalog);
+      const storedPreferences = wizardStatePath ? readWizardPreferences(resolve(wizardStatePath), planningProfile.id, [...moduleIds, ...retiredIds]) : undefined;
+      const savedPreferences = storedPreferences && { ...storedPreferences, selected_module_ids: storedPreferences.selected_module_ids.filter((id) => !retiredIds.includes(id)) };
+      for (const id of storedPreferences?.selected_module_ids.filter((id) => retiredIds.includes(id) && !retired.dropped.includes(id)) ?? []) process.stderr.write(retiredModuleNotice(id));
       const plan = await buildPlan(args.selections ?? (savedPreferences ? new Set(savedPreferences.selected_module_ids) : undefined));
       const inspectHealth = async (currentPlan: OnboardingPlanV1) => {
         const [snapshot, install] = await Promise.all([
@@ -493,6 +495,8 @@ async function main(): Promise<void> {
           routing: snapshot.routing, allowRoutingAuthorization: Boolean(snapshot.connection),
           allowRoutingSeating: Boolean(snapshot.connection) && (snapshot.routing?.live_model_count ?? 0) > 0 && Boolean(profile.secret_references.NINE_ROUTER_GATEWAY_KEY),
           allowModuleReplan: true, allowInspection: true,
+          // Like project saves, the agent only receives an explicit-confirmation handoff; nothing is written here.
+          allowModuleSelectionSave: !args.apply && Boolean(wizardStatePath),
         };
         const requestedAction = args.actionId ? projectAgentFlow(plan, { ...options, actionId: undefined }).actions.find(({ id }) => id === args.actionId) : undefined;
         let flow = projectAgentFlow(plan, options);
@@ -614,7 +618,7 @@ async function main(): Promise<void> {
             // Requests only: remembered organ choices never activate anything by themselves.
             writeWizardPreferences(resolve(wizardStatePath), {
               schema: "temperance.onboarding-preferences.v1", profile_id: planningProfile.id, selected_module_ids: result.selected_module_ids,
-            }, moduleIds);
+            }, moduleIds, [...moduleIds, ...retiredIds]);
           }
           if (args.apply && result.confirmed) {
             if (!result.confirmed_at || !routerSetup) throw new Error("NINE_ROUTER_REPAIR_CONFIRMATION_INVALID");

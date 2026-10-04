@@ -304,13 +304,22 @@ export async function createOnboardingPlan(options: CreateOnboardingPlanOptions)
     }] : [],
   }));
   const isMountHold = (hold: OnboardingHold): boolean => hold.reason_code === "MOUNT_ABSENT" || hold.reason_code === "MOUNT_UUID_MISMATCH";
-  const mountDegradedIds = new Set(modules.filter((module) => module.holds.some(isMountHold)).map(({ id }) => id));
-  const mountDegraded = mountDegradedIds.size > 0;
+  const mountDegraded = modules.some((module) => module.holds.some(isMountHold));
   // An unplugged volume degrades to read-only, but must not mask a required organ that is broken for
-  // another reason. A required organ held only because of the volume (directly or through a dependency)
-  // is part of the degraded state.
-  const requiredHardBlocked = modules.some((module) => module.required && module.status === "blocked"
-    && !module.holds.some((hold) => isMountHold(hold) || (hold.reason_code === "DEPENDENCY_BLOCKED" && mountDegradedIds.has(hold.dependency_id ?? ""))));
+  // another reason. A module counts as mount-only when every hold is the missing mount itself or a
+  // blocked dependency that is mount-only in turn (resolved to a fixed point across dependency chains).
+  const mountOnlyIds = new Set<string>();
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const module of modules) {
+      if (mountOnlyIds.has(module.id) || module.holds.length === 0) continue;
+      if (module.holds.every((hold) => isMountHold(hold) || (hold.reason_code === "DEPENDENCY_BLOCKED" && mountOnlyIds.has(hold.dependency_id ?? "")))) {
+        mountOnlyIds.add(module.id);
+        grew = true;
+      }
+    }
+  }
+  const requiredHardBlocked = modules.some((module) => module.required && module.status === "blocked" && !mountOnlyIds.has(module.id));
   const base: Omit<OnboardingPlanV1, "plan_digest" | "generated_at"> = {
     schema: ONBOARDING_PLAN_SCHEMA,
     version: { major: 1, minor: 0 },

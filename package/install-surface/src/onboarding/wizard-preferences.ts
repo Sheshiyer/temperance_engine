@@ -29,7 +29,8 @@ export function readWizardPreferences(path: string, profileId: string, moduleIds
   return validateWizardPreferences(JSON.parse(readFileSync(path, "utf8")), profileId, moduleIds);
 }
 
-export function writeWizardPreferences(path: string, value: WizardPreferences, moduleIds: readonly string[]): void {
+/** `previousModuleIds` widens the check on the file being replaced, so ids retired since it was written do not block a save. */
+export function writeWizardPreferences(path: string, value: WizardPreferences, moduleIds: readonly string[], previousModuleIds: readonly string[] = moduleIds): void {
   const preferences = validateWizardPreferences(value, value.profile_id, moduleIds);
   const output = resolve(path);
   const parent = dirname(output);
@@ -37,7 +38,7 @@ export function writeWizardPreferences(path: string, value: WizardPreferences, m
   const parentStat = lstatSync(parent);
   if (!parentStat.isDirectory() || parentStat.isSymbolicLink() || (parentStat.mode & 0o022) !== 0) throw new Error("WIZARD_PREFERENCES_PARENT_UNSAFE");
   // Refuse to replace another kind of file, another profile, or a linked path.
-  readWizardPreferences(output, preferences.profile_id, moduleIds);
+  readWizardPreferences(output, preferences.profile_id, previousModuleIds);
   const temporary = `${output}.${randomUUID()}.tmp`;
   const fd = openSync(temporary, "wx", 0o600);
   try {
