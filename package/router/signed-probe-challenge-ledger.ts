@@ -32,6 +32,10 @@ export const SIGNED_PROBE_CHALLENGE_MAX_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 export const SIGNED_PROBE_CHALLENGE_RECOVERY_MARGIN_MS = 60_000;
 export const SIGNED_PROBE_CHALLENGE_DEFAULT_LOCK_TIMEOUT_MS = 5_000;
 
+const FILE_REPLACED_DURING_OPEN = "challenge-ledger-file-replaced-during-open";
+// Each retry needs a writer to win the openat→fstat window again; a few attempts suffice.
+const REPLACED_DURING_OPEN_MAX_ATTEMPTS = 8;
+
 const LOCK_EX = 2;
 const LOCK_NB = 4;
 const LOCK_UN = 8;
@@ -355,6 +359,9 @@ function assertOwnerOnlyRegularStat(stat: ReturnType<typeof fstatSync>): void {
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("challenge-ledger-file-invalid");
   if (stat.uid !== ownerUid()) throw new Error("challenge-ledger-file-owner-invalid");
   if ((stat.mode & 0o777) !== 0o600) throw new Error("challenge-ledger-file-mode-invalid");
+  // nlink 0: an atomic writer renamed a new file over this name after openat, so the
+  // descriptor holds the replaced inode. That is a race, not a hardlink; readers retry.
+  if (stat.nlink === 0) throw new Error(FILE_REPLACED_DURING_OPEN);
   if (stat.nlink !== 1) throw new Error("challenge-ledger-hardlink-invalid");
 }
 
@@ -529,7 +536,18 @@ function relativeExists(target: SafeTarget): boolean {
 }
 
 function readRelativeBounded(target: SafeTarget, maxBytes: number): Buffer {
-  const fd = openRelativeRegular(target, constants.O_RDONLY);
+  // Lock-free readers (receipt discovery before recovery, status) can race an atomic
+  // replace by a lock holder; reopen by name and re-check every invariant on the new fd.
+  let fd = -1;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      fd = openRelativeRegular(target, constants.O_RDONLY);
+      break;
+    } catch (error) {
+      const replaced = error instanceof Error && error.message === FILE_REPLACED_DURING_OPEN;
+      if (!replaced || attempt >= REPLACED_DURING_OPEN_MAX_ATTEMPTS) throw error;
+    }
+  }
   try {
     const stat = fstatSync(fd);
     if (stat.size > maxBytes) throw new Error("challenge-ledger-file-oversized");
@@ -775,30 +793,37 @@ function initialLedger(): ChallengeLedger {
 }
 
 function readLedger(target: SafeTarget): LedgerSnapshot {
-  const fd = POSIX.openat(
-    target.directory.fd,
-    target.name,
-    constants.O_RDONLY | O_NOFOLLOW | O_CLOEXEC,
-    0,
-  );
-  if (fd < 0) {
-    try {
-      lstatSync(target.path);
-      throw new Error("challenge-ledger-open-failed");
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      return { exists: false, raw: null, hash: "absent", state: initialLedger() };
+  // Status and verifier snapshots read without the lock, so retry an atomic replace
+  // that lands between openat and fstat (see readRelativeBounded).
+  for (let attempt = 1; ; attempt++) {
+    const fd = POSIX.openat(
+      target.directory.fd,
+      target.name,
+      constants.O_RDONLY | O_NOFOLLOW | O_CLOEXEC,
+      0,
+    );
+    if (fd < 0) {
+      try {
+        lstatSync(target.path);
+        throw new Error("challenge-ledger-open-failed");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        return { exists: false, raw: null, hash: "absent", state: initialLedger() };
+      }
     }
-  }
-  try {
-    assertCloseOnExec(fd);
-    const stat = fstatSync(fd);
-    assertOwnerOnlyRegularStat(stat);
-    if (stat.size > SIGNED_PROBE_MAX_CANONICAL_BYTES) throw new Error("challenge-ledger-file-oversized");
-    const raw = readFileSync(fd);
-    return { exists: true, raw, hash: hashBytes(raw), state: parseCanonical(raw, parseChallengeLedger) };
-  } finally {
-    closeSync(fd);
+    try {
+      assertCloseOnExec(fd);
+      const stat = fstatSync(fd);
+      assertOwnerOnlyRegularStat(stat);
+      if (stat.size > SIGNED_PROBE_MAX_CANONICAL_BYTES) throw new Error("challenge-ledger-file-oversized");
+      const raw = readFileSync(fd);
+      return { exists: true, raw, hash: hashBytes(raw), state: parseCanonical(raw, parseChallengeLedger) };
+    } catch (error) {
+      const replaced = error instanceof Error && error.message === FILE_REPLACED_DURING_OPEN;
+      if (!replaced || attempt >= REPLACED_DURING_OPEN_MAX_ATTEMPTS) throw error;
+    } finally {
+      closeSync(fd);
+    }
   }
 }
 
