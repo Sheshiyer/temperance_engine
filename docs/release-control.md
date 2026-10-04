@@ -2,7 +2,7 @@
 
 Temperance Engine and its optional routing gateway have **three independently
 versioned planes**. Do not collapse them into a single SemVer. The v4 architecture
-name is not the product version; the current product release is `0.6.0`.
+name is not the product version; the current product release is `0.7.0`.
 
 Keep a Changelog: [CHANGELOG.md](../CHANGELOG.md). Compatibility pins: [COMPATIBILITY.md](COMPATIBILITY.md).
 
@@ -25,7 +25,8 @@ Follow [semver.org](https://semver.org/):
 - **PATCH** — bugfix, docs, or verification that does not change contracts.
 
 Pre-1.0: glove `0.1.0` is the first public installer. `0.6.0` publishes the
-additive v4 onboarding/operator surfaces with explicit limitations. Milestone
+additive v4 onboarding/operator surfaces with explicit limitations. `0.7.0` adds
+the opt-in STE skill, the STE docs gate, and the showreel. Milestone
 **v1.1 Public Temperance Glove** still requires its separate clean-host,
 Apple Silicon/Intel, and exact-candidate qualification gates; a `0.x` feature
 release does not mark that milestone complete.
@@ -83,7 +84,7 @@ An operator-facing ecosystem line is the triple, not a fourth SemVer:
 temperance_engine@<VERSION> + 9router@<PIN> + host@<RECEIPT_OR_UNKNOWN>
 ```
 
-Example: `temperance_engine@0.6.0 + 9router@0.5.75 + host@unverified`.
+Example: `temperance_engine@0.7.0 + 9router@0.5.75 + host@unverified`.
 
 Release notes report the independent planes. Do not change an existing doctor
 schema to synthesize a host version, and do not invent an ecosystem SemVer.

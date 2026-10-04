@@ -25,6 +25,7 @@ Do not start in `docs/plans/` or the OmniRoute July stack. Those are history.
 | [peon-ping-packs.md](peon-ping-packs.md) | Phase → peon packs |
 | [manifest-control-plane.md](manifest-control-plane.md) | Bridge authority wall. Projection only |
 | [kimi-surface.md](kimi-surface.md) | Kimi relay-side enrich |
+| [../package/showreel/README.md](../package/showreel/README.md) | 15-second showreel, 16:9 and 9:16. Canvas2D source and render commands |
 
 ## Routing (keep; tests pin these)
 

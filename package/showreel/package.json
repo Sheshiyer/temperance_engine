@@ -1,0 +1,12 @@
+{
+  "name": "temperance-showreel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sound": "bun scripts/soundtrack.ts",
+    "render": "bun scripts/soundtrack.ts && bun scripts/capture.ts",
+    "render:vertical": "bun scripts/soundtrack.ts && bun scripts/capture.ts --vertical",
+    "stills": "bun scripts/capture.ts --frames",
+    "publish": "bun scripts/publish.ts"
+  }
+}

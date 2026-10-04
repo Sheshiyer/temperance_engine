@@ -10,8 +10,11 @@ Compatibility: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-04
+
 ### Added
 
+- **Showreel** (`package/showreel/`) — a 15-second, 60 fps motion piece in two cuts, 16:9 and 9:16 for social media, cut on the beat of a 120 BPM soundtrack. `reel.html` is one hand-written Canvas2D file with a deterministic `render(frame)`; `scripts/soundtrack.ts` synthesizes the audio; `scripts/capture.ts` renders frames in parallel headless Chromium, caches Google Fonts in `.cache/fonts/`, encodes with ffmpeg, then deletes the frames and temporary browser profiles (`--keep-frames` opts out). No animation libraries and no package dependencies. `bun run publish` writes the web encodes and contact-sheet poster in `assets/showreel/`. The README and the themed library show it.
 - **Simplified Technical English (ASD-STE100) skill** — `./install.sh --with-ste` (opt-in) fetches [0xpili/simplified-technical-english](https://github.com/0xpili/simplified-technical-english) at pinned commit `1e148d6` into `$AGENTS_HOME/skills/` and links it into the enabled Claude and OpenCode surfaces (`scripts/install-ste.sh`). Referenced, not vendored: the ASD-STE100 word list never enters this repo. Existing copies are left alone unless `--force`, which moves them to `$TEMPERANCE_BACKUP_DIR` first. A forced update fetches and validates the replacement in staging before it retires the active checkout, and a `STE_SKILL_HOME` inside a surface's skills dir is treated as an in-place install, never a self-link. `TEMPERANCE_STE_MODE=uninstall` removes only links that point to the managed checkout, in the configured roots, and moves the checkout to backups instead of deleting it.
 - **`package/ste-check/`** — bun/TypeScript port of the upstream `ste_check.py` (no Python dependency). Output is byte-identical to upstream on 366 corpus runs and 16 committed golden fixtures, including Python-Unicode regex edge cases.
 - **STE docs gate** (`bun package/ste-check/docs-gate.ts`, in `scripts/verify-all.sh`) — per-doc error ratchet over `QUICKSTART.md`, `CONTRIBUTING.md`, `SECURITY.md`, and `docs/*.md`. A doc may not gain errors; new docs must have zero; `--tighten` only lowers counts. The gate puts each heading line and table row in its own block, so prose directly under a heading or table is still checked (the CLI keeps upstream behavior).
@@ -29,6 +32,20 @@ Compatibility: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 - `tests/verify-install-private-path-guard.sh`: the synthetic `CREDITS.md` now includes the STE attribution that `verify-install.sh` requires, so the guard regression suite keeps passing.
 - **ripgrep is now an explicit dependency, and a missing rg fails closed.** Without the `rg` binary, `scripts/omniroute-codex-preview.sh` silently skipped its credential-leak scan (the `if rg` read exit 127 as "no leak") and still wrote a receipt. It now exits 127 with `rg is required`, as the Hermes preview already did. `tests/omniroute-autostart-launchd.sh` and `tests/omniroute-hermes-preview.sh` false-passed checks without rg; they now fail at once. `scripts/verify-all.sh` refuses to start without rg, alongside its bun check. `scripts/verify-install.sh` prints an advisory `warn:` line (install still succeeds). `tests/omniroute-native-integration.sh` passes `--no-require-git`, so its exact-match scan honors `.gitignore` in non-git checkouts.
 - `tests/temperance-proxy-live.sh` also pins the proxy's Kimi session read (`TEMPERANCE_KIMI_STATE`) to its temp dir, deletes that dir on exit, and asserts by correlation ID that none of its own requests reach the operator request log (`$HOME/.temperance_engine/state/openai-proxy.jsonl`, which is the repo on a host checkout), so unrelated traffic from a live relay cannot break it.
+- **install-surface typecheck is green again.** The LaunchAgent lifecycle support (d4748c9) left three `tsc` errors that the Verify workflow does not run. Two plist removals in `src/lifecycle/executor.ts` now pass an explicit `recursive: false` (no behavior change). The real one: the install doctor sent `LAUNCHAGENT` records to the transform observer, which would report a misleading `ADAPTER_UNAVAILABLE`. Doctor now reports them as `UNAVAILABLE` with `LAUNCHAGENT_OBSERVATION_UNAVAILABLE`, because it cannot verify the plist or launchctl state yet. No shipped fragment declares a LaunchAgent record, so current doctor output does not change. `test/doctor.test.ts` covers the class.
+
+### Qualification boundary
+
+- This is the `0.7.0` feature release: the opt-in STE skill and docs gate, and
+  the showreel. It is not completion of the separately tracked v1.1 clean-host
+  qualification milestone or a claim of end-to-end 1M sessions.
+- The adapter pin remains `9router@0.5.75`; other versions remain held. Router
+  changes still under review (organ registry, hosted-router edge) are not part
+  of this release.
+- Per-attempt gateway context enforcement and durable checkpoint recovery remain
+  unqualified, as in `0.6.0`.
+- The showreel is documentation media. `install.sh` does not install it, and it
+  changes no installer, doctor, lifecycle, or routing contract.
 
 ## [0.6.0] - 2026-09-19
 
@@ -152,6 +169,7 @@ Product bump reflecting the local runtime's v5.4 Five of Swords state. All noted
 - Initial public installer package for Temperance Engine.
 - Added backup-first install scripts, verifier, rollback docs, PAI templates, Pulse compatibility server, skill resolver shim, and CodeGraph routing guidance.
 
-[Unreleased]: https://github.com/Sheshiyer/temperance_engine/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Sheshiyer/temperance_engine/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.7.0
 [0.6.0]: https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.6.0
 [0.1.0]: https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.1.0
