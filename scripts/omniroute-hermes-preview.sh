@@ -11,7 +11,7 @@ HERMES_DIR="${TEMPERANCE_HERMES_DIR:-$HOME/.hermes}"
 HERMES_CONFIG="$HERMES_DIR/config.yaml"
 HERMES_MARKER="$HERMES_DIR/.first-setup.json"
 CREDENTIAL_ENV="TEMPERANCE_HERMES_OMNIROUTE_API_KEY"
-EXPECTED_VERSION="3.8.48"
+EXPECTED_VERSION="3.8.51"
 SNAPSHOT_SCHEMA="temperance.omniroute.native-control-plane.v1"
 
 roles=(default delegation compression skills_hub approval)

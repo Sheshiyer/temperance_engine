@@ -19,7 +19,7 @@ export const NATIVE_CONTROL_PLANE_TTL_MS = 30_000;
 const MAX_MANIFEST_BYTES = 1_048_576;
 const MAX_PACKAGE_BYTES = 65_536;
 const MAX_STATE_BYTES = 16_384;
-const SUPPORTED_TOPOLOGY_VERSION = "3.8.48";
+const SUPPORTED_TOPOLOGY_VERSION = "3.8.51";
 const SUPPORTED_DATABASE_SCHEMA_VERSION = "1";
 const SOL_FAMILY = /(^|[-_/.])sol(?:[-_]?max)?(?=$|[-_/.])/iu;
 const SAFE_PROVIDER = /^[a-z0-9][a-z0-9._-]{0,79}$/u;
@@ -199,7 +199,10 @@ interface CompressionProjection {
   activeComboId: string | null;
   activeComboResolves: boolean;
   candidateEngines: string[];
-  configuredPipeline: Array<{ engine: string; intensity: string }>;
+  configuredPipeline: Array<{ engine: string; intensity: string | null }>;
+  /** Compression settings this projection does not parse, as a count and a digest (values are not exposed). */
+  otherSettingsCount: number;
+  otherSettingsSha256: string;
   effectivePipeline: "off" | "request-dependent";
   adoption: "preview-only";
 }
@@ -286,10 +289,12 @@ export interface NativeControlPlaneSnapshot {
       dashboardTopologySemantics: {
         versionBound: boolean;
         blueBadge: "in-flight-provider-family-count";
-        green: "active";
+        green: "in-flight-or-connected";
         amber: "last-routed";
-        red: "last-error";
-        dim: "inventory-not-current-activity";
+        red: "last-error-or-errored-connection";
+        redAgeCutoff: "none";
+        dim: "connected-inventory-idle";
+        nodeSet: "providers-with-an-active-connection";
         conclusion: "highlighted-rails-are-not-provider-count";
       };
     };
@@ -386,8 +391,34 @@ function nullableStringSetting(value: string | undefined, code: string): string 
   return parsed;
 }
 
+const MAX_COMPRESSION_SETTINGS = 64;
+const MAX_COMPRESSION_SETTING_BYTES = 65_536;
+const PARSED_COMPRESSION_KEYS: ReadonlySet<string> = new Set([
+  "enabled", "defaultMode", "preserveSystemPrompt", "activeComboId", "cavemanConfig",
+]);
+
+/**
+ * 3.8.51 dispatch also reads compression settings this projection does not parse (for example
+ * `engines`, which wins once saved, `stackedPipeline` and `comboOverrides`). Digest them so a
+ * pre/post equality check sees any change without the snapshot exposing their values.
+ */
+function otherCompressionSettings(rows: KeyValueRow[]): { count: number; sha256: string } {
+  if (rows.length > MAX_COMPRESSION_SETTINGS) fail("compression_settings_too_large");
+  for (const row of rows) {
+    if (typeof row.value !== "string" || Buffer.byteLength(row.value, "utf8") > MAX_COMPRESSION_SETTING_BYTES) {
+      fail("compression_settings_too_large");
+    }
+  }
+  const other = rows
+    .filter((row) => !PARSED_COMPRESSION_KEYS.has(row.key))
+    .map((row) => [row.key, row.value] as const)
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
+  return { count: other.length, sha256: sha256(JSON.stringify(other)) };
+}
+
 function compressionProjection(rows: KeyValueRow[], combos: ComboRow[]): CompressionProjection {
   const values = new Map(rows.map((row) => [row.key, row.value]));
+  const otherSettings = otherCompressionSettings(rows);
   const masterEnabled = booleanSetting(values.get("enabled"), false, "compression_enabled_invalid");
   const defaultMode = stringSetting(values.get("defaultMode"), "off", "compression_mode_invalid");
   const preserveSystemPrompt = booleanSetting(
@@ -407,19 +438,19 @@ function compressionProjection(rows: KeyValueRow[], combos: ComboRow[]): Compres
     combos.find((combo) => activeComboId !== null && combo.id === activeComboId) ??
     combos.find((combo) => combo.is_default === 1) ??
     null;
-  const configuredPipeline: Array<{ engine: string; intensity: string }> = [];
+  const configuredPipeline: Array<{ engine: string; intensity: string | null }> = [];
   if (selected) {
     const pipeline = boundedJson(selected.pipeline, "compression_pipeline_invalid");
     if (!Array.isArray(pipeline) || pipeline.length > 16) fail("compression_pipeline_invalid");
     for (const item of pipeline) {
       if (!item || typeof item !== "object" || Array.isArray(item)) fail("compression_pipeline_invalid");
       const engine = (item as Record<string, unknown>).engine;
-      const intensity = (item as Record<string, unknown>).intensity;
+      // 3.8.51 makes intensity optional; its seeded default combo is [session-dedup, lite].
+      const intensity = (item as Record<string, unknown>).intensity ?? null;
       if (
         typeof engine !== "string" ||
         !SAFE_ROLE.test(engine) ||
-        typeof intensity !== "string" ||
-        !SAFE_ROLE.test(intensity)
+        (intensity !== null && (typeof intensity !== "string" || !SAFE_ROLE.test(intensity)))
       ) fail("compression_pipeline_invalid");
       configuredPipeline.push({ engine, intensity });
     }
@@ -432,6 +463,8 @@ function compressionProjection(rows: KeyValueRow[], combos: ComboRow[]): Compres
     activeComboResolves: activeComboId !== null && combos.some((combo) => combo.id === activeComboId),
     candidateEngines,
     configuredPipeline,
+    otherSettingsCount: otherSettings.count,
+    otherSettingsSha256: otherSettings.sha256,
     effectivePipeline: masterEnabled ? "request-dependent" : "off",
     adoption: "preview-only",
   };
@@ -617,10 +650,15 @@ export function projectNativeControlPlane(input: RawProjectionInput): NativeCont
         dashboardTopologySemantics: {
           versionBound: input.installedVersion === SUPPORTED_TOPOLOGY_VERSION,
           blueBadge: "in-flight-provider-family-count",
-          green: "active",
+          // Re-audited against the compiled 3.8.51 dashboard: green also marks a connected provider
+          // at rest, red also marks a provider whose connections are all in error, and only providers
+          // with an active connection are drawn.
+          green: "in-flight-or-connected",
           amber: "last-routed",
-          red: "last-error",
-          dim: "inventory-not-current-activity",
+          red: "last-error-or-errored-connection",
+          redAgeCutoff: "none",
+          dim: "connected-inventory-idle",
+          nodeSet: "providers-with-an-active-connection",
           conclusion: "highlighted-rails-are-not-provider-count",
         },
       },
@@ -832,7 +870,11 @@ function readQuickTunnel(
     const parsed = boundedJson(readFileSync(path, "utf8"), "quick_tunnel_state_invalid");
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) fail("quick_tunnel_state_invalid");
     const record = parsed as Record<string, unknown>;
-    const publicUrlPresent = typeof record.url === "string" && record.url.length > 0;
+    // 3.8.51 writes publicUrl/apiUrl; earlier releases wrote url. Any of them means a URL is live.
+    const publicUrlPresent = ["url", "publicUrl", "apiUrl"].some((key) => {
+      const value = record[key];
+      return typeof value === "string" && value.length > 0;
+    });
     const stopped =
       record.status === "stopped" && record.pid === null && !publicUrlPresent && !cloudflaredProcessesPresent;
     return {
@@ -867,7 +909,7 @@ function readRows(db: Database): Omit<RawProjectionInput, "dispatch" | "runtime"
       COUNT(DISTINCT provider) AS configured_families,
       COUNT(DISTINCT CASE WHEN is_active = 1 THEN provider END) AS active_families,
       COALESCE(SUM(CASE WHEN test_status = 'active' THEN 1 ELSE 0 END), 0) AS healthy_connections,
-      COALESCE(SUM(CASE WHEN test_status IN ('error', 'banned') THEN 1 ELSE 0 END), 0) AS unhealthy_connections
+      COALESCE(SUM(CASE WHEN test_status IN ('error', 'banned', 'expired', 'unavailable', 'credits_exhausted', 'deactivated') THEN 1 ELSE 0 END), 0) AS unhealthy_connections
     FROM provider_connections
   `).get() as ConnectionStatsRow | null;
   const observedStats = db.query(`
@@ -912,7 +954,6 @@ function readRows(db: Database): Omit<RawProjectionInput, "dispatch" | "runtime"
     SELECT key, value
     FROM key_value
     WHERE namespace = 'compression'
-      AND key IN ('enabled', 'defaultMode', 'activeComboId', 'preserveSystemPrompt', 'cavemanConfig')
     ORDER BY key
   `).all() as KeyValueRow[];
   const compressionCombos = db.query(`

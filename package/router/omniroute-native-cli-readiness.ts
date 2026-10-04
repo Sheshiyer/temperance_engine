@@ -18,7 +18,7 @@ import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path
 
 export const OMNIROUTE_NATIVE_CLI_READINESS_SCHEMA =
   "temperance.omniroute.native-cli-readiness.v1" as const;
-export const SUPPORTED_OMNIROUTE_NATIVE_CLI_VERSION = "3.8.48" as const;
+export const SUPPORTED_OMNIROUTE_NATIVE_CLI_VERSION = "3.8.51" as const;
 
 const MAX_SOURCE_BYTES = 524_288;
 const MAX_PACKAGE_BYTES = 65_536;
@@ -31,6 +31,7 @@ export type NativeCliSourceId =
   | "cli-api"
   | "cli-token-helper"
   | "management-policy"
+  | "authz-peer-context"
   | "openapi";
 
 interface SourceContract {
@@ -45,14 +46,14 @@ export const OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT = [
   {
     id: "package-manifest",
     relativePath: "package.json",
-    expectedSha256: "6f154e5c973158c95dcbb7211a5d2ec691c396948c71a30959a472e88adff626",
+    expectedSha256: "b002c54561bd762f41c7f4cafe6809ac5d5e58bbe175ce0399eb7c1df5b0baf6",
     maximumBytes: MAX_PACKAGE_BYTES,
     markers: [],
   },
   {
     id: "compression-command",
     relativePath: "bin/cli/commands/compression.mjs",
-    expectedSha256: "5ddf420c99aea6ea72859fae27effeec5efcfd105a345afbd3cf74a4c1a52aa8",
+    expectedSha256: "ddd9af8aacd510e25bafd48f093f8ccfb3c89d99e1cf0e503e311dd4b11a2455",
     maximumBytes: MAX_SOURCE_BYTES,
     markers: [
       {
@@ -85,13 +86,30 @@ export const OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT = [
   {
     id: "cli-api",
     relativePath: "bin/cli/api.mjs",
-    expectedSha256: "9584c48cb91d0dccfbd9ea86b71ffc082d27f92c2f09bfb7560c0cafb17b9033",
+    expectedSha256: "46d7693864f13814d04f47537c4f447f25eeac6d337f37ac5302cc4f6285b7dd",
     maximumBytes: MAX_SOURCE_BYTES,
     markers: [
       {
         id: "api-token-import",
         value:
           'import { getCliToken, CLI_TOKEN_HEADER } from "./utils/cliToken.mjs";',
+      },
+      {
+        id: "api-loopback-function",
+        value: "export function isLoopbackUrl(value) {",
+      },
+      {
+        id: "api-loopback-localhost",
+        value: 'if (hostname === "localhost" || hostname === "::1") return true;',
+      },
+      {
+        id: "api-loopback-ipv4",
+        value: "if (/^127(?:\\.[0-9]{1,3}){3}$/.test(hostname)) return true;",
+      },
+      {
+        id: "api-loopback-only-injection",
+        value:
+          "if (!isLoopbackUrl(destinationUrl)) {\n    headers.delete(CLI_TOKEN_HEADER);\n  } else {",
       },
       {
         id: "api-token-resolution",
@@ -107,12 +125,20 @@ export const OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT = [
         id: "api-token-header-set",
         value: "headers.set(CLI_TOKEN_HEADER, cliToken);",
       },
+      {
+        id: "api-destination-bound-headers",
+        value: "const headers = await buildHeaders({ ...opts, destinationUrl: url });",
+      },
+      {
+        id: "api-token-redirect-refusal",
+        value: 'const redirect = headers.has(CLI_TOKEN_HEADER) ? "error" : opts.redirect;',
+      },
     ],
   },
   {
     id: "cli-token-helper",
     relativePath: "bin/cli/utils/cliToken.mjs",
-    expectedSha256: "7cccffbbf267ee1e1f9ebf67feab66de943980b66b9d4f12f55b575d50795360",
+    expectedSha256: "859609750d595a8c9110f2cd536e788730df313def0136abf859a0e744360c8e",
     maximumBytes: MAX_SOURCE_BYTES,
     markers: [
       {
@@ -120,58 +146,103 @@ export const OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT = [
         value: 'export const CLI_TOKEN_HEADER = "x-omniroute-cli-token";',
       },
       {
+        id: "token-salt-file-owner-only",
+        value:
+          'fs.writeFileSync(filePath, JSON.stringify({ salt: generated }), { flag: "wx", mode: 0o600 });',
+      },
+      {
+        id: "token-commonjs-resolution",
+        value:
+          "const machineIdSync = machineIdModule?.machineIdSync || machineIdModule?.default?.machineIdSync;",
+      },
+      {
+        id: "token-missing-function-empty",
+        value: 'if (typeof machineIdSync !== "function") return "";',
+      },
+      {
+        id: "token-hmac-derivation",
+        value: 'return crypto.createHmac("sha256", rawId).update(salt).digest("hex");',
+      },
+      {
         id: "token-machine-id-import",
-        value: 'const { machineIdSync } = await import("node-machine-id");',
+        value: 'const imported = await import("node-machine-id");',
       },
       {
         id: "token-empty-import-fallback",
-        value: '  } catch {\n    _cached = "";\n  }',
-      },
-      {
-        id: "token-return",
-        value: "\n  return _cached;\n}",
+        value: '    _cached = "";\n  }\n  _cachedSalt = salt;\n  return _cached;\n}',
       },
     ],
   },
   {
     id: "management-policy",
     relativePath: "src/server/authz/policies/management.ts",
-    expectedSha256: "d0809be23364924113a46ecf91ace938d6cd7a305f583667ff46ab6061b9e2e1",
+    expectedSha256: "c60581deaedf0a7dd814a55685238dcf63017121d0ebf73ae4d87aaa982ec1f9",
     maximumBytes: MAX_SOURCE_BYTES,
     markers: [
       {
-        id: "management-token-function",
-        value: "function hasValidCliToken(ctx: PolicyContext): boolean {",
+        id: "management-peer-context-import",
+        value: "  hasValidLoopbackCliToken,\n  isLoopbackRequest,",
       },
       {
-        id: "management-loopback-gate",
+        id: "management-peer-context-module",
+        value: '} from "../peerContext";',
+      },
+      {
+        id: "management-token-branch",
+        value:
+          "if (hasValidLoopbackCliToken(ctx)) {\n      return allow({ ...LOCAL_CLI_SUBJECT });\n    }",
+      },
+    ],
+  },
+  {
+    id: "authz-peer-context",
+    relativePath: "src/server/authz/peerContext.ts",
+    expectedSha256: "1885309dbb495f4ec11ec356ecdde843b076373d5bb1642836e47abffaf1e643",
+    maximumBytes: MAX_SOURCE_BYTES,
+    markers: [
+      {
+        id: "peer-loopback-excludes-proxy",
+        value:
+          "export function isLoopbackRequest(ctx: PolicyContext): boolean {\n  if (isViaProxyRequest(ctx)) return false;",
+      },
+      {
+        id: "peer-token-function",
+        value: "export function hasValidLoopbackCliToken(ctx: PolicyContext): boolean {",
+      },
+      {
+        id: "peer-token-kill-switch",
+        value: "if (process" + '.env.OMNIROUTE_DISABLE_CLI_TOKEN === "true") return false;',
+      },
+      {
+        id: "peer-loopback-gate",
         value: "if (!isLoopbackRequest(ctx)) return false;",
       },
       {
-        id: "management-token-required",
+        id: "peer-token-required",
         value:
           "const headers = ctx.request.headers;\n  const provided = headers.get(CLI_TOKEN_HEADER);\n  if (!provided) return false;",
       },
       {
-        id: "management-token-expectations",
+        id: "peer-token-expectations",
         value:
           "const expectedTokens = [getMachineTokenSync(), getLegacyCliTokenSync()].filter(Boolean);",
       },
       {
-        id: "management-token-branch",
-        value: "if (hasValidCliToken(ctx)) {",
+        id: "peer-token-constant-time",
+        value:
+          "if (provided.length !== expected.length) return false;\n    return timingSafeEqual(Buffer.from(provided), Buffer.from(expected));",
       },
       {
-        id: "management-token-grant",
+        id: "peer-local-cli-subject",
         value:
-          'return allow({ kind: "management_key", id: "cli", label: "local-cli-token" });',
+          'export const LOCAL_CLI_SUBJECT = Object.freeze({\n  kind: "management_key" as const,\n  id: "cli",\n  label: "local-cli-token",\n});',
       },
     ],
   },
   {
     id: "openapi",
     relativePath: "dist/docs/openapi.yaml",
-    expectedSha256: "e9bdf16a6ea225b4e4cad5dcf7c1fc141a40ba168f3028593ad9ac4c75e76053",
+    expectedSha256: "56a167681176b5cd56e7c86c47af53cda0eb020413f9069942b0670d81b27d9d",
     maximumBytes: MAX_SOURCE_BYTES,
     markers: [
       {
@@ -212,7 +283,9 @@ export type NativeCliReadinessCheck =
   | "cliCompressionPreviewRequiresFile"
   | "cliCompressionPreviewPostsExactEndpoint"
   | "cliApiInjectsExactCliTokenHeader"
+  | "cliApiSendsCliTokenOnlyToLoopback"
   | "cliTokenImportFailureReturnsEmpty"
+  | "cliTokenBoundToOwnerOnlySalt"
   | "managementRequiresLoopbackCliToken"
   | "openApiPreviewRequiresMessagesAndMode";
 
@@ -259,12 +332,12 @@ export interface OmniRouteNativeCliReadinessReceipt {
     error: string | null;
   };
   sourceAllowlist: string[];
-  digestPinSource: "reviewed-omniroute-3.8.48" | "injected-hermetic-fixture";
+  digestPinSource: "reviewed-omniroute-3.8.51" | "injected-hermetic-fixture";
   sources: NativeCliSourceObservation[];
   checks: Record<NativeCliReadinessCheck, boolean>;
   nonClaims: {
     integrityScope: "exact-reviewed-allowlist-file-digests";
-    pinnedFileCount: 6;
+    pinnedFileCount: 7;
     packageIntegrityComplete: false;
     entrypointResolutionPinned: false;
     loadedModuleGraphVerified: false;
@@ -481,12 +554,12 @@ function markerObservations(
 
 function expectedDigestConfiguration(options: NativeCliReadinessInspectionOptions): {
   digests: NativeCliExpectedDigestMap;
-  source: "reviewed-omniroute-3.8.48" | "injected-hermetic-fixture";
+  source: "reviewed-omniroute-3.8.51" | "injected-hermetic-fixture";
 } {
   if (options.fixtureExpectedDigests === undefined) {
     return {
       digests: OMNIROUTE_NATIVE_CLI_EXPECTED_SHA256,
-      source: "reviewed-omniroute-3.8.48",
+      source: "reviewed-omniroute-3.8.51",
     };
   }
   if (options.packageRoot === undefined || options.which !== undefined) {
@@ -657,6 +730,7 @@ export function inspectOmniRouteNativeCliReadiness(
   const api = sourceById(sources, "cli-api");
   const token = sourceById(sources, "cli-token-helper");
   const management = sourceById(sources, "management-policy");
+  const peerContext = sourceById(sources, "authz-peer-context");
   const openapi = sourceById(sources, "openapi");
 
   const checks: Record<NativeCliReadinessCheck, boolean> = {
@@ -672,13 +746,37 @@ export function inspectOmniRouteNativeCliReadiness(
       "preview-post-endpoint",
     ]),
     cliApiInjectsExactCliTokenHeader:
-      sourceMarkersValid(api, allMarkersFor("cli-api")) &&
-      sourceMarkersValid(token, ["token-header-name"]),
-    cliTokenImportFailureReturnsEmpty: sourceMarkersValid(token, allMarkersFor("cli-token-helper")),
-    managementRequiresLoopbackCliToken: sourceMarkersValid(
-      management,
-      allMarkersFor("management-policy"),
-    ),
+      sourceMarkersValid(api, [
+        "api-token-import",
+        "api-token-resolution",
+        "api-token-header-guard",
+        "api-token-header-set",
+      ]) && sourceMarkersValid(token, ["token-header-name"]),
+    // 3.8.51: the machine-bound token is attached only for a loopback destination, and a
+    // redirect can never carry it to another host.
+    cliApiSendsCliTokenOnlyToLoopback: sourceMarkersValid(api, [
+      "api-loopback-function",
+      "api-loopback-localhost",
+      "api-loopback-ipv4",
+      "api-loopback-only-injection",
+      "api-destination-bound-headers",
+      "api-token-redirect-refusal",
+    ]),
+    cliTokenImportFailureReturnsEmpty: sourceMarkersValid(token, [
+      "token-missing-function-empty",
+      "token-machine-id-import",
+      "token-empty-import-fallback",
+    ]),
+    // 3.8.51 resolves the CommonJS export the 3.8.48 helper missed, and derives the token from a
+    // per-install salt written owner-only, not from the world-readable machine id alone.
+    cliTokenBoundToOwnerOnlySalt: sourceMarkersValid(token, [
+      "token-salt-file-owner-only",
+      "token-commonjs-resolution",
+      "token-hmac-derivation",
+    ]),
+    managementRequiresLoopbackCliToken:
+      sourceMarkersValid(management, allMarkersFor("management-policy")) &&
+      sourceMarkersValid(peerContext, allMarkersFor("authz-peer-context")),
     openApiPreviewRequiresMessagesAndMode: sourceMarkersValid(openapi, allMarkersFor("openapi")),
   };
 
@@ -732,7 +830,7 @@ export function inspectOmniRouteNativeCliReadiness(
     checks,
     nonClaims: {
       integrityScope: "exact-reviewed-allowlist-file-digests",
-      pinnedFileCount: 6,
+      pinnedFileCount: 7,
       packageIntegrityComplete: false,
       entrypointResolutionPinned: false,
       loadedModuleGraphVerified: false,

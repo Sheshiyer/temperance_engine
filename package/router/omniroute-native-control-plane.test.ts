@@ -27,7 +27,7 @@ const runtime: RuntimeIdentity = {
   pid: 4242,
   startedHash: "a".repeat(64),
   listener: "127.0.0.1:20128",
-  version: "3.8.48",
+  version: "3.8.51",
   packageIdentityHash: "b".repeat(64),
   databaseBindingHash: "c".repeat(64),
 };
@@ -154,7 +154,7 @@ function createFixture(): CollectionOptions & { root: string; quickTunnelStatePa
     dispatchManifestPath,
     quickTunnelStatePath,
     hermesDirectoryPath: resolve(root, "absent-hermes"),
-    installedVersion: "3.8.48",
+    installedVersion: "3.8.51",
     expectedUid: process.getuid?.(),
     now: () => new Date("2026-08-02T00:00:00.000Z"),
     runtimeProbe: () => fixtureRuntime,
@@ -178,6 +178,85 @@ afterEach(() => {
 });
 
 describe("OmniRoute native control-plane snapshot", () => {
+  test("binds the dashboard topology semantics to the re-audited 3.8.51 release", () => {
+    const semantics = collectNativeControlPlane(createFixture()).layers.activity.dashboardTopologySemantics;
+    expect(semantics).toEqual({
+      versionBound: true,
+      blueBadge: "in-flight-provider-family-count",
+      green: "in-flight-or-connected",
+      amber: "last-routed",
+      red: "last-error-or-errored-connection",
+      redAgeCutoff: "none",
+      dim: "connected-inventory-idle",
+      nodeSet: "providers-with-an-active-connection",
+      conclusion: "highlighted-rails-are-not-provider-count",
+    });
+    const olderFixture = createFixture();
+    const olderRuntime = olderFixture.runtimeProbe();
+    const older = collectNativeControlPlane({ ...olderFixture, installedVersion: "3.8.48", runtimeProbe: () => ({ ...olderRuntime, version: "3.8.48" }) });
+    expect(older.layers.activity.dashboardTopologySemantics.versionBound).toBe(false);
+  });
+
+  test("accepts the 3.8.51 default compression combo, whose steps carry no intensity", () => {
+    const fixture = createFixture();
+    const db = new Database(fixture.databasePath);
+    db.exec(`UPDATE compression_combos SET pipeline = '[{"engine":"session-dedup"},{"engine":"lite"}]'`);
+    db.close();
+    expect(collectNativeControlPlane(fixture).layers.policy.compression.configuredPipeline).toEqual([
+      { engine: "session-dedup", intensity: null },
+      { engine: "lite", intensity: null },
+    ]);
+    const bad = createFixture();
+    const badDb = new Database(bad.databasePath);
+    badDb.exec(`UPDATE compression_combos SET pipeline = '[{"engine":"lite","intensity":42}]'`);
+    badDb.close();
+    expect(captureCode(() => collectNativeControlPlane(bad))).toBe("compression_pipeline_invalid");
+  });
+
+  test("digests compression settings the projection does not parse, without exposing them", () => {
+    const fixture = createFixture();
+    const before = collectNativeControlPlane(fixture).layers.policy.compression;
+    expect(before.otherSettingsCount).toBe(0);
+    const db = new Database(fixture.databasePath);
+    db.exec(`INSERT INTO key_value VALUES ('compression', 'engines', '{"private":"SENTINEL_ENGINES"}')`);
+    db.close();
+    const after = collectNativeControlPlane(fixture).layers.policy.compression;
+    expect(after.otherSettingsCount).toBe(1);
+    expect(after.otherSettingsSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(after.otherSettingsSha256).not.toBe(before.otherSettingsSha256);
+    expect(JSON.stringify(after)).not.toContain("SENTINEL_ENGINES");
+  });
+
+  test("fails closed on an unbounded compression settings namespace", () => {
+    const fixture = createFixture();
+    const db = new Database(fixture.databasePath);
+    for (let index = 0; index < 64; index++) db.exec(`INSERT INTO key_value VALUES ('compression', 'extra${index}', '1')`);
+    db.close();
+    expect(captureCode(() => collectNativeControlPlane(fixture))).toBe("compression_settings_too_large");
+  });
+
+  test("counts the 3.8.51 failure statuses as unhealthy connections", () => {
+    const fixture = createFixture();
+    const before = collectNativeControlPlane(fixture).layers.inventory.unhealthyConnections;
+    const db = new Database(fixture.databasePath);
+    db.exec(`INSERT INTO provider_connections VALUES
+      ('github-copilot', 1, 'expired', NULL, NULL, NULL, NULL, NULL),
+      ('github-copilot', 1, 'unavailable', NULL, NULL, NULL, NULL, NULL),
+      ('github-copilot', 1, 'credits_exhausted', NULL, NULL, NULL, NULL, NULL),
+      ('github-copilot', 0, 'deactivated', NULL, NULL, NULL, NULL, NULL)`);
+    db.close();
+    expect(collectNativeControlPlane(fixture).layers.inventory.unhealthyConnections).toBe(before + 4);
+  });
+
+  test("treats a 3.8.51 publicUrl or apiUrl in the quick-tunnel state as a live URL", () => {
+    for (const key of ["url", "publicUrl", "apiUrl"]) {
+      const fixture = createFixture();
+      writeFileSync(fixture.quickTunnelStatePath, JSON.stringify({ status: "stopped", pid: null, [key]: "https://example.trycloudflare.com" }), { mode: 0o600 });
+      const cloudflare = collectNativeControlPlane(fixture).layers.authority.cloudflare;
+      expect(cloudflare).toMatchObject({ quickTunnel: "unsafe", publicUrlPresent: true });
+    }
+  });
+
   test("projects only five redacted layers from one read-only transaction", () => {
     const fixture = createFixture();
     const snapshot = collectNativeControlPlane(fixture);
