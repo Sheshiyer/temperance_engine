@@ -22,8 +22,6 @@
 <h1>Changelog</h1>
 <h2>Unreleased</h2>
 <ul>
-<li>Added the showreel (<code>package/showreel/</code>): a 15-second, 60 fps motion piece in 16:9 and 9:16 cuts, cut on a 120 BPM beat. One hand-written Canvas2D file, a synthesized soundtrack, and a Bun + headless Chromium + ffmpeg capture that caches fonts and deletes its frames. Watch it: <a href="../../assets/showreel/temperance-showreel.mp4">16:9</a> · <a href="../../assets/showreel/temperance-showreel-9x16.mp4">9:16</a>.</li>
-<li>Added the opt-in Simplified Technical English (ASD-STE100) skill: <code>./install.sh --with-ste</code> fetches <a href="https://github.com/0xpili/simplified-technical-english">0xpili/simplified-technical-english</a> at a pinned commit (referenced, not vendored). Added <code>package/ste-check/</code>, a bun port of its checker, and an STE ratchet gate over the docs in <code>scripts/verify-all.sh</code>. <code>QUICKSTART.md</code> is now in STE. See <code>docs/ste.md</code>.</li>
 <li>Release-control plane: <code>VERSION</code>, <code>docs/release-control.md</code>, <code>docs/COMPATIBILITY.md</code>, organ maps (<code>docs/OWNERS.md</code>, <code>docs/ECOSYSTEM.md</code>). Host runtime has matching <code>~/.temperance_engine/VERSION</code> and <code>CHANGELOG.md</code>. OmniRoute stays independently versioned and pinned at 3.8.48.</li>
 <li>Refreshed the architecture visual set (2026-08-17): <code>docs/architecture/architecture.html</code>, new <code>spine-and-goal.html</code>, rewritten <code>session-trace.html</code>, updated integration-map/system-internals, SERVICES, DEPENDENCY-GRAPH, and <code>notebooklm-prompt.md</code>. Pictures now show <code>--with-spine</code>, Manifest Zone, picker-before-IAB, <code>/gsd:goal</code>, and the dual-fleet lock.</li>
 <li>Added <code>/gsd:goal</code> (and <code>/goal</code>) as the portable session loop around GSD + next-wave + te-dispatch-paid. Writes <code>.temperance/goal.json</code>; evaluator reuses doctor/ISA probes. Does not auto-dispatch or fork GSD. See <code>docs/gsd-goal-handoff.md</code>.</li>
@@ -39,6 +37,11 @@
 <li>Added generated banner and icon assets.</li>
 <li>Added upstream link map and expanded credits.</li>
 <li>Added GitHub Actions verification workflow.</li>
+</ul>
+<h2>0.7.0 — 2026-10-04</h2>
+<ul>
+<li>Added the showreel (<code>package/showreel/</code>): a 15-second, 60 fps motion piece in 16:9 and 9:16 cuts, cut on a 120 BPM beat. One hand-written Canvas2D file, a synthesized soundtrack, and a Bun + headless Chromium + ffmpeg capture that caches fonts and deletes its frames. Watch it: <a href="../../assets/showreel/temperance-showreel.mp4">16:9</a> · <a href="../../assets/showreel/temperance-showreel-9x16.mp4">9:16</a>.</li>
+<li>Added the opt-in Simplified Technical English (ASD-STE100) skill: <code>./install.sh --with-ste</code> fetches <a href="https://github.com/0xpili/simplified-technical-english">0xpili/simplified-technical-english</a> at a pinned commit (referenced, not vendored). Added <code>package/ste-check/</code>, a bun port of its checker, and an STE ratchet gate over the docs in <code>scripts/verify-all.sh</code>. <code>QUICKSTART.md</code> is now in STE. See <code>docs/ste.md</code>.</li>
 </ul>
 <h2>0.1.0</h2>
 <ul>

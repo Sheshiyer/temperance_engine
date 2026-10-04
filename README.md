@@ -18,11 +18,11 @@ Temperance Engine packages a local AI-operator runtime pattern for teams working
 
 This repository is a public installer wrapper. It does not require Claude Code, Claude Pro/Max, Anthropic auth, private memory, private configs, proprietary model credentials, or voice/audio packs.
 
-Current product release: **0.6.0**, implementing the **v4 hand-in-glove**
+Current product release: **0.7.0**, implementing the **v4 hand-in-glove**
 architecture. Noesis/Cambium remains an optional personal layer. Start with the
 [guided seven-step TUI](package/install-surface/docs/guided-onboarding.md), or
 use the [shared agent flow, health checks, and local logs](package/install-surface/docs/agent-operations.md).
-See the [release boundaries](CHANGELOG.md#060---2026-09-19) before enabling
+See the [release boundaries](CHANGELOG.md#070---2026-10-04) before enabling
 routing or long-context policies: this release does not claim qualified 1M
 sessions, durable checkpoint recovery, or a completed v1.1 clean-host milestone.
 
@@ -255,7 +255,7 @@ graph LR
 - source-reference: manifest.json
 - source-count: 6
 - source-note: README.md, CHANGELOG.md, CONTRIBUTING.md, CREDITS.md, ISA.md, QUICKSTART.md
-- generated-at: 2026-10-04T19:38:46+0000
+- generated-at: 2026-10-04T19:45:35+0000
 - notebook-id: a6e54ace-8597-4c34-b679-88cb66af7ccc
 - generation-command: READMEREBUILD_SKIP_NOTEBOOKLM=1 bash scripts/rebuild-readme.sh 'Temperance Engine' 'Sheshiyer'
 - continuity-mode: merge-queue refresh workflow

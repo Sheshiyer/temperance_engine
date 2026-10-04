@@ -10,6 +10,8 @@ Compatibility: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-04
+
 ### Added
 
 - **Showreel** (`package/showreel/`) — a 15-second, 60 fps motion piece in two cuts, 16:9 and 9:16 for social media, cut on the beat of a 120 BPM soundtrack. `reel.html` is one hand-written Canvas2D file with a deterministic `render(frame)`; `scripts/soundtrack.ts` synthesizes the audio; `scripts/capture.ts` renders frames in parallel headless Chromium, caches Google Fonts in `.cache/fonts/`, encodes with ffmpeg, then deletes the frames and temporary browser profiles (`--keep-frames` opts out). No animation libraries and no package dependencies. `bun run publish` writes the web encodes and contact-sheet poster in `assets/showreel/`. The README and the themed library show it.
@@ -30,6 +32,19 @@ Compatibility: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 - `tests/verify-install-private-path-guard.sh`: the synthetic `CREDITS.md` now includes the STE attribution that `verify-install.sh` requires, so the guard regression suite keeps passing.
 - **ripgrep is now an explicit dependency, and a missing rg fails closed.** Without the `rg` binary, `scripts/omniroute-codex-preview.sh` silently skipped its credential-leak scan (the `if rg` read exit 127 as "no leak") and still wrote a receipt. It now exits 127 with `rg is required`, as the Hermes preview already did. `tests/omniroute-autostart-launchd.sh` and `tests/omniroute-hermes-preview.sh` false-passed checks without rg; they now fail at once. `scripts/verify-all.sh` refuses to start without rg, alongside its bun check. `scripts/verify-install.sh` prints an advisory `warn:` line (install still succeeds). `tests/omniroute-native-integration.sh` passes `--no-require-git`, so its exact-match scan honors `.gitignore` in non-git checkouts.
 - `tests/temperance-proxy-live.sh` also pins the proxy's Kimi session read (`TEMPERANCE_KIMI_STATE`) to its temp dir, deletes that dir on exit, and asserts by correlation ID that none of its own requests reach the operator request log (`$HOME/.temperance_engine/state/openai-proxy.jsonl`, which is the repo on a host checkout), so unrelated traffic from a live relay cannot break it.
+
+### Qualification boundary
+
+- This is the `0.7.0` feature release: the opt-in STE skill and docs gate, and
+  the showreel. It is not completion of the separately tracked v1.1 clean-host
+  qualification milestone or a claim of end-to-end 1M sessions.
+- The adapter pin remains `9router@0.5.75`; other versions remain held. Router
+  changes still under review (organ registry, hosted-router edge) are not part
+  of this release.
+- Per-attempt gateway context enforcement and durable checkpoint recovery remain
+  unqualified, as in `0.6.0`.
+- The showreel is documentation media. `install.sh` does not install it, and it
+  changes no installer, doctor, lifecycle, or routing contract.
 
 ## [0.6.0] - 2026-09-19
 

@@ -49,11 +49,11 @@
   },
   "localSourceReconciliation": {
     "mode": "local-source-refresh-existing-research-assets",
-    "observedAt": "2026-10-04T19:38:46Z",
+    "observedAt": "2026-10-04T19:45:35Z",
     "sourceHead": "ebe76e3aeaba41d76501a8d568f38dd638e616b2",
     "source": "CHANGELOG.md",
-    "sourceSha256": "a05838bc4c6f6ca1dcd572bec56a5298daeb81bcd5457406a5a5be7c9ee4a2a6",
-    "reason": "Record the showreel package and its README, docs map, and themed-library entries in CHANGELOG and README; preserve historical research assets without claiming regeneration.",
+    "sourceSha256": "1186495dd0670b926aff9a73a3bf79abea687b5ead9fe38dd6481a364b163047",
+    "reason": "Reconcile the 0.7.0 release notes (STE skill and docs gate, showreel) and README; preserve historical research assets without claiming regeneration.",
     "notebookRegenerated": false,
     "historicalResearchAssetsReused": true
   }

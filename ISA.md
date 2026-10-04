@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 723/845
+progress: 723/855
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-04T17:37:54Z
+updated: 2026-10-04T19:45:28Z
 ---
 
 ## Problem
@@ -1093,6 +1093,16 @@ untouched.
 - [x] ISC-821: A forced STE update fetches and validates the replacement before it retires the active checkout.
 - [x] ISC-822: The STE installer never replaces an in-place `STE_SKILL_HOME` checkout with a link to itself.
 - [x] ISC-823: STE uninstall removes only links that resolve to the managed checkout in the configured roots, and moves rather than deletes the checkout.
+- [ ] ISC-824: `bun run render` in `package/showreel` writes a 1920×1080, 60 fps, 900-frame, 15.000 s H.264 cut with AAC audio.
+- [ ] ISC-825: `bun run render:vertical` writes a 1080×1920, 60 fps, 900-frame, 15.000 s H.264 cut with AAC audio.
+- [ ] ISC-826: Anti: `package/showreel` declares no package dependencies and loads no animation library.
+- [ ] ISC-827: A successful showreel capture leaves no PNG frames and no temporary browser profiles behind.
+- [ ] ISC-828: `bun run publish` writes both web encodes under 6 MB each and the poster to `assets/showreel/`.
+- [ ] ISC-829: `package/showreel/README.md` has zero STE structural errors.
+- [ ] ISC-830: The owner-requested minor release candidate declares product version `0.7.0`.
+- [ ] ISC-831: The `0.7.0` changelog keeps the `9router@0.5.75` pin and the unqualified long-context and checkpoint-recovery boundary.
+- [ ] ISC-832: The `0.7.0` source candidate passes the canonical verification suite.
+- [ ] ISC-833: Anti: the `0.7.0` public candidate contains no private absolute home path rejected by the existing guard.
 
 ## Test Strategy
 
@@ -1907,6 +1917,16 @@ untouched.
 | ISC-821 | installer safety | forced update to an unfetchable pin | active skill and links unchanged, no backup | `tests/install-ste.sh` |
 | ISC-822 | installer safety | `STE_SKILL_HOME` inside a surface skills dir with `--force` | real checkout, no self-link | `tests/install-ste.sh` |
 | ISC-823 | uninstall | operator-owned and default-path skills under overridden roots | untouched; only the managed link removed; checkout moved to backups | `tests/install-ste.sh` |
+| ISC-824 | showreel | 16:9 master stream and format | 1920×1080, 60/1, 900 frames, 15.000 s, h264 + aac | `ffprobe out/temperance-showreel.mp4` |
+| ISC-825 | showreel | 9:16 master stream and format | 1080×1920, 60/1, 900 frames, 15.000 s, h264 + aac | `ffprobe out/temperance-showreel-9x16.mp4` |
+| ISC-826 | showreel | `dependencies` in package.json; library imports in `reel.html` | none | `package/showreel/package.json` readback + `rg import` |
+| ISC-827 | showreel | `out/frames*` and `te-capture-*` temp profiles after render | absent | `ls out/` + temp-dir listing |
+| ISC-828 | showreel | `assets/showreel/*.mp4` size; poster present | < 6 MB each; poster exists | `bun run publish` output |
+| ISC-829 | docs | `package/showreel/README.md` STE errors | zero | `bun package/ste-check/cli.ts --mode mixed` |
+| ISC-830 | release | product version | exact `0.7.0` | `cat VERSION` |
+| ISC-831 | release | qualification boundary | 9router pin and long-context/recovery holds stated | changelog readback |
+| ISC-832 | release | canonical verification | exit zero | `./scripts/verify-all.sh` |
+| ISC-833 | privacy | existing public-path guard | exit zero, guard unchanged | `./verify.sh` |
 
 ## Features
 
@@ -2004,6 +2024,8 @@ untouched.
 | Phase 1 read-only control plane verification | ISC-806..ISC-808 | approved 01-03 plan, dirty-tree commit boundary | no |
 | 0.6.0 additive v4 feature release | ISC-809..ISC-812 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
 | Simplified Technical English skill and docs gate | ISC-813..ISC-823 | upstream 0xpili/simplified-technical-english at pinned commit | yes |
+| Showreel (16:9 and 9:16) | ISC-824..ISC-829 | Bun, ffmpeg, a Chromium-family browser; Google Fonts on first render | yes |
+| 0.7.0 additive feature release | ISC-830..ISC-833 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
 
 ## Architecture
 
@@ -2261,6 +2283,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-08-04 18:20 IST: The six-file packet draft is present with packet digest `be0d69efec00bc2bd769b4f54e2160e45fea93c80897952a8ff22f79fa6a72c8`. The fresh owner-only dry-run `/tmp/temperance-canary-packet.GWGuFG/thoughtseed-brand-atlas.plan.json` is mode `0600`, SHA-256 `fe78fc1cb2556ae66e86b26705406c628e8a81be1142ae8b7db04b207ab397f8`, `ready:false`, and holds on `packet_identity_pending_teamforge` plus `working_tree_not_clean`; exact checked-in path consumers remain empty and the destination remains absent.
 
 - 2026-09-19 14:10 UTC: refined: The owner requests a minor version bump and GitHub publication of the current v4 integration. Product `VERSION` moves from 0.5.4 to 0.6.0; v4 names the architecture, not a product major. ISC-800 records the earlier Phase 1 freeze and is historical, not an instruction to downgrade the current product. The separate v1.1 milestone and its clean-host platform gates remain incomplete. Noesis stays optional; no host generation, credentials, provider pin, or session-policy activation changes follow from publication. Release operations stay single-author because version, candidate commit, and tag form one sequential chain. The optional Advisor returned exit 1 and is not counted as approval.
+
+- 2026-10-04 20:10 UTC: refined: The owner requests a minor version bump and GitHub publication after the showreel docs change. Product `VERSION` moves from 0.6.0 to 0.7.0 and carries the merged STE skill and docs gate plus the showreel. Open router PRs #35 (organ registry) and #38 (hosted-router edge) are not merged and stay out of this release. The `9router@0.5.75` pin, host generation, credentials, and session policy do not change. The showreel ships repo-sized web encodes (CRF 24) built by `bun run publish`; the CRF 16 masters stay local and regenerable.
 
 ## Changelog
 
@@ -2693,6 +2717,11 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   refuted by: a 366-run corpus diff against upstream `ste_check.py` exposed Python `re` semantics (Unicode `\w`/`\b`/`\d`, the `\s` set, `splitlines`, code-point length) that JavaScript regexes do not share; the in-scope docs held 600 structural errors before any rewrite
   learned: parity with a Python tool is an emulation contract proved by golden output, not a transliteration; a docs style gate on a living corpus must be a per-file ratchet that only tightens
   criterion now: ISC-816 holds byte-identical output on committed fixtures, ISC-817..ISC-819 make the docs gate a ratchet with zero-error new docs, and ISC-815 keeps the ASD-STE100 word list out of the repo
+
+- 2026-10-04 | conjectured: the CRF 16 render masters could be committed as the README showreel.
+  refuted by: the two masters total about 38 MB against a 9.8 MB repository pack, and binaries stay in git history; a CRF 24 web encode measured SSIM 0.984 against the master at a quarter of the size.
+  learned: published media is a derived artifact with a size budget, built by a script from regenerable masters, not the masters themselves.
+  criterion now: ISC-828 caps each committed web encode below 6 MB and requires `bun run publish` to rebuild it.
 
 ## Verification
 
