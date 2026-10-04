@@ -65,6 +65,7 @@ run bash tests/omniroute-connections.sh
 run bash tests/omniroute-temperance-combos.sh
 run bash tests/omniroute-planner-quota.sh
 run bash tests/omniroute-memory-sync.sh
+run bash tests/omniroute-memory-access.sh
 run bash tests/omniroute-autostart-launchd.sh
 run bash tests/omniroute-native-integration-live-guard.sh
 run bash tests/omniroute-native-integration.sh
