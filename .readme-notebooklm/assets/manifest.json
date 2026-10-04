@@ -49,10 +49,10 @@
   },
   "localSourceReconciliation": {
     "mode": "local-source-refresh-existing-research-assets",
-    "observedAt": "2026-10-04T19:45:35Z",
+    "observedAt": "2026-10-04T19:49:44Z",
     "sourceHead": "ebe76e3aeaba41d76501a8d568f38dd638e616b2",
     "source": "CHANGELOG.md",
-    "sourceSha256": "1186495dd0670b926aff9a73a3bf79abea687b5ead9fe38dd6481a364b163047",
+    "sourceSha256": "65bf32eb32cfcf1be07ecb4c5199844a73994418e4d96351de9f5f523bd0e86e",
     "reason": "Reconcile the 0.7.0 release notes (STE skill and docs gate, showreel) and README; preserve historical research assets without claiming regeneration.",
     "notebookRegenerated": false,
     "historicalResearchAssetsReused": true

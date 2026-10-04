@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 723/855
+progress: 723/857
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-04T19:45:28Z
+updated: 2026-10-04T19:49:35Z
 ---
 
 ## Problem
@@ -1103,6 +1103,8 @@ untouched.
 - [ ] ISC-831: The `0.7.0` changelog keeps the `9router@0.5.75` pin and the unqualified long-context and checkpoint-recovery boundary.
 - [ ] ISC-832: The `0.7.0` source candidate passes the canonical verification suite.
 - [ ] ISC-833: Anti: the `0.7.0` public candidate contains no private absolute home path rejected by the existing guard.
+- [ ] ISC-834: `bun run typecheck` in `package/install-surface` exits 0 on the `0.7.0` candidate.
+- [ ] ISC-835: The install doctor reports a `LAUNCHAGENT` record as `UNAVAILABLE` with `LAUNCHAGENT_OBSERVATION_UNAVAILABLE`, never through the transform observer.
 
 ## Test Strategy
 
@@ -1927,6 +1929,8 @@ untouched.
 | ISC-831 | release | qualification boundary | 9router pin and long-context/recovery holds stated | changelog readback |
 | ISC-832 | release | canonical verification | exit zero | `./scripts/verify-all.sh` |
 | ISC-833 | privacy | existing public-path guard | exit zero, guard unchanged | `./verify.sh` |
+| ISC-834 | release | install-surface `tsc --noEmit` | exit zero | `bun run typecheck` |
+| ISC-835 | doctor | `LAUNCHAGENT` record condition and reason | `UNAVAILABLE`, `LAUNCHAGENT_OBSERVATION_UNAVAILABLE` | `test/doctor.test.ts` class-aware test |
 
 ## Features
 
@@ -2025,7 +2029,7 @@ untouched.
 | 0.6.0 additive v4 feature release | ISC-809..ISC-812 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
 | Simplified Technical English skill and docs gate | ISC-813..ISC-823 | upstream 0xpili/simplified-technical-english at pinned commit | yes |
 | Showreel (16:9 and 9:16) | ISC-824..ISC-829 | Bun, ffmpeg, a Chromium-family browser; Google Fonts on first render | yes |
-| 0.7.0 additive feature release | ISC-830..ISC-833 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
+| 0.7.0 additive feature release | ISC-830..ISC-835 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
 
 ## Architecture
 
@@ -2722,6 +2726,11 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   refuted by: the two masters total about 38 MB against a 9.8 MB repository pack, and binaries stay in git history; a CRF 24 web encode measured SSIM 0.984 against the master at a quarter of the size.
   learned: published media is a derived artifact with a size budget, built by a script from regenerable masters, not the masters themselves.
   criterion now: ISC-828 caps each committed web encode below 6 MB and requires `bun run publish` to rebuild it.
+
+- 2026-10-04 | conjectured: main was releasable because the Verify workflow was green after #36 and #37.
+  refuted by: the release gate ran `tsc --noEmit` in `package/install-surface` and found three errors from d4748c9; Verify runs `verify-all.sh`, which never type-checks, and one error hid a doctor that misreported LaunchAgent records as transforms.
+  learned: a green CI badge proves only the gates CI runs; the release contract lists typecheck separately for this reason, and a type error on a dispatch union can be a real behavior gap.
+  criterion now: ISC-834 holds typecheck at exit 0 for the candidate and ISC-835 pins honest LaunchAgent doctor reporting.
 
 ## Verification
 
