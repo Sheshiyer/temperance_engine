@@ -106,7 +106,7 @@ case "${1:-}" in
   *context-sources-line.ts)
     printf '%s\n%s\n' \
       'DEBUG_OR_SECRET_PREAMBLE' \
-      'context-sources: {"pai":null,"gsd":null,"skills":null,"material":"pointers-only"}'
+      'context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}'
     ;;
   *validate-agents-md.ts)
     printf '%s\n' validator_called > "$FAKE_BUN_CAPTURE"
