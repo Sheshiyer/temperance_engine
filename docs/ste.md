@@ -55,6 +55,8 @@ If the skill folder is already at the pinned commit, the installer does not chan
 If the skill folder is at a different commit or has local changes, the installer stops.
 To replace the skill folder, add `--force`.
 The installer then puts a backup of the old folder in `$TEMPERANCE_BACKUP_DIR`.
+The installer gets and checks the new skill before it moves the old folder.
+If that step fails, the old folder and its links do not change.
 
 These environment variables change the installer:
 
@@ -67,7 +69,8 @@ These environment variables change the installer:
 ### Use the skill
 
 In Claude Code, type `/simplified-technical-english`, or ask for STE.
-In OpenCode, the managed Temperance agents allow the skill.
+On the default macOS host profile, the managed Temperance agents in OpenCode allow the skill.
+The EC2 host profile has a different list of skills. On that profile, the managed agents do not allow the skill.
 The skill applies to technical text only.
 The skill does not apply to code, commands, or sales text.
 
@@ -156,4 +159,12 @@ Refer to [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
 ## Remove the skill
 
+Run the installer in uninstall mode:
+
+```bash
+TEMPERANCE_ROOT="$PWD" TEMPERANCE_STE_MODE=uninstall sh scripts/install-ste.sh
+```
+
+The installer removes only the links that point to the managed skill folder.
+It moves the skill folder to the backup folder. It does not delete the folder.
 Refer to [docs/rollback.md](rollback.md).

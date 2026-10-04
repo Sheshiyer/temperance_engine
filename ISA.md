@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 720/842
+progress: 723/845
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-04T16:45:00Z
+updated: 2026-10-04T17:37:54Z
 ---
 
 ## Problem
@@ -1090,6 +1090,9 @@ untouched.
 - [x] ISC-818: The STE docs gate fails when an in-scope doc outside the baseline has any error.
 - [x] ISC-819: `QUICKSTART.md` and `docs/ste.md` have zero STE structural errors.
 - [x] ISC-820: OpenCode writing agents allow the `simplified-technical-english` skill, and locked lanes do not.
+- [x] ISC-821: A forced STE update fetches and validates the replacement before it retires the active checkout.
+- [x] ISC-822: The STE installer never replaces an in-place `STE_SKILL_HOME` checkout with a link to itself.
+- [x] ISC-823: STE uninstall removes only links that resolve to the managed checkout in the configured roots, and moves rather than deletes the checkout.
 
 ## Test Strategy
 
@@ -1901,6 +1904,9 @@ untouched.
 | ISC-818 | docs gate | new in-scope doc with an error | gate fails | `package/ste-check/docs-gate.test.ts` |
 | ISC-819 | docs | `QUICKSTART.md` and `docs/ste.md` STE errors | zero | `bun package/ste-check/docs-gate.ts` |
 | ISC-820 | OpenCode | writing agents allow the STE skill; locked lanes do not | exact | `tests/configure-opencode-session-profiles.sh` |
+| ISC-821 | installer safety | forced update to an unfetchable pin | active skill and links unchanged, no backup | `tests/install-ste.sh` |
+| ISC-822 | installer safety | `STE_SKILL_HOME` inside a surface skills dir with `--force` | real checkout, no self-link | `tests/install-ste.sh` |
+| ISC-823 | uninstall | operator-owned and default-path skills under overridden roots | untouched; only the managed link removed; checkout moved to backups | `tests/install-ste.sh` |
 
 ## Features
 
@@ -1997,7 +2003,7 @@ untouched.
 | Phase 1 provenance contract execution | ISC-795..ISC-805 | approved 01-01 and 01-02 plans | no |
 | Phase 1 read-only control plane verification | ISC-806..ISC-808 | approved 01-03 plan, dirty-tree commit boundary | no |
 | 0.6.0 additive v4 feature release | ISC-809..ISC-812 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
-| Simplified Technical English skill and docs gate | ISC-813..ISC-820 | upstream 0xpili/simplified-technical-english at pinned commit | yes |
+| Simplified Technical English skill and docs gate | ISC-813..ISC-823 | upstream 0xpili/simplified-technical-english at pinned commit | yes |
 
 ## Architecture
 

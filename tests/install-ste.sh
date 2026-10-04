@@ -147,6 +147,59 @@ else
 fi
 check "an unknown pin leaves no skill dir" test ! -e "$(skill_of "$E")"
 
+# A forced update fetches and validates before it retires the active skill.
+E="$TMP_ROOT/force-fail"
+run_ste "$E" >/dev/null 2>&1
+if run_ste "$E" STE_PIN=0000000000000000000000000000000000000000 TEMPERANCE_FORCE=1 >"$TMP_ROOT/force-fail.out" 2>&1; then
+  check "a forced update to a bad pin fails" false
+else
+  check "a forced update to a bad pin fails" grep -q 'ERROR: could not fetch' "$TMP_ROOT/force-fail.out"
+fi
+check "a failed forced update keeps the active skill" test "$(head_of "$E")" = "$PIN1"
+check "a failed forced update leaves both links resolving" \
+  sh -c "test -f '$E/claude/skills/simplified-technical-english/SKILL.md' && test -f '$E/opencode/skills/simplified-technical-english/SKILL.md'"
+check "a failed forced update makes no backup" test ! -e "$E/backups"
+
+# STE_SKILL_HOME may be a surface path itself; it must never become a self-link.
+E="$TMP_ROOT/in-place"
+INPLACE="$E/claude/skills/simplified-technical-english"
+run_ste "$E" STE_SKILL_HOME="$INPLACE" >"$TMP_ROOT/in-place-1.out" 2>&1
+check "an in-place install is a real checkout" sh -c "test -d '$INPLACE/.git' && test ! -L '$INPLACE'"
+check "an in-place install is reported as in place" grep -q 'installed in place' "$TMP_ROOT/in-place-1.out"
+run_ste "$E" STE_SKILL_HOME="$INPLACE" STE_PIN="$PIN2" TEMPERANCE_FORCE=1 >"$TMP_ROOT/in-place-2.out" 2>&1
+check "a forced in-place update never creates a self-link" \
+  sh -c "test ! -L '$INPLACE' && test -f '$INPLACE/SKILL.md' && test \"\$(git -C '$INPLACE' rev-parse HEAD)\" = '$PIN2'"
+check "the other surface links to the in-place checkout" \
+  test "$(readlink "$E/opencode/skills/simplified-technical-english")" = "$INPLACE"
+
+# Uninstall removes only what it manages, in the configured roots, and deletes nothing.
+E="$TMP_ROOT/uninstall"
+mkdir -p "$E/claude/skills/simplified-technical-english" "$E/home/.claude/skills/simplified-technical-english"
+printf '%s\n' 'operator-owned skill' >"$E/claude/skills/simplified-technical-english/SKILL.md"
+printf '%s\n' 'default-path skill' >"$E/home/.claude/skills/simplified-technical-english/SKILL.md"
+run_ste "$E" >/dev/null 2>&1
+run_ste "$E" TEMPERANCE_STE_MODE=uninstall TEMPERANCE_DRY_RUN=1 >/dev/null 2>&1
+check "a dry-run uninstall changes nothing" \
+  sh -c "test -L '$E/opencode/skills/simplified-technical-english' && test -d '$(skill_of "$E")'"
+run_ste "$E" TEMPERANCE_STE_MODE=uninstall >"$TMP_ROOT/uninstall-1.out" 2>&1
+check "uninstall removes the managed link" \
+  sh -c "test ! -e '$E/opencode/skills/simplified-technical-english' && test ! -L '$E/opencode/skills/simplified-technical-english'"
+check "uninstall keeps an operator-owned skill at a configured surface" \
+  grep -q 'operator-owned skill' "$E/claude/skills/simplified-technical-english/SKILL.md"
+check "uninstall never touches default paths when roots are overridden" \
+  grep -q 'default-path skill' "$E/home/.claude/skills/simplified-technical-english/SKILL.md"
+check "uninstall moves the checkout to the backup dir" \
+  sh -c "test ! -e '$(skill_of "$E")' && find '$E/backups' -path '*simplified-technical-english/.git' -type d | grep -q ."
+run_ste "$E" TEMPERANCE_STE_MODE=uninstall >"$TMP_ROOT/uninstall-2.out" 2>&1
+check "uninstall is idempotent" grep -q 'is not installed' "$TMP_ROOT/uninstall-2.out"
+
+E="$TMP_ROOT/uninstall-dirty"
+run_ste "$E" >/dev/null 2>&1
+printf '%s\n' 'local edit' >>"$(skill_of "$E")/SKILL.md"
+run_ste "$E" TEMPERANCE_STE_MODE=uninstall >"$TMP_ROOT/uninstall-dirty.out" 2>&1
+check "uninstall leaves a dirty checkout without force" \
+  sh -c "grep -q 'WARNING: .* is not a clean checkout' '$TMP_ROOT/uninstall-dirty.out' && grep -q 'local edit' '$(skill_of "$E")/SKILL.md'"
+
 # install.sh exposes the flags and calls the installer.
 check "install.sh documents --with-ste" sh -c "sh '$ROOT/install.sh' --help | grep -q -- '--with-ste'"
 check "install.sh runs scripts/install-ste.sh" grep -q 'sh "$ROOT_DIR/scripts/install-ste.sh"' "$ROOT/install.sh"
