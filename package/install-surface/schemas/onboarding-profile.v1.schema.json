@@ -22,7 +22,7 @@
     "secret_references": {
       "type": "object",
       "propertyNames": { "$ref": "#/$defs/variable" },
-      "additionalProperties": { "$ref": "#/$defs/keychainReference" },
+      "additionalProperties": { "oneOf": [{ "$ref": "#/$defs/keychainReference" }, { "$ref": "#/$defs/environmentReference" }] },
       "maxProperties": 128
     },
     "preselected_modules": { "type": "array", "items": { "$ref": "#/$defs/identifier" }, "uniqueItems": true, "maxItems": 512 },
@@ -41,6 +41,15 @@
         "store": { "const": "macos-keychain" },
         "service": { "type": "string", "minLength": 1, "maxLength": 256 },
         "account": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "environmentReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["store", "variable"],
+      "properties": {
+        "store": { "const": "environment" },
+        "variable": { "$ref": "#/$defs/variable" }
       }
     },
     "routingAlias": {

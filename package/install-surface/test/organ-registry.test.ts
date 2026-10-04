@@ -17,6 +17,7 @@ import { validateOnboardingCatalog, validateOnboardingProfile } from "../src/onb
 import { createSystemProbeAdapter, type OnboardingProbeIO } from "../src/onboarding/system-adapter.ts";
 import { toggleOnboardingModuleSelection } from "../src/onboarding/tui.ts";
 import { retiredIdsOutsideCatalog, retiredModuleNotice, withoutRetiredModules } from "../src/onboarding/profile-selection.ts";
+import { nineRouterKeychainReference } from "../src/onboarding/nine-router-guided-setup.ts";
 import { projectOperatorHealth } from "../src/onboarding/operator-health.ts";
 import { completeOnboardingWizard, createOnboardingWizardState, createOnboardingWizardView, handleOnboardingWizardKey } from "../src/onboarding/wizard.ts";
 
@@ -164,6 +165,23 @@ describe("organ planning", () => {
     expect(volume.organ?.tier).toBe("required");
     expect(volume.title).toBe("Vault Drive · Knowledge volume");
     expect(plan.modules.find(({ id }) => id === "tunnel.temperance-memory")?.organ?.public_url).toBe("https://memory.example.test");
+  });
+
+  test("rejects profile display values that are long or carry control characters", async () => {
+    const catalog = createCoreOnboardingCatalog();
+    const base = createCoreOnboardingProfile().variables;
+    const ok = await createOnboardingPlan({ catalog, profile: profile({ variables: { ...base, KNOWLEDGE_VOLUME_NAME: "Vault Drive" } }), adapter: allAvailable() });
+    expect(ok.modules.find(({ id }) => id === "storage.knowledge-volume")?.title).toBe("Vault Drive · Knowledge volume");
+    for (const [variable, value] of [
+      ["KNOWLEDGE_VOLUME_NAME", "Vault\nDrive"],
+      ["KNOWLEDGE_VOLUME_NAME", "Vault\u001b[31mDrive"],
+      ["KNOWLEDGE_VOLUME_NAME", "Vault\u202eDrive"],
+      ["KNOWLEDGE_VOLUME_NAME", "V".repeat(65)],
+      ["OBSIDIAN_PUBLIC_URL", "https://vault.example.test/\u0007"],
+    ] as const) {
+      await expect(createOnboardingPlan({ catalog, profile: profile({ variables: { ...base, [variable]: value } }), adapter: allAvailable() }))
+        .rejects.toThrow(`ONBOARDING_DISPLAY_VARIABLE_INVALID:${variable}`);
+    }
   });
 
   test("a hosted router moves the router and memory organs to the cloud runner", async () => {
@@ -551,5 +569,38 @@ describe("organ registry CLI", () => {
     expect(retiredModuleNotice("integration.omniroute-a2a")).toContain("integration.hermes-a2a");
     expect(retiredIdsOutsideCatalog(createCoreOnboardingCatalog())).toEqual(["integration.company-omniroute", "integration.omniroute-a2a", "provider.9router"]);
     expect(retiredIdsOutsideCatalog(createLegacyNineRouterCatalog())).not.toContain("provider.9router");
+  });
+});
+
+describe("environment secret references (cloud runner)", () => {
+  const requirement: CapabilityRequirement = { id: "omniroute-admin-secret", kind: "keychain-secret", secret_reference: "OMNIROUTE_ADMIN" };
+  const probeOn = async (platform: NodeJS.Platform, reference: OnboardingProfileV1["secret_references"][string], env: Record<string, string> = {}) =>
+    createSystemProbeAdapter({ io: io({ platform, env: (name) => env[name] }) })
+      .probe(requirement, { profile: profile({ secret_references: { OMNIROUTE_ADMIN: reference } }), signal: new AbortController().signal });
+
+  test("an environment reference is satisfied on any platform by its presence alone", async () => {
+    const reference = { store: "environment" as const, variable: "TEMPERANCE_OMNIROUTE_ADMIN_PASSWORD" };
+    const set = await probeOn("linux", reference, { TEMPERANCE_OMNIROUTE_ADMIN_PASSWORD: "not-printed" });
+    expect(set).toMatchObject({ available: true, reason_code: "AVAILABLE" });
+    expect(JSON.stringify(set)).not.toContain("not-printed");
+    expect(await probeOn("linux", reference)).toMatchObject({ available: false, reason_code: "SECRET_UNAVAILABLE" });
+  });
+
+  test("a Keychain reference still needs macOS", async () => {
+    expect(await probeOn("linux", { store: "macos-keychain", service: "svc", account: "acct" })).toMatchObject({ available: false, reason_code: "UNSUPPORTED_PLATFORM" });
+  });
+
+  test("the profile schema accepts an environment reference and rejects a malformed one", () => {
+    const withReference = (reference: unknown) => profile({ secret_references: { OMNIROUTE_ADMIN: reference as never } });
+    expect(validateOnboardingProfile(withReference({ store: "environment", variable: "TEMPERANCE_OMNIROUTE_ADMIN_PASSWORD" }))).toBe(true);
+    expect(validateOnboardingProfile(withReference({ store: "environment", variable: "lower_case" }))).toBe(false);
+    expect(validateOnboardingProfile(withReference({ store: "environment", variable: "OK", service: "svc" }))).toBe(false);
+    expect(validateOnboardingProfile(withReference({ store: "macos-keychain", service: "svc", account: "acct" }))).toBe(true);
+  });
+
+  test("the 9Router flow refuses an environment reference, because it writes Keychain items", () => {
+    const envProfile = profile({ secret_references: { GATEWAY: { store: "environment", variable: "GATEWAY_KEY" } } });
+    expect(() => nineRouterKeychainReference(envProfile, "GATEWAY", "MISSING")).toThrow("NINE_ROUTER_SETUP_KEYCHAIN_REFERENCE_REQUIRED");
+    expect(() => nineRouterKeychainReference(envProfile, "ABSENT", "MISSING")).toThrow("MISSING");
   });
 });

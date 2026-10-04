@@ -101,6 +101,7 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
     preselection: "selected",
     depends_on: ["provider.omniroute"],
     requires: [{
+      // OMNIROUTE_ADMIN is a Keychain item on a Mac, or an environment reference on a cloud runner.
       id: "omniroute-admin-secret",
       kind: "keychain-secret",
       secret_reference: "OMNIROUTE_ADMIN",

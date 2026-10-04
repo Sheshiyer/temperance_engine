@@ -130,9 +130,19 @@ function missingInputProbe(requirement: CapabilityRequirement, profile: Onboardi
   return undefined;
 }
 
-function organTitle(module: OnboardingModule, profile: OnboardingProfileV1): string {
-  const variable = module.organ?.title_variable;
+// Control and format characters (newlines, terminal escapes, bidi overrides) never reach a title or row.
+const UNSAFE_DISPLAY_CHARACTERS = /[\p{Cc}\p{Cf}\u2028\u2029]/u;
+
+/** A profile value rendered in the plan, TUI and doctor: short and printable, or the plan fails. */
+function displayVariable(profile: OnboardingProfileV1, variable: string | undefined, maxLength: number): string | undefined {
   const value = variable ? profile.variables[variable] : undefined;
+  if (value === undefined || value === "") return undefined;
+  if (value.length > maxLength || UNSAFE_DISPLAY_CHARACTERS.test(value)) throw new Error(`ONBOARDING_DISPLAY_VARIABLE_INVALID:${variable}`);
+  return value;
+}
+
+function organTitle(module: OnboardingModule, profile: OnboardingProfileV1): string {
+  const value = displayVariable(profile, module.organ?.title_variable, 64);
   return value ? `${value} · ${module.title}` : module.title;
 }
 
@@ -140,7 +150,7 @@ const HOST_ROLES: ReadonlySet<string> = new Set(["operator-mac", "cloud-runner"]
 
 function organResolution(module: OnboardingModule, profile: OnboardingProfileV1, required: ReadonlySet<string>): NonNullable<OnboardingModuleResolution["organ"]> {
   const organ = module.organ!;
-  const publicUrl = organ.public_url_variable ? profile.variables[organ.public_url_variable] : undefined;
+  const publicUrl = displayVariable(profile, organ.public_url_variable, 256);
   const tier = required.has(module.id) ? "required" : organ.tier;
   const hostRole = organ.host_role_variable ? profile.variables[organ.host_role_variable] : undefined;
   if (hostRole !== undefined && !HOST_ROLES.has(hostRole)) throw new Error(`ONBOARDING_HOST_ROLE_INVALID:${organ.host_role_variable}`);

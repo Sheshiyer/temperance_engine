@@ -223,6 +223,14 @@ export interface KeychainSecretReference {
   account: string;
 }
 
+/** A secret supplied as an environment variable, for hosts without a Keychain such as a cloud runner. */
+export interface EnvironmentSecretReference {
+  store: "environment";
+  variable: string;
+}
+
+export type SecretReference = KeychainSecretReference | EnvironmentSecretReference;
+
 export interface RoutingAlias {
   alias: string;
   combo: string;
@@ -240,7 +248,7 @@ export interface OnboardingProfileV1 {
   version: OnboardingVersionV1;
   id: string;
   variables: Record<string, string>;
-  secret_references: Record<string, KeychainSecretReference>;
+  secret_references: Record<string, SecretReference>;
   preselected_modules: string[];
   /** Host-specific escalation: these modules are treated as required organs on this host. */
   required_modules?: string[];

@@ -63,6 +63,8 @@ export async function runWizardRouterSetup(options: WizardRouterSetupOptions): P
     if ([...bound].some((alias) => !aliases.includes(alias))) return { status: "held", reason_code: "NINE_ROUTER_SETUP_PROFILE_ALIAS_UNDECLARED" };
     const gatewayReference = profile.secret_references[options.gatewayReferenceId];
     if (!gatewayReference) return { status: "held", reason_code: "NINE_ROUTER_SETUP_GATEWAY_REFERENCE_MISSING" };
+    // 9Router writes the gateway key into the Keychain, so an environment reference cannot hold it.
+    if (gatewayReference.store !== "macos-keychain") return { status: "held", reason_code: "NINE_ROUTER_SETUP_KEYCHAIN_REFERENCE_REQUIRED" };
 
     const freshModels = async (): Promise<NineRouterAvailableModel[]> => {
       const [catalog, keys, models] = await Promise.all([

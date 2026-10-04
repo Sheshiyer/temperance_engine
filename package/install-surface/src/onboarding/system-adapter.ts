@@ -35,6 +35,8 @@ export interface OnboardingProbeIO {
   tcpConnect?(host: string, port: number, options: { signal: AbortSignal; timeoutMs: number }): Promise<boolean>;
   /** Numeric user id for the launchd gui domain. Defaults to process.getuid(). */
   uid?: number;
+  /** Reads an environment variable for an environment secret reference. Defaults to process.env. */
+  env?(name: string): string | undefined;
 }
 
 const execFileAsync = promisify(execFileCallback);
@@ -173,8 +175,15 @@ async function probePath(requirement: Extract<CapabilityRequirement, { kind: "pa
 }
 
 async function probeKeychain(requirement: Extract<CapabilityRequirement, { kind: "keychain-secret" }>, context: OnboardingProbeContext, io: OnboardingProbeIO): Promise<CapabilityProbe> {
-  if (io.platform !== "darwin") return unavailable(requirement.id, "UNSUPPORTED_PLATFORM");
   const reference = context.profile.secret_references[requirement.secret_reference];
+  // An environment reference works on any host: only its presence is checked, never its value.
+  if (reference?.store === "environment") {
+    const value = (io.env ?? ((name: string) => process.env[name]))(reference.variable);
+    return value
+      ? available(requirement.id, ["environment secret is set"])
+      : unavailable(requirement.id, "SECRET_UNAVAILABLE", ["environment secret is not set"]);
+  }
+  if (io.platform !== "darwin") return unavailable(requirement.id, "UNSUPPORTED_PLATFORM");
   if (!reference) return unavailable(requirement.id, "SECRET_REFERENCE_MISSING");
   const result = await io.execFile("security", ["find-generic-password", "-s", reference.service, "-a", reference.account], { signal: context.signal });
   return result.exitCode === 0
