@@ -1,10 +1,10 @@
 {
   "records": [
     {
-      "expectation_digest": "sha256:d60d76dedce10bb422d3e49de2c7b40d2eb25bc35fbd80ffe17e9354eb730574",
+      "expectation_digest": "sha256:bd6f02ab3cd76780996fc468c0bde007b1aa1c8f17567d2d946f8b8f7987f4d7",
       "id": "enrichment.public-pipeline",
       "source": "package/enrich",
-      "source_object": "d5e74db46bae774d71a0e1351de62f3a74b44581"
+      "source_object": "f9922afb7fa352a714d671e99e886e575497d24b"
     },
     {
       "expectation_digest": "sha256:f15d7a4a547238d093dcd4f4ea8e1d3cbc13d88e9babaf01b142fd46905ba190",
@@ -109,7 +109,7 @@
       "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
     }
   ],
-  "revision": "a2ba07ae0f5a97206c7be7fcad54456ace871adb",
+  "revision": "d4748c9eb524895192e597b77293e8ac9dea4b63",
   "schema": "temperance.install-surface.copy-expectations-provenance.v1",
-  "tree": "3ebfef6ae07fd12edbb29a966c1cae3dd4d636b6"
+  "tree": "3b6114daa369ff52f6641b781d45191a7cd3c6cb"
 }

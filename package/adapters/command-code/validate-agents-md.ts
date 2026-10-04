@@ -6,7 +6,8 @@ import { isAbsolute } from 'node:path';
 
 const RESERVED_LINE = /(?:^|[\r\n\u2028\u2029])(context-sources: ([^\r\n\u2028\u2029]*))/gu;
 const UNSAFE_POINTER_CHARS = /[\u0000-\u001f\u007f<>\u2028\u2029]/u;
-const EXPECTED_KEYS = ['pai', 'gsd', 'skills', 'material'];
+// Must match the serializer in package/enrich/stages/contextSources.ts (atlas added in 92c96d7).
+const EXPECTED_KEYS = ['pai', 'gsd', 'skills', 'atlas', 'material'];
 
 function validPointer(value: unknown): boolean {
   return value === null
@@ -31,7 +32,8 @@ export function assertCommandCodeAgentsMd(markdown: string): void {
     throw new Error('context_sources_key_order');
   }
   if (JSON.stringify(payload) !== json) throw new Error('context_sources_not_compact');
-  if (!validPointer(payload.pai) || !validPointer(payload.gsd) || !validPointer(payload.skills)) {
+  if (!validPointer(payload.pai) || !validPointer(payload.gsd) || !validPointer(payload.skills)
+    || !validPointer(payload.atlas)) {
     throw new Error('context_sources_pointer_invalid');
   }
   if (payload.material !== 'pointers-only') throw new Error('context_sources_material_invalid');

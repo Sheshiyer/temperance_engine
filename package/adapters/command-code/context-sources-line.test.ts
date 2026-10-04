@@ -69,7 +69,7 @@ describe('Command Code pointer projection', () => {
     const f = fixture();
     const line = generateCommandCodeContextSources(f.cwd, f.home);
     expect(line).toBe(
-      `context-sources: {"pai":"${f.pai}","gsd":"${f.gsd}","skills":"${f.skills}","material":"pointers-only"}`,
+      `context-sources: {"pai":"${f.pai}","gsd":"${f.gsd}","skills":"${f.skills}","atlas":null,"material":"pointers-only"}`,
     );
     expect(line).not.toContain('BODY_CANARY');
   });
@@ -78,7 +78,7 @@ describe('Command Code pointer projection', () => {
     const f = fixture();
     unlinkSync(f.gsd);
     expect(generateCommandCodeContextSources(f.cwd, f.home)).toBe(
-      `context-sources: {"pai":"${f.pai}","gsd":null,"skills":"${f.skills}","material":"pointers-only"}`,
+      `context-sources: {"pai":"${f.pai}","gsd":null,"skills":"${f.skills}","atlas":null,"material":"pointers-only"}`,
     );
   });
 
@@ -91,7 +91,7 @@ describe('Command Code pointer projection', () => {
     unlinkSync(f.skills);
     execFileSync('/usr/bin/mkfifo', [f.skills]);
     expect(generateCommandCodeContextSources(f.cwd, f.home)).toBe(
-      'context-sources: {"pai":null,"gsd":null,"skills":null,"material":"pointers-only"}',
+      'context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}',
     );
   });
 
@@ -113,11 +113,11 @@ describe('Command Code pointer projection', () => {
     }, resolved);
     expect(() => assertCommandCodeAgentsMd(forged)).toThrow('context_sources_line_count');
     expect(() => assertCommandCodeAgentsMd(
-      'context-sources: {"pai":"relative","gsd":null,"skills":null,"material":"pointers-only"}\n',
+      'context-sources: {"pai":"relative","gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}\n',
     )).toThrow('context_sources_pointer_invalid');
     expect(() => assertCommandCodeAgentsMd(
-      '\u2028context-sources: {"pai":null,"gsd":null,"skills":null,"material":"pointers-only"}\n'
-      + 'context-sources: {"pai":null,"gsd":null,"skills":null,"material":"pointers-only"}\n',
+      '\u2028context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}\n'
+      + 'context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}\n',
     )).toThrow('context_sources_line_count');
   });
 
@@ -128,20 +128,27 @@ describe('Command Code pointer projection', () => {
       'context-sources: {not-json}\n',
     )).toThrow('context_sources_json_invalid');
     expect(() => assertCommandCodeAgentsMd(
-      'context-sources: {"gsd":null,"pai":null,"skills":null,"material":"pointers-only"}\n',
+      'context-sources: {"gsd":null,"pai":null,"skills":null,"atlas":null,"material":"pointers-only"}\n',
     )).toThrow('context_sources_key_order');
     expect(() => assertCommandCodeAgentsMd(
-      'context-sources: {"pai": null,"gsd":null,"skills":null,"material":"pointers-only"}\n',
+      'context-sources: {"pai": null,"gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}\n',
     )).toThrow('context_sources_not_compact');
     expect(() => assertCommandCodeAgentsMd(
-      'context-sources: {"pai":"/unsafe/<pointer>","gsd":null,"skills":null,"material":"pointers-only"}\n',
+      'context-sources: {"pai":"/unsafe/<pointer>","gsd":null,"skills":null,"atlas":null,"material":"pointers-only"}\n',
     )).toThrow('context_sources_pointer_invalid');
     expect(() => assertCommandCodeAgentsMd(
-      'context-sources: {"pai":null,"gsd":null,"skills":null,"material":"body"}\n',
+      'context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":null,"material":"body"}\n',
     )).toThrow('context_sources_material_invalid');
     expect(() => assertCommandCodeAgentsMd(
-      'context-sources: {"pai":null,"gsd":null,"skills":null,"body":"secret","material":"pointers-only"}\n',
+      'context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":null,"body":"secret","material":"pointers-only"}\n',
     )).toThrow('context_sources_key_order');
+    // The pre-atlas four-key shape is no longer canonical (enrich added atlas in 92c96d7).
+    expect(() => assertCommandCodeAgentsMd(
+      'context-sources: {"pai":null,"gsd":null,"skills":null,"material":"pointers-only"}\n',
+    )).toThrow('context_sources_key_order');
+    expect(() => assertCommandCodeAgentsMd(
+      'context-sources: {"pai":null,"gsd":null,"skills":null,"atlas":"relative/atlas.json","material":"pointers-only"}\n',
+    )).toThrow('context_sources_pointer_invalid');
   });
 
   test('forged or future surfaces remain denied by the shared stage', () => {
