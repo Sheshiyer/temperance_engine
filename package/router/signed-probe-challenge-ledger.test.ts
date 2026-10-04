@@ -486,14 +486,17 @@ describe("atomic signed-probe challenge ledger", () => {
       stdout: "pipe",
       stderr: "pipe",
     });
-    const firstWave = Array.from({ length: 12 }, recover);
-    const firstExits = await Promise.all(firstWave.map((child) => child.exited));
-    expect(firstExits.every((code) => code === 0)).toBe(true);
+    // Name each failing child's exit code and error so a regression reports its cause.
+    const failures = async (wave: ReturnType<typeof recover>[]): Promise<string[]> => {
+      const exits = await Promise.all(wave.map((child) => child.exited));
+      return Promise.all(wave.flatMap((child, index) => exits[index] === 0
+        ? []
+        : [new Response(child.stderr).text().then((stderr) => `exit ${exits[index]}: ${stderr.trim()}`)]));
+    };
+    expect(await failures(Array.from({ length: 12 }, recover))).toEqual([]);
     expect(JSON.parse(readFileSync(receipt, "utf8")).status).toBe("applied");
     const finalizedBytes = readFileSync(receipt, "utf8");
-    const secondWave = Array.from({ length: 4 }, recover);
-    const secondExits = await Promise.all(secondWave.map((child) => child.exited));
-    expect(secondExits.every((code) => code === 0)).toBe(true);
+    expect(await failures(Array.from({ length: 4 }, recover))).toEqual([]);
     expect(readFileSync(receipt, "utf8")).toBe(finalizedBytes);
   });
 
