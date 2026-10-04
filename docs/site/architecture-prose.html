@@ -34,7 +34,7 @@
 <li>GSD slash spine (optional <code>--with-gsd</code> / <code>--with-spine</code>): thin <code>/gsd:*</code> remotes on Codex, OpenCode, and Grok. They read GSD 1.30.0 workflows. They do not fork GSD. <code>/gsd:doctor</code> and <code>/gsd:goal</code> are Temperance-owned.</li>
 <li>UPS compose: <code>package/hooks/codex/PromptProcessing.hook.ts</code> emits one <code>additionalContext</code> envelope — classifier + <code>&lt;temperance-rail&gt;</code> + <code>&lt;gsd-rail&gt;</code> + <code>&lt;pai-mode-offer&gt;</code> + hook receipt. Other Codex hooks must not steal stdin.</li>
 <li>Manifest Zone (optional <code>--with-manifest</code> / <code>--with-spine</code>): Vite LCARS on <code>:5173</code>. Projection only. Live STATE / ROADMAP / GOAL cards. <code>?view=</code> history. Never Chrome/Safari.</li>
-<li>Manifest bridge: event plane on <code>:8766</code>. Heartbeat plus 180s stale window. Edge <code>local|clio</code>.</li>
+<li>Manifest bridge: event plane on <code>:8766</code>. Heartbeat plus 180s stale window. Edge <code>local|hosted</code> (loopback router or a shared hosted router).</li>
 <li>Session goal loop: <code>.temperance/goal.json</code> (<code>temperance.goal.v1</code>). CLI <code>temperance-goal --ensure|--eval</code>. <code>/gsd:goal</code> (and Claude native <code>/goal</code>) loops execute until the same VERIFY probes pass. Not a planner.</li>
 <li>Dual-fleet lock: <code>/gsd:execute-phase</code> writes <code>~/.temperance_engine/state/fleet-locks/&lt;cwd-hash&gt;.json</code> when next-wave emits tasks. A second <code>gsd-executor</code> swarm on the same <code>[P]</code> ids is forbidden while the lock is active (&lt;2h).</li>
 <li>Product symlink: <code>~/.temperance_engine/product</code> always points at this clone.</li>

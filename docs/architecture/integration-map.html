@@ -173,7 +173,7 @@
   <h2>5d. Manifest Zone + /goal Seam <span class="badge wired">WIRED</span> &mdash; projection plus session loop</h2>
   <table>
     <tr><th>Sub-seam</th><th>Real code path</th></tr>
-    <tr><td>Manifest bridge</td><td><code>package/manifest-bridge</code> on <code>:8766</code>. Heartbeat + 180s stale window. SSE/JSONL read model. Edge <code>local|clio</code>.</td></tr>
+    <tr><td>Manifest bridge</td><td><code>package/manifest-bridge</code> on <code>:8766</code>. Heartbeat + 180s stale window. SSE/JSONL read model. Edge <code>local|hosted</code> (loopback router or a shared hosted router).</td></tr>
     <tr><td>Manifest Zone</td><td><code>package/manifest-zone</code> on <code>:5173</code>. <code>GsdDeck.tsx</code> STATE / ROADMAP / GOAL cards. <code>?view=</code> history + popstate. Projection only.</td></tr>
     <tr><td><code>/gsd:goal</code></td><td>Wrappers parse <code>/goal</code> and <code>/gsd:goal</code>. <code>package/router/temperance-goal.mjs</code> writes <code>.temperance/goal.json</code> (<code>temperance.goal.v1</code>) and runs <code>--eval</code> on doctor/ISA probes. Posts <code>goal.set</code> / <code>goal.tick</code> to the bridge.</td></tr>
   </table>

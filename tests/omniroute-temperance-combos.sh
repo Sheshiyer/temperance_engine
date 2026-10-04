@@ -304,7 +304,7 @@ rm -rf "$mock_state"
 
 check "manifest has six required portfolios" test "$(jq -r '.required_portfolios | length' "$ROOT/package/router/omniroute-portfolios.json")" = 6
 # The local classifier contract uses canonical noesis lanes. The `te-*` checks
-# below exercise the separately intentional company-edge compatibility fleet.
+# below exercise the separately intentional te-* compatibility fleet.
 check "manifest maps fast lane" test "$(jq -r '.task_type_portfolios.fast' "$ROOT/package/router/omniroute-portfolios.json")" = noesis-fast
 check "manifest maps build lane" test "$(jq -r '.task_type_portfolios["long-horizon"]' "$ROOT/package/router/omniroute-portfolios.json")" = noesis-build
 check "manifest maps creative lane" test "$(jq -r '.task_type_portfolios.creative' "$ROOT/package/router/omniroute-portfolios.json")" = noesis-creative
