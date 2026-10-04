@@ -19,6 +19,7 @@ Do not start in `docs/plans/` or the OmniRoute July stack. Those are history.
 | [pai-flow.md](pai-flow.md) | 7-phase shell + GSD + superpowers + fleet doctrine |
 | [architecture.md](architecture.md) | Runtime model. Pictures in [architecture/](architecture/) |
 | [rollback.md](rollback.md) | Backups and recovery |
+| [ste.md](ste.md) | Simplified Technical English: `--with-ste` skill, bun checker, docs gate |
 | [skill-clusters.md](skill-clusters.md) | Discovery / lazy-load layer |
 | [codegraph-routing.md](codegraph-routing.md) | `.agents` structural search |
 | [peon-ping-packs.md](peon-ping-packs.md) | Phase → peon packs |

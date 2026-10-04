@@ -48,7 +48,8 @@ setup_fixture() {
   write_lines CREDITS.md \
     'Personal_AI_Infrastructure' \
     'colbymchenry/codegraph' \
-    'PeonPing/peon-ping'
+    'PeonPing/peon-ping' \
+    '0xpili/simplified-technical-english'
   write_lines templates/cursor.rules.mdc 'Claude Code, Claude Pro/Max, Anthropic auth'
 
   write_lines package/install-surface/src/lifecycle/receipts.ts \

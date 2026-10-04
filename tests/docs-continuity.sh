@@ -257,4 +257,22 @@ grep -q 'hermes-secretless-discovery-hardening' "$DIR/.planning/config.json" \
   && grep -q 'ISC-529..ISC-536' "$DIR/.planning/ROADMAP.md" \
   && echo "ok - GSD tracks the ratified production-adapter boundary" \
   || { echo "FAIL - GSD production-adapter milestone missing"; fail=1; }
+
+# --- STE skill: referenced, not vendored (docs/ste.md) ---
+STE_PIN="1e148d670cba46685ad2b4c3f2354a637a7fdbbe"
+grep -q "0xpili/simplified-technical-english" "$DIR/UPSTREAM.md" && echo "ok - UPSTREAM credits the STE skill" \
+  || { echo "FAIL - UPSTREAM.md missing 0xpili/simplified-technical-english"; fail=1; }
+grep -q "0xpili/simplified-technical-english" "$DIR/CREDITS.md" && echo "ok - CREDITS credits the STE skill" \
+  || { echo "FAIL - CREDITS.md missing 0xpili/simplified-technical-english"; fail=1; }
+grep -q "ASD-STE100" "$DIR/THIRD_PARTY_NOTICES.md" && echo "ok - THIRD_PARTY_NOTICES carries the ASD-STE100 notice" \
+  || { echo "FAIL - THIRD_PARTY_NOTICES.md missing the ASD-STE100 notice"; fail=1; }
+grep -q "$STE_PIN" "$DIR/scripts/install-ste.sh" && grep -q "$STE_PIN" "$DIR/docs/ste.md" \
+  && grep -q "$STE_PIN" "$DIR/THIRD_PARTY_NOTICES.md" && grep -q "$STE_PIN" "$DIR/package/ste-check/ste-check.ts" \
+  && echo "ok - installer, docs, notices, and port name one STE pin" \
+  || { echo "FAIL - STE pin differs between install-ste.sh, docs/ste.md, THIRD_PARTY_NOTICES.md, and ste-check.ts"; fail=1; }
+# The ASD-STE100 word list must stay upstream: no file may hold a word-list-sized block of entries.
+ste_vendored=$(grep -rEc --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=logs \
+  "^[A-Z][A-Z' -]*[A-Z] \((v|n|adj|adv|prep|pron|conj|art)\)" "$DIR" 2>/dev/null | awk -F: '$NF > 50')
+[ -z "$ste_vendored" ] && echo "ok - no copy of the ASD-STE100 word list in the repo" \
+  || { echo "FAIL - word-list-sized STE entries found: $ste_vendored"; fail=1; }
 exit $fail

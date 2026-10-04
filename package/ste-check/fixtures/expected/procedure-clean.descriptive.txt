@@ -1,0 +1,10 @@
+
+CHECK   27 words are not in the approved word list.
+        Each must be an approved technical name or technical verb:
+        start, pump, remove, filter, before, you, procedure, set, switch, four
+        bolts, from, cover, install, new, if, light, comes, on, engine
+        refer, manual, for, torque, values, run, again
+
+Result: 0 errors, 0 warnings.
+The text obeys the STE structural rules that this tool can check.
+This tool cannot make sure that each word has its approved meaning.

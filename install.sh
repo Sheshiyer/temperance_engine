@@ -12,6 +12,7 @@ GSD_MODE=skip
 RELAY_MODE=skip
 MANIFEST_MODE=skip
 SPINE_MODE=skip
+STE_MODE=skip
 FORCE=0
 
 for arg in "$@"; do
@@ -40,10 +41,13 @@ for arg in "$@"; do
       ;;
     --with-relay) RELAY_MODE=install ;;
     --skip-relay) RELAY_MODE=skip ;;
+    --with-ste) STE_MODE=install ;;
+    --skip-ste) STE_MODE=skip ;;
     --force) FORCE=1 ;;
     -h|--help)
-      printf '%s\n' "Usage: ./install.sh [--dry-run] [--skip-voice|--with-voice] [--with-claude|--skip-claude] [--with-codex|--skip-codex] [--with-opencode|--skip-opencode] [--with-cursor|--skip-cursor] [--with-gsd|--skip-gsd] [--with-manifest|--skip-manifest] [--with-spine] [--with-relay|--skip-relay] [--force]"
+      printf '%s\n' "Usage: ./install.sh [--dry-run] [--skip-voice|--with-voice] [--with-claude|--skip-claude] [--with-codex|--skip-codex] [--with-opencode|--skip-opencode] [--with-cursor|--skip-cursor] [--with-gsd|--skip-gsd] [--with-manifest|--skip-manifest] [--with-spine] [--with-relay|--skip-relay] [--with-ste|--skip-ste] [--force]"
       printf '%s\n' "  --with-spine  Thoughtseed member glove: Claude+Codex compose hooks, /gsd:* on Claude/Codex/OpenCode/Grok, Manifest, Pulse (does not vendor GSD core or copy secrets)"
+      printf '%s\n' "  --with-ste    Optional Simplified Technical English skill, fetched from upstream at a pinned commit (see docs/ste.md)"
       exit 0
       ;;
     *)
@@ -64,6 +68,7 @@ export TEMPERANCE_GSD_MODE="$GSD_MODE"
 export TEMPERANCE_MANIFEST_MODE="$MANIFEST_MODE"
 export TEMPERANCE_SPINE_MODE="$SPINE_MODE"
 export TEMPERANCE_RELAY_MODE="$RELAY_MODE"
+export TEMPERANCE_STE_MODE="$STE_MODE"
 export TEMPERANCE_ENGINE_ROOT="$ROOT_DIR"
 export TEMPERANCE_FORCE="$FORCE"
 export PAI_HOME="${PAI_HOME:-$HOME/.claude}"
@@ -88,6 +93,7 @@ printf '%s\n' "GSD_MODE=$GSD_MODE"
 printf '%s\n' "MANIFEST_MODE=$MANIFEST_MODE"
 printf '%s\n' "SPINE_MODE=$SPINE_MODE"
 printf '%s\n' "RELAY_MODE=$RELAY_MODE"
+printf '%s\n' "STE_MODE=$STE_MODE"
 printf '%s\n' "FORCE=$FORCE"
 
 sh "$ROOT_DIR/scripts/install-pai.sh"
@@ -128,6 +134,7 @@ if test "${TEMPERANCE_CLAUDE_MODE:-skip}" = "install"; then
 fi
 
 sh "$ROOT_DIR/scripts/install-skill-clusters.sh"
+sh "$ROOT_DIR/scripts/install-ste.sh"
 sh "$ROOT_DIR/scripts/install-peon-ping.sh"
 sh "$ROOT_DIR/scripts/install-codegraph.sh"
 sh "$ROOT_DIR/scripts/install-gsd.sh"

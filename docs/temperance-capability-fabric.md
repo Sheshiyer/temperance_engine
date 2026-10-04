@@ -48,7 +48,7 @@ remain separate runtime gates.
 | Plan | `te-plan` | writing-plans, ISA, CodeGraph, project planning, Google Drive references |
 | Build | `te-build` | test-driven-development, subagent-driven-development, CodeGraph, GitHub context |
 | Execute | `te-dispatch-paid` | dispatching-parallel-agents, temperance-parallel-dispatch, CodeGraph, Chrome DevTools, Vercel, Supabase. Automatic launch additionally needs the approval-and-claim controller. |
-| Verify | `te-validate` | verification-before-completion, browser automation, CodeGraph, PostHog, Supabase, Vercel |
+| Verify | `te-validate` | verification-before-completion, browser automation, CodeGraph, PostHog, Supabase, Vercel, STE skill and `package/ste-check/docs-gate.ts` for docs (refer to `docs/ste.md`) |
 | Learn | `te-reason` today (dedicated `te-learn` is a future proposal) | ISA append, reflections, failures, reusable knowledge pointers; no MCP by default |
 
 Creative work is a cross-stage lane: `te-creative` creates the brief and

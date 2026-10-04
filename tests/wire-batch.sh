@@ -2,6 +2,11 @@
 set -uo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fail=0
+# Every run below uses a throwaway HOME. The repo's own skills/ tree must come
+# out byte-for-byte unchanged (a backup-name collision once copied a foreign
+# Kimi desktop skill into skills/temperance-engine/temperance-engine/).
+skills_tree() { (cd "$DIR/skills" && find . -print0 | sort -z | xargs -0 shasum -a 256 2>/dev/null; find . | sort) | shasum -a 256; }
+skills_before="$(skills_tree)"
 out=$("$DIR/scripts/wire-multi-backend.sh" --dry-run 2>&1)
 echo "$out" | grep -q "temperance-batch" && echo "ok - dry-run wires temperance-batch" || { echo "FAIL - no temperance-batch in dry-run"; fail=1; }
 echo "$out" | grep -q "temperance-opencode" && echo "ok - dry-run wires temperance-opencode" || { echo "FAIL - no temperance-opencode in dry-run"; fail=1; }
@@ -155,7 +160,11 @@ mkdir -p "$DESK/temperance-engine"
 printf 'unrelated user skill\n' > "$DESK/temperance-engine/SKILL.md"
 RUN_WIRE >/dev/null 2>&1
 grep -q "unrelated user skill" "$DESK/temperance-engine/SKILL.md" && { echo "FAIL - foreign content not overwritten"; fail=1; } || echo "ok - foreign same-name directory backed up and overwritten"
-find "$TMP/home/.temperance_engine/backups" -type f -name "SKILL.md" | xargs grep -l "unrelated user skill" >/dev/null 2>&1 && echo "ok - foreign content preserved in a backup" || { echo "FAIL - foreign content not backed up"; fail=1; }
+# `find | xargs grep` exits 0 when find matches nothing, so require a real hit.
+# The backup must be a regular file under the backup tree, not one reached
+# through a backed-up symlink (find does not follow links).
+foreign_backup="$(find "$TMP/home/.temperance_engine/backups" -type f -name "SKILL.md" -exec grep -l "unrelated user skill" {} + 2>/dev/null)"
+[[ -n "$foreign_backup" ]] && echo "ok - foreign content preserved in a backup" || { echo "FAIL - foreign content not backed up"; fail=1; }
 
 RUN_WIRE --revert >/dev/null 2>&1
 [[ ! -e "$TMP/home/.local/bin/temperance-opencode" ]] && echo "ok - revert removes managed OpenCode launcher" || { echo "FAIL - OpenCode launcher survived revert"; fail=1; }
@@ -168,5 +177,8 @@ RUN_WIRE --revert >/dev/null 2>&1
 [[ -f "$DESK/temperance-engine/SKILL.md" ]] && grep -q "foreign, unmanaged" "$DESK/temperance-engine/SKILL.md" && echo "ok - revert never removes an unmanaged (unmarked) directory" || { echo "FAIL - revert touched a foreign directory"; fail=1; }
 
 rm -rf "$TMP"
+
+[[ "$(skills_tree)" == "$skills_before" ]] && echo "ok - repo skills/ tree is unchanged" \
+  || { echo "FAIL - wiring wrote into the repo skills/ tree:"; (cd "$DIR/skills" && find . -newer "$DIR/skills.sh.json" -print) | sed 's/^/  /'; fail=1; }
 
 exit $fail

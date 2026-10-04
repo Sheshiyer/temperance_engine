@@ -39,6 +39,9 @@ esac
 [ -x "$SECURITY_BIN" ] || { printf 'security CLI unavailable: %s\n' "$SECURITY_BIN" >&2; exit 127; }
 [ -n "$OMNIROUTE_BIN" ] && [ -x "$OMNIROUTE_BIN" ] || { printf 'omniroute CLI unavailable\n' >&2; exit 127; }
 command -v jq >/dev/null || { printf 'jq is required\n' >&2; exit 127; }
+# The credential-leak scan below runs in an `if`, where a missing rg (exit 127)
+# would read as "no leak" and still write a receipt. Fail closed instead.
+command -v rg >/dev/null || { printf 'rg is required\n' >&2; exit 127; }
 command -v shasum >/dev/null || { printf 'shasum is required\n' >&2; exit 127; }
 
 snapshot_codex_home() {

@@ -3,6 +3,8 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$ROOT/scripts/omniroute-autostart-launchd.sh"
+# These checks use rg. Without it, `rg -c ... || true` and `if rg` read as passes.
+command -v rg >/dev/null 2>&1 || { printf 'FAIL - rg (ripgrep) is required: brew install ripgrep\n' >&2; exit 1; }
 fail=0
 
 check_count() {

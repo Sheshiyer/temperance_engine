@@ -14,12 +14,19 @@ STATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/temperance-proxy-live.XXXXXX")"
 export TEMPERANCE_STATE="$STATE_DIR/temperance-state"
 export TEMPERANCE_STATE_DIR="$STATE_DIR/runtime-state"
 export TEMPERANCE_PROXY_LOG="$STATE_DIR/requests.jsonl"
+# The proxy also reads Kimi session context from $HOME/.temperance_engine/kimi.
+export TEMPERANCE_KIMI_STATE="$STATE_DIR/kimi"
 unset TEMPERANCE_SESSION_POLICY
 MOCK_LOG="$STATE_DIR/mock.log"
 PROXY_LOG="$STATE_DIR/proxy.log"
+# The proxy's default log; on a host checkout of ~/.temperance_engine it is in the repo.
+HOST_LOG="$HOME/.temperance_engine/state/openai-proxy.jsonl"
+host_log_size() { if [ -e "$HOST_LOG" ]; then wc -c <"$HOST_LOG" | tr -d " "; else echo absent; fi; }
+host_log_before="$(host_log_size)"
 
 cleanup() {
   kill "${PROXY_PID:-}" "${MOCK_PID:-}" 2>/dev/null || true
+  rm -rf "$STATE_DIR"
 }
 trap cleanup EXIT
 
@@ -58,3 +65,9 @@ jq -e '.choices[0].message.tool_calls[0].function.name == "write_file"' "$tool_b
 echo "ok - automatic stream preserved SSE content and DONE marker"
 echo "ok - automatic tool request preserved tool_calls payload"
 echo "ok - automatic success path carried frozen routing headers"
+
+test -s "$TEMPERANCE_PROXY_LOG"
+# A live relay may own the operator state log; only require that this
+# test did not add to it.
+test "$(host_log_size)" = "$host_log_before"
+echo "ok - request log stays in the test state dir, not operator state"

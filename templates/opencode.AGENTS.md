@@ -11,4 +11,6 @@ Use CodeGraph for structural search in `$HOME/.agents` and avoid Augment/codebas
 
 Skill-cluster routing should go through `$HOME/.agents/skill-clusters/skill-index.json`. Startup scan is **hubs only** (`$HOME/.agents/skills` orchestrator+core + preserve, GSD profile `standard`). Do not add `$HOME/.agents/skill-clusters/skills` as a startup skill scan path. Add a Thoughtseed git root with `thoughtseed-cockpit-add PATH --pin --te-init`. Execute stays Superset + Claude Code — not Codex App as a worker.
 
+For technical docs, use the `simplified-technical-english` skill when it is installed (`./install.sh --with-ste`). In a Temperance Engine checkout, check drafts with `bun package/ste-check/cli.ts` and keep `bun package/ste-check/docs-gate.ts` green. See `docs/ste.md`.
+
 Claude Code, Claude Pro/Max, Anthropic auth, Codex auth, and specific model access are optional. If a Claude-only advisor path is unavailable, continue with OpenCode-native verification evidence.

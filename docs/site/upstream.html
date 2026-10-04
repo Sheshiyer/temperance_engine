@@ -34,6 +34,7 @@
 <tr><td>Codex CLI</td><td>https://github.com/openai/codex</td><td>Optional local Codex instruction surface.</td></tr>
 <tr><td>GitHub CLI</td><td>https://github.com/cli/cli</td><td>Optional public repo creation and publishing.</td></tr>
 <tr><td>Bun</td><td>https://github.com/oven-sh/bun</td><td>Runtime used by the optional Pulse compatibility server.</td></tr>
+<tr><td>Simplified Technical English</td><td>https://github.com/0xpili/simplified-technical-english</td><td>Optional ASD-STE100 writing skill (<code>--with-ste</code>), fetched at pinned commit <code>1e148d6</code>; referenced, not vendored.</td></tr>
 <tr><td>ripgrep</td><td>https://github.com/BurntSushi/ripgrep</td><td>Fast literal search pattern used by local tooling.</td></tr>
 </table>
 <h2>Referenced Non-Vendored Surfaces</h2>
@@ -43,6 +44,7 @@
 <li>peon-ping: local script and sound packs are referenced, not vendored.</li>
 <li>skills.sh: <code>skills/temperance-engine/SKILL.md</code> is prepared as the marketplace-facing entry.</li>
 <li>OmniRoute: no proxy, provider catalog, credentials, or runtime packages are bundled; see <code>docs/omniroute-integration.md</code> and <code>THIRD_PARTY_NOTICES.md</code>.</li>
+<li>Simplified Technical English: <code>scripts/install-ste.sh</code> fetches the skill at a pinned commit into <code>$AGENTS_HOME/skills/</code>. The ASD-STE100 word list is never committed here; <code>package/ste-check/</code> is a TE-owned bun port of the check script. See <code>docs/ste.md</code> and <code>THIRD_PARTY_NOTICES.md</code>.</li>
 </ul>
 <h2>Asset Notes</h2>
 <ul>

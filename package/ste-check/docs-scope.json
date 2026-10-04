@@ -1,0 +1,14 @@
+{
+  "notes": [
+    "Docs that the STE docs gate checks. Refer to docs/ste.md.",
+    "README.md is out of scope: it has generated NotebookLM blocks and required emoji headings.",
+    "CHANGELOG.md, ISA.md, CREDITS.md, UPSTREAM.md, THIRD_PARTY_NOTICES.md, templates/, and docs/site/ are out of scope.",
+    "The two retired stubs are excluded. Do not expand them."
+  ],
+  "include": ["QUICKSTART.md", "CONTRIBUTING.md", "SECURITY.md", "docs/*.md"],
+  "exclude": ["docs/parallel-dispatch.md", "docs/multi-surface-architecture.md"],
+  "default_mode": "mixed",
+  "modes": {
+    "QUICKSTART.md": "procedural"
+  }
+}

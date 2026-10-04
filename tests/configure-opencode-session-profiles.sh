@@ -164,6 +164,13 @@ check "apply exposes exactly fourteen aliases" \
   test "$(jq '[.enabled_providers[] as $provider | .provider[$provider].models | keys[]] | length' "$fixture_main/opencode/opencode.json")" = 14
 check "apply installs both managed mode skills" \
   sh -c "test -L '$fixture_main/opencode/skills/temperance-native' && test -L '$fixture_main/opencode/skills/temperance-algorithm'"
+check "apply allows the STE skill in writing agents and not in locked lanes" \
+  jq -e '
+    all(["temperance-auto","temperance-algorithm","temperance-continuity","temperance-worker"][];
+      . as $name | $cfg.agent[$name].permission.skill["simplified-technical-english"] == "allow")
+    and all(["temperance-native","temperance-planner","temperance-validator","code-fast"][];
+      . as $name | $cfg.agent[$name].permission.skill["simplified-technical-english"] == null)
+  ' --argjson cfg "$(cat "$fixture_main/opencode/opencode.json")" -n
 check "validate accepts a fresh governed session surface" \
   run_policy "$fixture_main" unused --validate
 

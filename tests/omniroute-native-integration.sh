@@ -304,7 +304,7 @@ if grep -Eq '(packageIntegrityComplete|entrypointResolutionPinned|loadedModuleGr
 else
   pass "native CLI readiness nonclaims remain literal fail-closed constants"
 fi
-READINESS_PRODUCTION_CONSUMERS="$(rg -l --glob '*.ts' --glob '!*.test.ts' \
+READINESS_PRODUCTION_CONSUMERS="$(rg --no-require-git -l --glob '*.ts' --glob '!*.test.ts' \
   'from .*omniroute-native-cli-readiness' "$ROOT_DIR/package" "$ROOT_DIR/scripts" || true)"
 if [ "$READINESS_PRODUCTION_CONSUMERS" = "$NATIVE_CLI_READINESS_CLI" ]; then
   pass "native CLI readiness has only its diagnostic CLI consumer"
