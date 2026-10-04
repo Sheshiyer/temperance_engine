@@ -109,4 +109,6 @@ test("CLI doctor and plain text use bound routing while JSON retains its existin
   const json = JSON.parse(await invoke(["--json"]));
   expect(json.schema).toBe("temperance.onboarding.plan.v1");
   expect(json).not.toHaveProperty("routing");
-});
+  // Three sequential CLI spawns take 9-13 s on dev Macs, past bun's 5 s default
+  // (measured the same with and without an operator routing environment).
+}, 30_000);

@@ -2,6 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# The preview defaults to the loopback admin origin; an operator's exported
+# TEMPERANCE_OMNIROUTE_ADMIN_URL (or OMNIROUTE_API_KEY) must not reach it.
+. "$ROOT_DIR/tests/lib/hermetic-routing-env.sh"
 SCRIPT="$ROOT_DIR/scripts/omniroute-codex-preview.sh"
 TEST_DIR="$(mktemp -d)"
 MOCK_SECURITY="$TEST_DIR/security"
