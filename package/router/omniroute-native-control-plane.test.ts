@@ -213,18 +213,31 @@ describe("OmniRoute native control-plane snapshot", () => {
     expect(captureCode(() => collectNativeControlPlane(bad))).toBe("compression_pipeline_invalid");
   });
 
-  test("digests compression settings the projection does not parse, without exposing them", () => {
+  test("digests compression settings the projection does not fully project, without exposing them", () => {
     const fixture = createFixture();
     const before = collectNativeControlPlane(fixture).layers.policy.compression;
-    expect(before.otherSettingsCount).toBe(0);
+    // The fixture's cavemanConfig is projected only through `enabled`, so it is digested.
+    expect(before.otherSettingsCount).toBe(1);
     const db = new Database(fixture.databasePath);
     db.exec(`INSERT INTO key_value VALUES ('compression', 'engines', '{"private":"SENTINEL_ENGINES"}')`);
     db.close();
     const after = collectNativeControlPlane(fixture).layers.policy.compression;
-    expect(after.otherSettingsCount).toBe(1);
+    expect(after.otherSettingsCount).toBe(2);
     expect(after.otherSettingsSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(after.otherSettingsSha256).not.toBe(before.otherSettingsSha256);
     expect(JSON.stringify(after)).not.toContain("SENTINEL_ENGINES");
+  });
+
+  test("a cavemanConfig change that keeps `enabled` still changes the digest", () => {
+    const fixture = createFixture();
+    const before = collectNativeControlPlane(fixture).layers.policy.compression;
+    const db = new Database(fixture.databasePath);
+    db.exec(`UPDATE key_value SET value = '{"enabled":true,"private":"SENTINEL_CHANGED"}' WHERE namespace = 'compression' AND key = 'cavemanConfig'`);
+    db.close();
+    const after = collectNativeControlPlane(fixture).layers.policy.compression;
+    expect(after.candidateEngines).toEqual(before.candidateEngines);
+    expect(after.otherSettingsSha256).not.toBe(before.otherSettingsSha256);
+    expect(JSON.stringify(after)).not.toContain("SENTINEL_CHANGED");
   });
 
   test("fails closed on an unbounded compression settings namespace", () => {

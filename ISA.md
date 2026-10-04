@@ -1111,7 +1111,7 @@ untouched.
 - [x] ISC-839: The context-preview and Hermes preview gates accept only an OmniRoute 3.8.51 runtime and installed version; 3.8.48 and 3.8.52 snapshots fail with `native_snapshot_version_invalid`.
 - [x] ISC-840: The native control-plane snapshot accepts the 3.8.51 seeded default compression combo, whose steps carry no intensity, and still rejects an invalid intensity.
 - [x] ISC-841: The dashboard topology semantics match the compiled 3.8.51 dashboard, and `versionBound` is true only for 3.8.51.
-- [x] ISC-842: Compression settings outside the five parsed keys are digested within fixed bounds, and their values never appear in the snapshot.
+- [x] ISC-842: Compression settings outside the four fully projected keys, including the whole `cavemanConfig`, are digested within fixed bounds, and their values never appear in the snapshot.
 - [x] ISC-843: Anti: no 3.8.51 gate claims live authentication, provider promotion, or a resolved 401.
 
 ## Test Strategy
@@ -3192,7 +3192,7 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - ISC-839: version binding — the context-preview test rejects 3.8.48 and 3.8.52 snapshots with `native_snapshot_version_invalid`; `tests/omniroute-hermes-preview.sh` passes with the 3.8.51 default.
 - ISC-840: compression probe — a control-plane test accepts `[{"engine":"session-dedup"},{"engine":"lite"}]` with null intensities and rejects a numeric intensity with `compression_pipeline_invalid`.
 - ISC-841: topology audit — read-only review of the compiled 3.8.51 dashboard found the green connected-at-rest state, the second red source (connections all in error), and the active-connection node set; a test asserts the new literals and `versionBound` false for 3.8.48.
-- ISC-842: settings digest — a test inserts an `engines` sentinel, sees the count and digest change, and finds no sentinel in the snapshot; more than 64 settings fail with `compression_settings_too_large`.
+- ISC-842: settings digest — a test inserts an `engines` sentinel, sees the count and digest change, and finds no sentinel in the snapshot; a `cavemanConfig` change that keeps `enabled` also changes the digest; more than 64 settings fail with `compression_settings_too_large`.
 - ISC-843: non-claims — `tests/omniroute-native-integration.sh` passes its literal fail-closed non-claim guard; the readiness receipt keeps authentication, authorization and promotion false.
 - 2026-10-04 suites: `bun test package/router` 415 pass, 0 fail; the OmniRoute shell suites (native integration, client auth, Hermes preview, router hardening, check, combos) and `./verify.sh` exit 0; the STE docs gate reports 0 failures.
 - 2026-10-04 open: a live end-to-end native snapshot against the hosted 3.8.51 router was refused with `omniroute_package_invalid`, because its `package.json` has two links and mode 664. The install surface COPY record `router.governed-runtime` is re-pinned to the qualification commit `20dc813`.

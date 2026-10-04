@@ -200,7 +200,7 @@ interface CompressionProjection {
   activeComboResolves: boolean;
   candidateEngines: string[];
   configuredPipeline: Array<{ engine: string; intensity: string | null }>;
-  /** Compression settings this projection does not parse, as a count and a digest (values are not exposed). */
+  /** Compression settings this projection does not fully project, as a count and a digest (values are not exposed). */
   otherSettingsCount: number;
   otherSettingsSha256: string;
   effectivePipeline: "off" | "request-dependent";
@@ -393,12 +393,14 @@ function nullableStringSetting(value: string | undefined, code: string): string 
 
 const MAX_COMPRESSION_SETTINGS = 64;
 const MAX_COMPRESSION_SETTING_BYTES = 65_536;
-const PARSED_COMPRESSION_KEYS: ReadonlySet<string> = new Set([
-  "enabled", "defaultMode", "preserveSystemPrompt", "activeComboId", "cavemanConfig",
+// Settings whose whole value appears in the projection. `cavemanConfig` is projected only through
+// `enabled`, so it is digested in full with every other setting.
+const FULLY_PROJECTED_COMPRESSION_KEYS: ReadonlySet<string> = new Set([
+  "enabled", "defaultMode", "preserveSystemPrompt", "activeComboId",
 ]);
 
 /**
- * 3.8.51 dispatch also reads compression settings this projection does not parse (for example
+ * 3.8.51 dispatch also reads compression settings this projection does not fully project (for example
  * `engines`, which wins once saved, `stackedPipeline` and `comboOverrides`). Digest them so a
  * pre/post equality check sees any change without the snapshot exposing their values.
  */
@@ -410,7 +412,7 @@ function otherCompressionSettings(rows: KeyValueRow[]): { count: number; sha256:
     }
   }
   const other = rows
-    .filter((row) => !PARSED_COMPRESSION_KEYS.has(row.key))
+    .filter((row) => !FULLY_PROJECTED_COMPRESSION_KEYS.has(row.key))
     .map((row) => [row.key, row.value] as const)
     .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
   return { count: other.length, sha256: sha256(JSON.stringify(other)) };
