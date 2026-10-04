@@ -221,6 +221,22 @@ describe("organ planning", () => {
     expect(report.checks.find(({ id }) => id === "dependencies.provider.omniroute")).toMatchObject({ status: "PASS", required: true });
   });
 
+  test("health keeps the precise reason for organ probe holds", async () => {
+    const reasons = ["PORT_CLOSED", "LAUNCH_AGENT_ABSENT", "LAUNCH_AGENT_STOPPED", "ORIGIN_OFFLINE", "ORIGIN_UNVERIFIED"] as const;
+    for (const reason_code of reasons) {
+      const plan = await createOnboardingPlan({
+        catalog: createCoreOnboardingCatalog(),
+        profile: profile({ secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } } }),
+        adapter: allAvailable({ "mail-mcp-port": { available: false, reason_code } }),
+        selections: new Set(["integration.mail-mcp"]),
+      });
+      const report = projectOperatorHealth({ plan, observedAt: "2026-10-04T00:00:00.000Z" });
+      const held = report.checks.filter(({ id }) => id.startsWith("dependencies.integration.mail-mcp."));
+      expect(held.map(({ reason_code: reason }) => reason)).toEqual([reason_code]);
+      expect(held[0]!.next_action).not.toBe("Review the selected module's setup and rerun its prerequisite checks.");
+    }
+  });
+
   test("the TUI toggle refuses to turn off a required organ but toggles optional ones", async () => {
     const plan = await createOnboardingPlan({ catalog: createCoreOnboardingCatalog(), profile: profile(), adapter: allAvailable() });
     const selected = new Set(plan.modules.filter(({ requested }) => requested).map(({ id }) => id));
