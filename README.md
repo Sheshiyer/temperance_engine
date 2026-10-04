@@ -28,6 +28,16 @@ sessions, durable checkpoint recovery, or a completed v1.1 clean-host milestone.
 
 ---
 
+## Showreel
+
+[![Six frames from the Temperance Engine showreel: the alchemical seal, the title, the BUILD step, OmniRoute failover, ISA verification, and the lockup](assets/showreel/poster.jpg)](assets/showreel/temperance-showreel.mp4)
+
+Fifteen seconds at 60 fps, with every cut on a beat of a 120 BPM soundtrack. It covers the seven alchemical steps, a 429 → 200 OmniRoute failover, the ISA as test harness, and a balance beam that settles level on the last note.
+
+**[Watch 16:9](assets/showreel/temperance-showreel.mp4)** · **[Watch 9:16 for socials](assets/showreel/temperance-showreel-9x16.mp4)** · [How it is made](package/showreel/README.md)
+
+The visuals are one hand-written Canvas2D file and the soundtrack is synthesized in code. There are no animation libraries. Run `bun run render` in `package/showreel/` to rebuild both cuts from source.
+
 ## Why It Exists
 
 Local AI-agent setups tend to sprawl across hidden config directories, voice hooks, MCP servers, skills, and search indexes. Temperance Engine turns a working local runtime into a reviewable public installer with backups, docs, skip-safe voice behavior, and explicit credits.
@@ -245,7 +255,7 @@ graph LR
 - source-reference: manifest.json
 - source-count: 6
 - source-note: README.md, CHANGELOG.md, CONTRIBUTING.md, CREDITS.md, ISA.md, QUICKSTART.md
-- generated-at: 2026-10-04T16:44:49+0000
+- generated-at: 2026-10-04T19:38:46+0000
 - notebook-id: a6e54ace-8597-4c34-b679-88cb66af7ccc
 - generation-command: READMEREBUILD_SKIP_NOTEBOOKLM=1 bash scripts/rebuild-readme.sh 'Temperance Engine' 'Sheshiyer'
 - continuity-mode: merge-queue refresh workflow
@@ -377,7 +387,7 @@ Legacy OmniRoute routing references (historical migration input; tests still pin
 
 Retired stubs (do not expand): [docs/parallel-dispatch.md](docs/parallel-dispatch.md) · [docs/multi-surface-architecture.md](docs/multi-surface-architecture.md)
 
-Also: [docs/rollback.md](docs/rollback.md) · [docs/manifest-control-plane.md](docs/manifest-control-plane.md) · [package/manifest-bridge/README.md](package/manifest-bridge/README.md) · [docs/SWARM-CONTROL-RUNBOOK.md](docs/SWARM-CONTROL-RUNBOOK.md) · [skills/temperance-engine/SKILL.md](skills/temperance-engine/SKILL.md) · [UPSTREAM.md](UPSTREAM.md) · [docs/skills-sh-upload.md](docs/skills-sh-upload.md) · `assets/`
+Also: [docs/rollback.md](docs/rollback.md) · [docs/manifest-control-plane.md](docs/manifest-control-plane.md) · [package/manifest-bridge/README.md](package/manifest-bridge/README.md) · [package/showreel/README.md](package/showreel/README.md) · [docs/SWARM-CONTROL-RUNBOOK.md](docs/SWARM-CONTROL-RUNBOOK.md) · [skills/temperance-engine/SKILL.md](skills/temperance-engine/SKILL.md) · [UPSTREAM.md](UPSTREAM.md) · [docs/skills-sh-upload.md](docs/skills-sh-upload.md) · `assets/`
 
 ## Contributing
 
