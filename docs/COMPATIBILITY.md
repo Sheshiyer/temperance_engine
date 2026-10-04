@@ -32,6 +32,7 @@ Update this table when `VERSION`, the gateway pin, or the host install contract 
 |---|---|---|---|
 | 2026-08-01 | 0.1.0 | 3.8.48 | Offline readiness inspector + synthetic Context Settings work |
 | 2026-08-01 | 0.1.0 | 3.8.49 (candidate only) | A2A comparison JSON; not installed |
+| 2026-10-04 | 0.6.0 | 3.8.51 | Router gates re-qualified: native CLI readiness, context and Hermes preview, control plane. Live 401 stays unresolved |
 
 ## Probe
 
