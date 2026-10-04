@@ -14,9 +14,19 @@ if ! command -v bun >/dev/null 2>&1; then
   exit 127
 fi
 
+# Tests spawn rg as a binary from PATH. An interactive shell function or alias
+# named rg does not reach this script or its children. Some checks would read a
+# missing rg as a pass, so require it up front.
+if ! command -v rg >/dev/null 2>&1; then
+  printf '%s\n' "ripgrep (rg) binary is required on PATH for the verification suite (macOS: brew install ripgrep)" >&2
+  exit 127
+fi
+
 run ./verify.sh
 run bun test package/install-surface
 run bun test package/enrich
+run bun test package/ste-check
+run bun package/ste-check/docs-gate.ts
 run bun test package/adapters/command-code/context-sources-line.test.ts
 run bash tests/command-code-context-sources.sh
 run bun test package/router/routing-policy.test.ts
@@ -70,6 +80,7 @@ run bash -n scripts/omniroute-redact-claude-artifacts.sh
 run bash tests/temperance-proxy-live.sh
 run bash tests/temperance-proxy-launchd.sh
 run bash tests/configure-opencode-session-profiles.sh
+run bash tests/install-ste.sh
 run bash tests/install-temperance-proxy-systemd.sh
 run bash tests/docs-continuity.sh
 run bash tests/router-hardening.sh

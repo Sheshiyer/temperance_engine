@@ -50,6 +50,24 @@ node package/router/gsd-command-install.mjs --uninstall
 
 `--with-spine` never wrote OmniRoute keys. Do not restore TOML backups that contain plaintext secrets.
 
+## Remove the STE skill
+
+The `--with-ste` option installs the Simplified Technical English skill. Refer to [ste.md](ste.md).
+To remove the skill, run the installer in uninstall mode from the repository root:
+
+```bash
+TEMPERANCE_ROOT="$PWD" TEMPERANCE_STE_MODE=uninstall sh scripts/install-ste.sh
+```
+
+Use the same `PAI_HOME`, `OPENCODE_HOME`, `AGENTS_HOME`, and `STE_SKILL_HOME` values that you used for the install.
+The installer removes a surface link only if the link points to the managed skill folder.
+The installer does not remove a skill that you installed yourself.
+The installer does not delete the skill folder. It moves the folder to the backup folder.
+
+If the skill folder has local changes or is at a different commit, the installer stops.
+To move that folder to the backup folder, add `TEMPERANCE_FORCE=1`.
+To see the changes before you remove the skill, add `TEMPERANCE_DRY_RUN=1`.
+
 ## Restart Apps
 
 After rollback, restart OpenCode and Cursor sessions so they reload instruction surfaces. Restart Claude or Codex only if those optional templates were installed.

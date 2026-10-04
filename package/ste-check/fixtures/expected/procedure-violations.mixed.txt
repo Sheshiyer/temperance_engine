@@ -1,0 +1,32 @@
+ERROR   fixtures/procedure-violations.md:par2 [rule 8.1] semicolon found: "You should check the valve; then you'll remove the cover.". Write two sentences.
+ERROR   fixtures/procedure-violations.md:par2 [rule 4.2] contraction "you'll": write the full words.
+ERROR   fixtures/procedure-violations.md:par2 [rule 3.2] "should" is not approved. Use "must" (requirement), "can" (possibility), "will" (future), or remove it.
+ERROR   fixtures/procedure-violations.md:par3 [rule 3.4] helping verb structure "has adjusted": use the simple past tense.
+ERROR   fixtures/procedure-violations.md:par3 [rule 3.4] complex passive "must be replaced": make the sentence active.
+ERROR   fixtures/procedure-violations.md:par3 [rule 3.6] passive voice "be replaced by": make the agent the subject.
+ERROR   fixtures/procedure-violations.md:par3 [rule 3.5] progressive form "is being": use a simple tense.
+ERROR   fixtures/procedure-violations.md:par4 [rule 3.6] passive voice "was installed by": make the agent the subject.
+ERROR   fixtures/procedure-violations.md:par4 [rule 3.4] complex passive "can be removed": make the sentence active.
+ERROR   fixtures/procedure-violations.md:list [rule 4.2] contraction "Don't": write the full words.
+ERROR   fixtures/procedure-violations.md:list [rule 3.5] progressive form "are checking": use a simple tense.
+ERROR   fixtures/procedure-violations.md:par6 [rule 6.6] paragraph has 8 sentences (max 6).
+ERROR   fixtures/procedure-violations.md:par6 [rule 3.2] "may" is not approved. Use "must" (requirement), "can" (possibility), "will" (future), or remove it.
+ERROR   fixtures/procedure-violations.md:par6 [rule 3.2] "might" is not approved. Use "must" (requirement), "can" (possibility), "will" (future), or remove it.
+ERROR   fixtures/procedure-violations.md:par6 [rule 3.2] "would" is not approved. Use "must" (requirement), "can" (possibility), "will" (future), or remove it.
+WARNING fixtures/procedure-violations.md:par3 [rule 5.1] sentence has 24 words (max 20 if procedural): "The operator has adjusted the linkage and the filter must..."
+WARNING fixtures/procedure-violations.md:par3 [rule 3.5] "being": an "-ing" form is permitted only in a technical name.
+WARNING fixtures/procedure-violations.md:list [rule 3.5] "checking": an "-ing" form is permitted only in a technical name.
+WARNING fixtures/procedure-violations.md:list [rule 3.5] "Configuring": an "-ing" form is permitted only in a technical name.
+WARNING fixtures/procedure-violations.md:par6 [rule 3.2] "could" is approved only as the past tense of "can".
+
+CHECK   64 words are not in the approved word list.
+        Each must be an approved technical name or technical verb:
+        you, by, it, cover, be, is, should, check, valve, then
+        ll, remove, operator, has, adjusted, linkage, and, filter, must, replaced
+        technician, before, system, being, started, again, anyone, pump, was, installed
+        team, can, removed, don, touch, connector, make, sure, that, are
+        checking, pressure, configuring, router, optional, may, fail, might, would, see
+        an, alarm, could, restart, fan, will, start, relay, closes, light
+        comes, on, cycle, ends
+
+Result: 15 errors, 5 warnings.

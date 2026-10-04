@@ -44,6 +44,12 @@ Use `NOESIS` as the first visible line for PAI-formatted responses.
 - Do not use Augment/codebase-retrieval for `$HOME` or `$HOME/.agents`; these surfaces can be blocked by dynamic-index security.
 - Use direct file reads or text search only for literal text or specific files.
 
+## Technical Writing (STE)
+
+- When the `simplified-technical-english` skill is installed (`./install.sh --with-ste`), use it for technical docs, procedures, and error text. Not for code, commands, or marketing copy.
+- Check a draft with `bun package/ste-check/cli.ts --mode procedural|descriptive|mixed FILE` (bun port of the upstream checker; no Python needed).
+- Docs in `package/ste-check/docs-scope.json` are gated by `bun package/ste-check/docs-gate.ts`: no doc may gain STE errors, and new docs must have zero. Never raise a count in `docs-baseline.json`. See `docs/ste.md`.
+
 <!-- temperance:project-rail:start -->
 ## Temperance project rail
 

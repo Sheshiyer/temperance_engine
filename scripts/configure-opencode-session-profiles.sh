@@ -260,7 +260,7 @@ managed_agents() {
       prompt: "Use the Temperance automatic classifier. Preserve the selected session mode and task identity. Never silently downgrade an ALGORITHM coordinator.",
       permission: {
         task: "allow",
-        skill: {"*":"deny","temperance-native":"allow","temperance-algorithm":"allow","using-superpowers":"allow","ISA":"allow","iterativedepth":"allow","systemsthinking":"allow","firstprinciples":"allow","*-orchestrator":"allow"}
+        skill: {"*":"deny","simplified-technical-english":"allow","temperance-native":"allow","temperance-algorithm":"allow","using-superpowers":"allow","ISA":"allow","iterativedepth":"allow","systemsthinking":"allow","firstprinciples":"allow","*-orchestrator":"allow"}
       }
     },
     "temperance-native": {
@@ -278,7 +278,7 @@ managed_agents() {
       permission: {
         task: "allow",
         external_directory: {"*":"ask",($algorithmPath):"allow",($canonicalAlgorithmPath):"allow"},
-        skill: {"*":"deny","temperance-*":"allow","using-superpowers":"allow","ISA":"allow","iterativedepth":"allow","systemsthinking":"allow","firstprinciples":"allow","*-orchestrator":"allow"}
+        skill: {"*":"deny","simplified-technical-english":"allow","temperance-*":"allow","using-superpowers":"allow","ISA":"allow","iterativedepth":"allow","systemsthinking":"allow","firstprinciples":"allow","*-orchestrator":"allow"}
       }
     },
     "temperance-continuity": {
@@ -288,7 +288,7 @@ managed_agents() {
       prompt: "This is an explicitly selected A-tier continuity session. Start a new task identity, log the tier transition, and never represent this rail as S-tier coordination.",
       permission: {
         task: "allow",
-        skill: {"*":"deny","temperance-*":"allow","using-superpowers":"allow","ISA":"allow","*-orchestrator":"allow"}
+        skill: {"*":"deny","simplified-technical-english":"allow","temperance-*":"allow","using-superpowers":"allow","ISA":"allow","*-orchestrator":"allow"}
       }
     },
     "temperance-planner": {
@@ -305,7 +305,7 @@ managed_agents() {
       description: "B-tier worker for independent, bounded production slices.",
       prompt: "Execute only the assigned slice, preserve unrelated work, do not delegate, and return evidence plus artifact paths. Escalation is B to A to S; never downgrade within the same task.",
       maxSteps: 32,
-      permission: {task:"deny",skill:{"*":"deny","temperance-parallel-dispatch":"allow","using-superpowers":"allow"}}
+      permission: {task:"deny",skill:{"*":"deny","simplified-technical-english":"allow","temperance-parallel-dispatch":"allow","using-superpowers":"allow"}}
     },
     "temperance-validator": {
       mode: "subagent",

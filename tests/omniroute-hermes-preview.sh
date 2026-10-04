@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT="$ROOT_DIR/scripts/omniroute-hermes-preview.sh"
+# These checks use rg. Without it, `if rg` and `! rg` read as passes.
+command -v rg >/dev/null 2>&1 || { printf 'FAIL - rg (ripgrep) is required: brew install ripgrep\n' >&2; exit 1; }
 TEST_DIR="$(realpath "$(mktemp -d)")"
 MOCK_STATUS="$TEST_DIR/native-status"
 POISON_SECURITY="$TEST_DIR/security-must-not-run"

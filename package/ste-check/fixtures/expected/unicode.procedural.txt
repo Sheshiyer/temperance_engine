@@ -1,0 +1,15 @@
+ERROR   fixtures/unicode.md:par5 [rule 3.4] helping verb structure "has créated": use the simple past tense.
+ERROR   fixtures/unicode.md:par5 [rule 3.5] progressive form "is démarrating": use a simple tense.
+ERROR   fixtures/unicode.md:par5 [rule 3.4] helping verb structure "has removed": use the simple past tense.
+WARNING fixtures/unicode.md:par1 [rule 3.5] "confusing": an "-ing" form is permitted only in a technical name.
+WARNING fixtures/unicode.md:par5 [rule 3.5] "marrating": an "-ing" form is permitted only in a technical name.
+
+CHECK   47 words are not in the approved word list.
+        Each must be an approved technical name or technical verb:
+        is, operator, has, and, il, na, ve, user, caf, menu
+        isn, clear, it, confusing, sum, process, ussi, test, she, here
+        they, re, ready, le, name, icon, decorative, value, marr, par
+        op, rateur, et, fonctionne, cr, ated, file, robot, marrating, now
+        pump, removed, fluid, relay, was, gl, by
+
+Result: 3 errors, 2 warnings.

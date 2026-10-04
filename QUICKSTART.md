@@ -2,7 +2,8 @@
 
 Themed page: [docs/site/quickstart.html](docs/site/quickstart.html) · library: [docs/index.html](docs/index.html)
 
-Multi-backend routing for AI coding agents.
+Temperance Engine gives multi-backend routing to AI agents that write code.
+This file uses Simplified Technical English (STE). Refer to [docs/ste.md](docs/ste.md).
 
 ## Member install (full glove)
 
@@ -14,7 +15,11 @@ cd temperance_engine
 # or: temperance-project-init --cwd . --check
 ```
 
-`/gsd:*` binds the mode (no NOESIS quiz). A real picker only on a bare first prompt with no saved session/cwd mode. Then ChatGPT IAB (Claude/Codex) or print `http://127.0.0.1:5173` (Grok). Cursor uses the alwaysApply rule + `AGENTS.md`. See [docs/gsd-manifest-spine.md](docs/gsd-manifest-spine.md) and [docs/gsd-goal-handoff.md](docs/gsd-goal-handoff.md).
+`/gsd:*` sets the mode. There is no NOESIS quiz.
+A real picker shows only on a bare first prompt that has no saved session mode or cwd mode.
+Then Claude and Codex open the ChatGPT IAB, and Grok prints `http://127.0.0.1:5173`.
+Cursor uses the alwaysApply rule and `AGENTS.md`.
+Refer to [docs/gsd-manifest-spine.md](docs/gsd-manifest-spine.md) and [docs/gsd-goal-handoff.md](docs/gsd-goal-handoff.md).
 
 ## Install (routing CLIs only)
 
@@ -23,14 +28,14 @@ cd temperance_engine
 ./scripts/wire-multi-backend.sh
 ```
 
-This installs:
-- `temperance-route` CLI to `~/.local/bin/`
-- `temperance-dispatch` CLI for parallel comparison
-- `temperance-batch` CLI for governed parallel task fleets
-- `temperance-opencode` Keychain-backed OpenCode launcher
-- `temperance-claude` allowlisted native OmniRoute Claude launcher
-- OpenCode hooks with routing context
-- Enrichment core with automatic task classification
+The script installs these items:
+- The `temperance-route` CLI in `~/.local/bin/`
+- The `temperance-dispatch` CLI, which compares backends in parallel
+- The `temperance-batch` CLI, which runs governed fleets of parallel tasks
+- `temperance-opencode`, an OpenCode launcher that uses the macOS Keychain
+- `temperance-claude`, an allowlisted native OmniRoute Claude launcher
+- OpenCode hooks that add routing context
+- The enrichment core, which classifies each task automatically
 
 ## CLI Commands
 
@@ -71,8 +76,9 @@ temperance-dispatch --all "complex task"
 
 ### Run the Governed Fleet
 
-For independent coding tasks, pin a model that has passed the exact client-wire
-probe. Do not send a fleet portfolio merely because it appears in the catalog:
+For independent code tasks, pin a model that passed the exact client-wire probe.
+Do not send a fleet portfolio only because it shows in the catalog.
+This is an example of a tasks file:
 
 ```json
 [
@@ -85,21 +91,23 @@ probe. Do not send a fleet portfolio merely because it appears in the catalog:
 temperance-batch --tasks tasks.json --concurrency 4 --worktree
 ```
 
-`temperance-batch` owns parallel tasks, validation, receipts, and worktree
-isolation for models that pass the Codex Responses/tool wire. Spark is an
-optional compatibility rail, not the exclusive default. A failed or truncated
-non-Codex wire probe is never promoted or silently downgraded.
+`temperance-batch` controls parallel tasks, validation, receipts, and worktree isolation.
+It does this for models that pass the Codex Responses/tool wire.
+Spark is an optional compatibility rail. Spark is not the only default.
 
-For governed native non-Codex audits, use an exact allowlisted OmniRoute
-profile. Antigravity and GitHub Claude are separate provider families:
+If a non-Codex wire probe fails or stops early, Temperance does not promote that model.
+Temperance also does not downgrade that model without a notice.
+
+For a governed native audit with a non-Codex model, use an exact allowlisted OmniRoute profile.
+Antigravity and GitHub Claude are two different provider families:
 
 ```bash
 temperance-claude antigravity-claude-sonnet-5 -p "Audit architecture only; do not edit."
 temperance-claude gh-claude-sonnet-5 -p "Audit rollback only; do not edit."
 ```
 
-Both launchers read a dedicated inference key from macOS Keychain. Sol-family
-models remain forbidden for worker dispatch.
+The two launchers read a dedicated inference key from the macOS Keychain.
+Do not use Sol-family models for worker dispatch.
 
 ## Task Types & Routing
 
@@ -112,16 +120,16 @@ models remain forbidden for worker dispatch.
 | `creative` | "brainstorm", "explore" | see below |
 | `inline` | "extract", "list" (no tools) | current session |
 
-Type→model pins have exactly one source: `model_for_type` in
-`package/router/classify-task.sh`, verified against the live command-code
-catalog (`command-code --list-models`). Resolve any task with
-`sh package/router/classify-task.sh "<task>"`. (2026-07-28: this table
-previously carried a stale inline copy of the pins; removed per the
-one-classifier doctrine.)
+The pins from task type to model have one source only.
+The source is `model_for_type` in `package/router/classify-task.sh`.
+These pins agree with the live command-code catalog (`command-code --list-models`).
+To resolve a task, run `sh package/router/classify-task.sh "<task>"`.
+On 2026-07-28, we removed an old copy of the pins from this table.
+The one-classifier doctrine permits only one copy.
 
 ## Automatic Routing Context
 
-Every prompt gets a `<temperance-context>` block with routing hints:
+Each prompt gets a `<temperance-context>` block with routing hints:
 
 ```xml
 <temperance-context>
@@ -133,7 +141,8 @@ routing: backends=command-code,kimi,grok | task=long-horizon | preferred=command
 </temperance-context>
 ```
 
-The agent sees the `routing:` line and knows which backend/model to use when delegating.
+The agent reads the `routing:` line.
+The line tells the agent which backend and model to use for a delegated task.
 
 ## Available Backends
 
@@ -152,7 +161,8 @@ The agent sees the `routing:` line and knows which backend/model to use when del
 | `kimi` | ~3s | 10-15s | 30-60s | 120s |
 | `grok` | ~5s | 10-15s | 20-40s | 90s |
 
-**Note:** command-code has higher latency due to its agentic execution model. For time-critical simple tasks, prefer `kimi` or `grok`.
+**Note:** command-code has a higher latency because it uses an agentic model of execution.
+For a simple task that must complete quickly, use `kimi` or `grok`.
 
 ## Check Status
 
@@ -164,16 +174,25 @@ The agent sees the `routing:` line and knows which backend/model to use when del
 bun scripts/omniroute-native-cli-readiness.ts
 ```
 
-See [`docs/omniroute-native-integration.md`](docs/omniroute-native-integration.md)
-for Context Settings, CLI Code/Agents, Hermes, Cloudflare Access, provider
-topology semantics, local auth receipts, and remote promotion gates.
-The preview commands are proposal/validation gates only: they do not replace
-the governed Codex profiles or write a live Hermes configuration. The native
-CLI readiness command compares six reviewed 3.8.48 source digests and markers
-offline; it does not certify the full package and is not an authenticated
-compression preview. MCP remains disabled
-with dormant scope enforcement; A2A
-remains disabled until its execution endpoint enforces governed credentials.
+Refer to [`docs/omniroute-native-integration.md`](docs/omniroute-native-integration.md) for these subjects:
+- Context Settings
+- CLI Code/Agents
+- Hermes
+- Cloudflare Access
+- Provider topology semantics
+- Local auth receipts
+- Remote promotion gates
+
+The preview commands are only gates for proposals and validation.
+They do not replace the governed Codex profiles.
+They do not write a live Hermes configuration.
+
+The native CLI readiness command does an offline comparison of six reviewed 3.8.48 source digests and markers.
+It does not certify the full package.
+It is not an authenticated compression preview.
+
+MCP stays disabled, and its scope enforcement is dormant.
+A2A stays disabled until its execution endpoint enforces governed credentials.
 
 ## Revert
 
@@ -181,4 +200,4 @@ remains disabled until its execution endpoint enforces governed credentials.
 ./scripts/wire-multi-backend.sh --revert
 ```
 
-All changes are symlinks with backups - fully reversible.
+Each change is a symlink with a backup. You can revert each change.

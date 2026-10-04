@@ -24,6 +24,7 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 
 - Skill-cluster routing pattern built around hub/spoke skill organization, `skill-index.json`, active symlinks, and health checks.
 - PAI-style ISA and Algorithm flow: current state to ideal state, criteria as tests, verification as done condition.
+- [Simplified Technical English](https://github.com/0xpili/simplified-technical-english) by 0xpili (MIT) is the optional ASD-STE100 writing skill behind `./install.sh --with-ste`. It is fetched at a pinned commit, not vendored. `package/ste-check/` is a TE-owned bun port of its check script. The ASD-STE100 word list stays in the upstream skill; see `docs/ste.md`.
 
 ## Voice Feedback
 
@@ -49,6 +50,7 @@ Temperance Engine packages integration patterns around several tools and ideas. 
 | GitHub CLI | https://github.com/cli/cli | Public repo creation and publishing workflow. |
 | Bun | https://github.com/oven-sh/bun | Runtime for the optional Pulse compatibility server. |
 | portless | https://github.com/vercel-labs/portless | Named `.localhost` URLs for Speculum/Vas/Athanor/Mercurius. Referenced, not vendored. |
+| Simplified Technical English | https://github.com/0xpili/simplified-technical-english | Optional ASD-STE100 writing skill and source of the bun STE checker port. Referenced, not vendored. |
 | ripgrep | https://github.com/BurntSushi/ripgrep | Fast literal file and content search model. |
 
 ## Local Session Work

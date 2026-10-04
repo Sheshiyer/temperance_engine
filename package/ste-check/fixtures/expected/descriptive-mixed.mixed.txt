@@ -1,0 +1,13 @@
+ERROR   fixtures/descriptive-mixed.md:par3 [rule 6.6] paragraph has 7 sentences (max 6).
+
+CHECK   63 words are not in the approved word list.
+        Each must be an approved technical name or technical verb:
+        is, and, are, parts, of, system, fuel, subsystems, engine, in
+        words, main, controller, with, its, many, attached, sensors, sends, data
+        every, second, has, group, connected, control, monitors, these, if, pressure
+        changes, adjusts, flow, thus, performance, stays, correct, range, ring, spring
+        morning, test, complete, large, goes, left, thing, here, everything, ready
+        evening, shift, starts, bold, text, more, marks, not, but, self-contained
+        hyphen-groups, count, once
+
+Result: 1 errors, 0 warnings.

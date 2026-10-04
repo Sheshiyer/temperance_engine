@@ -61,17 +61,33 @@ log() { echo "[wire] $*"; }
 warn() { echo "[wire] WARNING: $*" >&2; }
 err() { echo "[wire] ERROR: $*" >&2; exit 1; }
 
+# Print a backup path in $BACKUP_DIR that does not exist yet. One run can back up
+# two sources with the same basename: the ~/.kimi CLI skill link and the Kimi
+# desktop skill dir are both "temperance-engine". The link is saved as a symlink
+# (cp -P), so copying the dir onto that same name would follow it and write the
+# dir into the repo's skills/ tree. Never reuse a name inside one run.
+backup_target() {
+  local base target n=2
+  base="$BACKUP_DIR/$(basename "$1")"
+  target="$base"
+  while [[ -e "$target" || -L "$target" ]]; do
+    target="$base.$n"
+    n=$((n + 1))
+  done
+  printf '%s\n' "$target"
+}
+
 backup_file() {
   local src="$1"
   if [[ -f "$src" || -L "$src" ]]; then
     mkdir -p "$BACKUP_DIR"
-    local name
-    name=$(basename "$src")
+    local target
+    target=$(backup_target "$src")
     if $DRY_RUN; then
-      log "Would backup: $src → $BACKUP_DIR/$name"
+      log "Would backup: $src → $target"
     else
-      cp -P "$src" "$BACKUP_DIR/$name"
-      log "Backed up: $src → $BACKUP_DIR/$name"
+      cp -P "$src" "$target"
+      log "Backed up: $src → $target"
     fi
   fi
 }
@@ -80,13 +96,13 @@ backup_dir() {
   local src="$1"
   if [[ -d "$src" && ! -L "$src" ]]; then
     mkdir -p "$BACKUP_DIR"
-    local name
-    name=$(basename "$src")
+    local target
+    target=$(backup_target "$src")
     if $DRY_RUN; then
-      log "Would backup directory: $src → $BACKUP_DIR/$name"
+      log "Would backup directory: $src → $target"
     else
-      cp -RP "$src" "$BACKUP_DIR/$name"
-      log "Backed up directory: $src → $BACKUP_DIR/$name"
+      cp -RP "$src" "$target"
+      log "Backed up directory: $src → $target"
     fi
   fi
 }
@@ -94,35 +110,35 @@ backup_dir() {
 backup_existing_path() {
   local src="$1"
   [[ -e "$src" || -L "$src" ]] || return 0
-  local name
-  name=$(basename "$src")
+  local target
+  target=$(backup_target "$src")
   if [[ -L "$src" || -f "$src" ]]; then
     if $DRY_RUN; then
-      log "Would backup: $src → $BACKUP_DIR/$name"
+      log "Would backup: $src → $target"
     else
       if ! mkdir -p "$BACKUP_DIR"; then
         warn "Failed to create backup directory: $BACKUP_DIR"
         return 1
       fi
-      if ! cp -P "$src" "$BACKUP_DIR/$name"; then
+      if ! cp -P "$src" "$target"; then
         warn "Failed to backup path: $src"
         return 1
       fi
-      log "Backed up: $src → $BACKUP_DIR/$name"
+      log "Backed up: $src → $target"
     fi
   elif [[ -d "$src" ]]; then
     if $DRY_RUN; then
-      log "Would backup directory: $src → $BACKUP_DIR/$name"
+      log "Would backup directory: $src → $target"
     else
       if ! mkdir -p "$BACKUP_DIR"; then
         warn "Failed to create backup directory: $BACKUP_DIR"
         return 1
       fi
-      if ! cp -RP "$src" "$BACKUP_DIR/$name"; then
+      if ! cp -RP "$src" "$target"; then
         warn "Failed to backup directory: $src"
         return 1
       fi
-      log "Backed up directory: $src → $BACKUP_DIR/$name"
+      log "Backed up directory: $src → $target"
     fi
   else
     warn "Refusing unsupported destination type: $src"

@@ -1,0 +1,119 @@
+{
+  "schema": "temperance.ste-docs-baseline.v1",
+  "files": {
+    "CONTRIBUTING.md": {
+      "errors": 3
+    },
+    "QUICKSTART.md": {
+      "errors": 0
+    },
+    "SECURITY.md": {
+      "errors": 0
+    },
+    "docs/COMPATIBILITY.md": {
+      "errors": 1
+    },
+    "docs/ECOSYSTEM.md": {
+      "errors": 0
+    },
+    "docs/GSD-HITL-PICKER.md": {
+      "errors": 3
+    },
+    "docs/GSD-PAI-DESIGN-FLOW.md": {
+      "errors": 4
+    },
+    "docs/GSD-TEXT-MODE-OVERRIDE.md": {
+      "errors": 0
+    },
+    "docs/MANIFEST-ALGORITHM-ACTIVATION-GAP-REGISTER.md": {
+      "errors": 2
+    },
+    "docs/ORCHESTRATION-CONTRACT.md": {
+      "errors": 3
+    },
+    "docs/ORCHESTRATION-GAP-REGISTER.md": {
+      "errors": 1
+    },
+    "docs/OWNERS.md": {
+      "errors": 1
+    },
+    "docs/README.md": {
+      "errors": 0
+    },
+    "docs/SWARM-CONTROL-RUNBOOK.md": {
+      "errors": 6
+    },
+    "docs/V4-HAND-IN-GLOVE-ARCHITECTURE.md": {
+      "errors": 66
+    },
+    "docs/architecture.md": {
+      "errors": 5
+    },
+    "docs/codegraph-routing.md": {
+      "errors": 2
+    },
+    "docs/codex-cli-limits.md": {
+      "errors": 0
+    },
+    "docs/gsd-goal-handoff.md": {
+      "errors": 0
+    },
+    "docs/gsd-manifest-spine.md": {
+      "errors": 2
+    },
+    "docs/kimi-surface.md": {
+      "errors": 39
+    },
+    "docs/manifest-control-plane.md": {
+      "errors": 6
+    },
+    "docs/noesis-writer-routing.md": {
+      "errors": 25
+    },
+    "docs/omniroute-connections.md": {
+      "errors": 10
+    },
+    "docs/omniroute-fleet.md": {
+      "errors": 40
+    },
+    "docs/omniroute-integration.md": {
+      "errors": 15
+    },
+    "docs/omniroute-native-integration.md": {
+      "errors": 160
+    },
+    "docs/omniroute-runtime.md": {
+      "errors": 50
+    },
+    "docs/pai-flow.md": {
+      "errors": 16
+    },
+    "docs/paseo-vault-portfolio.md": {
+      "errors": 6
+    },
+    "docs/peon-ping-packs.md": {
+      "errors": 0
+    },
+    "docs/release-control.md": {
+      "errors": 9
+    },
+    "docs/rollback.md": {
+      "errors": 1
+    },
+    "docs/skill-clusters.md": {
+      "errors": 2
+    },
+    "docs/skills-sh-upload.md": {
+      "errors": 0
+    },
+    "docs/ste.md": {
+      "errors": 0
+    },
+    "docs/temperance-capability-fabric.md": {
+      "errors": 22
+    },
+    "docs/vault-project-relocation.md": {
+      "errors": 98
+    }
+  }
+}

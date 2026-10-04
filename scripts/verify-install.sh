@@ -209,7 +209,7 @@ else
   fail=1
 fi
 
-if grep -q "Thoughtseed Labs" "$ROOT/README.md" && grep -q "Personal_AI_Infrastructure" "$ROOT/CREDITS.md" && grep -q "colbymchenry/codegraph" "$ROOT/CREDITS.md" && grep -q "PeonPing/peon-ping" "$ROOT/CREDITS.md"; then
+if grep -q "Thoughtseed Labs" "$ROOT/README.md" && grep -q "Personal_AI_Infrastructure" "$ROOT/CREDITS.md" && grep -q "colbymchenry/codegraph" "$ROOT/CREDITS.md" && grep -q "PeonPing/peon-ping" "$ROOT/CREDITS.md" && grep -q "0xpili/simplified-technical-english" "$ROOT/CREDITS.md"; then
   printf '%s\n' "ok: README and credits include requested attribution"
 else
   printf '%s\n' "README or credits missing requested attribution" >&2
@@ -232,6 +232,15 @@ printf '%s\n' "ok: skills.sh.json parses"
 
 node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$ROOT/.planning/config.json"
 printf '%s\n' "ok: .planning/config.json parses"
+
+# Advisory only: rg is optional for the install itself, but temperance-goal's
+# default checks, the OmniRoute Codex/Hermes preview scans, and the full test
+# suite (scripts/verify-all.sh) need the rg binary on PATH.
+if command -v rg >/dev/null 2>&1; then
+  printf '%s\n' "ok: ripgrep (rg) found at $(command -v rg)"
+else
+  printf '%s\n' "warn: ripgrep (rg) not on PATH; temperance-goal checks, OmniRoute preview scans, and scripts/verify-all.sh need it (macOS: brew install ripgrep)"
+fi
 
 if test "$fail" -ne 0; then
   exit 1

@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 712/834
+progress: 723/845
 mode: interactive
 started: 2026-06-12
-updated: 2026-09-19T14:22:31Z
+updated: 2026-10-04T17:37:54Z
 ---
 
 ## Problem
@@ -1082,6 +1082,17 @@ untouched.
 - [x] ISC-810: The `0.6.0` changelog explicitly preserves the unqualified long-context enforcement boundary.
 - [x] ISC-811: The `0.6.0` source candidate passes the canonical verification suite.
 - [x] ISC-812: Anti: the `0.6.0` public candidate contains no private absolute home path rejected by the existing guard.
+- [x] ISC-813: `./install.sh --with-ste` fetches the STE skill at the pinned upstream commit into `$AGENTS_HOME/skills/simplified-technical-english`.
+- [x] ISC-814: The STE installer leaves a non-pinned or dirty skill copy unchanged unless `--force`, which backs it up outside every skills dir.
+- [x] ISC-815: Anti: the repository contains no copy of the ASD-STE100 approved word list.
+- [x] ISC-816: The bun STE checker output matches upstream `ste_check.py` byte for byte on every committed fixture.
+- [x] ISC-817: The STE docs gate fails when an in-scope doc has more errors than its baseline.
+- [x] ISC-818: The STE docs gate fails when an in-scope doc outside the baseline has any error.
+- [x] ISC-819: `QUICKSTART.md` and `docs/ste.md` have zero STE structural errors.
+- [x] ISC-820: OpenCode writing agents allow the `simplified-technical-english` skill, and locked lanes do not.
+- [x] ISC-821: A forced STE update fetches and validates the replacement before it retires the active checkout.
+- [x] ISC-822: The STE installer never replaces an in-place `STE_SKILL_HOME` checkout with a link to itself.
+- [x] ISC-823: STE uninstall removes only links that resolve to the managed checkout in the configured roots, and moves rather than deletes the checkout.
 
 ## Test Strategy
 
@@ -1885,6 +1896,17 @@ untouched.
 | ISC-810 | release | qualification boundary | explicit gateway/context/recovery holds | changelog readback |
 | ISC-811 | release | canonical verification | exit zero | `./scripts/verify-all.sh` |
 | ISC-812 | privacy | existing public-path guard | exit zero, guard unchanged | `./verify.sh` |
+| ISC-813 | installer | `--with-ste` clone HEAD and skill files | equals pin, all present | `tests/install-ste.sh` |
+| ISC-814 | installer safety | non-pinned or dirty copy without force | unchanged, warning | `tests/install-ste.sh` |
+| ISC-815 | licensing | word-list-sized STE entry blocks in the repo | zero | `tests/docs-continuity.sh` |
+| ISC-816 | parity | bun checker output vs upstream goldens | byte-identical | `bun test package/ste-check` |
+| ISC-817 | docs gate | baselined doc above its count | gate fails | `package/ste-check/docs-gate.test.ts` |
+| ISC-818 | docs gate | new in-scope doc with an error | gate fails | `package/ste-check/docs-gate.test.ts` |
+| ISC-819 | docs | `QUICKSTART.md` and `docs/ste.md` STE errors | zero | `bun package/ste-check/docs-gate.ts` |
+| ISC-820 | OpenCode | writing agents allow the STE skill; locked lanes do not | exact | `tests/configure-opencode-session-profiles.sh` |
+| ISC-821 | installer safety | forced update to an unfetchable pin | active skill and links unchanged, no backup | `tests/install-ste.sh` |
+| ISC-822 | installer safety | `STE_SKILL_HOME` inside a surface skills dir with `--force` | real checkout, no self-link | `tests/install-ste.sh` |
+| ISC-823 | uninstall | operator-owned and default-path skills under overridden roots | untouched; only the managed link removed; checkout moved to backups | `tests/install-ste.sh` |
 
 ## Features
 
@@ -1981,6 +2003,7 @@ untouched.
 | Phase 1 provenance contract execution | ISC-795..ISC-805 | approved 01-01 and 01-02 plans | no |
 | Phase 1 read-only control plane verification | ISC-806..ISC-808 | approved 01-03 plan, dirty-tree commit boundary | no |
 | 0.6.0 additive v4 feature release | ISC-809..ISC-812 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
+| Simplified Technical English skill and docs gate | ISC-813..ISC-823 | upstream 0xpili/simplified-technical-english at pinned commit | yes |
 
 ## Architecture
 
@@ -2665,6 +2688,11 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   refuted by: The canonical suite rejected synthetic absolute home literals, exposed fixtures reading personal policy/catalog state and a missing Bash 4+ prerequisite, then caught successful admission JSON masking a blank worker response.
   learned: Release qualification needs repository-wide gates with isolated test state and CI prerequisites. Successful control-plane diagnostics must not enter the worker completion stream; suppressing success must preserve visible hold reasons and nonzero exits.
   criterion now: ISC-811 and ISC-812 require the full canonical suite and unchanged public-path guard before publication.
+
+- 2026-10-04 | conjectured: the upstream STE checker ports to bun line for line, and TE docs can be held to zero STE errors at once
+  refuted by: a 366-run corpus diff against upstream `ste_check.py` exposed Python `re` semantics (Unicode `\w`/`\b`/`\d`, the `\s` set, `splitlines`, code-point length) that JavaScript regexes do not share; the in-scope docs held 600 structural errors before any rewrite
+  learned: parity with a Python tool is an emulation contract proved by golden output, not a transliteration; a docs style gate on a living corpus must be a per-file ratchet that only tightens
+  criterion now: ISC-816 holds byte-identical output on committed fixtures, ISC-817..ISC-819 make the docs gate a ratchet with zero-error new docs, and ISC-815 keeps the ASD-STE100 word list out of the repo
 
 ## Verification
 

@@ -19,6 +19,7 @@ Temperance Engine is an integration package. It connects local configuration sur
 | GitHub CLI | https://github.com/cli/cli | Optional public repo creation and publishing. |
 | Bun | https://github.com/oven-sh/bun | Runtime used by the optional Pulse compatibility server. |
 | portless | https://github.com/vercel-labs/portless | Optional named `.localhost` aliases for operator organs. Not vendored. |
+| Simplified Technical English | https://github.com/0xpili/simplified-technical-english | Optional ASD-STE100 writing skill (`--with-ste`), fetched at pinned commit `1e148d6`; referenced, not vendored. |
 | ripgrep | https://github.com/BurntSushi/ripgrep | Fast literal search pattern used by local tooling. |
 
 ## Referenced Non-Vendored Surfaces
@@ -29,6 +30,7 @@ Temperance Engine is an integration package. It connects local configuration sur
 - skills.sh: `skills/temperance-engine/SKILL.md` is prepared as the marketplace-facing entry.
 - OmniRoute: no proxy, provider catalog, credentials, or runtime packages are bundled; see `docs/omniroute-integration.md` and `THIRD_PARTY_NOTICES.md`.
 - portless: optional host CLI; Temperance stores organ aliases in `package/router/organs.json` and does not vendor the npm package.
+- Simplified Technical English: `scripts/install-ste.sh` fetches the skill at a pinned commit into `$AGENTS_HOME/skills/`. The ASD-STE100 word list is never committed here; `package/ste-check/` is a TE-owned bun port of the check script. See `docs/ste.md` and `THIRD_PARTY_NOTICES.md`.
 
 ## Asset Notes
 
