@@ -12,7 +12,7 @@ const OMNIROUTE_ORIGIN = `http://${OMNIROUTE_PACKAGE.listen_host}:${OMNIROUTE_PA
 
 /**
  * Generic profile used when no personalized overlay is selected. Its only values are the
- * upstream loopback defaults for the local OmniRoute router, which are not host-specific.
+ * upstream loopback defaults for a single-host install where OmniRoute runs on this machine.
  */
 export function createCoreOnboardingProfile(): OnboardingProfileV1 {
   return {
@@ -22,6 +22,7 @@ export function createCoreOnboardingProfile(): OnboardingProfileV1 {
     variables: {
       OMNIROUTE_HEALTH_URL: `${OMNIROUTE_ORIGIN}/api/health`,
       OMNIROUTE_MEMORY_URL: `${OMNIROUTE_ORIGIN}/api/memory`,
+      OMNIROUTE_LOCAL_HEALTH_URL: `${OMNIROUTE_ORIGIN}/api/health`,
     },
     secret_references: {},
     preselected_modules: [],
@@ -39,8 +40,22 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
   const modules: OnboardingModule[] = [{
     id: "provider.omniroute",
     title: "OmniRoute router",
-    summary: "Local model gateway, combo authority and memory store on loopback; the Temperance default router.",
+    summary: "Model gateway, combo authority and memory store that every client on this host routes through; hosted on a cloud runner or run locally.",
     preselection: "selected",
+    depends_on: [],
+    requires: [{
+      id: "omniroute-health",
+      kind: "http-health",
+      url_variable: "OMNIROUTE_HEALTH_URL",
+    }],
+    // A single-host install gets its router from provider.omniroute-local.
+    guided_installs: [],
+    organ: { tier: "required", group: "router", host_role: "operator-mac", host_role_variable: "OMNIROUTE_HOST_ROLE", public_url_variable: "OMNIROUTE_PUBLIC_URL" },
+  }, {
+    id: "provider.omniroute-local",
+    title: "Local OmniRoute",
+    summary: "OmniRoute run on this machine as a LaunchAgent: the router itself on a single-host install, or a cold fallback when the router is hosted.",
+    preselection: "available",
     depends_on: [],
     requires: [{
       id: "omniroute-binary",
@@ -52,9 +67,9 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
       kind: "launch-agent",
       label: OMNIROUTE_PACKAGE.launch_agent_label,
     }, {
-      id: "omniroute-health",
+      id: "omniroute-local-health",
       kind: "http-health",
-      url_variable: "OMNIROUTE_HEALTH_URL",
+      url_variable: "OMNIROUTE_LOCAL_HEALTH_URL",
     }],
     guided_installs: [{
       id: "install-omniroute",
@@ -67,11 +82,11 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
       kind: "command",
       argv: ["scripts/omniroute-autostart-launchd.sh", "install"],
     }],
-    organ: { tier: "required", group: "router", host_role: "operator-mac" },
+    organ: { tier: "modular", group: "router", host_role: "operator-mac" },
   }, {
     id: "memory.temperance",
     title: "Temperance memory",
-    summary: "Durable agent memory served by OmniRoute's memory API; read by session context and written by memory sync.",
+    summary: "Durable agent memory served by the router's memory API; read by session context and written by memory sync.",
     preselection: "selected",
     depends_on: ["provider.omniroute"],
     requires: [{
@@ -91,7 +106,7 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
       kind: "command",
       argv: ["scripts/omniroute-memory-sync.sh", "--apply"],
     }],
-    organ: { tier: "required", group: "memory", host_role: "operator-mac" },
+    organ: { tier: "required", group: "memory", host_role: "operator-mac", host_role_variable: "OMNIROUTE_HOST_ROLE" },
   }, {
     id: "storage.knowledge-volume",
     title: "Knowledge volume",
@@ -149,34 +164,33 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
     guided_installs: [],
     organ: { tier: "modular", group: "tunnel", host_role: "operator-mac", public_url_variable: "MEMORY_TUNNEL_PUBLIC_URL" },
   }, {
-    id: "integration.omniroute-a2a",
-    title: "OmniRoute A2A",
-    summary: "Agent-to-agent endpoint that lets remote agents discover and call this router.",
-    preselection: "available",
-    depends_on: ["provider.omniroute"],
-    requires: [{
-      id: "a2a-agent-card",
-      kind: "http-health",
-      url_variable: "OMNIROUTE_A2A_CARD_URL",
-      method: "GET",
-    }],
-    guided_installs: [],
-    organ: { tier: "modular", group: "integration", host_role: "operator-mac", public_url_variable: "OMNIROUTE_A2A_PUBLIC_URL" },
-  }, {
-    id: "integration.company-omniroute",
-    title: "Company OmniRoute",
-    summary: "Shared router on the cloud runner, published for team clients; probed through its public endpoint.",
+    id: "integration.hermes-a2a",
+    title: "Hermes A2A",
+    summary: "Agent-to-agent endpoint on this host's Hermes gateway, so a remote Hermes agent can hand it tasks.",
     preselection: "available",
     depends_on: [],
     requires: [{
-      id: "company-omniroute-public",
-      kind: "http-health",
-      url_variable: "COMPANY_OMNIROUTE_HEALTH_URL",
-      method: "GET",
-      accept_status: [200, 401],
+      id: "hermes-a2a-port",
+      kind: "tcp-port",
+      port: 7423,
+      port_variable: "HERMES_A2A_PORT",
     }],
     guided_installs: [],
-    organ: { tier: "modular", group: "integration", host_role: "cloud-runner", public_url_variable: "COMPANY_OMNIROUTE_PUBLIC_URL" },
+    organ: { tier: "modular", group: "integration", host_role: "operator-mac" },
+  }, {
+    id: "tunnel.hermes-a2a",
+    title: "Hermes A2A tunnel",
+    summary: "Publishes the Hermes A2A endpoint through an identity-protected tunnel for remote Hermes agents.",
+    preselection: "available",
+    depends_on: ["integration.hermes-a2a"],
+    requires: [{
+      id: "hermes-a2a-tunnel-agent",
+      kind: "launch-agent",
+      label_variable: "HERMES_A2A_TUNNEL_AGENT",
+    }],
+    guided_installs: [],
+    // No public probe: the identity proxy answers before the origin, so only the connector is checked here.
+    organ: { tier: "modular", group: "tunnel", host_role: "operator-mac", public_url_variable: "HERMES_A2A_PUBLIC_URL" },
   }, {
     id: "integration.obsidian-rest",
     title: "Obsidian Local REST",

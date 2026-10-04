@@ -135,6 +135,8 @@ export interface OrganDescriptor {
   group: "router" | "memory" | "knowledge" | "integration" | "tunnel";
   /** Where the organ natively runs. */
   host_role: "operator-mac" | "cloud-runner";
+  /** Profile variable that moves the organ to another host role (for example a router hosted on a cloud runner). */
+  host_role_variable?: string;
   /** Profile variable whose value replaces the module title (for example a private volume name). */
   title_variable?: string;
   /** Profile variable naming the public endpoint, shown for orientation only. */

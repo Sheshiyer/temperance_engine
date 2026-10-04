@@ -13,6 +13,7 @@ import {
   type OnboardingPlanV1,
   type OnboardingProbeAdapter,
   type OnboardingProfileV1,
+  type OrganDescriptor,
 } from "./contracts.ts";
 import { validateOnboardingCatalog, validateOnboardingProfile } from "./schema.ts";
 import type { ProjectCandidateV1 } from "./public-contracts.ts";
@@ -135,11 +136,16 @@ function organTitle(module: OnboardingModule, profile: OnboardingProfileV1): str
   return value ? `${value} · ${module.title}` : module.title;
 }
 
+const HOST_ROLES: ReadonlySet<string> = new Set(["operator-mac", "cloud-runner"]);
+
 function organResolution(module: OnboardingModule, profile: OnboardingProfileV1, required: ReadonlySet<string>): NonNullable<OnboardingModuleResolution["organ"]> {
   const organ = module.organ!;
   const publicUrl = organ.public_url_variable ? profile.variables[organ.public_url_variable] : undefined;
   const tier = required.has(module.id) ? "required" : organ.tier;
-  return { tier, group: organ.group, host_role: organ.host_role, ...(publicUrl ? { public_url: publicUrl } : {}) };
+  const hostRole = organ.host_role_variable ? profile.variables[organ.host_role_variable] : undefined;
+  if (hostRole !== undefined && !HOST_ROLES.has(hostRole)) throw new Error(`ONBOARDING_HOST_ROLE_INVALID:${organ.host_role_variable}`);
+  const host_role = (hostRole ?? organ.host_role) as OrganDescriptor["host_role"];
+  return { tier, group: organ.group, host_role, ...(publicUrl ? { public_url: publicUrl } : {}) };
 }
 
 /**

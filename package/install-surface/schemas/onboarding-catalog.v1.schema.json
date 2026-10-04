@@ -151,6 +151,7 @@
         "tier": { "enum": ["required", "modular", "optional"] },
         "group": { "enum": ["router", "memory", "knowledge", "integration", "tunnel"] },
         "host_role": { "enum": ["operator-mac", "cloud-runner"] },
+        "host_role_variable": { "$ref": "#/$defs/variable" },
         "title_variable": { "$ref": "#/$defs/variable" },
         "public_url_variable": { "$ref": "#/$defs/variable" }
       }

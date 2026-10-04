@@ -1,4 +1,4 @@
-import type { OnboardingPlanV1 } from "./contracts.ts";
+import { OMNIROUTE_PACKAGE, type OnboardingPlanV1 } from "./contracts.ts";
 import type { NineRouterRoutingSurface } from "./nine-router-provider-capabilities.ts";
 
 export type OnboardingPageId = "overview" | "organs" | "modules" | "routing" | "projects" | "integrations" | "review";
@@ -55,14 +55,16 @@ function moduleRows(plan: OnboardingPlanV1): OnboardingViewRow[] {
   }));
 }
 
-function routingRows(surface?: NineRouterRoutingSurface): OnboardingViewRow[] {
+const LOCAL_OMNIROUTE_DASHBOARD = `http://${OMNIROUTE_PACKAGE.listen_host}:${OMNIROUTE_PACKAGE.listen_port}`;
+
+function routingRows(surface: NineRouterRoutingSurface | undefined, dashboardUrl: string): OnboardingViewRow[] {
   if (!surface) return [{
     id: "routing.unbound",
     title: "Provider and alias fitting unavailable",
     status: "blocked",
     blocked_reasons: ["HOST_PROFILE_NOT_SELECTED"],
     guidance: [
-      "OmniRoute providers and combos are managed in the OmniRoute dashboard (http://127.0.0.1:20128).",
+      `OmniRoute providers and combos are managed in the OmniRoute dashboard (${dashboardUrl}).`,
       "The legacy 9Router fitting surface appears only with a 9Router host binding.",
     ],
   }];
@@ -168,7 +170,7 @@ export function createOnboardingViewModel(plan: OnboardingPlanV1, routing?: Nine
       { id: "overview", title: "Overview", rows: overview },
       ...(organs.length > 0 ? [{ id: "organs" as const, title: "Organs", rows: organs }] : []),
       { id: "modules", title: "Modules", rows },
-      { id: "routing", title: "Routing", rows: routingRows(routing) },
+      { id: "routing", title: "Routing", rows: routingRows(routing, plan.modules.find(({ id }) => id === "provider.omniroute")?.organ?.public_url ?? LOCAL_OMNIROUTE_DASHBOARD) },
       { id: "projects", title: "Projects", rows: projects }, { id: "integrations", title: "Integrations", rows: integrations },
       { id: "review", title: "Review", rows: review },
     ],

@@ -58,24 +58,38 @@ describe("organ registry catalog", () => {
     expect(validateOnboardingCatalog(core)).toBe(true);
     expect(core.modules.some(({ id }) => id === "provider.9router")).toBe(false);
     const router = core.modules.find(({ id }) => id === "provider.omniroute");
-    expect(router?.organ).toEqual({ tier: "required", group: "router", host_role: "operator-mac" });
-    expect(router?.requires).toContainEqual({ id: "omniroute-launch-agent", kind: "launch-agent", label: OMNIROUTE_PACKAGE.launch_agent_label });
-    expect(router?.requires.find(({ kind }) => kind === "binary")).toMatchObject({ executable: "omniroute", version: { exact: OMNIROUTE_PACKAGE.version } });
+    // The router may be hosted, so it is probed only by its health endpoint.
+    expect(router?.organ).toEqual({ tier: "required", group: "router", host_role: "operator-mac", host_role_variable: "OMNIROUTE_HOST_ROLE", public_url_variable: "OMNIROUTE_PUBLIC_URL" });
+    expect(router?.requires).toEqual([{ id: "omniroute-health", kind: "http-health", url_variable: "OMNIROUTE_HEALTH_URL" }]);
+    const local = core.modules.find(({ id }) => id === "provider.omniroute-local");
+    expect(local?.organ).toEqual({ tier: "modular", group: "router", host_role: "operator-mac" });
+    expect(local?.requires).toContainEqual({ id: "omniroute-launch-agent", kind: "launch-agent", label: OMNIROUTE_PACKAGE.launch_agent_label });
+    expect(local?.requires.find(({ kind }) => kind === "binary")).toMatchObject({ executable: "omniroute", version: { exact: OMNIROUTE_PACKAGE.version } });
+    expect(local?.guided_installs.map(({ id }) => id)).toEqual(["install-omniroute", "omniroute-launch-agent"]);
   });
 
-  test("assigns the operator's tiers: memory required, A2A/company modular, Obsidian/mail optional", () => {
-    const tiers = Object.fromEntries(createCoreOnboardingCatalog().modules.map(({ id, organ }) => [id, organ?.tier]));
+  test("assigns the operator's tiers: memory required, A2A modular, Obsidian/mail optional", () => {
+    const core = createCoreOnboardingCatalog();
+    const tiers = Object.fromEntries(core.modules.map(({ id, organ }) => [id, organ?.tier]));
     expect(tiers).toMatchObject({
       "provider.omniroute": "required",
+      "provider.omniroute-local": "modular",
       "memory.temperance": "required",
-      "integration.omniroute-a2a": "modular",
-      "integration.company-omniroute": "modular",
+      "integration.hermes-a2a": "modular",
+      "tunnel.hermes-a2a": "modular",
       "integration.obsidian-rest": "optional",
       "tunnel.obsidian-rest": "optional",
       "integration.mail-mcp": "optional",
     });
-    const obsidianTunnel = createCoreOnboardingCatalog().modules.find(({ id }) => id === "tunnel.obsidian-rest");
-    expect(obsidianTunnel?.depends_on).toEqual(["integration.obsidian-rest"]);
+    expect(core.modules.find(({ id }) => id === "tunnel.obsidian-rest")?.depends_on).toEqual(["integration.obsidian-rest"]);
+    expect(core.modules.find(({ id }) => id === "tunnel.hermes-a2a")?.depends_on).toEqual(["integration.hermes-a2a"]);
+  });
+
+  test("drops the retired company router and the router-owned A2A organ", () => {
+    const ids = createCoreOnboardingCatalog().modules.map(({ id }) => id);
+    expect(ids).not.toContain("integration.company-omniroute");
+    expect(ids).not.toContain("integration.omniroute-a2a");
+    expect(JSON.stringify(createCoreOnboardingCatalog()).toLowerCase()).not.toContain("company");
   });
 
   test("stays portable: no private paths, hostnames or volume names", () => {
@@ -134,6 +148,18 @@ describe("organ planning", () => {
     expect(volume.organ?.tier).toBe("required");
     expect(volume.title).toBe("Vault Drive · Knowledge volume");
     expect(plan.modules.find(({ id }) => id === "tunnel.temperance-memory")?.organ?.public_url).toBe("https://memory.example.test");
+  });
+
+  test("a hosted router moves the router and memory organs to the cloud runner", async () => {
+    const catalog = createCoreOnboardingCatalog();
+    const variables = { ...createCoreOnboardingProfile().variables, OMNIROUTE_HOST_ROLE: "cloud-runner", OMNIROUTE_PUBLIC_URL: "https://router.example.test" };
+    const plan = await createOnboardingPlan({ catalog, profile: profile({ variables }), adapter: allAvailable() });
+    const organ = (id: string) => plan.modules.find((module) => module.id === id)?.organ;
+    expect(organ("provider.omniroute")).toMatchObject({ host_role: "cloud-runner", public_url: "https://router.example.test" });
+    expect(organ("memory.temperance")?.host_role).toBe("cloud-runner");
+    expect(organ("provider.omniroute-local")?.host_role).toBe("operator-mac");
+    await expect(createOnboardingPlan({ catalog, profile: profile({ variables: { ...variables, OMNIROUTE_HOST_ROLE: "laptop" } }), adapter: allAvailable() }))
+      .rejects.toThrow("ONBOARDING_HOST_ROLE_INVALID:OMNIROUTE_HOST_ROLE");
   });
 
   test("an unplugged knowledge volume degrades to read-only instead of blocking", async () => {
