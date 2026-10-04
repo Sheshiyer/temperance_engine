@@ -72,6 +72,17 @@ describe("organ registry catalog", () => {
     expect(local?.guided_installs.map(({ id }) => id)).toEqual(["install-omniroute", "omniroute-launch-agent"]);
   });
 
+  test("installs only the OmniRoute release the router compatibility gates qualify", async () => {
+    const { SUPPORTED_OMNIROUTE_NATIVE_CLI_VERSION } = await import("../../router/omniroute-native-cli-readiness.ts");
+    const { SUPPORTED_OMNIROUTE_PREVIEW_VERSION } = await import("../../router/omniroute-context-preview.ts");
+    expect(OMNIROUTE_PACKAGE.version).toBe(SUPPORTED_OMNIROUTE_NATIVE_CLI_VERSION);
+    expect(OMNIROUTE_PACKAGE.version).toBe(SUPPORTED_OMNIROUTE_PREVIEW_VERSION);
+    const controlPlane = readFileSync(resolve(import.meta.dir, "../../router/omniroute-native-control-plane.ts"), "utf8");
+    expect(controlPlane).toContain(`const SUPPORTED_TOPOLOGY_VERSION = "${OMNIROUTE_PACKAGE.version}";`);
+    const local = createCoreOnboardingCatalog().modules.find(({ id }) => id === "provider.omniroute-local")!;
+    expect(local.guided_installs[0]).toMatchObject({ argv: ["bun", "add", "--global", `omniroute@${OMNIROUTE_PACKAGE.version}`] });
+  });
+
   test("assigns the operator's tiers: memory required, A2A modular, Obsidian/mail optional", () => {
     const core = createCoreOnboardingCatalog();
     const tiers = Object.fromEntries(core.modules.map(({ id, organ }) => [id, organ?.tier]));

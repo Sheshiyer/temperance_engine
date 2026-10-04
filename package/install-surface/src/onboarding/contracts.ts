@@ -5,10 +5,13 @@ export const ONBOARDING_PROFILE_SCHEMA = "temperance.onboarding.profile.v1" as c
 export const ONBOARDING_PLAN_SCHEMA = "temperance.onboarding.plan.v1" as const;
 export const ONBOARDING_RECEIPT_SCHEMA = "temperance.onboarding.receipt.v1" as const;
 
-/** Default Temperance router. Replaces the retired 9Router provider. */
+/**
+ * Default Temperance router. Replaces the retired 9Router provider. The version must stay on the
+ * release the router compatibility gates qualify (package/router native CLI, preview, control plane).
+ */
 export const OMNIROUTE_PACKAGE = {
   name: "omniroute",
-  version: "3.8.51",
+  version: "3.8.48",
   executable: "omniroute",
   state_directory: ".omniroute",
   launch_agent_label: "com.temperance.engine.omniroute",
