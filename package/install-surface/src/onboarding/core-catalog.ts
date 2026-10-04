@@ -11,6 +11,15 @@ import {
 const OMNIROUTE_ORIGIN = `http://${OMNIROUTE_PACKAGE.listen_host}:${OMNIROUTE_PACKAGE.listen_port}`;
 
 /**
+ * `/api/health` is OmniRoute's own CLI liveness route. Probe it with GET, because not every server
+ * handles HEAD. Accept 401 too: an install that enforces a management token answers 401 there, and
+ * that still proves the router is up.
+ */
+function omnirouteLivenessProbe(): { method: "GET"; accept_status: number[] } {
+  return { method: "GET", accept_status: [200, 401] };
+}
+
+/**
  * Generic profile used when no personalized overlay is selected. Its only values are the
  * upstream loopback defaults for a single-host install where OmniRoute runs on this machine.
  */
@@ -47,6 +56,7 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
       id: "omniroute-health",
       kind: "http-health",
       url_variable: "OMNIROUTE_HEALTH_URL",
+      ...omnirouteLivenessProbe(),
     }],
     // A single-host install gets its router from provider.omniroute-local.
     guided_installs: [],
@@ -70,6 +80,7 @@ export function createCoreOnboardingCatalog(): OnboardingCatalogV1 {
       id: "omniroute-local-health",
       kind: "http-health",
       url_variable: "OMNIROUTE_LOCAL_HEALTH_URL",
+      ...omnirouteLivenessProbe(),
     }],
     guided_installs: [{
       id: "install-omniroute",

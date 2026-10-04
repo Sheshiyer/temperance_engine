@@ -64,12 +64,13 @@ describe("organ registry catalog", () => {
     const router = core.modules.find(({ id }) => id === "provider.omniroute");
     // The router may be hosted, so it is probed only by its health endpoint.
     expect(router?.organ).toEqual({ tier: "required", group: "router", host_role: "operator-mac", host_role_variable: "OMNIROUTE_HOST_ROLE", public_url_variable: "OMNIROUTE_PUBLIC_URL" });
-    expect(router?.requires).toEqual([{ id: "omniroute-health", kind: "http-health", url_variable: "OMNIROUTE_HEALTH_URL" }]);
+    expect(router?.requires).toEqual([{ id: "omniroute-health", kind: "http-health", url_variable: "OMNIROUTE_HEALTH_URL", method: "GET", accept_status: [200, 401] }]);
     const local = core.modules.find(({ id }) => id === "provider.omniroute-local");
     expect(local?.organ).toEqual({ tier: "modular", group: "router", host_role: "operator-mac" });
     expect(local?.requires).toContainEqual({ id: "omniroute-launch-agent", kind: "launch-agent", label: OMNIROUTE_PACKAGE.launch_agent_label });
     expect(local?.requires.find(({ kind }) => kind === "binary")).toMatchObject({ executable: "omniroute", version: { exact: OMNIROUTE_PACKAGE.version } });
     expect(local?.guided_installs.map(({ id }) => id)).toEqual(["install-omniroute", "omniroute-launch-agent"]);
+    expect(local?.requires).toContainEqual({ id: "omniroute-local-health", kind: "http-health", url_variable: "OMNIROUTE_LOCAL_HEALTH_URL", method: "GET", accept_status: [200, 401] });
   });
 
   test("installs only the OmniRoute release the router compatibility gates qualify", async () => {
