@@ -49,10 +49,10 @@
   },
   "localSourceReconciliation": {
     "mode": "local-source-refresh-existing-research-assets",
-    "observedAt": "2026-10-04T17:37:38Z",
+    "observedAt": "2026-10-04T17:53:55Z",
     "sourceHead": "35023fcb137a082fe3de3b9ddfa02b3a7eee2dbf",
     "source": "CHANGELOG.md",
-    "sourceSha256": "144b6ecd25090ad7dd83fe7628a145e715940ea82c4b15f07ad2622cde330e1b",
+    "sourceSha256": "e6aa0aa87d641bcfc4119ee7fc7f62f11120e062f0c396f2682f60251c45ce74",
     "reason": "Record the Simplified Technical English skill, STE docs gate, and test-isolation fixes in CHANGELOG and README; preserve historical research assets without claiming regeneration.",
     "notebookRegenerated": false,
     "historicalResearchAssetsReused": true

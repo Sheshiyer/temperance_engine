@@ -199,6 +199,10 @@ printf '%s\n' 'local edit' >>"$(skill_of "$E")/SKILL.md"
 run_ste "$E" TEMPERANCE_STE_MODE=uninstall >"$TMP_ROOT/uninstall-dirty.out" 2>&1
 check "uninstall leaves a dirty checkout without force" \
   sh -c "grep -q 'WARNING: .* is not a clean checkout' '$TMP_ROOT/uninstall-dirty.out' && grep -q 'local edit' '$(skill_of "$E")/SKILL.md'"
+check "a refused uninstall keeps both surface links" links_ok "$E"
+run_ste "$E" TEMPERANCE_STE_MODE=uninstall TEMPERANCE_FORCE=1 >/dev/null 2>&1
+check "a forced uninstall of a dirty checkout unlinks and moves it" \
+  sh -c "test ! -e '$E/opencode/skills/simplified-technical-english' && test ! -e '$(skill_of "$E")' && grep -rq 'local edit' '$E/backups'"
 
 # install.sh exposes the flags and calls the installer.
 check "install.sh documents --with-ste" sh -c "sh '$ROOT/install.sh' --help | grep -q -- '--with-ste'"

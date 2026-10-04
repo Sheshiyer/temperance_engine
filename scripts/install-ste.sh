@@ -160,23 +160,20 @@ unlink_surface() {
 }
 
 if test "$MODE" = "uninstall"; then
+  # Decide first, then act: a refused uninstall must leave the links in place,
+  # because a plain reinstall stops before it relinks a non-pinned checkout.
+  state=$(skill_state)
+  if test "$state" = "other" && ! is_forced; then
+    say "WARNING: $STE_SKILL_HOME is not a clean checkout of $STE_PIN from $STE_REPO_URL; nothing changed (pass --force to move it to the backup dir)"
+    exit 0
+  fi
   unlink_surface "$PAI_HOME/skills"
   unlink_surface "$OPENCODE_HOME/skills"
-  case "$(skill_state)" in
-    absent)
-      say "STE skill is not installed at $STE_SKILL_HOME"
-      ;;
-    pinned)
-      backup_path "$STE_SKILL_HOME"
-      ;;
-    other)
-      if ! is_forced; then
-        say "WARNING: $STE_SKILL_HOME is not a clean checkout of $STE_PIN from $STE_REPO_URL; left unchanged (pass --force to move it to the backup dir)"
-        exit 0
-      fi
-      backup_path "$STE_SKILL_HOME"
-      ;;
-  esac
+  if test "$state" = "absent"; then
+    say "STE skill is not installed at $STE_SKILL_HOME"
+  else
+    backup_path "$STE_SKILL_HOME"
+  fi
   say "STE skill removed; nothing was deleted (see $TEMPERANCE_BACKUP_DIR)."
   exit 0
 fi

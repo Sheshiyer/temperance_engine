@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BASELINE_SCHEMA, runGate } from "./docs-gate";
+import { BASELINE_SCHEMA, isolateHeadingsAndTables, runGate } from "./docs-gate";
 
 const CLEAN = "Stop the pump. Open the valve.\n";
 const ONE_ERROR = "Stop the pump; open the valve.\n";
@@ -108,6 +108,23 @@ describe("docs gate", () => {
     const result = await gate("--tighten");
     expect(result.code).toBe(1);
     expect(await baselineFiles()).toEqual({ "GUIDE.md": { errors: 0 }, "docs/a.md": { errors: 1 } });
+  });
+
+  test("prose right after a heading or a table row is still checked", async () => {
+    baseline({ "GUIDE.md": 0, "docs/a.md": 1 });
+    write("docs/heading.md", "## Setup\nStop the pump; open the valve.\n");
+    write("docs/table.md", "| a | b |\n|---|---|\nDon't touch the cable.\n");
+    const result = await gate();
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("FAIL    docs/heading.md: 1 errors");
+    expect(result.stdout).toContain("FAIL    docs/table.md: 1 errors");
+  });
+
+  test("isolateHeadingsAndTables splits headings and table rows but not fenced code", () => {
+    expect(isolateHeadingsAndTables("## A\ntext")).toBe("\n## A\n\ntext");
+    expect(isolateHeadingsAndTables("| x |\ntext")).toBe("\n| x |\n\ntext");
+    expect(isolateHeadingsAndTables("```sh\n# comment\n```")).toBe("```sh\n# comment\n```");
+    expect(isolateHeadingsAndTables("#hashtag text")).toBe("#hashtag text");
   });
 
   test("a missing baseline or an unknown argument exits 2", async () => {

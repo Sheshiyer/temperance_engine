@@ -21,8 +21,6 @@ MOCK_LOG="$STATE_DIR/mock.log"
 PROXY_LOG="$STATE_DIR/proxy.log"
 # The proxy's default log; on a host checkout of ~/.temperance_engine it is in the repo.
 HOST_LOG="$HOME/.temperance_engine/state/openai-proxy.jsonl"
-host_log_size() { if [ -e "$HOST_LOG" ]; then wc -c <"$HOST_LOG" | tr -d " "; else echo absent; fi; }
-host_log_before="$(host_log_size)"
 
 cleanup() {
   kill "${PROXY_PID:-}" "${MOCK_PID:-}" 2>/dev/null || true
@@ -51,8 +49,9 @@ curl -fsS --max-time 10 -D "$stream_headers" \
   --data '{"model":"temperance-auto","messages":[{"role":"user","content":"stream this"}],"stream":true,"max_tokens":8}' \
   "http://127.0.0.1:${PROXY_PORT}/v1/chat/completions" >"$stream_body"
 
+tool_headers="$STATE_DIR/tool.headers"
 tool_body="$STATE_DIR/tool.body"
-curl -fsS --max-time 10 \
+curl -fsS --max-time 10 -D "$tool_headers" \
   -H 'Content-Type: application/json' \
   --data '{"model":"temperance-auto","messages":[{"role":"user","content":"use the tool"}],"tools":[{"type":"function","function":{"name":"write_file","parameters":{"type":"object"}}}],"stream":false,"max_tokens":8}' \
   "http://127.0.0.1:${PROXY_PORT}/v1/chat/completions" >"$tool_body"
@@ -67,7 +66,17 @@ echo "ok - automatic tool request preserved tool_calls payload"
 echo "ok - automatic success path carried frozen routing headers"
 
 test -s "$TEMPERANCE_PROXY_LOG"
-# A live relay may own the operator state log; only require that this
-# test did not add to it.
-test "$(host_log_size)" = "$host_log_before"
+# Check this test's own requests by correlation ID, not the operator log's
+# size: a live relay on the host may log unrelated requests meanwhile.
+correlation_id() { sed -n 's/^[Xx]-[Tt]emperance-[Cc]orrelation-[Ii][Dd]: *//p' "$1" | tr -d '\r' | head -n 1; }
+for headers in "$stream_headers" "$tool_headers"; do
+  id="$(correlation_id "$headers")"
+  test -n "$id"
+  grep -qF "$id" "$TEMPERANCE_PROXY_LOG"
+  # `! grep` would not trip set -e, so fail explicitly.
+  if [ -e "$HOST_LOG" ] && grep -qF "$id" "$HOST_LOG"; then
+    echo "FAIL - request $id was logged to operator state $HOST_LOG" >&2
+    exit 1
+  fi
+done
 echo "ok - request log stays in the test state dir, not operator state"

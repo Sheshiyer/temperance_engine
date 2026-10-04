@@ -86,9 +86,34 @@ export function scopeFiles(root: string, scope: Scope): string[] {
   return [...files].sort();
 }
 
+/**
+ * Put each Markdown heading line and table row in its own block.
+ *
+ * The checker (like upstream ste_check.py) skips a whole block that starts with
+ * `#` or `|`. Markdown lets prose follow a heading or a table without a blank
+ * line, so without this the gate would skip that prose and its errors. The CLI
+ * keeps the upstream behavior; only the gate normalizes. Fenced code is left as is.
+ */
+export function isolateHeadingsAndTables(text: string): string {
+  const out: string[] = [];
+  let inFence = false;
+  for (const line of text.split("\n")) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      out.push(line);
+    } else if (!inFence && (/^#{1,6}(?:\s|$)/.test(line) || line.startsWith("|"))) {
+      out.push("", line, "");
+    } else {
+      out.push(line);
+    }
+  }
+  return out.join("\n");
+}
+
 export async function countErrors(root: string, file: string, mode: Mode): Promise<number> {
   const report = new Report();
-  checkText(normalizeNewlines(await Bun.file(join(root, file)).text()), mode, report, file, null);
+  const text = isolateHeadingsAndTables(normalizeNewlines(await Bun.file(join(root, file)).text()));
+  checkText(text, mode, report, file, null);
   return report.errors.length;
 }
 
