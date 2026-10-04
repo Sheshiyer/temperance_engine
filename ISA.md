@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 723/857
+progress: 735/857
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-04T19:49:35Z
+updated: 2026-10-04T19:57:18Z
 ---
 
 ## Problem
@@ -1093,18 +1093,18 @@ untouched.
 - [x] ISC-821: A forced STE update fetches and validates the replacement before it retires the active checkout.
 - [x] ISC-822: The STE installer never replaces an in-place `STE_SKILL_HOME` checkout with a link to itself.
 - [x] ISC-823: STE uninstall removes only links that resolve to the managed checkout in the configured roots, and moves rather than deletes the checkout.
-- [ ] ISC-824: `bun run render` in `package/showreel` writes a 1920×1080, 60 fps, 900-frame, 15.000 s H.264 cut with AAC audio.
-- [ ] ISC-825: `bun run render:vertical` writes a 1080×1920, 60 fps, 900-frame, 15.000 s H.264 cut with AAC audio.
-- [ ] ISC-826: Anti: `package/showreel` declares no package dependencies and loads no animation library.
-- [ ] ISC-827: A successful showreel capture leaves no PNG frames and no temporary browser profiles behind.
-- [ ] ISC-828: `bun run publish` writes both web encodes under 6 MB each and the poster to `assets/showreel/`.
-- [ ] ISC-829: `package/showreel/README.md` has zero STE structural errors.
-- [ ] ISC-830: The owner-requested minor release candidate declares product version `0.7.0`.
-- [ ] ISC-831: The `0.7.0` changelog keeps the `9router@0.5.75` pin and the unqualified long-context and checkpoint-recovery boundary.
-- [ ] ISC-832: The `0.7.0` source candidate passes the canonical verification suite.
-- [ ] ISC-833: Anti: the `0.7.0` public candidate contains no private absolute home path rejected by the existing guard.
-- [ ] ISC-834: `bun run typecheck` in `package/install-surface` exits 0 on the `0.7.0` candidate.
-- [ ] ISC-835: The install doctor reports a `LAUNCHAGENT` record as `UNAVAILABLE` with `LAUNCHAGENT_OBSERVATION_UNAVAILABLE`, never through the transform observer.
+- [x] ISC-824: `bun run render` in `package/showreel` writes a 1920×1080, 60 fps, 900-frame, 15.000 s H.264 cut with AAC audio.
+- [x] ISC-825: `bun run render:vertical` writes a 1080×1920, 60 fps, 900-frame, 15.000 s H.264 cut with AAC audio.
+- [x] ISC-826: Anti: `package/showreel` declares no package dependencies and loads no animation library.
+- [x] ISC-827: A successful showreel capture leaves no PNG frames and no temporary browser profiles behind.
+- [x] ISC-828: `bun run publish` writes both web encodes under 6 MB each and the poster to `assets/showreel/`.
+- [x] ISC-829: `package/showreel/README.md` has zero STE structural errors.
+- [x] ISC-830: The owner-requested minor release candidate declares product version `0.7.0`.
+- [x] ISC-831: The `0.7.0` changelog keeps the `9router@0.5.75` pin and the unqualified long-context and checkpoint-recovery boundary.
+- [x] ISC-832: The `0.7.0` source candidate passes the canonical verification suite.
+- [x] ISC-833: Anti: the `0.7.0` public candidate contains no private absolute home path rejected by the existing guard.
+- [x] ISC-834: `bun run typecheck` in `package/install-surface` exits 0 on the `0.7.0` candidate.
+- [x] ISC-835: The install doctor reports a `LAUNCHAGENT` record as `UNAVAILABLE` with `LAUNCHAGENT_OBSERVATION_UNAVAILABLE`, never through the transform observer.
 
 ## Test Strategy
 
@@ -3153,3 +3153,15 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - ISC-810: changelog readback — `0.6.0` states that per-attempt gateway context enforcement and durable checkpoint recovery are not qualified; the exact 9router 0.5.75 pin is unchanged.
 - ISC-811: canonical verification — `./scripts/verify-all.sh` exited 0 on 2026-09-19 and printed `Temperance Engine full verification passed`, including 980 passing Bun tests and the shell/install/rollback/dispatcher/doctor suites. Install-surface typecheck/build, README continuity, and 18-record COPY verification also passed. Independent read-only release and admission-output reviews reported no blocking findings. GitHub publication remains gated on Verify for the exact pushed candidate, whose result is recorded in the release notes.
 - ISC-812: public guard — the unchanged private-path guard and its regression suite passed inside the canonical run; no host binding, credentials, private operator logs, or personal project capsules are staged for this release.
+- ISC-824: ffprobe — `out/temperance-showreel.mp4` reports h264 1920×1080, `60/1`, 900 frames, duration 15.000000, plus an AAC stream (2026-10-04).
+- ISC-825: ffprobe — `out/temperance-showreel-9x16.mp4` reports h264 1080×1920, `60/1`, 900 frames, duration 15.000000, plus an AAC stream (2026-10-04).
+- ISC-826: readback — `package/showreel/package.json` has no `dependencies` or `devDependencies`; `reel.html` has no external script or import; the capture uses only Bun, a local Chromium, and ffmpeg.
+- ISC-827: post-render listing — after `bun run render:vertical` (163 s, fonts from cache), `out/` held only the two MP4s, and no `te-capture-*` profile remained in the temp dir; `.cache/fonts` is 128 KB.
+- ISC-828: `bun run publish` printed 4712218 and 4613147 bytes for the two web encodes and 112191 bytes for `poster.jpg`; SSIM of the 16:9 web encode against its CRF 16 master is 0.984.
+- ISC-829: `bun package/ste-check/cli.ts --mode mixed package/showreel/README.md` — 0 errors, 0 warnings.
+- ISC-830: version readback — `cat VERSION` returned `0.7.0` on 2026-10-04.
+- ISC-831: changelog readback — `[0.7.0]` states the `9router@0.5.75` pin, unqualified per-attempt context enforcement and durable checkpoint recovery, and the separate v1.1 milestone; open router PRs #35 and #38 are excluded.
+- ISC-832: canonical verification on candidate 84d9410 — locally the suite passed in two segments: through `tests/omniroute-codex-preview.sh` with 1043 passing Bun tests (the install-surface CLI doctor bound-routing test needs more than its 5 s budget on this Mac and passed at 30 s), then from that step to the end with `Temperance Engine full verification passed`, run with the operator routing env (`TEMPERANCE_OMNIROUTE_ADMIN_URL` and peers, pointed at the hosted router since 2026-10-04) unset as on CI. Install-surface typecheck/build, COPY `--check` at d4748c9, README continuity, and the STE docs gate also passed. GitHub publication stays gated on Verify for the exact pushed candidate; that result is recorded in the release notes.
+- ISC-833: public guard — `./verify.sh` exited 0 with the private-path guard unchanged; the changed files contain no absolute home-directory path.
+- ISC-834: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exited 0 on 84d9410 (it exited 2 with three errors on origin/main ebe76e3).
+- ISC-835: `bun test test/doctor.test.ts` — 49 pass; removing the LAUNCHAGENT dispatch line makes the class-aware test fail with `ADAPTER_UNAVAILABLE`.
