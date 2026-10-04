@@ -519,6 +519,22 @@ describe("organ registry CLI", () => {
     expect(existsSync(preferencesPath)).toBe(false);
   }, 60_000);
 
+  test("automatic preferences saved under another profile are ignored instead of failing", async () => {
+    const root = mkdtempSync(join(tmpdir(), "organ-cli-auto-"));
+    const profilePath = join(root, "profile.v1.json");
+    writeFileSync(profilePath, JSON.stringify({ ...createCoreOnboardingProfile(), id: "host-profile" }), { mode: 0o600 });
+    writeFileSync(join(root, "preferences.v1.json"), JSON.stringify({ schema: "temperance.onboarding-preferences.v1", profile_id: "temperance-portable-core", selected_module_ids: ["integration.mail-mcp"] }), { mode: 0o600 });
+    const child = Bun.spawn([process.execPath, "src/cli.ts", "onboard", "--agent"], {
+      cwd: resolve(import.meta.dir, ".."), stdin: "ignore", stdout: "pipe", stderr: "pipe",
+      env: { ...process.env, TEMPERANCE_ONBOARDING_PROFILE: profilePath },
+    });
+    const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+    expect(code).toBe(0);
+    expect(stderr).toBe("temperance onboard: ignoring saved organ choices from another profile; the next save replaces them\n");
+    expect(JSON.parse(stdout).state.requested_module_ids).not.toContain("integration.mail-mcp");
+    expect(JSON.parse(readFileSync(join(root, "preferences.v1.json"), "utf8")).profile_id).toBe("temperance-portable-core");
+  }, 60_000);
+
   test("retired organ ids carry a replacement hint", () => {
     expect(retiredModuleNotice("integration.omniroute-a2a")).toContain("integration.hermes-a2a");
     expect(retiredIdsOutsideCatalog(createCoreOnboardingCatalog())).toEqual(["integration.company-omniroute", "integration.omniroute-a2a", "provider.9router"]);

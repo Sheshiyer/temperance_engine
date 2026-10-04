@@ -41,6 +41,17 @@ test("a save can replace preferences that name a module retired since they were 
   const file = path();
   writeWizardPreferences(file, { ...preferences, selected_module_ids: ["local-core", "retired-tool"] }, [...modules, "retired-tool"]);
   expect(() => writeWizardPreferences(file, preferences, modules)).toThrow("WIZARD_PREFERENCES_INVALID");
-  writeWizardPreferences(file, preferences, modules, [...modules, "retired-tool"]);
+  writeWizardPreferences(file, preferences, modules, { previousModuleIds: [...modules, "retired-tool"] });
   expect(readWizardPreferences(file, profile, modules)).toEqual(preferences);
+});
+test("the automatic path ignores and may replace preferences saved for another profile", () => {
+  const file = path();
+  writeWizardPreferences(file, { ...preferences, profile_id: "portable-core" }, modules);
+  expect(() => readWizardPreferences(file, profile, modules)).toThrow("WIZARD_PREFERENCES_INVALID");
+  expect(readWizardPreferences(file, profile, modules, { ignoreOtherProfile: true })).toBeUndefined();
+  expect(() => writeWizardPreferences(file, preferences, modules)).toThrow("WIZARD_PREFERENCES_INVALID");
+  writeWizardPreferences(file, preferences, modules, { replaceOtherProfile: true });
+  expect(readWizardPreferences(file, profile, modules)).toEqual(preferences);
+  chmodSync(file, 0o644);
+  expect(() => readWizardPreferences(file, profile, modules, { ignoreOtherProfile: true })).toThrow("WIZARD_PREFERENCES_UNSAFE");
 });

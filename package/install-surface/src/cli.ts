@@ -455,7 +455,13 @@ async function main(): Promise<void> {
       const wizardStatePath = args.wizardStatePath ?? (hostPrivateProfilePath ? defaultOnboardingPreferencesPath() : undefined);
       // Saved choices may predate a module's retirement: accept those ids, then drop them with the same notice.
       const retiredIds = retiredIdsOutsideCatalog(plannedCatalog);
-      const storedPreferences = wizardStatePath ? readWizardPreferences(resolve(wizardStatePath), planningProfile.id, [...moduleIds, ...retiredIds]) : undefined;
+      // The automatic path can hold choices saved under an earlier profile (for example the portable core
+      // before the host profile existed). Ignore those instead of failing; an explicit --wizard-state stays strict.
+      const automaticWizardState = !args.wizardStatePath && Boolean(wizardStatePath);
+      const storedPreferences = wizardStatePath ? readWizardPreferences(resolve(wizardStatePath), planningProfile.id, [...moduleIds, ...retiredIds], { ignoreOtherProfile: automaticWizardState }) : undefined;
+      if (automaticWizardState && !storedPreferences && existsSync(resolve(wizardStatePath!))) {
+        process.stderr.write("temperance onboard: ignoring saved organ choices from another profile; the next save replaces them\n");
+      }
       const savedPreferences = storedPreferences && { ...storedPreferences, selected_module_ids: storedPreferences.selected_module_ids.filter((id) => !retiredIds.includes(id)) };
       for (const id of storedPreferences?.selected_module_ids.filter((id) => retiredIds.includes(id) && !retired.dropped.includes(id)) ?? []) process.stderr.write(retiredModuleNotice(id));
       const plan = await buildPlan(args.selections ?? (savedPreferences ? new Set(savedPreferences.selected_module_ids) : undefined));
@@ -618,7 +624,7 @@ async function main(): Promise<void> {
             // Requests only: remembered organ choices never activate anything by themselves.
             writeWizardPreferences(resolve(wizardStatePath), {
               schema: "temperance.onboarding-preferences.v1", profile_id: planningProfile.id, selected_module_ids: result.selected_module_ids,
-            }, moduleIds, [...moduleIds, ...retiredIds]);
+            }, moduleIds, { previousModuleIds: [...moduleIds, ...retiredIds], replaceOtherProfile: automaticWizardState });
           }
           if (args.apply && result.confirmed) {
             if (!result.confirmed_at || !routerSetup) throw new Error("NINE_ROUTER_REPAIR_CONFIRMATION_INVALID");
