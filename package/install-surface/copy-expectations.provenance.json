@@ -61,10 +61,10 @@
       "source_object": "6aa89ae1ef9ef25fbf1da01356776874aae850a4"
     },
     {
-      "expectation_digest": "sha256:10d477e6e17921528eeab4c1d75a5b01b8d61f13777961f95c772f23039bf467",
+      "expectation_digest": "sha256:c451d6e29dbe538418f6ec3fbeca1419c4c3bc974716d7d8c01e8b15b065dee1",
       "id": "manifest.bridge-runtime",
       "source": "package/manifest-bridge",
-      "source_object": "3585b05f1b31e53c87c4f5fdf00bb511a9302534"
+      "source_object": "415568f2ec2a284b251e4978c5ad2bfc28bb2d12"
     },
     {
       "expectation_digest": "sha256:115fa7f2a6284e07b62f6b2f25c5f82c761b1135c4feabbbacfb2652de780b09",
@@ -109,7 +109,7 @@
       "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
     }
   ],
-  "revision": "d4748c9eb524895192e597b77293e8ac9dea4b63",
+  "revision": "7ced9e8734059d462f4eb7a836faa54d32c971c9",
   "schema": "temperance.install-surface.copy-expectations-provenance.v1",
-  "tree": "3b6114daa369ff52f6641b781d45191a7cd3c6cb"
+  "tree": "95e85a897b82b1e63b22e9bf59c28f74eac1e59b"
 }
