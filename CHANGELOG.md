@@ -169,6 +169,7 @@ Product bump reflecting the local runtime's v5.4 Five of Swords state. All noted
 - Initial public installer package for Temperance Engine.
 - Added backup-first install scripts, verifier, rollback docs, PAI templates, Pulse compatibility server, skill resolver shim, and CodeGraph routing guidance.
 
-[Unreleased]: https://github.com/Sheshiyer/temperance_engine/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Sheshiyer/temperance_engine/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.7.0
 [0.6.0]: https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.6.0
 [0.1.0]: https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.1.0
