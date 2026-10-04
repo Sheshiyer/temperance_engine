@@ -17,6 +17,8 @@ export interface OnboardingWizardOptions {
   hostDescription?: string;
   notice?: string;
   allowInspection?: boolean;
+  /** Enables "Save organ selection", which persists requested organs into the host-private profile. */
+  allowModuleSelectionSave?: boolean;
 }
 export interface OnboardingWizardState {
   step: WizardStepId;
@@ -25,7 +27,7 @@ export interface OnboardingWizardState {
   notice?: string;
 }
 type WizardAction =
-  | { kind: "next" | "back" | "refresh" | "seat" | "save" | "confirm" | "info" | "health" | "logs" }
+  | { kind: "next" | "back" | "refresh" | "seat" | "save" | "save-organs" | "confirm" | "info" | "health" | "logs" }
   | { kind: "project" | "module" | "authorize"; id: string }
   | { kind: "defer"; ids: string[] };
 export interface WizardRow {
@@ -46,7 +48,7 @@ export interface OnboardingWizardView {
   rows: WizardRow[];
 }
 export type WizardEffect =
-  | { kind: "cancel" | "refresh" | "seat" | "save" | "confirm" | "health" | "logs" }
+  | { kind: "cancel" | "refresh" | "seat" | "save" | "save-organs" | "confirm" | "health" | "logs" }
   | { kind: "authorize"; providerId: string }
   | { kind: "replan"; selectedModuleIds: string[] };
 export interface OnboardingWizardResult {
@@ -62,12 +64,14 @@ export interface OnboardingWizardResult {
   routing_seating_requested?: boolean;
   refresh_requested?: boolean;
   inspection_requested?: "health" | "logs";
+  /** Set when the operator asked to remember the requested organs, even if some are still held. */
+  save_module_selections?: true;
 }
 
 const COPY: Record<WizardStepId, { title: string; why: string; next: string }> = {
   host: { title: "Host", why: "Verify the machine and portable profile for this setup.", next: "Next: choose projects and review their access." },
   projects: { title: "Projects", why: "Approve project access explicitly; discovery grants no authority.", next: "Next: connect the providers you want to use." },
-  providers: { title: "Providers", why: "Connect providers through 9Router; credentials stay with their owner.", next: "Next: assign live models to semantic combos." },
+  providers: { title: "Providers", why: "Connect providers in OmniRoute (the default router); credentials stay with their owner.", next: "Next: assign live models to semantic combos." },
   combos: { title: "Combos", why: "Fit phase aliases to live models before dispatch can proceed.", next: "Next: choose runtime organs and tools." },
   modules: { title: "Organs & tools", why: "Selections are re-probed; held modules are never enabled.", next: "Next: verify applications and third-party integrations." },
   integrations: { title: "Integrations", why: "Check application dependencies before requesting integrations.", next: "Next: review the exact configuration before confirming." },
@@ -107,7 +111,8 @@ export function createOnboardingWizardView(plan: OnboardingPlanV1, state: Onboar
   rows.push(action("refresh", "Refresh checks", "Re-probe this step; keep pending choices", { kind: "refresh" }));
   if (state.step === "host") {
     rows.push(info("host", options.hostDescription ?? "Current host", `Profile: ${plan.profile_id}`, [`Mode: ${plan.operating_mode}`, plan.dry_run ? "Read-only plan." : "Commit plan; exact review required."]));
-    for (const module of plan.modules.filter(({ id }) => id === "provider.9router" || id === "storage.madara")) rows.push(info(`host.${module.id}`, module.title, module.status, module.holds.map(({ reason_code, message }) => `${reason_code}: ${message}`)));
+    const hostModules = new Set(["provider.omniroute", "memory.temperance", "storage.knowledge-volume", "provider.9router", "storage.madara"]);
+    for (const module of plan.modules.filter(({ id }) => hostModules.has(id))) rows.push(info(`host.${module.id}`, module.title, module.status, module.holds.map(({ reason_code, message }) => `${reason_code}: ${message}`)));
   }
   if (state.step === "projects") {
     const saveProjects = action("save-projects", "Save projects and close", options.allowProjectCapsuleSave ? `${state.selectedCandidateIds.length} new approvals; existing approvals preserved` : "Unavailable — no capsule save destination", { kind: "save" }, !options.allowProjectCapsuleSave, ["Explicitly saves project approvals and exits.", "Does not confirm or activate the runtime plan."]);
@@ -140,12 +145,18 @@ export function createOnboardingWizardView(plan: OnboardingPlanV1, state: Onboar
   }
   if (state.step === "modules" || state.step === "integrations") {
     const modules = plan.modules.filter(({ id }) => id !== "provider.9router" && (state.step === "integrations" ? id.startsWith("integration.") : !id.startsWith("integration.")));
-    const blocked = modules.filter(({ requested, status }) => requested && status === "blocked").map(({ id }) => id);
+    const isRequired = (module: OnboardingPlanV1["modules"][number]): boolean => Boolean(module.required || module.organ?.tier === "required");
+    const blocked = modules.filter((module) => module.requested && module.status === "blocked" && !isRequired(module)).map(({ id }) => id);
     if (blocked.length) rows.push(action("defer-blocked", "Defer blocked optional modules", `${blocked.length} held selections — re-probe without these requests`, { kind: "defer", ids: blocked }, !options.allowModuleReplan, blocked));
-    for (const module of modules) rows.push(action(`module.${module.id}`, `${module.requested ? "✓ Requested" : "○ Choose"} · ${module.title}`,
-      module.status === "blocked" ? `Held · ${module.holds.map(({ reason_code }) => reason_code).join(", ")}` : module.requested ? "Enter defers this module" : "Enter requests and re-probes dependencies",
-      { kind: "module", id: module.id }, !options.allowModuleReplan || (!module.requested && module.status === "blocked"),
-      [`Status: ${module.status}`, ...module.holds.flatMap(({ reason_code, message, remediation }) => [`${reason_code}: ${message}`, ...remediation]), ...module.guided_installs.map((install) => `${install.label}: ${install.kind === "command" ? install.argv.join(" ") : install.url}`)]));
+    for (const module of modules) {
+      const required = isRequired(module);
+      const tier = module.organ ? (required ? "required" : module.organ.tier) : undefined;
+      rows.push(action(`module.${module.id}`, `${required ? "● Required" : module.requested ? "✓ Requested" : "○ Choose"} · ${module.title}${tier && !required ? ` · ${tier}` : ""}`,
+        module.status === "blocked" ? `Held · ${module.holds.map(({ reason_code }) => reason_code).join(", ")}` : required ? "Required organ — always on" : module.requested ? "Enter defers this module" : "Enter requests and re-probes dependencies",
+        { kind: "module", id: module.id }, !options.allowModuleReplan || required || (!module.requested && module.status === "blocked"),
+        [`Status: ${module.status}`, ...(tier ? [`Tier: ${tier}${required ? " (cannot be turned off)" : ""}`] : []), ...(module.organ ? [`Native host: ${module.organ.host_role}`] : []), ...(module.organ?.public_url ? [`Public endpoint: ${module.organ.public_url}`] : []), ...module.holds.flatMap(({ reason_code, message, remediation }) => [`${reason_code}: ${message}`, ...remediation]), ...module.guided_installs.map((install) => `${install.label}: ${install.kind === "command" ? install.argv.join(" ") : install.url}`)]));
+    }
+    rows.push(action("save-organs", "Save organ selection and close", options.allowModuleSelectionSave ? `${state.selectedModuleIds.length} requested · remembered on this host, even if some are held` : "Unavailable — no host-private profile for this run", { kind: "save-organs" }, !options.allowModuleSelectionSave, ["Writes requested organs to the host-private onboarding profile (mode 0600).", "Required organs stay implicit; nothing is activated by saving."]));
     if (!modules.length) rows.push(info("modules.none", "No additional selections", "Continue when ready"));
   }
   if (state.step === "review") {
@@ -201,6 +212,7 @@ export function completeOnboardingWizard(plan: OnboardingPlanV1, state: Onboardi
   if (confirmed && (state.step !== "review" || !canConfirmOnboardingWizard(plan) || !confirmedAt)) throw new Error("ONBOARDING_CONFIRMATION_BLOCKED");
   if (confirmed && state.selectedCandidateIds.length > 0 && !options.allowProjectCapsuleSave) throw new Error("ONBOARDING_PROJECT_SAVE_UNAVAILABLE");
   if (effect.kind === "save" && !options.allowProjectCapsuleSave) throw new Error("ONBOARDING_PROJECT_SAVE_UNAVAILABLE");
+  if (effect.kind === "save-organs" && !options.allowModuleSelectionSave) throw new Error("ONBOARDING_MODULE_SAVE_UNAVAILABLE");
   const save = Boolean(options.allowProjectCapsuleSave) && (effect.kind === "save" || (confirmed && state.selectedCandidateIds.length > 0));
   const resume = effect.kind === "authorize" || effect.kind === "seat" || effect.kind === "refresh" || effect.kind === "health" || effect.kind === "logs";
   return {
@@ -214,5 +226,6 @@ export function completeOnboardingWizard(plan: OnboardingPlanV1, state: Onboardi
     ...(effect.kind === "seat" ? { routing_seating_requested: true } : {}),
     ...(effect.kind === "refresh" ? { refresh_requested: true } : {}),
     ...(effect.kind === "health" || effect.kind === "logs" ? { inspection_requested: effect.kind } : {}),
+    ...(effect.kind === "save-organs" ? { save_module_selections: true as const } : {}),
   };
 }

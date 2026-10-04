@@ -1,7 +1,7 @@
 import type { OnboardingPlanV1 } from "./contracts.ts";
 import type { NineRouterRoutingSurface } from "./nine-router-provider-capabilities.ts";
 
-export type OnboardingPageId = "overview" | "modules" | "routing" | "projects" | "integrations" | "review";
+export type OnboardingPageId = "overview" | "organs" | "modules" | "routing" | "projects" | "integrations" | "review";
 export interface OnboardingViewRow { id: string; title: string; status: "eligible" | "blocked" | "not-selected"; blocked_reasons: string[]; guidance: string[]; }
 export interface OnboardingViewPage { id: OnboardingPageId; title: string; rows: OnboardingViewRow[]; }
 export interface OnboardingViewModel {
@@ -9,8 +9,35 @@ export interface OnboardingViewModel {
   profile_id: string; rows: OnboardingViewRow[]; pages: OnboardingViewPage[]; confirmation: "required";
 }
 
+const TIER_ORDER = { required: 0, modular: 1, optional: 2 } as const;
+
+/** Organ rows grouped required → modular → optional, each saying whether it is on, off or held. */
+function organRows(plan: OnboardingPlanV1): OnboardingViewRow[] {
+  return plan.modules
+    .filter((module) => module.organ)
+    .sort((left, right) => TIER_ORDER[left.organ!.tier] - TIER_ORDER[right.organ!.tier])
+    .map((module) => {
+      const organ = module.organ!;
+      const state = module.status === "eligible" ? "on" : module.status === "blocked" ? "held" : "off";
+      return {
+        id: module.id,
+        title: `${organ.tier} · ${module.title} · ${state}`,
+        status: module.status,
+        blocked_reasons: module.holds.map((hold) => hold.reason_code),
+        guidance: [
+          `tier: ${organ.tier}${organ.tier === "required" ? " (always planned; cannot be turned off)" : ""}`,
+          `group: ${organ.group}`,
+          `native host: ${organ.host_role}`,
+          ...(organ.public_url ? [`public endpoint: ${organ.public_url}`] : []),
+          ...module.holds.flatMap((hold) => hold.remediation),
+          ...module.guided_installs.map((install) => install.kind === "command" ? `${install.label}: ${install.argv.join(" ")}` : `${install.label}: ${install.url}`),
+        ],
+      };
+    });
+}
+
 function madaraState(rows: OnboardingViewRow[]): { label: string; status: OnboardingViewRow["status"]; reasons: string[] } {
-  const madara = rows.find((row) => row.id === "storage.madara");
+  const madara = rows.find((row) => row.id === "storage.knowledge-volume") ?? rows.find((row) => row.id === "storage.madara");
   if (!madara) return { label: "not registered", status: "not-selected", reasons: [] };
   if (madara.status === "eligible") return { label: "verified", status: "eligible", reasons: [] };
   if (madara.status === "not-selected") return { label: "not selected", status: "not-selected", reasons: [] };
@@ -31,10 +58,13 @@ function moduleRows(plan: OnboardingPlanV1): OnboardingViewRow[] {
 function routingRows(surface?: NineRouterRoutingSurface): OnboardingViewRow[] {
   if (!surface) return [{
     id: "routing.unbound",
-    title: "9Router provider and alias fitting unavailable",
+    title: "Provider and alias fitting unavailable",
     status: "blocked",
     blocked_reasons: ["HOST_PROFILE_NOT_SELECTED"],
-    guidance: ["Select a portable host profile and private host binding to inspect provider and semantic-alias options."],
+    guidance: [
+      "OmniRoute providers and combos are managed in the OmniRoute dashboard (http://127.0.0.1:20128).",
+      "The legacy 9Router fitting surface appears only with a 9Router host binding.",
+    ],
   }];
   const providers = surface.provider_options.map((provider): OnboardingViewRow => ({
     id: `provider.${provider.id}`,
@@ -60,12 +90,24 @@ export function createOnboardingViewModel(plan: OnboardingPlanV1, routing?: Nine
   const eligible = rows.filter((module) => module.status === "eligible").length;
   const blocked = rows.filter((module) => module.status === "blocked").length;
   const available = rows.filter((module) => module.status === "not-selected").length;
-  const router = rows.find((row) => row.id === "provider.9router");
+  const router = rows.find((row) => row.id === "provider.omniroute") ?? rows.find((row) => row.id === "provider.9router");
+  const memory = rows.find((row) => row.id === "memory.temperance");
   const madara = madaraState(rows);
+  const organs = organRows(plan);
+  const organsOn = organs.filter((row) => row.status === "eligible").length;
+  const organsHeld = organs.filter((row) => row.status === "blocked").length;
   const overview: OnboardingViewRow[] = [
     { id: "profile", title: `Active profile: ${plan.profile_id}`, status: "eligible", blocked_reasons: [], guidance: [] },
-    { id: "9router", title: `9Router: ${router?.status ?? "not registered"}`, status: router?.status ?? "not-selected", blocked_reasons: router?.blocked_reasons ?? [], guidance: router?.guidance ?? [] },
-    { id: "mount", title: `Madara: ${madara.label}`, status: madara.status, blocked_reasons: madara.reasons, guidance: [] },
+    { id: "router", title: `Router: ${router ? `${router.title} · ${router.status}` : "not registered"}`, status: router?.status ?? "not-selected", blocked_reasons: router?.blocked_reasons ?? [], guidance: router?.guidance ?? [] },
+    { id: "memory", title: `Temperance memory: ${memory?.status ?? "not registered"}`, status: memory?.status ?? "not-selected", blocked_reasons: memory?.blocked_reasons ?? [], guidance: memory?.guidance ?? [] },
+    { id: "mount", title: `Knowledge volume: ${madara.label}`, status: madara.status, blocked_reasons: madara.reasons, guidance: [] },
+    ...(organs.length > 0 ? [{
+      id: "organs",
+      title: `Organs: ${organsOn} on · ${organsHeld} held · ${organs.length - organsOn - organsHeld} off`,
+      status: (organsHeld > 0 ? "blocked" : "eligible") as OnboardingViewRow["status"],
+      blocked_reasons: [],
+      guidance: ["Open the Organs page to turn modular and optional organs on or off."],
+    }] : []),
   ];
   const projects: OnboardingViewRow[] = (plan.project_enrollments ?? []).map((project) => ({
     id: project.id, title: `${project.id} · ${project.approved ? "approved" : "pending approval"}`, status: project.approved ? "eligible" : "not-selected", blocked_reasons: [], guidance: [project.access],
@@ -123,7 +165,9 @@ export function createOnboardingViewModel(plan: OnboardingPlanV1, routing?: Nine
     title: "Temperance V4 Onboarding", summary: `${eligible} eligible · ${blocked} blocked · ${available} available`, mode: plan.operating_mode,
     dry_run: plan.dry_run, profile_id: plan.profile_id, rows, confirmation: "required",
     pages: [
-      { id: "overview", title: "Overview", rows: overview }, { id: "modules", title: "Modules", rows },
+      { id: "overview", title: "Overview", rows: overview },
+      ...(organs.length > 0 ? [{ id: "organs" as const, title: "Organs", rows: organs }] : []),
+      { id: "modules", title: "Modules", rows },
       { id: "routing", title: "Routing", rows: routingRows(routing) },
       { id: "projects", title: "Projects", rows: projects }, { id: "integrations", title: "Integrations", rows: integrations },
       { id: "review", title: "Review", rows: review },
@@ -138,6 +182,14 @@ export function renderOnboardingText(plan: OnboardingPlanV1, routing?: NineRoute
     lines.push(`  [${row.status.toUpperCase()}] ${row.id} · ${row.title}`);
     for (const reason of row.blocked_reasons) lines.push(`    hold: ${reason}`);
     for (const guidance of row.guidance) lines.push(`    guided: ${guidance}`);
+  }
+  const organs = view.pages.find(({ id }) => id === "organs")?.rows ?? [];
+  if (organs.length > 0) {
+    lines.push("ORGANS");
+    for (const row of organs) {
+      lines.push(`  [${row.status === "eligible" ? "ON" : row.status === "blocked" ? "HELD" : "OFF"}] ${row.id} · ${row.title}`);
+      for (const reason of row.blocked_reasons) lines.push(`    hold: ${reason}`);
+    }
   }
   for (const input of plan.configuration_inputs ?? []) {
     lines.push(`CONFIGURATION ${input.id} · ${input.digest}`);

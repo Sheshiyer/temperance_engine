@@ -56,6 +56,11 @@ function remediationFor(probe: CapabilityProbe): string[] {
     VARIABLE_MISSING: "Set the required profile variable.",
     VARIABLE_INVALID: "Correct the profile variable before enabling this module.",
     HTTP_UNAVAILABLE: "Start or configure the required local service.",
+    ORIGIN_OFFLINE: "The public endpoint is published but its origin is offline; start the origin host's service and tunnel connector.",
+    ORIGIN_UNVERIFIED: "An identity proxy answered before the origin; probe a non-proxied health URL or use a service token to verify the origin.",
+    PORT_CLOSED: "Start the service that owns this port, then probe again.",
+    LAUNCH_AGENT_ABSENT: "Install the module's LaunchAgent, then probe again.",
+    LAUNCH_AGENT_STOPPED: "Start the LaunchAgent (launchctl kickstart), then probe again.",
     UNSUPPORTED_PLATFORM: "Disable this module on the current platform.",
     PROBE_FAILED: "Inspect the probe evidence and rerun onboarding.",
   };
@@ -92,6 +97,10 @@ function missingInputProbe(requirement: CapabilityRequirement, profile: Onboardi
           ? [requirement.data_dir_variable]
         : requirement.kind === "binary"
           ? [requirement.executable_variable]
+        : requirement.kind === "tcp-port"
+          ? [requirement.host_variable]
+        : requirement.kind === "launch-agent"
+          ? [requirement.label_variable]
         : [];
   const missing = variableNames.filter((name): name is string => Boolean(name) && !profile.variables[name!]);
   if (missing.length > 0) {
@@ -120,11 +129,46 @@ function missingInputProbe(requirement: CapabilityRequirement, profile: Onboardi
   return undefined;
 }
 
+function organTitle(module: OnboardingModule, profile: OnboardingProfileV1): string {
+  const variable = module.organ?.title_variable;
+  const value = variable ? profile.variables[variable] : undefined;
+  return value ? `${value} · ${module.title}` : module.title;
+}
+
+function organResolution(module: OnboardingModule, profile: OnboardingProfileV1, required: ReadonlySet<string>): NonNullable<OnboardingModuleResolution["organ"]> {
+  const organ = module.organ!;
+  const publicUrl = organ.public_url_variable ? profile.variables[organ.public_url_variable] : undefined;
+  const tier = required.has(module.id) ? "required" : organ.tier;
+  return { tier, group: organ.group, host_role: organ.host_role, ...(publicUrl ? { public_url: publicUrl } : {}) };
+}
+
+/**
+ * Catalog-required organs plus the host profile's escalations, closed over `depends_on`: a required
+ * module's dependencies are required too, otherwise it would sit at DEPENDENCY_BLOCKED forever.
+ */
+export function requiredModuleIds(catalog: OnboardingCatalogV1, profile: OnboardingProfileV1): string[] {
+  const byId = new Map(catalog.modules.map((module) => [module.id, module]));
+  const unknown = (profile.required_modules ?? []).filter((id) => !byId.has(id));
+  if (unknown.length > 0) throw new Error(`ONBOARDING_REQUIRED_MODULE_UNKNOWN:${unknown.sort().join(",")}`);
+  const required = new Set<string>();
+  const visit = (id: string): void => {
+    if (required.has(id) || !byId.has(id)) return;
+    required.add(id);
+    for (const dependency of byId.get(id)!.depends_on) visit(dependency);
+  };
+  for (const module of catalog.modules) if (module.organ?.tier === "required") visit(module.id);
+  for (const id of profile.required_modules ?? []) visit(id);
+  return [...required];
+}
+
 function selectedIds(catalog: OnboardingCatalogV1, profile: OnboardingProfileV1, selections?: ReadonlySet<string>): Set<string> {
-  if (selections) return new Set(selections);
+  // Required organs are always part of the plan: a selection can add modules but never drop them.
+  const required = requiredModuleIds(catalog, profile);
+  if (selections) return new Set([...selections, ...required]);
   return new Set([
     ...profile.preselected_modules,
     ...catalog.modules.filter((module) => module.preselection === "selected").map((module) => module.id),
+    ...required,
   ]);
 }
 
@@ -189,6 +233,7 @@ export async function createOnboardingPlan(options: CreateOnboardingPlanOptions)
     }
   }
 
+  const requiredIds = new Set(requiredModuleIds(options.catalog, options.profile));
   const chosen = selectedIds(options.catalog, options.profile, options.selections);
   const known = new Set(options.catalog.modules.map((module) => module.id));
   const unknown = [...chosen].filter((id) => !known.has(id));
@@ -239,7 +284,9 @@ export async function createOnboardingPlan(options: CreateOnboardingPlanOptions)
     .map((module) => module.id));
   const modules: OnboardingModuleResolution[] = options.catalog.modules.map((module) => ({
     id: module.id,
-    title: module.title,
+    title: organTitle(module, options.profile),
+    ...(module.organ ? { organ: organResolution(module, options.profile, requiredIds) } : {}),
+    ...(requiredIds.has(module.id) ? { required: true as const } : {}),
     requested: chosen.has(module.id),
     status: !chosen.has(module.id) ? "not-selected" : eligible.has(module.id) ? "eligible" : "blocked",
     holds: holds.get(module.id) ?? [],
@@ -250,13 +297,20 @@ export async function createOnboardingPlan(options: CreateOnboardingPlanOptions)
       remediation: ["Keep cleanup under the Temperance lifecycle and let doctor check both resolved state roots."],
     }] : [],
   }));
-  const mountDegraded = modules.some((module) => module.holds.some((hold) => hold.reason_code === "MOUNT_ABSENT" || hold.reason_code === "MOUNT_UUID_MISMATCH"));
+  const isMountHold = (hold: OnboardingHold): boolean => hold.reason_code === "MOUNT_ABSENT" || hold.reason_code === "MOUNT_UUID_MISMATCH";
+  const mountDegradedIds = new Set(modules.filter((module) => module.holds.some(isMountHold)).map(({ id }) => id));
+  const mountDegraded = mountDegradedIds.size > 0;
+  // An unplugged volume degrades to read-only, but must not mask a required organ that is broken for
+  // another reason. A required organ held only because of the volume (directly or through a dependency)
+  // is part of the degraded state.
+  const requiredHardBlocked = modules.some((module) => module.required && module.status === "blocked"
+    && !module.holds.some((hold) => isMountHold(hold) || (hold.reason_code === "DEPENDENCY_BLOCKED" && mountDegradedIds.has(hold.dependency_id ?? ""))));
   const base: Omit<OnboardingPlanV1, "plan_digest" | "generated_at"> = {
     schema: ONBOARDING_PLAN_SCHEMA,
     version: { major: 1, minor: 0 },
     profile_id: options.profile.id,
     dry_run: options.dryRun ?? true,
-    operating_mode: mountDegraded ? "read-only-degraded" : modules.some((module) => module.status === "blocked") ? "blocked" : "ready",
+    operating_mode: requiredHardBlocked ? "blocked" : mountDegraded ? "read-only-degraded" : modules.some((module) => module.status === "blocked") ? "blocked" : "ready",
     install_order: topologicalEligible(options.catalog.modules, eligible),
     project_enrollments: options.profile.project_enrollments.map(({ id, approved, access }) => ({ id, approved, access })),
     project_candidates: [...(options.projectCandidates ?? [])],

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { createCoreOnboardingCatalog, createCoreOnboardingProfile } from "../src/onboarding/core-catalog.ts";
+import { createCoreOnboardingProfile, createLegacyNineRouterCatalog } from "../src/onboarding/core-catalog.ts";
 import type { OnboardingPlanV1 } from "../src/onboarding/contracts.ts";
 import type { NineRouterAvailableModel, NineRouterCatalogSnapshot, NineRouterComboDetail } from "../src/onboarding/nine-router-api.ts";
 import type { NineRouterGuidedSetupApi } from "../src/onboarding/nine-router-guided-setup.ts";
@@ -17,7 +17,7 @@ function fixture() {
   };
   profile.routing_aliases = [{ alias: "phase.build", combo: "work-build" }];
   profile.secret_references = { GATEWAY: { store: "macos-keychain", service: "fixture.gateway", account: "fixture" } };
-  const catalog = createCoreOnboardingCatalog();
+  const catalog = createLegacyNineRouterCatalog();
   catalog.modules.push({ id: "unrelated", title: "Unrelated", summary: "Must not be applied", preselection: "selected", depends_on: [],
     requires: [{ id: "unrelated-path", kind: "path", path_variable: "MISSING", path_type: "directory", access: "readable" }], guided_installs: [] });
   const providers: NineRouterCatalogSnapshot["providers"] = [{ id: "oauth-existing", name: "Existing OAuth", provider: "codex", active: true }];

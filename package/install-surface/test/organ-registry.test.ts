@@ -1,0 +1,384 @@
+import { describe, expect, test } from "bun:test";
+
+import {
+  OMNIROUTE_PACKAGE,
+  type CapabilityProbe,
+  type CapabilityRequirement,
+  type OnboardingProfileV1,
+} from "../src/onboarding/contracts.ts";
+import { createCoreOnboardingCatalog, createCoreOnboardingProfile, createLegacyNineRouterCatalog } from "../src/onboarding/core-catalog.ts";
+import { projectOnboardingDoctorSection } from "../src/onboarding/doctor.ts";
+import { createOnboardingPlan, requiredModuleIds } from "../src/onboarding/planner.ts";
+import { createOnboardingViewModel, renderOnboardingText } from "../src/onboarding/presentation.ts";
+import { validateOnboardingCatalog, validateOnboardingProfile } from "../src/onboarding/schema.ts";
+import { createSystemProbeAdapter, type OnboardingProbeIO } from "../src/onboarding/system-adapter.ts";
+import { toggleOnboardingModuleSelection } from "../src/onboarding/tui.ts";
+import { withoutRetiredModules } from "../src/onboarding/profile-selection.ts";
+import { completeOnboardingWizard, createOnboardingWizardState, createOnboardingWizardView, handleOnboardingWizardKey } from "../src/onboarding/wizard.ts";
+
+const profile = (overrides: Partial<OnboardingProfileV1> = {}): OnboardingProfileV1 => ({
+  ...createCoreOnboardingProfile(),
+  id: "organ-test",
+  ...overrides,
+});
+
+function allAvailable(overrides: Record<string, Partial<CapabilityProbe>> = {}) {
+  return {
+    probe: async (capability: { id: string }): Promise<CapabilityProbe> => ({
+      capability_id: capability.id,
+      available: true,
+      reason_code: "AVAILABLE",
+      evidence: [],
+      ...overrides[capability.id],
+    }),
+  };
+}
+
+function io(overrides: Partial<OnboardingProbeIO> = {}): OnboardingProbeIO {
+  return {
+    platform: "darwin",
+    which: async () => "/opt/example/bin/tool",
+    execFile: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
+    pathInfo: async () => ({ exists: true, type: "directory", readable: true, writable: true, mode: 0o700 }),
+    fetch: async () => new Response(null, { status: 200 }),
+    tcpConnect: async () => true,
+    uid: 501,
+    ...overrides,
+  };
+}
+
+async function probeWith(requirement: CapabilityRequirement, ioOverrides: Partial<OnboardingProbeIO> = {}, variables: Record<string, string> = {}) {
+  return await createSystemProbeAdapter({ io: io(ioOverrides) })
+    .probe(requirement, { profile: profile({ variables }), signal: new AbortController().signal });
+}
+
+describe("organ registry catalog", () => {
+  test("ships OmniRoute as the required default router and no 9Router module", () => {
+    const core = createCoreOnboardingCatalog();
+    expect(validateOnboardingCatalog(core)).toBe(true);
+    expect(core.modules.some(({ id }) => id === "provider.9router")).toBe(false);
+    const router = core.modules.find(({ id }) => id === "provider.omniroute");
+    expect(router?.organ).toEqual({ tier: "required", group: "router", host_role: "operator-mac" });
+    expect(router?.requires).toContainEqual({ id: "omniroute-launch-agent", kind: "launch-agent", label: OMNIROUTE_PACKAGE.launch_agent_label });
+    expect(router?.requires.find(({ kind }) => kind === "binary")).toMatchObject({ executable: "omniroute", version: { exact: OMNIROUTE_PACKAGE.version } });
+  });
+
+  test("assigns the operator's tiers: memory required, A2A/company modular, Obsidian/mail optional", () => {
+    const tiers = Object.fromEntries(createCoreOnboardingCatalog().modules.map(({ id, organ }) => [id, organ?.tier]));
+    expect(tiers).toMatchObject({
+      "provider.omniroute": "required",
+      "memory.temperance": "required",
+      "integration.omniroute-a2a": "modular",
+      "integration.company-omniroute": "modular",
+      "integration.obsidian-rest": "optional",
+      "tunnel.obsidian-rest": "optional",
+      "integration.mail-mcp": "optional",
+    });
+    const obsidianTunnel = createCoreOnboardingCatalog().modules.find(({ id }) => id === "tunnel.obsidian-rest");
+    expect(obsidianTunnel?.depends_on).toEqual(["integration.obsidian-rest"]);
+  });
+
+  test("stays portable: no private paths, hostnames or volume names", () => {
+    const serialized = JSON.stringify(createCoreOnboardingCatalog());
+    for (const forbidden of ["/Users/", "/Volumes/", "madara", "thoughtseed", ".space"]) expect(serialized).not.toContain(forbidden);
+  });
+
+  test("keeps the retired 9Router module only in the legacy catalog", () => {
+    const legacy = createLegacyNineRouterCatalog();
+    expect(validateOnboardingCatalog(legacy)).toBe(true);
+    expect(legacy.modules.map(({ id }) => id)).toEqual(["provider.9router"]);
+  });
+
+  test("schema rejects ambiguous LaunchAgent labels and unknown organ tiers", () => {
+    const core = createCoreOnboardingCatalog();
+    const withBothLabels = structuredClone(core);
+    withBothLabels.modules[0]!.requires.push({ id: "both", kind: "launch-agent", label: "a.b", label_variable: "LABEL" });
+    expect(validateOnboardingCatalog(withBothLabels)).toBe(false);
+    const withBadTier = structuredClone(core) as any;
+    withBadTier.modules[0].organ.tier = "critical";
+    expect(validateOnboardingCatalog(withBadTier)).toBe(false);
+  });
+
+  test("profile accepts host-specific required_modules", () => {
+    expect(validateOnboardingProfile(profile({ required_modules: ["storage.knowledge-volume"] }))).toBe(true);
+  });
+});
+
+describe("organ planning", () => {
+  test("required organs are always planned, even when an explicit selection omits them", async () => {
+    const plan = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } } }),
+      adapter: allAvailable(),
+      selections: new Set(["integration.mail-mcp"]),
+    });
+    const requested = plan.modules.filter(({ requested }) => requested).map(({ id }) => id).sort();
+    expect(requested).toEqual(["integration.mail-mcp", "memory.temperance", "provider.omniroute"]);
+    expect(plan.operating_mode).toBe("ready");
+  });
+
+  test("a host profile escalates organs to required and resolves private titles and endpoints", async () => {
+    const catalog = createCoreOnboardingCatalog();
+    const hostProfile = profile({
+      required_modules: ["storage.knowledge-volume"],
+      variables: {
+        ...createCoreOnboardingProfile().variables,
+        KNOWLEDGE_VOLUME_NAME: "Vault Drive",
+        MEMORY_TUNNEL_PUBLIC_URL: "https://memory.example.test",
+      },
+    });
+    expect(requiredModuleIds(catalog, hostProfile)).toContain("storage.knowledge-volume");
+    const plan = await createOnboardingPlan({ catalog, profile: hostProfile, adapter: allAvailable() });
+    const volume = plan.modules.find(({ id }) => id === "storage.knowledge-volume")!;
+    expect(volume.requested).toBe(true);
+    expect(volume.organ?.tier).toBe("required");
+    expect(volume.title).toBe("Vault Drive · Knowledge volume");
+    expect(plan.modules.find(({ id }) => id === "tunnel.temperance-memory")?.organ?.public_url).toBe("https://memory.example.test");
+  });
+
+  test("an unplugged knowledge volume degrades to read-only instead of blocking", async () => {
+    const plan = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({
+        required_modules: ["storage.knowledge-volume"],
+        secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } },
+        variables: { ...createCoreOnboardingProfile().variables, KNOWLEDGE_VOLUME_ROOT: "/mnt/vault", KNOWLEDGE_VOLUME_UUID: "U", KNOWLEDGE_VAULT_RELATIVE_PATH: "v" },
+      }),
+      adapter: allAvailable({ "knowledge-volume-mount": { available: false, reason_code: "MOUNT_ABSENT" } }),
+    });
+    expect(plan.operating_mode).toBe("read-only-degraded");
+  });
+
+  test("the TUI toggle refuses to turn off a required organ but toggles optional ones", async () => {
+    const plan = await createOnboardingPlan({ catalog: createCoreOnboardingCatalog(), profile: profile(), adapter: allAvailable() });
+    const selected = new Set(plan.modules.filter(({ requested }) => requested).map(({ id }) => id));
+    expect(() => toggleOnboardingModuleSelection(plan, selected, "provider.omniroute")).toThrow("ONBOARDING_MODULE_REQUIRED:provider.omniroute");
+    const on = toggleOnboardingModuleSelection(plan, selected, "integration.obsidian-rest");
+    expect(on.has("integration.obsidian-rest")).toBe(true);
+    expect(toggleOnboardingModuleSelection(plan, on, "integration.obsidian-rest").has("integration.obsidian-rest")).toBe(false);
+  });
+});
+
+describe("organ probes", () => {
+  test("tcp-port reports open, closed, and honours a profile port override", async () => {
+    const requirement: CapabilityRequirement = { id: "port", kind: "tcp-port", port: 1000, port_variable: "PORT" };
+    let seenPort = 0;
+    expect((await probeWith(requirement, { tcpConnect: async (_h, port) => { seenPort = port; return true; } }, { PORT: "2000" })).available).toBe(true);
+    expect(seenPort).toBe(2000);
+    expect((await probeWith(requirement, { tcpConnect: async () => false })).reason_code).toBe("PORT_CLOSED");
+    expect((await probeWith(requirement, {}, { PORT: "not-a-port" })).reason_code).toBe("VARIABLE_INVALID");
+  });
+
+  test("launch-agent distinguishes running, stopped and absent without leaking the label", async () => {
+    const requirement: CapabilityRequirement = { id: "agent", kind: "launch-agent", label_variable: "AGENT" };
+    const variables = { AGENT: "private.example.agent" };
+    const running = await probeWith(requirement, { execFile: async () => ({ stdout: "\tstate = running\n", stderr: "", exitCode: 0 }) }, variables);
+    expect(running.reason_code).toBe("AVAILABLE");
+    expect(JSON.stringify(running)).not.toContain("private.example.agent");
+    const stopped = await probeWith(requirement, { execFile: async () => ({ stdout: "\tstate = not running\n", stderr: "", exitCode: 0 }) }, variables);
+    expect(stopped.reason_code).toBe("LAUNCH_AGENT_STOPPED");
+    const absent = await probeWith(requirement, { execFile: async () => ({ stdout: "", stderr: "Could not find service", exitCode: 113 }) }, variables);
+    expect(absent.reason_code).toBe("LAUNCH_AGENT_ABSENT");
+    expect((await probeWith(requirement, { platform: "linux" }, variables)).reason_code).toBe("UNSUPPORTED_PLATFORM");
+  });
+
+  test("http-health accepts listed statuses and names an offline tunnel origin", async () => {
+    const requirement: CapabilityRequirement = { id: "memory", kind: "http-health", url_variable: "URL", accept_status: [200, 401] };
+    const variables = { URL: "http://127.0.0.1:1/api/memory" };
+    expect((await probeWith(requirement, { fetch: async () => new Response(null, { status: 401 }) }, variables)).available).toBe(true);
+    expect((await probeWith(requirement, { fetch: async () => new Response(null, { status: 530 }) }, variables)).reason_code).toBe("ORIGIN_OFFLINE");
+    expect((await probeWith(requirement, { fetch: async () => new Response(null, { status: 404 }) }, variables)).reason_code).toBe("HTTP_UNAVAILABLE");
+  });
+
+  test("the planner reports a missing private LaunchAgent label as a configuration hold", async () => {
+    const plan = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile(),
+      adapter: allAvailable(),
+      selections: new Set(["tunnel.temperance-memory"]),
+    });
+    const tunnel = plan.modules.find(({ id }) => id === "tunnel.temperance-memory")!;
+    expect(tunnel.holds.map(({ reason_code }) => reason_code)).toContain("VARIABLE_MISSING");
+  });
+});
+
+describe("organ presentation and doctor", () => {
+  test("adds an Organs page ordered required → modular → optional and a router-first overview", async () => {
+    const plan = await createOnboardingPlan({ catalog: createCoreOnboardingCatalog(), profile: profile(), adapter: allAvailable() });
+    const view = createOnboardingViewModel(plan);
+    expect(view.pages.map(({ id }) => id)).toEqual(["overview", "organs", "modules", "routing", "projects", "integrations", "review"]);
+    const tiers = view.pages.find(({ id }) => id === "organs")!.rows.map(({ title }) => title.split(" · ")[0]);
+    expect(tiers).toEqual([...tiers].sort((a, b) => ["required", "modular", "optional"].indexOf(a!) - ["required", "modular", "optional"].indexOf(b!)));
+    expect(view.pages[0]!.rows.map(({ id }) => id)).toEqual(["profile", "router", "memory", "mount", "organs"]);
+    expect(renderOnboardingText(plan)).toContain("ORGANS");
+  });
+
+  test("doctor fails on a held required organ but only warns on a held optional organ", async () => {
+    const plan = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } } }),
+      adapter: allAvailable({ "obsidian-rest-port": { available: false, reason_code: "PORT_CLOSED" } }),
+      selections: new Set(["integration.obsidian-rest"]),
+    });
+    const optionalOnly = projectOnboardingDoctorSection(plan, "host");
+    expect(optionalOnly.condition).toBe("WARN");
+    expect(optionalOnly.checks.find(({ reason_code }) => reason_code === "PORT_CLOSED")?.destination).toBe("organ:optional:integration.obsidian-rest");
+
+    const requiredHeld = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile(),
+      adapter: allAvailable(),
+    });
+    expect(projectOnboardingDoctorSection(requiredHeld).condition).toBe("FAIL");
+  });
+});
+
+describe("required organ semantics (review follow-ups)", () => {
+  const admin = { OMNIROUTE_ADMIN: { store: "macos-keychain" as const, service: "svc", account: "acct" } };
+
+  test("required organs pull in their dependencies, and unknown escalations are rejected", () => {
+    const catalog = createCoreOnboardingCatalog();
+    const ids = requiredModuleIds(catalog, profile({ required_modules: ["tunnel.knowledge-vault"] }));
+    expect(ids).toContain("tunnel.knowledge-vault");
+    expect(ids).toContain("storage.knowledge-volume");
+    expect(() => requiredModuleIds(catalog, profile({ required_modules: ["organ.unknown"] }))).toThrow("ONBOARDING_REQUIRED_MODULE_UNKNOWN:organ.unknown");
+  });
+
+  test("a dependency of a required organ cannot be turned off and is marked required", async () => {
+    const plan = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ required_modules: ["tunnel.knowledge-vault"] }),
+      adapter: allAvailable(),
+    });
+    const volume = plan.modules.find(({ id }) => id === "storage.knowledge-volume")!;
+    expect(volume.required).toBe(true);
+    expect(volume.organ?.tier).toBe("required");
+    const selected = new Set(plan.modules.filter(({ requested }) => requested).map(({ id }) => id));
+    expect(() => toggleOnboardingModuleSelection(plan, selected, "storage.knowledge-volume")).toThrow("ONBOARDING_MODULE_REQUIRED");
+  });
+
+  test("a required module without an organ block is still protected from deselection", async () => {
+    const catalog = createCoreOnboardingCatalog();
+    catalog.modules.push({ id: "custom.plain", title: "Plain", summary: "A module without an organ block.", preselection: "available", depends_on: [], requires: [], guided_installs: [] });
+    const plan = await createOnboardingPlan({ catalog, profile: profile({ required_modules: ["custom.plain"] }), adapter: allAvailable() });
+    const plain = plan.modules.find(({ id }) => id === "custom.plain")!;
+    expect(plain.required).toBe(true);
+    expect(() => toggleOnboardingModuleSelection(plan, new Set(plan.modules.filter(({ requested }) => requested).map(({ id }) => id)), "custom.plain"))
+      .toThrow("ONBOARDING_MODULE_REQUIRED:custom.plain");
+  });
+
+  test("an unplugged volume cannot mask a required organ broken for another reason", async () => {
+    const variables = { ...createCoreOnboardingProfile().variables, KNOWLEDGE_VOLUME_ROOT: "/mnt/vault", KNOWLEDGE_VOLUME_UUID: "U", KNOWLEDGE_VAULT_RELATIVE_PATH: "v" };
+    const unplugged = { "knowledge-volume-mount": { available: false, reason_code: "MOUNT_ABSENT" as const } };
+    const degraded = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ required_modules: ["tunnel.knowledge-vault"], secret_references: admin, variables }),
+      adapter: allAvailable(unplugged),
+    });
+    // The vault tunnel is held only through its unplugged dependency: still read-only degraded.
+    expect(degraded.operating_mode).toBe("read-only-degraded");
+    const broken = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ required_modules: ["tunnel.knowledge-vault"], secret_references: admin, variables }),
+      adapter: allAvailable({ ...unplugged, "omniroute-health": { available: false, reason_code: "HTTP_UNAVAILABLE" } }),
+    });
+    expect(broken.operating_mode).toBe("blocked");
+  });
+});
+
+describe("probe hardening (review follow-ups)", () => {
+  test("http-health never follows redirects and treats a cross-host redirect as unverified", async () => {
+    const requirement: CapabilityRequirement = { id: "tunnel", kind: "http-health", url_variable: "URL", method: "GET", accept_status: [200, 302, 307] };
+    const variables = { URL: "https://memory.example.test/" };
+    let redirectMode: string | undefined;
+    const crossHost = await probeWith(requirement, {
+      fetch: async (_url, options) => { redirectMode = options.redirect; return new Response(null, { status: 302, headers: { location: "https://login.example.net/" } }); },
+    }, variables);
+    expect(redirectMode).toBe("manual");
+    expect(crossHost.reason_code).toBe("ORIGIN_UNVERIFIED");
+    const sameHost = await probeWith(requirement, { fetch: async () => new Response(null, { status: 307, headers: { location: "/login" } }) }, variables);
+    expect(sameHost.reason_code).toBe("AVAILABLE");
+    expect((await probeWith(requirement, {}, { URL: "file:///etc/hosts" })).reason_code).toBe("VARIABLE_INVALID");
+  });
+
+  test("launch-agent evidence keeps the full state text and rejects malformed private labels", async () => {
+    const requirement: CapabilityRequirement = { id: "agent", kind: "launch-agent", label_variable: "AGENT" };
+    const stdout = "gui/501/x = {\n\tstate = not running\n\tendpoints = {\n\t\tstate = active\n\t}\n}\n";
+    const stopped = await probeWith(requirement, { execFile: async () => ({ stdout, stderr: "", exitCode: 0 }) }, { AGENT: "valid.label" });
+    expect(stopped.evidence).toEqual(["LaunchAgent state is not running"]);
+    expect((await probeWith(requirement, {}, { AGENT: "bad label; rm -rf" })).reason_code).toBe("VARIABLE_INVALID");
+  });
+
+  test("tcp-port rejects lax numeric overrides", async () => {
+    const requirement: CapabilityRequirement = { id: "port", kind: "tcp-port", port: 1000, port_variable: "PORT" };
+    for (const value of ["0x50", "1e3", " 80 ", "0", "70000"]) expect((await probeWith(requirement, {}, { PORT: value })).reason_code).toBe("VARIABLE_INVALID");
+  });
+
+  test("the real TCP probe sees an open port, a closed port and an aborted signal", async () => {
+    const server = Bun.listen({ hostname: "127.0.0.1", port: 0, socket: { data() {} } });
+    const requirement: CapabilityRequirement = { id: "port", kind: "tcp-port", port: server.port };
+    const adapter = createSystemProbeAdapter({ io: { ...io(), tcpConnect: undefined } });
+    const context = { profile: profile(), signal: new AbortController().signal };
+    expect((await adapter.probe(requirement, context)).reason_code).toBe("AVAILABLE");
+    const aborted = new AbortController(); aborted.abort();
+    expect((await adapter.probe(requirement, { ...context, signal: aborted.signal })).reason_code).toBe("PORT_CLOSED");
+    server.stop(true);
+    expect((await adapter.probe(requirement, context)).reason_code).toBe("PORT_CLOSED");
+  });
+});
+
+describe("host profile persistence helpers", () => {
+  test("retired modules are dropped from selections and escalations only when the catalog lacks them", () => {
+    const legacyProfile = profile({ preselected_modules: ["provider.9router", "integration.mail-mcp"], required_modules: ["provider.9router"] });
+    const dropped = withoutRetiredModules(legacyProfile, createCoreOnboardingCatalog());
+    expect(dropped.dropped).toEqual(["provider.9router"]);
+    expect(dropped.profile.preselected_modules).toEqual(["integration.mail-mcp"]);
+    expect(dropped.profile.required_modules).toEqual([]);
+    expect(withoutRetiredModules(legacyProfile, createLegacyNineRouterCatalog()).dropped).toEqual([]);
+  });
+
+});
+
+describe("organs in the 0.6.0 setup wizard", () => {
+  async function corePlan(overrides: Record<string, Partial<CapabilityProbe>> = {}, selections?: Set<string>) {
+    return await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } } }),
+      adapter: allAvailable(overrides),
+      selections,
+    });
+  }
+
+  test("required organs are locked on the Organs & tools step and never deferred", async () => {
+    const plan = await corePlan({ "omniroute-health": { available: false, reason_code: "HTTP_UNAVAILABLE" }, "mail-mcp-port": { available: false, reason_code: "PORT_CLOSED" } }, new Set(["integration.mail-mcp"]));
+    const options = { allowModuleReplan: true };
+    const organs = createOnboardingWizardView(plan, { ...createOnboardingWizardState(plan, options), step: "modules" }, options);
+    const router = organs.rows.find(({ id }) => id === "module.provider.omniroute")!;
+    expect(router.title.startsWith("● Required")).toBe(true);
+    expect(router.disabled).toBe(true);
+    // Defer-blocked lists held optional modules only, never a held required organ.
+    const integrations = createOnboardingWizardView(plan, { ...createOnboardingWizardState(plan, options), step: "integrations" }, options);
+    expect(integrations.rows.find(({ id }) => id === "defer-blocked")?.details).toEqual(["integration.mail-mcp"]);
+    expect(organs.rows.some(({ id }) => id === "defer-blocked")).toBe(false);
+  });
+
+  test("Save organ selection hands off save_module_selections and is refused without a destination", async () => {
+    const plan = await corePlan();
+    const allowed = { allowModuleReplan: true, allowModuleSelectionSave: true };
+    const state = { ...createOnboardingWizardState(plan, allowed), step: "modules" as const };
+    const transition = handleOnboardingWizardKey(plan, state, allowed, "enter", "save-organs");
+    expect(transition.effect).toEqual({ kind: "save-organs" });
+    expect(completeOnboardingWizard(plan, transition.state, allowed, transition.effect!).save_module_selections).toBe(true);
+    expect(() => completeOnboardingWizard(plan, state, { allowModuleReplan: true }, { kind: "save-organs" })).toThrow("ONBOARDING_MODULE_SAVE_UNAVAILABLE");
+    const without = createOnboardingWizardView(plan, state, { allowModuleReplan: true });
+    expect(without.rows.find(({ id }) => id === "save-organs")?.disabled).toBe(true);
+  });
+
+  test("the Host step shows the router, memory and knowledge volume instead of 9Router", async () => {
+    const plan = await corePlan();
+    const host = createOnboardingWizardView(plan, createOnboardingWizardState(plan), {});
+    const ids = host.rows.map(({ id }) => id);
+    expect(ids).toEqual(expect.arrayContaining(["host.provider.omniroute", "host.memory.temperance", "host.storage.knowledge-volume"]));
+    expect(ids).not.toContain("host.provider.9router");
+  });
+});

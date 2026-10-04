@@ -5,6 +5,18 @@ export const ONBOARDING_PROFILE_SCHEMA = "temperance.onboarding.profile.v1" as c
 export const ONBOARDING_PLAN_SCHEMA = "temperance.onboarding.plan.v1" as const;
 export const ONBOARDING_RECEIPT_SCHEMA = "temperance.onboarding.receipt.v1" as const;
 
+/** Default Temperance router. Replaces the retired 9Router provider. */
+export const OMNIROUTE_PACKAGE = {
+  name: "omniroute",
+  version: "3.8.51",
+  executable: "omniroute",
+  state_directory: ".omniroute",
+  launch_agent_label: "com.temperance.engine.omniroute",
+  listen_host: "127.0.0.1",
+  listen_port: 20128,
+} as const;
+
+/** Retired router. Kept only for the legacy 9Router repair and guided-setup paths. */
 export const NINE_ROUTER_PACKAGE = {
   name: "9router",
   version: "0.5.75",
@@ -65,6 +77,34 @@ export interface HttpHealthCapability {
   id: string;
   kind: "http-health";
   url_variable: string;
+  /** Defaults to HEAD. */
+  method?: "HEAD" | "GET";
+  /**
+   * Status codes that count as "reachable". Defaults to any 2xx. Use this for endpoints that answer
+   * 401 (route present, login required) or 302 (origin behind an identity proxy).
+   */
+  accept_status?: number[];
+}
+
+export interface TcpPortCapability {
+  id: string;
+  kind: "tcp-port";
+  /** Portable default port. */
+  port: number;
+  /** Profile variable that overrides the default port on hosts that changed it. */
+  port_variable?: string;
+  /** Defaults to 127.0.0.1. */
+  host_variable?: string;
+}
+
+/** A macOS LaunchAgent in the user's gui domain that must be loaded and running. */
+export interface LaunchAgentCapability {
+  id: string;
+  kind: "launch-agent";
+  /** A portable, Temperance-owned label. */
+  label?: string;
+  /** A private label supplied by the profile. */
+  label_variable?: string;
 }
 
 export interface NineRouterManagementCapability {
@@ -81,7 +121,25 @@ export type CapabilityRequirement =
   | KeychainSecretCapability
   | RoutingAliasCapability
   | HttpHealthCapability
+  | TcpPortCapability
+  | LaunchAgentCapability
   | NineRouterManagementCapability;
+
+/**
+ * Organ metadata for modules that are long-running parts of a Temperance host.
+ * Holds no private values: hostnames, paths and display names come from profile variables.
+ */
+export interface OrganDescriptor {
+  /** required: cannot be deselected; modular: pluggable subsystem; optional: convenience integration. */
+  tier: "required" | "modular" | "optional";
+  group: "router" | "memory" | "knowledge" | "integration" | "tunnel";
+  /** Where the organ natively runs. */
+  host_role: "operator-mac" | "cloud-runner";
+  /** Profile variable whose value replaces the module title (for example a private volume name). */
+  title_variable?: string;
+  /** Profile variable naming the public endpoint, shown for orientation only. */
+  public_url_variable?: string;
+}
 
 export type GuidedInstall =
   | { id: string; label: string; kind: "command"; argv: string[]; environment?: Record<string, string> }
@@ -145,6 +203,7 @@ export interface OnboardingModule {
   guided_installs: GuidedInstall[];
   state_transition?: StateTransition;
   runtime_contract?: NineRouterRuntimeContract;
+  organ?: OrganDescriptor;
 }
 
 export interface OnboardingCatalogV1 {
@@ -178,6 +237,8 @@ export interface OnboardingProfileV1 {
   variables: Record<string, string>;
   secret_references: Record<string, KeychainSecretReference>;
   preselected_modules: string[];
+  /** Host-specific escalation: these modules are treated as required organs on this host. */
+  required_modules?: string[];
   routing_aliases: RoutingAlias[];
   project_enrollments: ProjectEnrollment[];
 }
@@ -207,6 +268,11 @@ export type CapabilityProbeReasonCode =
   | "VARIABLE_MISSING"
   | "VARIABLE_INVALID"
   | "HTTP_UNAVAILABLE"
+  | "ORIGIN_OFFLINE"
+  | "ORIGIN_UNVERIFIED"
+  | "PORT_CLOSED"
+  | "LAUNCH_AGENT_ABSENT"
+  | "LAUNCH_AGENT_STOPPED"
   | "UNSUPPORTED_PLATFORM"
   | "PROBE_FAILED";
 
@@ -241,6 +307,9 @@ export interface OnboardingHold {
 export interface OnboardingModuleResolution {
   id: string;
   title: string;
+  organ?: Pick<OrganDescriptor, "tier" | "group" | "host_role"> & { public_url?: string };
+  /** Present (true) when the module is required on this host: catalog tier, profile escalation, or a dependency of either. */
+  required?: true;
   requested: boolean;
   status: "eligible" | "blocked" | "not-selected";
   holds: OnboardingHold[];

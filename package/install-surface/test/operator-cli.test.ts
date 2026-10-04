@@ -12,8 +12,8 @@ function fixture() {
   const state = join(root, "state");
   const env = { ...process.env, HOME: root, CODEX_HOME: join(root, "codex"), CLAUDE_CONFIG_DIR: join(root, "claude"), TEMPERANCE_STATE: state, TEMPERANCE_SESSION_POLICY: undefined };
   const catalog = createCoreOnboardingCatalog();
-  // CLI contract tests must not spawn the live global 9Router executable.
-  catalog.modules[0]!.requires = [];
+  // CLI contract tests must not probe live host state (router binary, LaunchAgents, ports, Keychain).
+  for (const module of catalog.modules) module.requires = [];
   catalog.modules.push({ id: "core.tools", title: "Tools", summary: "Portable tools", preselection: "available", depends_on: [], requires: [], guided_installs: [] });
   writeFileSync(join(root, "catalog.json"), JSON.stringify(catalog));
   writeFileSync(join(root, "profile.json"), JSON.stringify(createCoreOnboardingProfile()));

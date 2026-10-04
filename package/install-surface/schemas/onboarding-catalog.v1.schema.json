@@ -105,7 +105,54 @@
       "properties": {
         "id": { "$ref": "#/$defs/identifier" },
         "kind": { "const": "http-health" },
-        "url_variable": { "$ref": "#/$defs/variable" }
+        "url_variable": { "$ref": "#/$defs/variable" },
+        "method": { "enum": ["HEAD", "GET"] },
+        "accept_status": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 100, "maximum": 599 },
+          "minItems": 1,
+          "uniqueItems": true,
+          "maxItems": 16
+        }
+      }
+    },
+    "tcpPortCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "port"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "tcp-port" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "port_variable": { "$ref": "#/$defs/variable" },
+        "host_variable": { "$ref": "#/$defs/variable" }
+      }
+    },
+    "launchAgentCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "const": "launch-agent" },
+        "label": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 256 },
+        "label_variable": { "$ref": "#/$defs/variable" }
+      },
+      "oneOf": [
+        { "type": "object", "required": ["label"], "properties": { "label": { "type": "string" }, "label_variable": false } },
+        { "type": "object", "required": ["label_variable"], "properties": { "label_variable": { "type": "string" }, "label": false } }
+      ]
+    },
+    "organ": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tier", "group", "host_role"],
+      "properties": {
+        "tier": { "enum": ["required", "modular", "optional"] },
+        "group": { "enum": ["router", "memory", "knowledge", "integration", "tunnel"] },
+        "host_role": { "enum": ["operator-mac", "cloud-runner"] },
+        "title_variable": { "$ref": "#/$defs/variable" },
+        "public_url_variable": { "$ref": "#/$defs/variable" }
       }
     },
     "nineRouterManagementCapability": {
@@ -127,6 +174,8 @@
         { "$ref": "#/$defs/secretCapability" },
         { "$ref": "#/$defs/aliasCapability" },
         { "$ref": "#/$defs/httpCapability" },
+        { "$ref": "#/$defs/tcpPortCapability" },
+        { "$ref": "#/$defs/launchAgentCapability" },
         { "$ref": "#/$defs/nineRouterManagementCapability" }
       ]
     },
@@ -267,7 +316,8 @@
         "requires": { "type": "array", "items": { "$ref": "#/$defs/capability" }, "maxItems": 64 },
         "guided_installs": { "type": "array", "items": { "oneOf": [{ "$ref": "#/$defs/guidedCommand" }, { "$ref": "#/$defs/guidedUrl" }] }, "maxItems": 16 },
         "state_transition": { "$ref": "#/$defs/stateTransition" },
-        "runtime_contract": { "$ref": "#/$defs/runtimeContract" }
+        "runtime_contract": { "$ref": "#/$defs/runtimeContract" },
+        "organ": { "$ref": "#/$defs/organ" }
       }
     }
   }

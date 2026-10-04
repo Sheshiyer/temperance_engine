@@ -26,6 +26,7 @@
       "maxProperties": 128
     },
     "preselected_modules": { "type": "array", "items": { "$ref": "#/$defs/identifier" }, "uniqueItems": true, "maxItems": 512 },
+    "required_modules": { "type": "array", "items": { "$ref": "#/$defs/identifier" }, "uniqueItems": true, "maxItems": 512 },
     "routing_aliases": { "type": "array", "items": { "$ref": "#/$defs/routingAlias" }, "maxItems": 256 },
     "project_enrollments": { "type": "array", "items": { "$ref": "#/$defs/projectEnrollment" }, "maxItems": 512 }
   },

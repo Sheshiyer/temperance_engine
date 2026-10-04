@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import { isAbsolute, join, normalize } from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
+import { createConnection } from "node:net";
 import { promisify } from "node:util";
 
 import type {
@@ -29,10 +30,32 @@ export interface OnboardingProbeIO {
   which(executable: string): Promise<string | null>;
   execFile(file: string, args: readonly string[], options: { signal: AbortSignal }): Promise<{ stdout: string; stderr: string; exitCode: number }>;
   pathInfo(path: string): Promise<PathInfo>;
-  fetch(url: string, options: { signal: AbortSignal; method: "HEAD" }): Promise<Response>;
+  fetch(url: string, options: { signal: AbortSignal; method: "HEAD" | "GET"; redirect?: "manual" }): Promise<Response>;
+  /** Resolves true when a TCP connection to host:port succeeds. Defaults to node:net. */
+  tcpConnect?(host: string, port: number, options: { signal: AbortSignal; timeoutMs: number }): Promise<boolean>;
+  /** Numeric user id for the launchd gui domain. Defaults to process.getuid(). */
+  uid?: number;
 }
 
 const execFileAsync = promisify(execFileCallback);
+const TCP_PROBE_TIMEOUT_MS = 2_000;
+
+function nodeTcpConnect(host: string, port: number, options: { signal: AbortSignal; timeoutMs: number }): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (options.signal.aborted) return resolve(false);
+    const socket = createConnection({ host, port });
+    const done = (result: boolean): void => {
+      socket.destroy();
+      options.signal.removeEventListener("abort", abort);
+      resolve(result);
+    };
+    const abort = (): void => done(false);
+    socket.setTimeout(options.timeoutMs, () => done(false));
+    socket.once("connect", () => done(true));
+    socket.once("error", () => done(false));
+    options.signal.addEventListener("abort", abort, { once: true });
+  });
+}
 
 async function nodePathInfo(path: string): Promise<PathInfo> {
   try {
@@ -66,6 +89,7 @@ export const nodeOnboardingProbeIO: OnboardingProbeIO = {
   },
   pathInfo: nodePathInfo,
   fetch: (url, options) => fetch(url, options),
+  tcpConnect: nodeTcpConnect,
 };
 
 function available(capabilityId: string, evidence: string[]): CapabilityProbe {
@@ -158,15 +182,78 @@ async function probeKeychain(requirement: Extract<CapabilityRequirement, { kind:
     : unavailable(requirement.id, "SECRET_UNAVAILABLE", ["keychain item is absent"]);
 }
 
+/** Cloudflare edge statuses meaning "the hostname is published but its tunnel or origin is down". */
+const ORIGIN_OFFLINE_STATUSES = new Set([502, 521, 522, 523, 530]);
+const HTTP_PROBE_TIMEOUT_MS = 5_000;
+
 async function probeHttp(requirement: Extract<CapabilityRequirement, { kind: "http-health" }>, context: OnboardingProbeContext, io: OnboardingProbeIO): Promise<CapabilityProbe> {
-  const url = context.profile.variables[requirement.url_variable];
-  if (!url) return unavailable(requirement.id, "VARIABLE_MISSING");
+  const raw = context.profile.variables[requirement.url_variable];
+  if (!raw) return unavailable(requirement.id, "VARIABLE_MISSING");
+  let url: URL;
   try {
-    const response = await io.fetch(url, { signal: context.signal, method: "HEAD" });
-    return response.ok ? available(requirement.id, ["health endpoint responded"]): unavailable(requirement.id, "HTTP_UNAVAILABLE", ["health endpoint returned a failure status"]);
+    url = new URL(raw);
+  } catch {
+    return unavailable(requirement.id, "VARIABLE_INVALID", ["health URL is not a valid URL"]);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return unavailable(requirement.id, "VARIABLE_INVALID", ["health URL must use http or https"]);
+  let response: Response;
+  try {
+    // Never follow redirects: an identity proxy's login page would otherwise look like a healthy 200.
+    response = await io.fetch(url.href, {
+      signal: AbortSignal.any([context.signal, AbortSignal.timeout(HTTP_PROBE_TIMEOUT_MS)]),
+      method: requirement.method ?? "HEAD",
+      redirect: "manual",
+    });
   } catch {
     return unavailable(requirement.id, "HTTP_UNAVAILABLE", ["health endpoint did not respond"]);
   }
+  try {
+    const status = response.status;
+    if (status >= 300 && status < 400) {
+      const location = response.headers.get("location");
+      const target = location ? new URL(location, url) : undefined;
+      // A redirect to another host comes from the edge, not the origin, so it proves nothing about the origin.
+      if (!target || target.host !== url.host) {
+        return unavailable(requirement.id, "ORIGIN_UNVERIFIED", [`redirected to another host (${status}); origin unverified`]);
+      }
+    }
+    const accepted = requirement.accept_status ? requirement.accept_status.includes(status) : response.ok;
+    if (accepted) return available(requirement.id, [`health endpoint responded (${status})`]);
+    if (ORIGIN_OFFLINE_STATUSES.has(status)) return unavailable(requirement.id, "ORIGIN_OFFLINE", [`edge reported origin unreachable (${status})`]);
+    return unavailable(requirement.id, "HTTP_UNAVAILABLE", [`health endpoint returned an unexpected status (${status})`]);
+  } finally {
+    await response.body?.cancel().catch(() => undefined);
+  }
+}
+
+async function probeTcpPort(requirement: Extract<CapabilityRequirement, { kind: "tcp-port" }>, context: OnboardingProbeContext, io: OnboardingProbeIO): Promise<CapabilityProbe> {
+  const host = requirement.host_variable ? context.profile.variables[requirement.host_variable] : "127.0.0.1";
+  if (!host) return unavailable(requirement.id, "VARIABLE_MISSING");
+  const override = requirement.port_variable ? context.profile.variables[requirement.port_variable] : undefined;
+  if (override !== undefined && !/^\d{1,5}$/.test(override)) return unavailable(requirement.id, "VARIABLE_INVALID", ["port override is not a valid port"]);
+  const port = override === undefined ? requirement.port : Number(override);
+  if (port < 1 || port > 65535) return unavailable(requirement.id, "VARIABLE_INVALID", ["port override is not a valid port"]);
+  const connect = io.tcpConnect ?? nodeTcpConnect;
+  return await connect(host, port, { signal: context.signal, timeoutMs: TCP_PROBE_TIMEOUT_MS })
+    ? available(requirement.id, [`port ${port} accepts connections`])
+    : unavailable(requirement.id, "PORT_CLOSED", [`port ${port} refused or timed out`]);
+}
+
+async function probeLaunchAgent(requirement: Extract<CapabilityRequirement, { kind: "launch-agent" }>, context: OnboardingProbeContext, io: OnboardingProbeIO): Promise<CapabilityProbe> {
+  if (io.platform !== "darwin") return unavailable(requirement.id, "UNSUPPORTED_PLATFORM");
+  const label = requirement.label ?? (requirement.label_variable ? context.profile.variables[requirement.label_variable] : undefined);
+  if (!label) return unavailable(requirement.id, "VARIABLE_MISSING");
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/.test(label)) return unavailable(requirement.id, "VARIABLE_INVALID", ["LaunchAgent label is not a valid label"]);
+  const uid = io.uid ?? process.getuid?.();
+  if (uid === undefined) return unavailable(requirement.id, "PROBE_FAILED", ["user id is unavailable"]);
+  const result = await io.execFile("launchctl", ["print", `gui/${uid}/${label}`], { signal: context.signal });
+  if (result.exitCode !== 0) return unavailable(requirement.id, "LAUNCH_AGENT_ABSENT", ["LaunchAgent is not loaded"]);
+  // Evidence carries the state only; the label can be private, so it stays out of the output.
+  // The service's own state is the single-tab line; deeper-indented `state =` lines belong to nested sections.
+  const state = result.stdout.match(/^\tstate = (.+?)\s*$/m)?.[1];
+  return state === "running"
+    ? available(requirement.id, ["LaunchAgent is running"])
+    : unavailable(requirement.id, "LAUNCH_AGENT_STOPPED", [`LaunchAgent state is ${state ?? "unknown"}`]);
 }
 
 async function probeNineRouterManagement(requirement: Extract<CapabilityRequirement, { kind: "9router-management" }>, context: OnboardingProbeContext, io: OnboardingProbeIO): Promise<CapabilityProbe> {
@@ -275,6 +362,8 @@ export function createSystemProbeAdapter(options: { io?: OnboardingProbeIO; rout
           case "keychain-secret": return await probeKeychain(requirement, context, io);
           case "routing-alias": return await probeRoutingAlias(requirement, context, routerApiFactory);
           case "http-health": return await probeHttp(requirement, context, io);
+          case "tcp-port": return await probeTcpPort(requirement, context, io);
+          case "launch-agent": return await probeLaunchAgent(requirement, context, io);
           case "9router-management": return await probeNineRouterManagement(requirement, context, io);
         }
       } catch {

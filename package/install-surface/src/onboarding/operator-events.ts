@@ -8,7 +8,7 @@ export const MAX_OPERATOR_EVENTS = 4096;
 export const OPERATOR_EVENT_TYPES = ["started", "step", "action", "health", "completed", "cancelled", "failed"] as const;
 export const OPERATOR_EVENT_SURFACES = ["tui", "agent", "health"] as const;
 export const OPERATOR_EVENT_STEPS = ["host", "projects", "providers", "combos", "modules", "integrations", "review"] as const;
-export const OPERATOR_EVENT_ACTIONS = ["next", "back", "refresh", "seat", "save", "confirm", "info", "project", "module", "authorize", "defer", "cancel", "apply", "toggle", "move-earlier", "move-later", "retry", "close", "health", "logs"] as const;
+export const OPERATOR_EVENT_ACTIONS = ["next", "back", "refresh", "seat", "save", "save-organs", "confirm", "info", "project", "module", "authorize", "defer", "cancel", "apply", "toggle", "move-earlier", "move-later", "retry", "close", "health", "logs"] as const;
 export const OPERATOR_EVENT_OUTCOMES = ["ok", "held", "skipped", "cancelled", "failed", "ready", "blocked", "read-only-degraded", "requested", "confirmed", "unavailable"] as const;
 export const OPERATOR_EVENT_COUNT_KEYS = ["projects", "selected_projects", "modules", "selected_modules", "eligible", "blocked", "providers", "models", "combos", "checks", "passed", "failed", "warnings"] as const;
 
