@@ -176,6 +176,19 @@ describe("cli", () => {
     expect((await runCli(["--no-vocab", "missing.md"], NO_ENV)).code).toBe(2);
   });
 
+  test("unreadable inputs exit 2 with a diagnostic, never as an STE result", async () => {
+    const dir = await runCli(["--no-vocab", "fixtures"], NO_ENV);
+    expect(dir.code).toBe(2);
+    expect(dir.stdout).toBe("");
+    expect(dir.stderr).toContain("cli.ts: error: cannot read fixtures");
+    const wl = await runCli(["--word-list", "fixtures", "fixtures/unicode.md"], NO_ENV);
+    expect(wl.code).toBe(2);
+    expect(wl.stderr).toContain("cannot read word list fixtures");
+    const stdin = await runCli(["--no-vocab"], NO_ENV, async () => { throw new Error("EIO"); });
+    expect(stdin.code).toBe(2);
+    expect(stdin.stderr).toContain("cannot read stdin");
+  });
+
   test("without a word list, the vocabulary check is skipped with a note on stderr", async () => {
     const result = await runCli(["fixtures/procedure-clean.md"], NO_ENV);
     expect(result.stdout).not.toContain("CHECK");

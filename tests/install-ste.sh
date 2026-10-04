@@ -193,6 +193,16 @@ check "uninstall moves the checkout to the backup dir" \
 run_ste "$E" TEMPERANCE_STE_MODE=uninstall >"$TMP_ROOT/uninstall-2.out" 2>&1
 check "uninstall is idempotent" grep -q 'is not installed' "$TMP_ROOT/uninstall-2.out"
 
+# The same checkout may be named differently at uninstall time (a symlinked
+# AGENTS_HOME versus its real path); our links must still be recognized.
+E="$TMP_ROOT/uninstall-alias"
+mkdir -p "$E/agents-real"
+ln -s "$E/agents-real" "$E/agents"
+run_ste "$E" >/dev/null 2>&1
+run_ste "$E" TEMPERANCE_STE_MODE=uninstall AGENTS_HOME="$E/agents-real" >"$TMP_ROOT/uninstall-alias.out" 2>&1
+check "uninstall recognizes links through a differently named checkout path" \
+  sh -c "test ! -L '$E/claude/skills/simplified-technical-english' && test ! -L '$E/opencode/skills/simplified-technical-english' && test ! -e '$E/agents-real/skills/simplified-technical-english'"
+
 E="$TMP_ROOT/uninstall-dirty"
 run_ste "$E" >/dev/null 2>&1
 printf '%s\n' 'local edit' >>"$(skill_of "$E")/SKILL.md"

@@ -116,8 +116,12 @@ is_checkout_path() {
 }
 
 # True when a surface path is our link to the managed checkout.
+# Compare resolved files (-ef), not just strings: the same checkout can be named
+# differently between runs (for example a symlinked AGENTS_HOME and its real
+# path). The exact-string match still recognizes our link once its target is gone.
 is_managed_link() {
-  test -L "$1" && test "$(readlink "$1")" = "$STE_SKILL_HOME"
+  test -L "$1" &&
+    { test "$(readlink "$1")" = "$STE_SKILL_HOME" || test "$1" -ef "$STE_SKILL_HOME"; }
 }
 
 # Link one surface's skills dir to the skill. Anything already at the link path

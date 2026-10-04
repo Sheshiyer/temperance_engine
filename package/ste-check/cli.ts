@@ -18,6 +18,10 @@ export const SKILL_DIR_NAME = "simplified-technical-english";
 const USAGE =
   "usage: cli.ts [-h] [--mode {procedural,descriptive,mixed}] [--word-list WORD_LIST] [--no-vocab] [files ...]";
 
+function readError(e: unknown): string {
+  return (e as NodeJS.ErrnoException)?.code ?? (e instanceof Error ? e.message : String(e));
+}
+
 export interface CliResult {
   stdout: string;
   stderr: string;
@@ -77,7 +81,11 @@ export async function runCli(
     }
     const wl = wordList ?? defaultWordListPath(env);
     if (wl) {
-      approved = await loadWordList(wl);
+      try {
+        approved = await loadWordList(wl);
+      } catch (e) {
+        return { stdout: "", stderr: `${stderr}cli.ts: error: cannot read word list ${wl}: ${readError(e)}\n`, code: 2 };
+      }
     } else {
       stderr += "NOTE: no STE word list found (install with ./install.sh --with-ste); the vocabulary check is skipped.\n";
     }
@@ -87,10 +95,23 @@ export async function runCli(
   if (files.length > 0) {
     for (const f of files) {
       if (!existsSync(f)) return { stdout: "", stderr: `${stderr}cli.ts: error: file not found: ${f}\n`, code: 2 };
-      checkText(normalizeNewlines(await Bun.file(f).text()), mode, report, f, approved);
+      let text: string;
+      try {
+        text = await Bun.file(f).text();
+      } catch (e) {
+        // An I/O problem (a directory, no permission) is exit 2, never an STE result.
+        return { stdout: "", stderr: `${stderr}cli.ts: error: cannot read ${f}: ${readError(e)}\n`, code: 2 };
+      }
+      checkText(normalizeNewlines(text), mode, report, f, approved);
     }
   } else {
-    checkText(normalizeNewlines(await readStdin()), mode, report, "stdin", approved);
+    let text: string;
+    try {
+      text = await readStdin();
+    } catch (e) {
+      return { stdout: "", stderr: `${stderr}cli.ts: error: cannot read stdin: ${readError(e)}\n`, code: 2 };
+    }
+    checkText(normalizeNewlines(text), mode, report, "stdin", approved);
   }
 
   return { stdout: formatReport(report), stderr, code: report.errors.length > 0 ? 1 : 0 };
