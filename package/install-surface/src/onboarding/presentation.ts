@@ -57,6 +57,11 @@ function moduleRows(plan: OnboardingPlanV1): OnboardingViewRow[] {
 
 const LOCAL_OMNIROUTE_DASHBOARD = `http://${OMNIROUTE_PACKAGE.listen_host}:${OMNIROUTE_PACKAGE.listen_port}`;
 
+/** The router's dashboard: the profile's public URL for a hosted router, otherwise the local loopback one. */
+export function omnirouteDashboardUrl(plan: OnboardingPlanV1): string {
+  return plan.modules.find(({ id }) => id === "provider.omniroute")?.organ?.public_url ?? LOCAL_OMNIROUTE_DASHBOARD;
+}
+
 function routingRows(surface: NineRouterRoutingSurface | undefined, dashboardUrl: string): OnboardingViewRow[] {
   if (!surface) return [{
     id: "routing.unbound",
@@ -170,7 +175,7 @@ export function createOnboardingViewModel(plan: OnboardingPlanV1, routing?: Nine
       { id: "overview", title: "Overview", rows: overview },
       ...(organs.length > 0 ? [{ id: "organs" as const, title: "Organs", rows: organs }] : []),
       { id: "modules", title: "Modules", rows },
-      { id: "routing", title: "Routing", rows: routingRows(routing, plan.modules.find(({ id }) => id === "provider.omniroute")?.organ?.public_url ?? LOCAL_OMNIROUTE_DASHBOARD) },
+      { id: "routing", title: "Routing", rows: routingRows(routing, omnirouteDashboardUrl(plan)) },
       { id: "projects", title: "Projects", rows: projects }, { id: "integrations", title: "Integrations", rows: integrations },
       { id: "review", title: "Review", rows: review },
     ],

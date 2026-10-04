@@ -2,6 +2,7 @@ import type { OnboardingPlanV1 } from "./contracts.ts";
 import type { NineRouterRoutingSurface } from "./nine-router-provider-capabilities.ts";
 import type { ProjectCapsuleV1 } from "./public-contracts.ts";
 import { approveProjectCandidates } from "./project-discovery.ts";
+import { omnirouteDashboardUrl } from "./presentation.ts";
 
 export const ONBOARDING_WIZARD_STEPS = ["host", "projects", "providers", "combos", "modules", "integrations", "review"] as const;
 export type WizardStepId = (typeof ONBOARDING_WIZARD_STEPS)[number];
@@ -132,15 +133,30 @@ export function createOnboardingWizardView(plan: OnboardingPlanV1, state: Onboar
     for (const finding of plan.project_discovery_findings ?? []) rows.push(info(`finding.${finding.source_id}.${finding.code}`, `! ${finding.source_id}`, finding.code, [finding.message]));
     rows.push(saveProjects);
   }
+  const usesOmniRoute = plan.modules.some(({ id }) => id === "provider.omniroute");
+  const dashboard = omnirouteDashboardUrl(plan);
   if (state.step === "providers") {
     for (const provider of options.routing?.provider_options ?? []) {
       const allowed = options.routing?.compatible && provider.state === "held" && provider.auth_kind !== "api-key" && options.allowRoutingAuthorization;
       rows.push(action(`provider.${provider.id}`, `${provider.state === "connected" ? "✓ Connected" : "Connect"} · ${provider.display_name}`, `${provider.preference} · ${provider.hold_reason ?? provider.state}`, { kind: "authorize", id: provider.id }, !allowed, [provider.auth_kind, ...provider.guidance]));
     }
-    if (!options.routing) rows.push(info("routing.unavailable", "Provider setup unavailable", "Choose a host profile and refresh", ["No bound routing snapshot available."]));
+    // OmniRoute keeps provider credentials and combos in its own dashboard; the wizard hands off to it
+    // rather than showing a 9Router-only flow that can never become available.
+    if (!options.routing && usesOmniRoute) {
+      rows.push(info("omniroute.providers", "Connect providers in the OmniRoute dashboard", dashboard, [
+        `Open ${dashboard} and connect providers there; OmniRoute keeps their credentials.`,
+        "Then use Refresh checks here. This wizard never reads or stores provider credentials.",
+      ]));
+    } else if (!options.routing) rows.push(info("routing.unavailable", "Provider setup unavailable", "Choose a host profile and refresh", ["No bound routing snapshot available."]));
   }
   if (state.step === "combos") {
-    rows.push(action("setup-combos", "Set up combos", options.allowRoutingSeating ? "Choose ordered live models for each phase alias" : "Unavailable — connect providers and refresh models", { kind: "seat" }, !options.allowRoutingSeating, ["Opens the dedicated combo seating flow.", "No provider is silently activated."]));
+    if (!options.routing && usesOmniRoute) {
+      rows.push(info("omniroute.combos", "Set up combos in the OmniRoute dashboard", dashboard, [
+        `Create or review the governed te-* combos at ${dashboard}.`,
+        "Or, from the Temperance Engine checkout, run scripts/omniroute-temperance-combos.sh (a dry run), then again with --apply.",
+        "No provider or combo is changed by this wizard.",
+      ]));
+    } else rows.push(action("setup-combos", "Set up combos", options.allowRoutingSeating ? "Choose ordered live models for each phase alias" : "Unavailable — connect providers and refresh models", { kind: "seat" }, !options.allowRoutingSeating, ["Opens the dedicated combo seating flow.", "No provider is silently activated."]));
     for (const seat of options.routing?.alias_seats ?? []) rows.push(info(`alias.${seat.alias}`, seat.alias, seat.hold_reason ?? seat.state, [`State: ${seat.state}`, ...seat.selected_model_ids.map((id, index) => `${index + 1}. ${id}`)]));
   }
   if (state.step === "modules" || state.step === "integrations") {

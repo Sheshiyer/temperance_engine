@@ -604,3 +604,46 @@ describe("environment secret references (cloud runner)", () => {
     expect(() => nineRouterKeychainReference(envProfile, "ABSENT", "MISSING")).toThrow("MISSING");
   });
 });
+
+describe("OmniRoute provider and combo handoff", () => {
+  const rowsFor = async (step: "providers" | "combos", variables: Record<string, string> = {}) => {
+    const plan = await createOnboardingPlan({ catalog: createCoreOnboardingCatalog(), profile: profile({ variables: { ...createCoreOnboardingProfile().variables, ...variables } }), adapter: allAvailable() });
+    return createOnboardingWizardView(plan, createOnboardingWizardState(plan, { initialStep: step }), {}).rows;
+  };
+
+  test("the default path hands provider setup to the OmniRoute dashboard instead of a dead 9Router row", async () => {
+    const rows = await rowsFor("providers");
+    expect(rows.map(({ id }) => id)).not.toContain("routing.unavailable");
+    expect(rows.find(({ id }) => id === "omniroute.providers")).toMatchObject({ description: "http://127.0.0.1:20128", action: { kind: "info" } });
+  });
+
+  test("the default path hands combo setup to the dashboard or the repo script, never a disabled seat action", async () => {
+    const rows = await rowsFor("combos");
+    expect(rows.map(({ id }) => id)).not.toContain("setup-combos");
+    const handoff = rows.find(({ id }) => id === "omniroute.combos")!;
+    expect(handoff.details.join("\n")).toContain("scripts/omniroute-temperance-combos.sh");
+  });
+
+  test("a hosted router hands off to its public dashboard", async () => {
+    const rows = await rowsFor("providers", { OMNIROUTE_PUBLIC_URL: "https://router.example.test" });
+    expect(rows.find(({ id }) => id === "omniroute.providers")?.description).toBe("https://router.example.test");
+  });
+
+  test("a legacy 9Router plan without a routing snapshot keeps its original rows", async () => {
+    const plan = await createOnboardingPlan({ catalog: createLegacyNineRouterCatalog(), profile: profile(), adapter: allAvailable(), selections: new Set() });
+    const view = (step: "providers" | "combos") => createOnboardingWizardView(plan, createOnboardingWizardState(plan, { initialStep: step }), {}).rows.map(({ id }) => id);
+    expect(view("providers")).toContain("routing.unavailable");
+    expect(view("combos")).toContain("setup-combos");
+  });
+
+  test("secret remediation names both the Keychain and the environment store", async () => {
+    const plan = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ secret_references: { OMNIROUTE_ADMIN: { store: "environment", variable: "TEMPERANCE_OMNIROUTE_ADMIN_PASSWORD" } } }),
+      adapter: allAvailable({ "omniroute-admin-secret": { available: false, reason_code: "SECRET_UNAVAILABLE" } }),
+    });
+    const remediation = plan.modules.find(({ id }) => id === "memory.temperance")!.holds.flatMap(({ remediation }) => remediation).join(" ");
+    expect(remediation).toContain("environment variable");
+    expect(remediation).toContain("Keychain");
+  });
+});
