@@ -504,7 +504,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
             // launchctl not available or unload failed — continue to remove plist
           }
           try {
-            await io.rm(destPath, { force: true });
+            await io.rm(destPath, { recursive: false, force: true });
           } catch {
             // File doesn't exist — idempotent
           }
@@ -597,7 +597,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
               if (preimage.plistBytes) {
                 await io.writeFileAtomic(destPath, preimage.plistBytes);
               } else {
-                await io.rm(destPath, { force: true });
+                await io.rm(destPath, { recursive: false, force: true });
               }
             } catch {
               // Preimage restore failed

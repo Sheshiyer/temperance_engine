@@ -148,7 +148,7 @@ test("eligibility keeps required FAIL, optional SKIPPED, and platform UNSUPPORTE
   expect(section.checks.find((check) => check.id === "surface.unsupported")?.condition).toBe("UNSUPPORTED");
 });
 
-test("class-aware verification distinguishes COPY, TRANSFORM, REGENERATE, and NEVER-SHIP", async () => {
+test("class-aware verification distinguishes COPY, TRANSFORM, REGENERATE, NEVER-SHIP, and LAUNCHAGENT", async () => {
   const repository = tempRoot("doctor-classes-");
   const home = join(repository, "home");
   mkdirSync(home, { recursive: true });
@@ -175,11 +175,20 @@ test("class-aware verification distinguishes COPY, TRANSFORM, REGENERATE, and NE
     eligibility: { platforms: ["darwin"], profiles: ["default"], required: false },
     verification: { method: "symbolic-exclusion" }, rollback: { policy: "none-private" },
   } as SurfaceRecord;
-  writeFixtureLock(repository, [copyRecord("surface.copy", "copy.txt", "copy.txt"), transform, regenerate, neverShip]);
+  const launchAgent = {
+    id: "surface.launchagent", owner: "temperance-engine", class: "LAUNCHAGENT",
+    destination: { root_token: "HOME", relative_path: "Library/LaunchAgents/com.example.agent.plist", ownership: { kind: "exclusive-path" } },
+    authority: { requirement_ids: ["PROV-02"], isa: "ISC-773" },
+    eligibility: { platforms: ["darwin"], profiles: ["default"], required: false },
+    label: "com.example.agent", plist_template: "<plist/>", bindings: {},
+    verification: { method: "plist-sha256" }, rollback: { policy: "unload-and-restore" },
+  } as SurfaceRecord;
+  writeFixtureLock(repository, [copyRecord("surface.copy", "copy.txt", "copy.txt"), transform, regenerate, neverShip, launchAgent]);
   const section = await runInstallSection({ repositoryRoot: repository, stateRoot: join(repository, "state"), platform: "darwin", rootBindings: { HOME: home }, runtimeUrls: { bridge: "http://127.0.0.1:1", omniroute: "http://127.0.0.1:1" }, io: nodeObservationIO, signal: AbortSignal.timeout(1000) });
   expect(section.checks.map((check) => [check.class, check.condition])).toEqual([
-    ["COPY", "PASS"], ["NEVER-SHIP", "PASS"], ["REGENERATE", "UNAVAILABLE"], ["TRANSFORM", "UNAVAILABLE"],
+    ["COPY", "PASS"], ["LAUNCHAGENT", "UNAVAILABLE"], ["NEVER-SHIP", "PASS"], ["REGENERATE", "UNAVAILABLE"], ["TRANSFORM", "UNAVAILABLE"],
   ]);
+  expect(section.checks.find((check) => check.class === "LAUNCHAGENT")?.reason_code).toBe("LAUNCHAGENT_OBSERVATION_UNAVAILABLE");
 });
 
 async function installedTransformFixture() {

@@ -7,7 +7,7 @@ Update this table when `VERSION`, the gateway pin, or the host install contract 
 
 | Plane | Version | Evidence | Status |
 |---|---|---|---|
-| Glove product | `0.6.0` | repo `VERSION` | v4 feature release; v1.1 clean-host qualification remains separate |
+| Glove product | `0.7.0` | repo `VERSION` | Minor feature release (STE skill and docs gate, showreel); v1.1 clean-host qualification remains separate |
 | Host runtime | Installation-specific | Selected state root and lifecycle transaction receipts | A product tag is not proof of installed byte parity or health |
 | Mercurius (9router) | `0.5.75` | Exact-version onboarding capability and management adapters | **Pin**; 0.5.81 and other mismatches remain held, not silently qualified |
 | Noesis/Cambium | Optional external profile | Explicit host profile, binding, project capsules, and session policy | No private profile, mounted-volume requirement, or provider auth is bundled |
