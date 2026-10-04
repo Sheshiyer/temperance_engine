@@ -49,11 +49,11 @@
   },
   "localSourceReconciliation": {
     "mode": "local-source-refresh-existing-research-assets",
-    "observedAt": "2026-09-19T14:19:02Z",
-    "sourceHead": "a2ba07ae0f5a97206c7be7fcad54456ace871adb",
+    "observedAt": "2026-10-04T16:45:31Z",
+    "sourceHead": "d4748c9eb524895192e597b77293e8ac9dea4b63",
     "source": "CHANGELOG.md",
-    "sourceSha256": "0bc3836f5b87dd4b99326603757136a6cd0d01df186579e5dc76def90cef0ae8",
-    "reason": "Reconcile 0.6.0 release notes and README with the guided v4 operator surfaces; preserve historical research assets without claiming regeneration.",
+    "sourceSha256": "4d5c371867265ac3162705db7d7ff70296993eb4f9aa3730aea8c22e1fc41964",
+    "reason": "Record the Simplified Technical English skill, STE docs gate, and test-isolation fixes in CHANGELOG and README; preserve historical research assets without claiming regeneration.",
     "notebookRegenerated": false,
     "historicalResearchAssetsReused": true
   }
