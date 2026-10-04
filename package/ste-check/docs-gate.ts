@@ -86,13 +86,19 @@ export function scopeFiles(root: string, scope: Scope): string[] {
   return [...files].sort();
 }
 
+// A line whose first non-blank character is `#` or `|`: an ATX heading (CommonMark
+// allows up to three leading spaces), a table row, or anything else that makes the
+// checker skip the block it starts. Leading whitespace matches Python's str.strip().
+const SKIP_TRIGGER = /^[\s\x1c-\x1f\x85]*[#|]/u;
+
 /**
- * Put each Markdown heading line and table row in its own block.
+ * Put each line that would make the checker skip its block in a block of its own.
  *
- * The checker (like upstream ste_check.py) skips a whole block that starts with
- * `#` or `|`. Markdown lets prose follow a heading or a table without a blank
- * line, so without this the gate would skip that prose and its errors. The CLI
- * keeps the upstream behavior; only the gate normalizes. Fenced code is left as is.
+ * The checker (like upstream ste_check.py) trims a block and skips it whole when
+ * it starts with `#` or `|`. Markdown lets prose follow a heading or a table,
+ * indented or not, without a blank line, so without this the gate would skip
+ * that prose and its errors. The CLI keeps the upstream behavior; only the gate
+ * normalizes. Fenced code is left as is.
  */
 export function isolateHeadingsAndTables(text: string): string {
   const out: string[] = [];
@@ -101,7 +107,7 @@ export function isolateHeadingsAndTables(text: string): string {
     if (/^\s*```/.test(line)) {
       inFence = !inFence;
       out.push(line);
-    } else if (!inFence && (/^#{1,6}(?:\s|$)/.test(line) || line.startsWith("|"))) {
+    } else if (!inFence && SKIP_TRIGGER.test(line)) {
       out.push("", line, "");
     } else {
       out.push(line);

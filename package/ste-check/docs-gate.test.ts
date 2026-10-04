@@ -114,17 +114,25 @@ describe("docs gate", () => {
     baseline({ "GUIDE.md": 0, "docs/a.md": 1 });
     write("docs/heading.md", "## Setup\nStop the pump; open the valve.\n");
     write("docs/table.md", "| a | b |\n|---|---|\nDon't touch the cable.\n");
+    write("docs/indented-heading.md", "  ## Setup\nStop the pump; open the valve.\n");
+    write("docs/indented-table.md", "   | a | b |\nDon't touch the cable.\n");
     const result = await gate();
     expect(result.code).toBe(1);
     expect(result.stdout).toContain("FAIL    docs/heading.md: 1 errors");
     expect(result.stdout).toContain("FAIL    docs/table.md: 1 errors");
+    expect(result.stdout).toContain("FAIL    docs/indented-heading.md: 1 errors");
+    expect(result.stdout).toContain("FAIL    docs/indented-table.md: 1 errors");
   });
 
   test("isolateHeadingsAndTables splits headings and table rows but not fenced code", () => {
     expect(isolateHeadingsAndTables("## A\ntext")).toBe("\n## A\n\ntext");
     expect(isolateHeadingsAndTables("| x |\ntext")).toBe("\n| x |\n\ntext");
     expect(isolateHeadingsAndTables("```sh\n# comment\n```")).toBe("```sh\n# comment\n```");
-    expect(isolateHeadingsAndTables("#hashtag text")).toBe("#hashtag text");
+    // Indented headings and table rows, and any other line that would make the
+    // checker skip its block, are isolated so they cannot hide the next lines.
+    expect(isolateHeadingsAndTables("  ## A\ntext")).toBe("\n  ## A\n\ntext");
+    expect(isolateHeadingsAndTables("   | x |\ntext")).toBe("\n   | x |\n\ntext");
+    expect(isolateHeadingsAndTables("#hashtag\ntext")).toBe("\n#hashtag\n\ntext");
   });
 
   test("a missing baseline or an unknown argument exits 2", async () => {
