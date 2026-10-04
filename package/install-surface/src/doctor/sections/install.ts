@@ -5,7 +5,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { loadLock } from "../../load.ts";
 import { producerAvailability, spliceManagedBlock } from "../../lifecycle/non-copy.ts";
 import { validateSurfaceManifest, type SurfaceLeaf, type SurfaceManifest } from "../../lifecycle/prepared-surface.ts";
-import type { SurfaceRecord, TransformSurfaceRecord } from "../../types.ts";
+import type { LaunchAgentSurfaceRecord, SurfaceRecord, TransformSurfaceRecord } from "../../types.ts";
 import type { DoctorCheck, DoctorContext, DoctorSection } from "../model.ts";
 
 function digest(value: string | Uint8Array): string {
@@ -489,7 +489,23 @@ async function observeRecord(
 
   if (record.class === "REGENERATE") return observeRegenerate(record);
   if (record.class === "COPY") return observeCopy(record, context);
+  if (record.class === "LAUNCHAGENT") return observeLaunchAgent(record);
   return observeTransform(record, context, binding);
+}
+
+// The lifecycle executor installs LaunchAgents, but doctor cannot yet verify the
+// rendered plist or launchctl state, so report that honestly instead of guessing.
+function observeLaunchAgent(record: LaunchAgentSurfaceRecord): DoctorCheck {
+  return result(record, {
+    expected_state: "loaded LaunchAgent matching the rendered plist",
+    actual_state: "unavailable",
+    condition: "UNAVAILABLE",
+    reason_code: "LAUNCHAGENT_OBSERVATION_UNAVAILABLE",
+    severity: "warning",
+    actionable: false,
+    remediation: "Doctor does not observe LaunchAgents yet; check the agent with launchctl.",
+    evidence: [record.verification.method],
+  });
 }
 
 function sectionCondition(checks: readonly DoctorCheck[]): DoctorSection["condition"] {
