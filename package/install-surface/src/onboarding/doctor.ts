@@ -1,4 +1,4 @@
-import type { DoctorSection } from "../types.ts";
+import type { DoctorCheck, DoctorSection } from "../types.ts";
 import type { OnboardingModuleResolution, OnboardingPlanV1 } from "./contracts.ts";
 
 /** A held modular or optional organ is a degraded convenience, not a broken host. */
@@ -12,8 +12,23 @@ export function softHold(module: OnboardingModuleResolution): boolean {
  */
 export function projectOnboardingDoctorSection(plan: OnboardingPlanV1, sectionId: DoctorSection["id"] = "host"): DoctorSection {
   const checks = plan.modules
-    .filter((module) => module.requested)
-    .flatMap((module) => {
+    // Organs report the full ON/OFF/HELD registry; other modules only report when requested.
+    .filter((module) => module.requested || module.organ !== undefined)
+    .flatMap((module): DoctorCheck[] => {
+      if (!module.requested) return [{
+        id: `onboarding-${module.id}`,
+        source: "onboarding:planner",
+        destination: `organ:${module.organ!.tier}:${module.id}`,
+        class: "RUNTIME" as const,
+        expected_state: "organ is on when selected",
+        actual_state: "off (not selected)",
+        condition: "SKIPPED" as const,
+        reason_code: "ORGAN_OFF",
+        severity: "info" as const,
+        actionable: false,
+        remediation: "Select this organ in onboarding only if its integration is needed.",
+        evidence: [plan.plan_digest],
+      }];
       const advisoryChecks = module.advisories.map((advisory, index) => ({
         id: `onboarding-${module.id}-advisory-${index + 1}`,
         source: "onboarding:planner",

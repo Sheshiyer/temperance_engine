@@ -221,6 +221,20 @@ describe("organ planning", () => {
     expect(report.checks.find(({ id }) => id === "dependencies.provider.omniroute")).toMatchObject({ status: "PASS", required: true });
   });
 
+  test("doctor reports unselected organs as off without failing the section", async () => {
+    const plan = await createOnboardingPlan({
+      catalog: createCoreOnboardingCatalog(),
+      profile: profile({ secret_references: { OMNIROUTE_ADMIN: { store: "macos-keychain", service: "svc", account: "acct" } } }),
+      adapter: allAvailable(),
+    });
+    const section = projectOnboardingDoctorSection(plan);
+    const off = section.checks.find(({ id }) => id === "onboarding-integration.mail-mcp");
+    expect(off).toMatchObject({ condition: "SKIPPED", reason_code: "ORGAN_OFF", severity: "info", actionable: false, destination: "organ:optional:integration.mail-mcp" });
+    const organIds = createCoreOnboardingCatalog().modules.filter(({ organ }) => organ).map(({ id }) => `onboarding-${id}`);
+    expect(section.checks.map(({ id }) => id)).toEqual(expect.arrayContaining(organIds));
+    expect(section.condition).toBe("PASS");
+  });
+
   test("health keeps the precise reason for organ probe holds", async () => {
     const reasons = ["PORT_CLOSED", "LAUNCH_AGENT_ABSENT", "LAUNCH_AGENT_STOPPED", "ORIGIN_OFFLINE", "ORIGIN_UNVERIFIED"] as const;
     for (const reason_code of reasons) {
