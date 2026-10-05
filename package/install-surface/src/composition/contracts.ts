@@ -1,3 +1,5 @@
+import { types } from "node:util";
+
 export const COMPOSITION_SCHEMA = "temperance.composition.v1" as const;
 export const COMPOSITION_OBSERVATIONS_SCHEMA = "temperance.composition-observations.v1" as const;
 export const COMPOSITION_REPORT_SCHEMA = "temperance.composition-report.v1" as const;
@@ -216,6 +218,7 @@ function assertSafeTree(input: unknown): void {
     }
     if (value === null || typeof value === "boolean" || (typeof value === "number" && Number.isFinite(value))) return;
     if (typeof value !== "object") throw new Error("COMPOSITION_INVALID_INPUT");
+    if (types.isProxy(value)) throw new Error("COMPOSITION_INVALID_INPUT");
     if (active.has(value)) throw new Error("COMPOSITION_INVALID_INPUT");
     if (Array.isArray(value)) {
       if (Object.getPrototypeOf(value) !== Array.prototype) throw new Error("COMPOSITION_PROTOTYPE_POLLUTION");

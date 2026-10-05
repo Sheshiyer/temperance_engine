@@ -24,3 +24,6 @@ shadow math evaluation; separate plant releases. Existing evidence gates remain 
 Scope: source and fixture-backed CLI only. No live services, credentials, provider
 changes, fleet migration, account enrollment, cloud deployment, or UI installation.
 Execution rules: isolated worktrees; mapped combo for bulk production; exact-file commits.
+
+## Wave 2 — advisory causal lifecycle
+Add optional explicit lifecycle subscriptions, injected advisory callbacks and atomic claim/terminal receipt seam. Recompute composition readiness and never infer execution authority. No mandatory personal trigger semantics or default organ activation. Test replay, concurrent claims, timeout, dependencies and persistence failures.

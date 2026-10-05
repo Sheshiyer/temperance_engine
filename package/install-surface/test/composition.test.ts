@@ -590,3 +590,17 @@ test("standalone example needs neither Cambium nor Superset and excludes private
  for (const ref of ["user@example.com", "/Users/private/key", "https://private.example/token", "secret-ref:raw=value"]) {
  expect(() => validateComposition({...exampleFixture, modules: [{...exampleFixture.modules[0]!, configuration_refs: [ref]}]})).toThrow("COMPOSITION_MALFORMED_REF"); }
 });
+
+test("proxies are rejected before any caller reflection trap", () => {
+  let traps = 0;
+  const wrap = (value: object) => new Proxy(value, {
+    getPrototypeOf(target) { traps++; return Reflect.getPrototypeOf(target); },
+    ownKeys(target) { traps++; return Reflect.ownKeys(target); },
+    getOwnPropertyDescriptor(target, key) { traps++; return Reflect.getOwnPropertyDescriptor(target, key); },
+    get(target, key, receiver) { traps++; return Reflect.get(target, key, receiver); },
+  });
+  expect(() => validateComposition(wrap(exampleFixture))).toThrow("COMPOSITION_INVALID_INPUT");
+  expect(traps).toBe(0);
+  expect(() => validateComposition({...exampleFixture, plant: wrap(exampleFixture.plant)})).toThrow("COMPOSITION_INVALID_INPUT");
+  expect(traps).toBe(0);
+});

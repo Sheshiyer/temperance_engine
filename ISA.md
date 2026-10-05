@@ -247,6 +247,8 @@ untouched.
 
 - [x] ISC-COMP-01: Repository-owned composition source validates boundaries and rejects unsafe inputs.
 - [x] ISC-COMP-02: Focused tests and actual read-only CLI pass fresh verification.
+- [x] ISC-COMP-04: Explicit advisory subscriptions causally invoke injected handlers with stable replay identity and terminal receipt semantics.
+- [x] ISC-COMP-05: Proxy, stale-after-claim, timeout and persistence boundaries pass regression tests without execution authority.
 - [ ] ISC-COMP-03: Installed adapters, live causal lifecycle and independent runtime acceptance are proved.
 
 
@@ -3176,3 +3178,7 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 ### Composition source verification — 2026-10-05
 
 37 focused tests, 136 assertions; package typecheck; actual main CLI standalone packet exit 0. Configuration-only output disables effects. These checks close only the two new source criteria; inherited criteria and runtime acceptance remain unchanged.
+
+### Advisory lifecycle source verification — 2026-10-05
+
+58 composition/CLI/lifecycle tests pass (223 assertions), and package typecheck passes. Independent review defects (Proxy reflection and expiry during async claim) were fixed and regression-tested. Atomic durable storage and contained handlers remain host adapter obligations.

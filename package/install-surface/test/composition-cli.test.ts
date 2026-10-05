@@ -26,3 +26,13 @@ test("executable rejects oversized stdin without accepting its valid prefix", as
  });
  expect(result.status).toBe(2); expect(result.stdout).toBe(""); expect(JSON.parse(result.stderr).error).toBe("COMPOSITION_SIZE_EXCEEDED");
 });
+test("main product CLI exposes the same standalone configuration inspector", async () => {
+ const { spawnSync } = await import("node:child_process");
+ const result = spawnSync(process.execPath, [new URL("../src/cli.ts", import.meta.url).pathname, "composition", "inspect"], {
+  input: JSON.stringify({manifest}), encoding: "utf8", timeout: 5000,
+ });
+ expect(result.status).toBe(0); expect(result.stderr).toBe("");
+ const report = JSON.parse(result.stdout);
+ expect(report.integrations).toEqual([]); expect(report.kernel.requires_superset).toBe(false);
+ expect(report.kernel.requires_integrations).toBe(false); expect(report.effect_authorized).toBe(false);
+});
