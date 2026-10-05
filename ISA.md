@@ -3224,3 +3224,5 @@ Diagnostic selection source verification:168 composition/Git/math/contract/selec
 - [x] ISC-COMP-20: Retired Constellation declarations, observations and dependencies cannot re-enter standalone composition. Generic banner/island and headless modules remain.
 
 - [x] ISC-COMP-21: Reusable bounded MCP stdio caps raw frames, pending bytes/count, safe response encoding and write/EOF deadlines; serial callbacks cannot start after closure. Independent review and13 tests46 assertions plus strict typecheck pass. Owner result production and synchronous execution require their own bounds; no native-client or tool-effect authority follows.
+
+- [x] ISC-COMP-22: Bounded owner-file raw snapshot checks regular descriptor size before allocation, nonblocking/no-follow open, exact reads/growthprobe, postmetadata/path identity and cleanup;9 synthetic/disposable tests45 assertions, strictTypeScript and independentreview pass. Root confinement and synchronous wall deadlines remain owner obligations.
