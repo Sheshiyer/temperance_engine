@@ -67,3 +67,10 @@ lease context with seat fingerprint. Use shared public phase/lane policy includi
 PlanMax E4/E5. Envelope validity supplies no execution, capacity or lease authority;
 no filesystem probing or public projection of private paths. Verify disposable Git
 primary/external worktree source evidence through the pure builder.
+
+### Wave 7 — standalone pure TRIVECTOR math
+Own only install-surface/src/routing/trivector-math.ts and its focused test. Preserve
+current numerical functions and policy, with explicit inputs and no environment,
+private imports, source readers, writers, recalibration, or runtime activation.
+Math supplies no execution, capacity, eligibility or lease authorization; complete
+contracts and owning host selection/claims remain separate future work.

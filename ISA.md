@@ -3202,3 +3202,8 @@ Wave5 source verification (2026-10-05): 18 Git admission/CLI tests,97 assertions
 Wave6 authority source verification (2026-10-05):23 tests152 assertions and typecheck pass. Independent review found PlanMax and producer repository shape incompatibilities; fixes and public phase-map parity regressions pass. Actual authenticated grants, producer join, consumed-grant replay, capacity and sole-writer SQL/claim remain held.
 
 Wave7 source verification: 132 tests, 680 assertions, zero failures and package typecheck pass. Dual primary/target private Hands context, actual disposable Git, deterministic mixed-case ordering and public projection rejection verified. Authenticated grant, capacity and atomic execution claim remain open.
+
+- [x] ISC-COMP-14: Standalone TRIVECTOR arithmetic preserves current policy and explicit legacy/v4.1 selection with no environment or private dependencies, verified by focused numerical regressions.
+- [ ] ISC-COMP-15: Standalone routing evidence and selection gates prevent pin bypass and fingerprint every consumed normalized decision signal; exact scope and acceptance provenance remain explicit.
+
+Standalone math source verification:9 tests58 assertions and typecheck pass; existing arithmetic/policy preserved. Explicit mode defaults legacy independent of environment. Evidence lineage validation, calibration and installed selection remain open.
