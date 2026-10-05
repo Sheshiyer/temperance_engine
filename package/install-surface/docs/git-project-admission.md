@@ -17,3 +17,7 @@ Every result remains context-only, with execution, capacity and lease flags fals
 ## Private Hands context
 
 The Git Hands envelope binds separately verified primary and selected worktree evidence to fresh private workspace, source, ISA, tasks and lease context. Both inventories use deterministic codepoint ordering, including mixed-case paths. The envelope contains private paths and is rejected by public projection inputs. Its fingerprints prove context consistency only; all execution, capacity and lease authority remains false. An authenticated grant and the owning atomic claim ledger must still authorize execution.
+
+## Context CLI
+
+`git-authority inspect` accepts bounded UTF8JSON stdin containing exactly ticket, grant, admission, expected_grant_fingerprint, retries_used, elapsed_ms and now. It prints the evaluator result with false authority flags and fixed errors for invalid packets. Explicit time and expected fingerprints are context inputs, not authenticated approvals. The dedicated git-authority-cli entry has a narrow three-file closure; interactive CLI startup includes broader modules. A private source-pinned transport must independently attest its selected code and trusted owner context before use. No host observer, grant issuer or claim ledger is supplied by this command.

@@ -3217,3 +3217,5 @@ TRIVECTOR evidence contract source verification:19 math/contract tests118 assert
 Legacy pin receipt follow-up: independent review caught obsolete bypass label; removed and regression asserts circuit-open and absent bypass. Fresh18 tests67 assertions pass.
 
 Diagnostic selection source verification:168 composition/Git/math/contract/selection tests920 assertions and package typecheck pass; independent review passed. Legacyfraction and v4.1 window signals remain distinct, limitations precede pins, half-open shows probe-required. No full live rollback/calibration/authenticated admission claim.
+
+- [x] ISC-COMP-18: Bounded Git authority context CLI exposes actual evaluator through interactive and dedicated three-file entrypoints;8 tests92 assertions/typecheck pass, no issuer/claim authority.

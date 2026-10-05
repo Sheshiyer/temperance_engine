@@ -1,3 +1,4 @@
+import {runGitAuthorityCommand, readGitAuthorityStdin} from "./execution/git-authority-cli.ts";
 import {runGitProjectCommand, readGitProjectStdin} from "./onboarding/git-project-cli.ts";
 import { runCompositionCommand, readCompositionStdin } from "./composition/cli.ts";
 import { existsSync, readFileSync, readdirSync, mkdirSync } from "node:fs";
@@ -253,6 +254,13 @@ function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
 
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "git-authority") {
+    const result = await runGitAuthorityCommand(process.argv.slice(3), readGitAuthorityStdin);
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    process.exitCode = result.code;
+    return;
+  }
   if (command === "git-project") {
     const result = await runGitProjectCommand(process.argv.slice(3), readGitProjectStdin);
     if (result.stdout) process.stdout.write(result.stdout);
@@ -881,6 +889,7 @@ async function main(): Promise<void> {
   process.stderr.write(`usage: temperance <command> [options]
 
 Commands:
+  git-authority inspect            Inspect Git authority context stdin; no claim authority
   git-project inspect              Inspect private Git binding stdin; evidence only
   composition inspect              Inspect JSON stdin; configuration evidence only
   composition project              Project redacted lifecycle banner/island JSON

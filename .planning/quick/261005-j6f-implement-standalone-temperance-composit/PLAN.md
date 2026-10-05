@@ -109,3 +109,13 @@ absent; no lease or execution authority is inferred. Quota diagnostic flags alwa
 describe only the active legacy fraction or v4.1 window signal.
 
 Root documentation: explain closed routing evidence, diagnostic selection, legacy signal compatibility and remaining owner/runtime obligations.
+
+### Wave 8 — Git authority context CLI
+Own execution/git-authority-cli.ts and focused test plus minimal src/cli.ts main
+import/dispatch/help wiring. Read <=64KiB UTF-8 stdin for exact ticket, grant,
+admission, expected_grant_fingerprint, retries_used, elapsed_ms and now packet;
+invoke existing pure public evaluator. Emit only context eligibility/fingerprints
+with execution/capacity/lease false and migration-held claim state. No issuer
+authentication, trusted observers, probes, claims or writes. Explicit caller now
+and reviewed payload fingerprint are context consistency only. Verify real main
+subprocess, bounds, invalid fields, expiry and fixed redacted failures.

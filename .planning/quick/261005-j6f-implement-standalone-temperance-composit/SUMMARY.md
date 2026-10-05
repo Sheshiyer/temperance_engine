@@ -31,3 +31,5 @@ Existing public legacy router source also removes pin circuit bypass. New regres
 Independent pin review corrected obsolete bypass receipt label; gate and displayed reason now agree.18 tests67 assertions pass.
 
 Pure diagnostic selection source:168 focused combined tests920 assertions/typecheck and independent review pass. Binary gate/active limitation checks precede pins and fit; actual normalized evidence/time/policy digest bound. Legacy remainingfractions separate from v4.1 windowheadroom/hazard/exhaustion, half-open explicitly probe-required. Unknown quota omitted without fabricating replenishment. All effect/capacity/lease/execution flags false; semantic acceptance null. Full live legacy parity, accepted-result calibration and owning adapters remain open.
+
+Git authority context CLI:8 tests92 assertions/typecheck pass through actual interactive and dedicated entries, bounded UTF8stdin/exactargv/closedcontext/errorprivacy. Dedicated closure contains only CLI, authority contracts and canonical JSON with Node builtins. Explicitcaller time/reviewedFP remains context consistency only; authenticatedissuer/hostproof/replayclaims absent.
