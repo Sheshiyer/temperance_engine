@@ -1,3 +1,4 @@
+import { projectOwnerObservation } from "./owner-projection.ts";
 import { projectComposition } from "./projection.ts";
 import { canonical } from "../canonical-json.ts";
 import { MAX_INPUT_BYTES } from "./contracts.ts";
@@ -14,7 +15,7 @@ export async function runCompositionCommand(
   readInput?: () => Promise<string> | string,
   now?: number,
 ): Promise<CompositionCommandResult> {
-  if (!Array.isArray(args) || args.length !== 1 || !["inspect", "project"].includes(args[0]!)) {
+  if (!Array.isArray(args) || args.length !== 1 || !["inspect", "project", "owner-project"].includes(args[0]!)) {
     return {
       code: 2,
       stdout: "",
@@ -75,8 +76,9 @@ export async function runCompositionCommand(
 
   const keys = Object.keys(packet as Record<string, unknown>);
   if (
-    keys.some((k) => !(args[0] === "project" ? ["manifest", "observations", "event", "receipt"] : ["manifest", "observations"]).includes(k))
+    keys.some((k) => !(args[0] === "project" ? ["manifest", "observations", "event", "receipt"] : args[0] === "owner-project" ? ["manifest", "observations", "event", "owner_observation"] : ["manifest", "observations"]).includes(k))
     || (args[0] === "project" && (!("event" in packet) || !("receipt" in packet)))
+    || (args[0] === "owner-project" && (!("event" in packet) || !("owner_observation" in packet)))
     || !("manifest" in packet)
   ) {
     return {
@@ -86,10 +88,12 @@ export async function runCompositionCommand(
     };
   }
 
-  const typedPacket = packet as { manifest: unknown; observations?: unknown; event?: unknown; receipt?: unknown };
+  const typedPacket = packet as { manifest: unknown; observations?: unknown; event?: unknown; receipt?: unknown; owner_observation?: unknown };
 
   try {
-    const report = args[0] === "project"
+    const report = args[0] === "owner-project"
+      ? projectOwnerObservation(typedPacket.manifest, typedPacket.observations, typedPacket.event, typedPacket.owner_observation, now ?? Date.now())
+      : args[0] === "project"
       ? projectComposition(typedPacket.manifest, typedPacket.observations, typedPacket.event, typedPacket.receipt, now ?? Date.now())
       : inspectComposition(typedPacket.manifest, typedPacket.observations, now);
     return {

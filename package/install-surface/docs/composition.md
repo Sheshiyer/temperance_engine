@@ -59,3 +59,7 @@ receipt. Native adapters must establish provenance before displaying the model a
 an operational observation. The command supplies neither provider resolution nor
 execution/acceptance authority. Installed native renderers and the optional Manifest
 bridge consume this already-redacted model through their own bounded adapters.
+
+### Contained owner observations
+
+`composition owner-project` reads a bounded JSON stdin packet with `manifest`, optional `observations`, `event`, and `owner_observation`. The portable `temperance.lifecycle-owner-observation.v1` contract carries only fixed process dispositions and redacted lineage digests. It shares the banner/island target model while retaining “Owner process completed; acceptance unproved” wording. Process completion, replay, pending, and held outcomes remain distinct. Digests establish supplied-content consistency, not authenticity. No command dispatches organs or grants capacity, execution, or semantic acceptance.
