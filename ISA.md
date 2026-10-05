@@ -3207,3 +3207,7 @@ Wave7 source verification: 132 tests, 680 assertions, zero failures and package 
 - [ ] ISC-COMP-15: Standalone routing evidence and selection gates prevent pin bypass and fingerprint every consumed normalized decision signal; exact scope and acceptance provenance remain explicit.
 
 Standalone math source verification:9 tests58 assertions and typecheck pass; existing arithmetic/policy preserved. Explicit mode defaults legacy independent of environment. Evidence lineage validation, calibration and installed selection remain open.
+
+- [x] ISC-COMP-16: Closed bounded TRIVECTOR evidence packet preserves explicit scope/freshness/uncertainty and deterministic fingerprints, rejects private/authority fields and unsafe objects; independent review and focused tests pass.
+
+TRIVECTOR evidence contract source verification:19 math/contract tests118 assertions and typecheck pass; independent review passed after freshness subtype, wire-byte bound and canonical identity fixes. Stale/future/unknown evidence and coarse outcome scope remain explicit; no selection, authentication or accepted-result reliability claim.

@@ -74,3 +74,11 @@ current numerical functions and policy, with explicit inputs and no environment,
 private imports, source readers, writers, recalibration, or runtime activation.
 Math supplies no execution, capacity, eligibility or lease authorization; complete
 contracts and owning host selection/claims remain separate future work.
+
+### Wave 7 followup — portable TRIVECTOR evidence contracts
+Own only install-surface/src/routing/trivector-contracts.ts and its focused test.
+Validate closed bounded detached immutable evidence packets; bind the public math
+policy digest, candidate subjects, quota windows and explicit operational scopes.
+Keep capability uncertainty and stale facts visible; no selection reducer, loaders,
+provider calls or authorization. Test unsafe descriptors/proxies, lineage, bounds,
+policy parity and canonical permutation stability.
