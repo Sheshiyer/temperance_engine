@@ -207,7 +207,8 @@ function scoreCandidate(
   forced: boolean,
 ): ScoredCandidate {
   const circuitState = effectiveCircuit(observation, nowMs);
-  const eligible = forced || circuitState !== "open";
+  // A pin expresses ordering intent, never circuit eligibility authority.
+  const eligible = circuitState !== "open";
   const stability =
     candidateCount <= 1 ? 1 : 1 - candidate.static_rank / (candidateCount - 1);
   const factors: CandidateFactors = {

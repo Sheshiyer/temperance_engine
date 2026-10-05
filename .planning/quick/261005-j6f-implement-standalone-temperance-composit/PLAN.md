@@ -82,3 +82,15 @@ policy digest, candidate subjects, quota windows and explicit operational scopes
 Keep capability uncertainty and stale facts visible; no selection reducer, loaders,
 provider calls or authorization. Test unsafe descriptors/proxies, lineage, bounds,
 policy parity and canonical permutation stability.
+
+### Wave 7 followup — pure diagnostic selection
+Own only install-surface/src/routing/trivector-selection.ts and focused test.
+Normalize portable packets, apply binary gates before fit buckets and pins, retain
+capability uncertainty, and derive redacted proposed-head diagnostics with all
+authority false. Extract legacy G9 >=5 samples/>=5 consecutive failures from
+router/seat-weights.json and routing-policy.ts; public failures include timeouts
+but exclude 429 events. Bind full packet, decision time, and actual legacy/v4.1
+policy into consumed digest. Domain floors remain visible diagnostics; no loader,
+live route flip, provider call, execution, admission or acceptance authority.
+
+Root legacy public router repair: add red-to-green forced-open-circuit regression then remove only pin eligibility bypass. Preserve scoring, static override ordering, half-open and all other legacy semantics. No live install.

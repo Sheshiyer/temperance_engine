@@ -25,3 +25,5 @@ Wave7 adds private Git Hands context binding independently verified primary and 
 Standalone TRIVECTOR numerical extraction:9 tests58 assertions/typecheck pass. Current fit/headroom/hazard/Wilson/G9/arbitration arithmetic and policy preserved, explicit inputs no runtime imports or environment. Trusted math does not establish exact seat scope, semantic acceptance or authorization; evidence contract and host integration remain open.
 
 Closed TRIVECTOR evidence source: bounded immutable explicit candidate/gate/fit/quota/outcome/domain/limitation packet; deterministic full-evidence fingerprints, safe object snapshot and scope/freshness statuses.19 math/contract tests118 assertions/typecheck and independent review pass. Empty diagnostic packets supported; operational outcomes are transport/process only. Actual pure selection and owner integration remain open.
+
+Existing public legacy router source also removes pin circuit bypass. New regression failed before change then18 tests65 assertions pass; static override and half-open semantics retained. No installation/runtime apply.
