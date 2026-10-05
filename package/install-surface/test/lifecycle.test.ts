@@ -1070,3 +1070,20 @@ test("reconciled default router dependency closure dry-runs, copies and rolls ba
   expect(readFileSync(join(stateRoot,"router/routing-policy.ts"),"utf8")).toBe("original installed fixture\n");expect(existsSync(join(stateRoot,"router/routing-policy.test.ts"))).toBe(false);expect(existsSync(join(stateRoot,"bin/te-backup-if-changed"))).toBe(false);
   expect(readFileSync(sentinel,"utf8")).toBe("keep");expect(runtimeCalls).toBe(0);
 });
+
+
+test("selected invalid and HTTP requirements hold before IO or journal; outside scope is ignored", async () => {
+  const root=tempRoot("dependency-declaration-hold-"); const stateRoot=join(root,"state");
+  const fixture=createFixture(); let calls=0;
+  const io={...confinedTestIO(root),execFile:async()=>{calls++;throw new Error("must not probe");},fetch:async()=>{calls++;throw new Error("must not fetch");}};
+  const plan=createPlan({verb:"install",profileResult:fixture,profile:"minimal",onlyIds:new Set(["test-record-1"])});
+  fixture.lockObject.records[1]!.requires=[{kind:"http-health",url_token:"OUTSIDE_URL"}];
+  const outside=await executePlan({stateRoot,io,plan,compileResult:fixture,verb:"install",profile:"minimal",dryRun:true,explicitSelections:new Set(["test-record-2"])});
+  expect(outside.status).toBe("committed");expect(calls).toBe(0);
+  for(const requires of [[{kind:"binary",name:"--help"}],[{kind:"http-health",url_token:"PRIVATE_URL"}]]){
+    fixture.lockObject.records[0]!.requires=requires as SurfaceRecord["requires"];
+    const held=await executePlan({stateRoot,io,plan,compileResult:fixture,verb:"install",profile:"minimal"});
+    expect(held.status).toBe("failed");expect(held.outcomes[0]!.reason).toMatch(/^DEPENDENCY_(DECLARATION_INVALID|HTTP_UNSUPPORTED)$/);
+    expect(existsSync(stateRoot)).toBe(false);expect(calls).toBe(0);
+  }
+});

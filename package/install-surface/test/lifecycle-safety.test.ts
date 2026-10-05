@@ -619,32 +619,12 @@ describe("dependency preflight", () => {
     }
   });
 
-  test("failing HTTP health check fails pre-execution with actionable remediation", async () => {
-    const root = tempRoot("dep-http-");
-    const io = createTestIO();
-    const resolveRoot = resolveRoots(root);
-    const controller = new AbortController();
-
-    // Override fetch to simulate failure
-    const failIO: LifecycleIO = {
-      ...io,
-      fetch: async () => new Response(null, { status: 503 }),
-    };
-
-    const record = makeRecord("r1", ".config/test", {
-      requires: [{ kind: "http-health", url_token: "BRIDGE_URL" }],
-    });
-
-    await expect(
-      checkDependencies([record], resolveRoot, failIO, controller.signal),
-    ).rejects.toThrow(HazardError);
-
-    try {
-      await checkDependencies([record], resolveRoot, failIO, controller.signal);
-    } catch (error) {
-      expect((error as HazardError).code).toBe("DEPENDENCY_MISSING");
-      expect((error as HazardError).details.remediation).toContain("BRIDGE_URL");
-    }
+  test("HTTP declaration is held before URL resolution or fetch", async () => {
+    const io = createTestIO(); let calls = 0;
+    const record = makeRecord("r1", ".config/test", { requires: [{ kind: "http-health", url_token: "BRIDGE_URL" }] });
+    const heldIO = { ...io, fetch: async () => { calls++; throw new Error("must not fetch"); } };
+    await expect(checkDependencies([record], () => { calls++; throw new Error("must not resolve"); }, heldIO, new AbortController().signal)).rejects.toThrow("DEPENDENCY_HTTP_UNSUPPORTED");
+    expect(calls).toBe(0);
   });
 
   test("records without requires pass dependency check", async () => {

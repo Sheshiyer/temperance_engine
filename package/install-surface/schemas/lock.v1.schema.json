@@ -34,7 +34,7 @@
             "additionalProperties": false,
             "required": ["root_token", "relative_path", "ownership"],
             "properties": {
-              "root_token": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+              "root_token": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
               "relative_path": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?!/)(?!.*\\\\).+$" },
               "ownership": {
                 "type": "object",
@@ -57,7 +57,8 @@
             "uniqueItems": true,
             "items": { "type": "string", "minLength": 3, "maxLength": 192 }
           },
-          "identity_migration": { "$ref": "#/$defs/identity_migration" }
+          "identity_migration": { "$ref": "#/$defs/identity_migration" },
+          "requires": {"type":"array","maxItems":32,"uniqueItems":true,"items":{"$ref":"#/$defs/runtime_dependency"}}
         }
       }
     }
@@ -178,6 +179,7 @@
         "from_id": { "type": "string", "minLength": 1, "maxLength": 192 },
         "to_id": { "type": "string", "minLength": 1, "maxLength": 192 }
       }
-    }
+    },
+    "runtime_dependency": {"oneOf": [{"type": "object", "additionalProperties": false, "required": ["kind", "name"], "properties": {"kind": {"const": "binary"}, "name": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*(?![\\s\\S])"}}}, {"type": "object", "additionalProperties": false, "required": ["kind", "url_token"], "properties": {"kind": {"const": "http-health"}, "url_token": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])"}}}]}
   }
 }
