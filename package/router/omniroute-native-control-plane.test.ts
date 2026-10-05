@@ -250,6 +250,14 @@ describe("OmniRoute native control-plane snapshot", () => {
     expect(captureCode(() => collectNativeControlPlane(fixture))).toBe("compression_settings_too_large");
   });
 
+  test("fails closed on an oversized compression setting value before loading it", () => {
+    const fixture = createFixture();
+    const db = new Database(fixture.databasePath);
+    db.exec(`INSERT INTO key_value VALUES ('compression', 'engines', '${"x".repeat(65_537)}')`);
+    db.close();
+    expect(captureCode(() => collectNativeControlPlane(fixture))).toBe("compression_settings_too_large");
+  });
+
   test("fails closed on an unbounded compression settings namespace", () => {
     const fixture = createFixture();
     const db = new Database(fixture.databasePath);

@@ -961,11 +961,27 @@ function readRows(db: Database): Omit<RawProjectionInput, "dispatch" | "runtime"
       COALESCE(SUM(CASE WHEN name = 'te-plan' THEN 1 ELSE 0 END), 0) AS te_plan
     FROM combos
   `).get() as GovernedHermesComboRow | null;
+  // Enforce the settings bounds inside SQLite, before any row reaches JS memory.
+  const compressionShape = db.query(`
+    SELECT
+      COUNT(*) AS row_count,
+      COALESCE(MAX(length(CAST(key AS BLOB))), 0) AS max_key_bytes,
+      COALESCE(MAX(length(CAST(value AS BLOB))), 0) AS max_value_bytes
+    FROM key_value
+    WHERE namespace = 'compression'
+  `).get() as { row_count: number; max_key_bytes: number; max_value_bytes: number } | null;
+  if (
+    !compressionShape ||
+    compressionShape.row_count > MAX_COMPRESSION_SETTINGS ||
+    compressionShape.max_key_bytes > MAX_COMPRESSION_SETTING_KEY_BYTES ||
+    compressionShape.max_value_bytes > MAX_COMPRESSION_SETTING_BYTES
+  ) fail("compression_settings_too_large");
   const compressionRows = db.query(`
     SELECT key, value
     FROM key_value
     WHERE namespace = 'compression'
     ORDER BY key
+    LIMIT ${MAX_COMPRESSION_SETTINGS}
   `).all() as KeyValueRow[];
   const compressionCombos = db.query(`
     SELECT id, name, pipeline, is_default
