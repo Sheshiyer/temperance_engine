@@ -3219,3 +3219,6 @@ Legacy pin receipt follow-up: independent review caught obsolete bypass label; r
 Diagnostic selection source verification:168 composition/Git/math/contract/selection tests920 assertions and package typecheck pass; independent review passed. Legacyfraction and v4.1 window signals remain distinct, limitations precede pins, half-open shows probe-required. No full live rollback/calibration/authenticated admission claim.
 
 - [x] ISC-COMP-18: Bounded Git authority context CLI exposes actual evaluator through interactive and dedicated three-file entrypoints;8 tests92 assertions/typecheck pass, no issuer/claim authority.
+
+- [x] ISC-COMP-19: Portable Git run lineage retains actual bound references and original claim/replay times, detaches unsafe caller values, bounds lease/deadline and emits false authority receipts; fresh composition/run suite42tests167assertions and typecheck pass. Private SQL authority remains outside the product.
+- [x] ISC-COMP-20: Retired Constellation declarations, observations and dependencies cannot re-enter standalone composition. Generic banner/island and headless modules remain.
