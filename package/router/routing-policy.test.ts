@@ -168,6 +168,8 @@ describe("planRouting", () => {
       version: 1, updated_at_ms: 900_000, backends: { "command-code": { circuit_state: "open", cooldown_until_ms: 1_100_000 } },
     } }));
     expect(plan.candidates[0]?.reasons).toContain("explicit-override");
+    expect(plan.candidates[0]?.reasons).toContain("circuit-open");
+    expect(plan.candidates[0]?.reasons).not.toContain("circuit-bypassed-by-override");
     expect(plan.candidates[0]?.eligible).toBeFalse();
     expect(plan.selected_order).toEqual([]);
     expect(plan.status).toBe("unavailable");

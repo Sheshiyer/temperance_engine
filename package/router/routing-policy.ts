@@ -227,8 +227,7 @@ function scoreCandidate(
     factors.stability * WEIGHTS.stability;
   const reasons: string[] = [];
   if (forced) reasons.push("explicit-override");
-  if (circuitState === "open" && forced) reasons.push("circuit-bypassed-by-override");
-  else if (circuitState === "open") reasons.push("circuit-open");
+  if (circuitState === "open") reasons.push("circuit-open");
   else if (circuitState === "half_open") reasons.push("cooldown-probe");
   if (!observation) reasons.push("telemetry-missing-neutral");
 

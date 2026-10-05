@@ -3213,3 +3213,5 @@ Standalone math source verification:9 tests58 assertions and typecheck pass; exi
 TRIVECTOR evidence contract source verification:19 math/contract tests118 assertions and typecheck pass; independent review passed after freshness subtype, wire-byte bound and canonical identity fixes. Stale/future/unknown evidence and coarse outcome scope remain explicit; no selection, authentication or accepted-result reliability claim.
 
 - [x] ISC-COMP-17: Existing public router pins cannot re-admit an open circuit; red-to-green regression and18 tests65 assertions pass without changing weights.
+
+Legacy pin receipt follow-up: independent review caught obsolete bypass label; removed and regression asserts circuit-open and absent bypass. Fresh18 tests67 assertions pass.

@@ -27,3 +27,5 @@ Standalone TRIVECTOR numerical extraction:9 tests58 assertions/typecheck pass. C
 Closed TRIVECTOR evidence source: bounded immutable explicit candidate/gate/fit/quota/outcome/domain/limitation packet; deterministic full-evidence fingerprints, safe object snapshot and scope/freshness statuses.19 math/contract tests118 assertions/typecheck and independent review pass. Empty diagnostic packets supported; operational outcomes are transport/process only. Actual pure selection and owner integration remain open.
 
 Existing public legacy router source also removes pin circuit bypass. New regression failed before change then18 tests65 assertions pass; static override and half-open semantics retained. No installation/runtime apply.
+
+Independent pin review corrected obsolete bypass receipt label; gate and displayed reason now agree.18 tests67 assertions pass.
