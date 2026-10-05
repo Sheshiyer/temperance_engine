@@ -3222,3 +3222,5 @@ Diagnostic selection source verification:168 composition/Git/math/contract/selec
 
 - [x] ISC-COMP-19: Portable Git run lineage retains actual bound references and original claim/replay times, detaches unsafe caller values, bounds lease/deadline and emits false authority receipts; fresh composition/run suite42tests167assertions and typecheck pass. Private SQL authority remains outside the product.
 - [x] ISC-COMP-20: Retired Constellation declarations, observations and dependencies cannot re-enter standalone composition. Generic banner/island and headless modules remain.
+
+- [x] ISC-COMP-21: Reusable bounded MCP stdio caps raw frames, pending bytes/count, safe response encoding and write/EOF deadlines; serial callbacks cannot start after closure. Independent review and13 tests46 assertions plus strict typecheck pass. Owner result production and synchronous execution require their own bounds; no native-client or tool-effect authority follows.
