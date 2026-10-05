@@ -73,10 +73,10 @@
       "source_object": "2c15ff81f4afb0865bb8db1db60f1a1d8c560077"
     },
     {
-      "expectation_digest": "sha256:44560e2e0771039b6d5fdac2dcc6b4c56a0185f0f02624011784ae76828792cc",
+      "expectation_digest": "sha256:8569e6d5c57cf79f7be858e9dd73f3ce7946f851630d8b4da001931ed11c1f43",
       "id": "router.governed-runtime",
       "source": "package/router",
-      "source_object": "8b174ffa5631b6e719fa54245693a321ef91dfe2"
+      "source_object": "ca4d19789e806796630369eb27cebbb1a42eac6f"
     },
     {
       "expectation_digest": "sha256:f40f92598d75fca3203768a53b1e5bb229d169243944f6c8bd63b949af02490f",
@@ -109,7 +109,7 @@
       "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
     }
   ],
-  "revision": "0e65de313a633921fdd1b3030cefb7564b2194b1",
+  "revision": "c51326f9d008f33e18cbcc157e030fa1eaca0dd3",
   "schema": "temperance.install-surface.copy-expectations-provenance.v1",
-  "tree": "4559a3fa51072531f4b9eef1553199e031ce5983"
+  "tree": "2a24f1661cc0afcfe3d0832a72157ad52b0f9c10"
 }
