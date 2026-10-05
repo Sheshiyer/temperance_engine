@@ -13,3 +13,7 @@ A verified result is source identity evidence. It grants no execution or lease a
 `src/execution/git-authority-contracts.ts` defines additive Git-only v2 ticket, grant and admission context shapes. Legacy Superset records are not cast or populated with invented identities. Pure eligibility checks bind reviewed workspace/source fingerprints, exact ticket and reviewed grant fingerprints, phases/lanes, effort, timing and budgets. PlanMax requires Plan at E4/E5 and matches the public phase map.
 
 Every result remains context-only, with execution, capacity and lease flags false and `claim_status:held-authority-migration`. Reviewed fingerprints establish consistency, not authentication. Re-evaluating serialized records does not prove fresh Git state or consumed-grant replay exclusion. The owning grant, capacity reservation, atomic claim ledger and versioned storage migration remain required before execution.
+
+## Private Hands context
+
+The Git Hands envelope binds separately verified primary and selected worktree evidence to fresh private workspace, source, ISA, tasks and lease context. Both inventories use deterministic codepoint ordering, including mixed-case paths. The envelope contains private paths and is rejected by public projection inputs. Its fingerprints prove context consistency only; all execution, capacity and lease authority remains false. An authenticated grant and the owning atomic claim ledger must still authorize execution.

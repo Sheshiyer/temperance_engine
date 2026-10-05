@@ -256,6 +256,7 @@ untouched.
 - [x] ISC-COMP-10: Git-only source admission verifies canonical repository and exact fresh linked-worktree identity with explicit access scope.
 - [x] ISC-COMP-11: Main Git inspection CLI rejects observation injection and passes disposable Git subprocess proof without Superset.
 - [x] ISC-COMP-12: Versioned Git ticket/grant context validates exact identity, timing, lane/effort and budget bindings while withholding actual authority.
+- [x] ISC-COMP-13: Private Git Hands context binds independently proved primary and selected worktree evidence with deterministic task/inventory identity and rejects public projection.
 - [ ] ISC-COMP-03: Installed adapters, live causal lifecycle and independent runtime acceptance are proved.
 
 
@@ -3199,3 +3200,5 @@ Wave 4 source verification (2026-10-05): 79 composition tests, 363 assertions, z
 Wave5 source verification (2026-10-05): 18 Git admission/CLI tests,97 assertions and package typecheck pass. Actual disposable primary and external linked worktree proof; strict identity, freshness, read-only write denial, ambient Git override exclusion and redaction. Required declared volume bindings hold in CLI until trusted observer. Hands execution, dirty source acceptance, leases and installation remain open.
 
 Wave6 authority source verification (2026-10-05):23 tests152 assertions and typecheck pass. Independent review found PlanMax and producer repository shape incompatibilities; fixes and public phase-map parity regressions pass. Actual authenticated grants, producer join, consumed-grant replay, capacity and sole-writer SQL/claim remain held.
+
+Wave7 source verification: 132 tests, 680 assertions, zero failures and package typecheck pass. Dual primary/target private Hands context, actual disposable Git, deterministic mixed-case ordering and public projection rejection verified. Authenticated grant, capacity and atomic execution claim remain open.

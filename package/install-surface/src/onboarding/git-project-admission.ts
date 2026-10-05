@@ -36,7 +36,7 @@ function safe(value:unknown,depth=0,count={n:0}):void{
 }
 function immutable<T>(value:T):T{if(value&&typeof value==="object"){for(const v of Object.values(value))immutable(v);Object.freeze(value);}return value;}
 function exact(v:object,keys:string[]):boolean{return Object.keys(v).length===keys.length&&Object.keys(v).every(k=>keys.includes(k));}
-function inventoryGeneration(entries:GitWorktreeEntry[]):string{return hash([...entries].sort((a,b)=>a.path.localeCompare(b.path)));}
+function inventoryGeneration(entries:GitWorktreeEntry[]):string{return hash([...entries].sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0));}
 function validBranch(value:unknown):boolean{return value===null||typeof value==="string"&&value.length>0&&value.length<=512&&!/[\x00-\x1f]/.test(value);}
 function probeSnapshot(input:unknown):GitProjectProbeResult {
  safe(input);if(Buffer.byteLength(JSON.stringify(input))>65536)throw new Error("GIT_PROJECT_INVALID_INPUT");
