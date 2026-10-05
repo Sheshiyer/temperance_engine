@@ -1,0 +1,3 @@
+# 1jc — native capture/lifetime only
+
+Root approved1gx. Own new publichelper/test/contract and packet only. Fixed4097ctypesPIDslots max4096rows beforeallocation; SDKUID_ONLY4/taskall232, exactsize/result/state/birth validation, ESRCHonlyskip/zombiesamebirthreread. Retainedsigned64deadline<=120s initialremaining before/afterloader/query; normalizeordinarynativeerrors. Purelinearparentqueue immutablelifetime<=256rootincl plus onecleanup4096frame bound4352/frozen. Unknown/reuse holds notemptycleanup. No groupauthority/signals/footprint/backendcapchange/provider/worker. Mockfirst AST then bounded2s currenthostUIDsnapshot counts-only allowed. Allauthorityfalse, sourceonly.
