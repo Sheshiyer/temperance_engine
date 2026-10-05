@@ -1109,9 +1109,9 @@ untouched.
 - [x] ISC-837: The installed OmniRoute 3.8.51 package returns `contract_verified` from the offline readiness command, and the receipt keeps `blockingCondition: "401 AUTH_001 unresolved"`.
 - [x] ISC-838: The 3.8.51 contract proves that the CLI sends the machine-bound token only to a loopback destination and refuses redirects while the token is attached.
 - [x] ISC-839: The context-preview and Hermes preview gates accept only an OmniRoute 3.8.51 runtime and installed version; 3.8.48 and 3.8.52 snapshots fail with `native_snapshot_version_invalid`.
-- [x] ISC-840: The native control-plane snapshot accepts the 3.8.51 seeded default compression combo, whose steps carry no intensity, and still rejects an invalid intensity.
+- [x] ISC-840: The native control-plane snapshot accepts the 3.8.51 seeded default compression combo, whose steps carry no intensity, and still rejects an invalid or explicitly null intensity.
 - [x] ISC-841: The dashboard topology semantics match the compiled 3.8.51 dashboard, and `versionBound` is true only for 3.8.51.
-- [x] ISC-842: Compression settings outside the four fully projected keys, including the whole `cavemanConfig`, are digested within fixed bounds, and their values never appear in the snapshot.
+- [x] ISC-842: Compression settings outside the four fully projected keys, including the whole `cavemanConfig`, are digested within fixed row, key and value bounds, and their values never appear in the snapshot.
 - [x] ISC-843: Anti: no 3.8.51 gate claims live authentication, provider promotion, or a resolved 401.
 
 ## Test Strategy

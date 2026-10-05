@@ -206,11 +206,13 @@ describe("OmniRoute native control-plane snapshot", () => {
       { engine: "session-dedup", intensity: null },
       { engine: "lite", intensity: null },
     ]);
-    const bad = createFixture();
-    const badDb = new Database(bad.databasePath);
-    badDb.exec(`UPDATE compression_combos SET pipeline = '[{"engine":"lite","intensity":42}]'`);
-    badDb.close();
-    expect(captureCode(() => collectNativeControlPlane(bad))).toBe("compression_pipeline_invalid");
+    for (const pipeline of ['[{"engine":"lite","intensity":42}]', '[{"engine":"lite","intensity":null}]']) {
+      const bad = createFixture();
+      const badDb = new Database(bad.databasePath);
+      badDb.exec(`UPDATE compression_combos SET pipeline = '${pipeline}'`);
+      badDb.close();
+      expect(captureCode(() => collectNativeControlPlane(bad))).toBe("compression_pipeline_invalid");
+    }
   });
 
   test("digests compression settings the projection does not fully project, without exposing them", () => {
@@ -238,6 +240,14 @@ describe("OmniRoute native control-plane snapshot", () => {
     expect(after.candidateEngines).toEqual(before.candidateEngines);
     expect(after.otherSettingsSha256).not.toBe(before.otherSettingsSha256);
     expect(JSON.stringify(after)).not.toContain("SENTINEL_CHANGED");
+  });
+
+  test("fails closed on an oversized compression setting key", () => {
+    const fixture = createFixture();
+    const db = new Database(fixture.databasePath);
+    db.exec(`INSERT INTO key_value VALUES ('compression', '${"k".repeat(129)}', '1')`);
+    db.close();
+    expect(captureCode(() => collectNativeControlPlane(fixture))).toBe("compression_settings_too_large");
   });
 
   test("fails closed on an unbounded compression settings namespace", () => {

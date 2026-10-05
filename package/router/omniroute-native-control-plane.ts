@@ -393,6 +393,7 @@ function nullableStringSetting(value: string | undefined, code: string): string 
 
 const MAX_COMPRESSION_SETTINGS = 64;
 const MAX_COMPRESSION_SETTING_BYTES = 65_536;
+const MAX_COMPRESSION_SETTING_KEY_BYTES = 128;
 // Settings whose whole value appears in the projection. `cavemanConfig` is projected only through
 // `enabled`, so it is digested in full with every other setting.
 const FULLY_PROJECTED_COMPRESSION_KEYS: ReadonlySet<string> = new Set([
@@ -406,8 +407,14 @@ const FULLY_PROJECTED_COMPRESSION_KEYS: ReadonlySet<string> = new Set([
  */
 function otherCompressionSettings(rows: KeyValueRow[]): { count: number; sha256: string } {
   if (rows.length > MAX_COMPRESSION_SETTINGS) fail("compression_settings_too_large");
+  // Bounded rows, keys and values keep the hashed input below 64 * (128 B + 64 KiB).
   for (const row of rows) {
-    if (typeof row.value !== "string" || Buffer.byteLength(row.value, "utf8") > MAX_COMPRESSION_SETTING_BYTES) {
+    if (
+      typeof row.key !== "string" ||
+      Buffer.byteLength(row.key, "utf8") > MAX_COMPRESSION_SETTING_KEY_BYTES ||
+      typeof row.value !== "string" ||
+      Buffer.byteLength(row.value, "utf8") > MAX_COMPRESSION_SETTING_BYTES
+    ) {
       fail("compression_settings_too_large");
     }
   }
@@ -448,11 +455,13 @@ function compressionProjection(rows: KeyValueRow[], combos: ComboRow[]): Compres
       if (!item || typeof item !== "object" || Array.isArray(item)) fail("compression_pipeline_invalid");
       const engine = (item as Record<string, unknown>).engine;
       // 3.8.51 makes intensity optional; its seeded default combo is [session-dedup, lite].
-      const intensity = (item as Record<string, unknown>).intensity ?? null;
+      // An absent intensity projects as null; a present one (including an explicit null) must be valid.
+      const hasIntensity = Object.prototype.hasOwnProperty.call(item, "intensity");
+      const intensity = hasIntensity ? (item as Record<string, unknown>).intensity : null;
       if (
         typeof engine !== "string" ||
         !SAFE_ROLE.test(engine) ||
-        (intensity !== null && (typeof intensity !== "string" || !SAFE_ROLE.test(intensity)))
+        (hasIntensity && (typeof intensity !== "string" || !SAFE_ROLE.test(intensity)))
       ) fail("compression_pipeline_invalid");
       configuredPipeline.push({ engine, intensity });
     }
