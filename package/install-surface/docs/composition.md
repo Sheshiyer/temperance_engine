@@ -45,3 +45,17 @@ supplies metadata, cancellation and an advisory deadline; it provides no storage
 provider, subprocess or network adapter. This is not a sandbox for arbitrary code.
 The host must bind these interfaces to its existing contained owners and durable
 ledger, then prove real callback delivery and consumer readback independently.
+
+## Common banner and island model
+
+`bun src/cli.ts composition project` reads a bounded JSON packet containing
+`manifest`, optional `observations`, `event` and `receipt`. It emits a single
+immutable presentation model with lineage digests, fixed banner text and island
+content. Declared targets remain visible when stale, held or unknown; `enabled`
+requires fresh configuration evidence. Undeclared targets are omitted.
+
+The receipt digest binds content and lineage; it does not authenticate a supplied
+receipt. Native adapters must establish provenance before displaying the model as
+an operational observation. The command supplies neither provider resolution nor
+execution/acceptance authority. Installed native renderers and the optional Manifest
+bridge consume this already-redacted model through their own bounded adapters.

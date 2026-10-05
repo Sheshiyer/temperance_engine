@@ -36,3 +36,16 @@ test("main product CLI exposes the same standalone configuration inspector", asy
  expect(report.integrations).toEqual([]); expect(report.kernel.requires_superset).toBe(false);
  expect(report.kernel.requires_integrations).toBe(false); expect(report.effect_authorized).toBe(false);
 });
+
+test("main product CLI projects one lifecycle lineage for banner and island consumers", async () => {
+ const { inspectComposition } = await import("../src/composition/inspect.ts");
+ const { runOrganLifecycle } = await import("../src/composition/lifecycle.ts");
+ const { spawnSync } = await import("node:child_process");
+ const now = Date.now();
+ const event = {schema:"temperance.organ-lifecycle-event.v1", occurrence_id:"projection-cli-fixture", plant_id:manifest.plant.id, source_manifest_digest:inspectComposition(manifest, undefined, now).source_manifest_digest, occurred_at:new Date(now).toISOString(), kind:"session-start"};
+ const receipt = await runOrganLifecycle({manifest,event,subscriptions:{schema:"temperance.organ-subscriptions.v1",subscriptions:[]},handlers:{},now,ledger:{claim:async()=>"claimed",commit:async()=>{}}});
+ const result = spawnSync(process.execPath, [new URL("../src/cli.ts", import.meta.url).pathname, "composition", "project"], {input:JSON.stringify({manifest,event,receipt}),encoding:"utf8",timeout:5000});
+ expect(result.status).toBe(0);expect(result.stderr).toBe("");
+ const projected = JSON.parse(result.stdout);expect(projected.schema).toBe("temperance.composition-projection.v1");expect(projected.effect_authorized).toBe(false);expect(projected.targets[0].banner_text).toContain("No advisory callbacks selected");expect(projected.targets[0].enabled).toBe(false);
+ const invalid = await runCompositionCommand(["project"],()=>JSON.stringify({manifest,event,receipt,private:"secret"}),now);expect(invalid.code).toBe(2);expect(invalid.stderr).not.toContain("secret");
+});

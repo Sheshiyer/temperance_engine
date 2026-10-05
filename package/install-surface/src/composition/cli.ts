@@ -1,3 +1,4 @@
+import { projectComposition } from "./projection.ts";
 import { canonical } from "../canonical-json.ts";
 import { MAX_INPUT_BYTES } from "./contracts.ts";
 import { inspectComposition } from "./inspect.ts";
@@ -13,7 +14,7 @@ export async function runCompositionCommand(
   readInput?: () => Promise<string> | string,
   now?: number,
 ): Promise<CompositionCommandResult> {
-  if (!Array.isArray(args) || args.length !== 1 || args[0] !== "inspect") {
+  if (!Array.isArray(args) || args.length !== 1 || !["inspect", "project"].includes(args[0]!)) {
     return {
       code: 2,
       stdout: "",
@@ -74,7 +75,8 @@ export async function runCompositionCommand(
 
   const keys = Object.keys(packet as Record<string, unknown>);
   if (
-    keys.some((k) => k !== "manifest" && k !== "observations")
+    keys.some((k) => !(args[0] === "project" ? ["manifest", "observations", "event", "receipt"] : ["manifest", "observations"]).includes(k))
+    || (args[0] === "project" && (!("event" in packet) || !("receipt" in packet)))
     || !("manifest" in packet)
   ) {
     return {
@@ -84,10 +86,12 @@ export async function runCompositionCommand(
     };
   }
 
-  const typedPacket = packet as { manifest: unknown; observations?: unknown };
+  const typedPacket = packet as { manifest: unknown; observations?: unknown; event?: unknown; receipt?: unknown };
 
   try {
-    const report = inspectComposition(typedPacket.manifest, typedPacket.observations, now);
+    const report = args[0] === "project"
+      ? projectComposition(typedPacket.manifest, typedPacket.observations, typedPacket.event, typedPacket.receipt, now ?? Date.now())
+      : inspectComposition(typedPacket.manifest, typedPacket.observations, now);
     return {
       code: 0,
       stdout: canonical(report),

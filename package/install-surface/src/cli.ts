@@ -874,6 +874,7 @@ async function main(): Promise<void> {
 
 Commands:
   composition inspect              Inspect JSON stdin; configuration evidence only
+  composition project              Project redacted lifecycle banner/island JSON
   host-binding-init --host-profile P --output B
           [--set NAME VALUE] [--secret-reference NAME SERVICE ACCOUNT]
           [--alias ALIAS COMBO] [--volume ID MOUNT_VAR UUID_VAR UUID]

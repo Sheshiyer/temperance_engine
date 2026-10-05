@@ -27,3 +27,9 @@ Execution rules: isolated worktrees; mapped combo for bulk production; exact-fil
 
 ## Wave 2 — advisory causal lifecycle
 Add optional explicit lifecycle subscriptions, injected advisory callbacks and atomic claim/terminal receipt seam. Recompute composition readiness and never infer execution authority. No mandatory personal trigger semantics or default organ activation. Test replay, concurrent claims, timeout, dependencies and persistence failures.
+
+## Wave 3 — shared native projection
+Add a strict reusable composition/lifecycle projection for banner text and island
+models with common lineage and stale/held/unknown states. Exclude private metadata
+and authority promotion. Expose it through the existing composition CLI; external
+native renderer/bridge consumers remain separately verified adapter obligations.

@@ -249,6 +249,8 @@ untouched.
 - [x] ISC-COMP-02: Focused tests and actual read-only CLI pass fresh verification.
 - [x] ISC-COMP-04: Explicit advisory subscriptions causally invoke injected handlers with stable replay identity and terminal receipt semantics.
 - [x] ISC-COMP-05: Proxy, stale-after-claim, timeout and persistence boundaries pass regression tests without execution authority.
+- [x] ISC-COMP-06: One immutable redacted projection supplies banner and island models with common lifecycle lineage and visible stale/held/unknown states.
+- [x] ISC-COMP-07: Main composition project CLI passes actual subprocess and producer-to-projection regressions.
 - [ ] ISC-COMP-03: Installed adapters, live causal lifecycle and independent runtime acceptance are proved.
 
 
@@ -3182,3 +3184,7 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 ### Advisory lifecycle source verification — 2026-10-05
 
 58 composition/CLI/lifecycle tests pass (223 assertions), and package typecheck passes. Independent review defects (Proxy reflection and expiry during async claim) were fixed and regression-tested. Atomic durable storage and contained handlers remain host adapter obligations.
+
+### Shared projection verification — 2026-10-05
+
+69 composition/CLI/lifecycle/projection tests pass (276 assertions), with typecheck. Independent review found that valid missing-organ holds were rejected by the projection; producer-to-consumer regression now passes. Native renderer installation and operational receipt authentication remain open.
