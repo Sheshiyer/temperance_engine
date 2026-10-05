@@ -115,6 +115,10 @@ function boundedSnapshot(value: unknown): unknown {
   if (Buffer.byteLength(JSON.stringify(output)) > MAX_BYTES) invalid();
   return output;
 }
+/** Detached ordinary-prototype immutable JSON for composing strict Git contracts. */
+export function snapshotGitContractInput(input: unknown): unknown {
+  return freeze(JSON.parse(JSON.stringify(boundedSnapshot(input))));
+}
 function exact(value: unknown, keys: readonly string[]): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
   const actual = Object.keys(value);

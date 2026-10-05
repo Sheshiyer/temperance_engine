@@ -119,3 +119,15 @@ with execution/capacity/lease false and migration-held claim state. No issuer
 authentication, trusted observers, probes, claims or writes. Explicit caller now
 and reviewed payload fingerprint are context consistency only. Verify real main
 subprocess, bounds, invalid fields, expiry and fixed redacted failures.
+
+
+### Wave 14 — portable Git run lineage source contracts
+
+- Own only new public git-run-contracts source/tests and docs/git-run-lineage.md; minimally export the existing bounded snapshot helper from git-authority-contracts.
+- Normalize actual ticket/grant/admission references and immutable original claim timestamps; canonical fingerprints, exact replay lineage and all execution/capacity/lease authority false.
+- Coordinate the private ledger through injected pure APIs; no SQLite, private paths, runtime issuer, dispatch, installation or live claim in this product slice.
+- Verify strict unsafe-object/binding/time/replay fixtures and focused public typecheck. Rollback is removal of this additive source slice, with private runtime migration separately held.
+
+## Constellation permanent source retirement — 2026-10-05
+
+Operator decision retires projection.constellation across public composition declarations, observations and dependency references. Remove it from active module IDs and reject its explicit ID with typed retired error. Preserve Manifest/banner/island/organ semantics. Static/in-process fixtures only; no installed/runtime claim, no native app build.
