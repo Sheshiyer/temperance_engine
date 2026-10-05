@@ -1,3 +1,4 @@
+import { runCompositionCommand, readCompositionStdin } from "./composition/cli.ts";
 import { existsSync, readFileSync, readdirSync, mkdirSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { homedir } from "node:os";
@@ -251,6 +252,13 @@ function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
 
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "composition") {
+    const result = await runCompositionCommand(process.argv.slice(3), readCompositionStdin);
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    process.exitCode = result.code;
+    return;
+  }
   if (command === "host-binding-init") {
     try {
       const args = parseHostBindingInitArgs(process.argv.slice(3));
@@ -865,6 +873,7 @@ async function main(): Promise<void> {
   process.stderr.write(`usage: temperance <command> [options]
 
 Commands:
+  composition inspect              Inspect JSON stdin; configuration evidence only
   host-binding-init --host-profile P --output B
           [--set NAME VALUE] [--secret-reference NAME SERVICE ACCOUNT]
           [--alias ALIAS COMBO] [--volume ID MOUNT_VAR UUID_VAR UUID]

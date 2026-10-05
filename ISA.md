@@ -243,6 +243,13 @@ untouched.
 
 ## Criteria
 
+### Standalone composition source slice (2026-10-05)
+
+- [x] ISC-COMP-01: Repository-owned composition source validates boundaries and rejects unsafe inputs.
+- [x] ISC-COMP-02: Focused tests and actual read-only CLI pass fresh verification.
+- [ ] ISC-COMP-03: Installed adapters, live causal lifecycle and independent runtime acceptance are proved.
+
+
 - [x] ISC-1: Repository contains `install.sh`.
 - [x] ISC-2: Repository contains `verify.sh`.
 - [x] ISC-3: Repository contains rollback guidance.
@@ -3165,3 +3172,7 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - ISC-833: public guard — `./verify.sh` exited 0 with the private-path guard unchanged; the changed files contain no absolute home-directory path.
 - ISC-834: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exited 0 on 84d9410 (it exited 2 with three errors on origin/main ebe76e3).
 - ISC-835: `bun test test/doctor.test.ts` — 49 pass; removing the LAUNCHAGENT dispatch line makes the class-aware test fail with `ADAPTER_UNAVAILABLE`.
+
+### Composition source verification — 2026-10-05
+
+37 focused tests, 136 assertions; package typecheck; actual main CLI standalone packet exit 0. Configuration-only output disables effects. These checks close only the two new source criteria; inherited criteria and runtime acceptance remain unchanged.
