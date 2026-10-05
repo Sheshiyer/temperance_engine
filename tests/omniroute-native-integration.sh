@@ -236,7 +236,8 @@ check_live_transport_contract() {
   state_path="${OMNIROUTE_QUICK_TUNNEL_STATE:-$HOME/.omniroute/cloudflared/quick-tunnel-state.json}"
 
   if [ -r "$state_path" ] && command -v jq >/dev/null 2>&1; then
-    if jq -e '.status == "stopped" and .pid == null and ((.url // "") == "")' \
+    # 3.8.51 writes publicUrl/apiUrl; earlier releases wrote url. Any of them means a live tunnel.
+    if jq -e '.status == "stopped" and .pid == null and ((.url // "") == "") and ((.publicUrl // "") == "") and ((.apiUrl // "") == "")' \
       "$state_path" >/dev/null 2>&1; then
       pass "optional live Quick Tunnel state is stopped and cleared"
     else
