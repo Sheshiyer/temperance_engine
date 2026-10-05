@@ -58,3 +58,12 @@ actual claim stays held until supervisor/SQL/owning-writer migration. No ledger,
 scheduler, installation, private store, provider or runtime mutation.
 
 Wave5 public CLI scope: root owns bounded git-project inspect stdin command and main CLI wiring. Only actual local Git probe is constructed; private binding input is never projected, packet volume/probe injection is rejected. Source evidence grants no execution/lease authority.
+
+### Wave 6 follow-up — private reusable Git Hands context envelope
+Add only execution/git-hands-envelope.ts and its focused tests. Bind reviewed Git
+source evidence to fresh private root/common-directory/branch/inventory observations,
+run/tasks, reviewed dirty-source and ISA criteria fingerprints, and an exclusive
+lease context with seat fingerprint. Use shared public phase/lane policy including
+PlanMax E4/E5. Envelope validity supplies no execution, capacity or lease authority;
+no filesystem probing or public projection of private paths. Verify disposable Git
+primary/external worktree source evidence through the pure builder.
