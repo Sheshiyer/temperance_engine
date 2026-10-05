@@ -1049,3 +1049,24 @@ test.each(["source-drift","destination-symlink"])("optional organ source holds %
   expect(result.status).not.toBe("committed");expect(readFileSync(join(sentinel,"untouched"),"utf8")).toBe("sentinel");
   expect(existsSync(join(sentinel,"bin/te-organ-contain.py"))).toBe(false);
 });
+
+test("reconciled default router dependency closure dry-runs, copies and rolls back without runtime invocation",async()=>{
+  const {cpSync,chmodSync,lstatSync}=await import("node:fs");const {loadLock}=await import("../src/load.ts");
+  const root=tempRoot("router-source-reconciliation-");const stateRoot=join(root,"state");const repositoryRoot=join(root,"product");
+  mkdirSync(stateRoot,{recursive:true});mkdirSync(join(repositoryRoot,"package/bin"),{recursive:true});
+  cpSync(resolve(import.meta.dir,"../../router"),join(repositoryRoot,"package/router"),{recursive:true});
+  cpSync(resolve(import.meta.dir,"../../bin/te-backup-if-changed"),join(repositoryRoot,"package/bin/te-backup-if-changed"));
+  const loaded=loadLock(resolve(import.meta.dir,"../install-surface-manifest.lock.json"));const fixture:CompileResult={...loaded,semanticIds:loaded.lockObject.records.map(r=>r.id)};
+  const plan=createPlan({verb:"install",profileResult:fixture,profile:"default",onlyIds:new Set(["router.governed-runtime"])});
+  expect(plan.scope?.record_ids).toEqual(["router.governed-runtime","router.gsd-backup-helper"]);
+  const io=confinedTestIO(root);let runtimeCalls=0;io.execFile=async()=>{runtimeCalls++;throw new Error("runtime invocation forbidden");};
+  const sentinel=join(stateRoot,"unrelated");writeFileSync(sentinel,"keep");
+  const dry=await executePlan({stateRoot,io,plan,compileResult:fixture,verb:"install",profile:"default",repositoryRoot,dryRun:true});expect(dry.status).toBe("committed");expect(existsSync(join(stateRoot,"router"))).toBe(false);
+  mkdirSync(join(stateRoot,"router"));writeFileSync(join(stateRoot,"router/routing-policy.ts"),"original installed fixture\n");chmodSync(join(stateRoot,"router/routing-policy.ts"),0o644);
+  const installed=await executePlan({stateRoot,io,plan,compileResult:fixture,verb:"install",profile:"default",repositoryRoot});expect(installed.status).toBe("committed");
+  const record=fixture.lockObject.records.find(r=>r.id==="router.governed-runtime")!;if(record.class!=="COPY"||record.verification.expected?.kind!=="tree")throw new Error("tree expected");
+  for(const [path,hash]of Object.entries(record.verification.expected.files)){expect(`sha256:${createHash("sha256").update(readFileSync(join(stateRoot,"router",path))).digest("hex")}`).toBe(hash);expect((lstatSync(join(stateRoot,"router",path)).mode&0o777).toString(8).padStart(4,"0")).toBe(record.verification.expected.modes![path]);}
+  expect(await rollbackTransaction(installed.txid,stateRoot,io)).toMatchObject({status:"committed"});
+  expect(readFileSync(join(stateRoot,"router/routing-policy.ts"),"utf8")).toBe("original installed fixture\n");expect(existsSync(join(stateRoot,"router/routing-policy.test.ts"))).toBe(false);expect(existsSync(join(stateRoot,"bin/te-backup-if-changed"))).toBe(false);
+  expect(readFileSync(sentinel,"utf8")).toBe("keep");expect(runtimeCalls).toBe(0);
+});

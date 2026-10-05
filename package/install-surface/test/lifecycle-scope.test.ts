@@ -126,3 +126,24 @@ test("optional organ source profile preserves existing selected plans", async ()
   expect(()=>createPlan({verb:"install",profileResult:after,profile:"default",platform:"darwin",onlyIds:new Set(["organ-guard.source"])})).toThrow("PLAN_SCOPE_INELIGIBLE_RECORD");
   expect(()=>createPlan({verb:"install",profileResult:after,profile:"organ-guard",platform:"win32",onlyIds:new Set(["organ-guard.source"])})).toThrow("PLAN_SCOPE_INELIGIBLE_RECORD");
 });
+
+test("deliberate router reconciliation changes exactly reviewed leaves and preserves profile plans", async () => {
+  const { readFileSync }=await import("node:fs"); const {resolve}=await import("node:path");const {execFileSync}=await import("node:child_process");const {canonical}=await import("../src/canonical-json.ts");const {createHash}=await import("node:crypto");
+  const root=resolve(import.meta.dir,"../../..");const prior="e07ee9bb531be56f62cd7afdc7be21972f28c71d";
+  const old=JSON.parse(execFileSync("/usr/bin/git",["-C",root,"show",`${prior}:package/install-surface/install-surface-manifest.lock.json`],{encoding:"utf8",env:{PATH:"/usr/bin:/bin",GIT_NO_REPLACE_OBJECTS:"1",GIT_CONFIG_NOSYSTEM:"1",GIT_CONFIG_GLOBAL:"/dev/null"}}));
+  const next=JSON.parse(readFileSync(resolve(import.meta.dir,"../install-surface-manifest.lock.json"),"utf8"));
+  expect(next.records.filter((r:any)=>r.id!=="router.governed-runtime")).toEqual(old.records.filter((r:any)=>r.id!=="router.governed-runtime"));
+  const before=old.records.find((r:any)=>r.id==="router.governed-runtime");const after=next.records.find((r:any)=>r.id==="router.governed-runtime");
+  expect({...after,verification:before.verification}).toEqual(before);
+  const a=before.verification.expected;const b=after.verification.expected;
+  expect(Object.keys(a.files)).toEqual(Object.keys(b.files));expect(b.modes).toEqual(a.modes);
+  expect(Object.keys(b.files).filter(p=>a.files[p]!==b.files[p])).toEqual(["routing-policy.test.ts","routing-policy.ts"]);
+  expect(b.files["routing-policy.ts"]).toBe("sha256:e71d91994cd7c2c339feb628ba8126358387cdee034736cb81e648f531d104ab");
+  expect(b.files["routing-policy.test.ts"]).toBe("sha256:d23f28ab9b93f107bb707afe48cf66b79f93760e3ab30c91dde183a1ea373232");
+  const result=(lock:any):CompileResult=>({lockObject:lock,canonicalBytes:canonical(lock),digest:`sha256:${createHash("sha256").update(canonical(lock)).digest("hex")}`,semanticIds:lock.records.map((r:any)=>r.id)});
+  for(const profile of ["default","minimal"]){const left=createPlan({verb:"install",profileResult:result(old),profile,platform:"darwin"});const right=createPlan({verb:"install",profileResult:result(next),profile,platform:"darwin"});expect(right.steps).toEqual(left.steps);expect(right.outcomes).toEqual(left.outcomes);expect(right.inventory_digest).not.toBe(left.inventory_digest);}
+  const oldProvenance=JSON.parse(execFileSync("/usr/bin/git",["-C",root,"show",`${prior}:package/install-surface/copy-expectations.provenance.json`],{encoding:"utf8",env:{PATH:"/usr/bin:/bin",GIT_NO_REPLACE_OBJECTS:"1",GIT_CONFIG_NOSYSTEM:"1",GIT_CONFIG_GLOBAL:"/dev/null"}}));
+  const newProvenance=JSON.parse(readFileSync(resolve(import.meta.dir,"../copy-expectations.provenance.json"),"utf8"));
+  expect(newProvenance.records.filter((r:any)=>r.id!=="router.governed-runtime")).toEqual(oldProvenance.records.filter((r:any)=>r.id!=="router.governed-runtime"));
+  expect(newProvenance.records.find((r:any)=>r.id==="router.governed-runtime").revision).toBe(prior);
+});
