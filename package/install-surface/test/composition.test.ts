@@ -604,3 +604,11 @@ test("proxies are rejected before any caller reflection trap", () => {
   expect(() => validateComposition({...exampleFixture, plant: wrap(exampleFixture.plant)})).toThrow("COMPOSITION_INVALID_INPUT");
   expect(traps).toBe(0);
 });
+
+
+test("Constellation retirement permanently rejects declaration observation and dependency", () => {
+  const module = { id: "projection.constellation", owner: "operator", plant_id: exampleFixture.plant.id, requires: ["projection.manifest"], configuration_refs: [] };
+  expect(() => validateComposition({ ...exampleFixture, modules: [...exampleFixture.modules, module] })).toThrow("COMPOSITION_MODULE_RETIRED");
+  expect(() => validateComposition({ ...exampleFixture, modules: exampleFixture.modules.map((m,i) => i ? m : { ...m, requires: ["projection.constellation"] }) })).toThrow("COMPOSITION_MODULE_RETIRED");
+  expect(() => validateObservations({ schema: COMPOSITION_OBSERVATIONS_SCHEMA, plant_id: exampleFixture.plant.id, observed_at: "2026-10-05T12:00:00.000Z", expires_at: "2026-10-05T12:01:00.000Z", modules: [{ id: "projection.constellation", state: "admitted", configuration_refs: [] }] })).toThrow("COMPOSITION_MODULE_RETIRED");
+});

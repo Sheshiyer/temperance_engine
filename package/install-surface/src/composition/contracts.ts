@@ -13,6 +13,8 @@ export const MAX_INTEGRATIONS = 16;
 export const MAX_REFS_PER_ITEM = 32;
 export const MAX_REQUIRES_PER_ITEM = 32;
 
+export const RETIRED_MODULE_IDS = Object.freeze(["projection.constellation"] as const);
+
 export const VALID_MODULE_IDS = [
   "routing.gateway",
   "skills.binding",
@@ -20,7 +22,6 @@ export const VALID_MODULE_IDS = [
   "executor.hands",
   "transport.a2a",
   "projection.manifest",
-  "projection.constellation",
   "projection.banner",
   "projection.island",
   "organ.vestibule",
@@ -159,7 +160,6 @@ export interface CompositionReportV1 {
 export const GENERIC_MINIMUM_DEPENDENCIES: Record<ModuleId, readonly ModuleId[]> = {
   "executor.hands": ["executor.git", "skills.binding"],
   "transport.a2a": ["executor.hands"],
-  "projection.constellation": ["projection.manifest"],
   "organ.adytum": ["organ.vestibule"],
   "organ.circulator": ["organ.nutrix"],
   "organ.praeceptor": ["organ.nutrix"],
@@ -325,6 +325,7 @@ export function validateComposition(input: unknown): CompositionV1 {
     ensurePlainObject(rawMod);
     assertExactKeys(rawMod, ["id", "owner", "plant_id", "requires", "configuration_refs"]);
 
+    if (rawMod.id === "projection.constellation") throw new Error("COMPOSITION_MODULE_RETIRED");
     if (!isModuleId(rawMod.id)) {
       throw new Error("COMPOSITION_INVALID_MODULE");
     }
@@ -350,6 +351,7 @@ export function validateComposition(input: unknown): CompositionV1 {
     const requiresSeen = new Set<ModuleId>();
     const normalizedRequires: ModuleId[] = [];
     for (const req of rawMod.requires) {
+      if (req === "projection.constellation") throw new Error("COMPOSITION_MODULE_RETIRED");
       if (!isModuleId(req)) {
         throw new Error("COMPOSITION_INVALID_MODULE");
       }
@@ -490,6 +492,7 @@ export function validateComposition(input: unknown): CompositionV1 {
     const integRequiresSeen = new Set<ModuleId>();
     const integRequires: ModuleId[] = [];
     for (const req of rawInteg.requires) {
+      if (req === "projection.constellation") throw new Error("COMPOSITION_MODULE_RETIRED");
       if (!isModuleId(req)) {
         throw new Error("COMPOSITION_INVALID_INTEGRATION");
       }
@@ -584,6 +587,7 @@ export function validateObservations(input: unknown): CompositionObservationsV1 
     ensurePlainObject(rawMod);
     assertExactKeys(rawMod, ["id", "state", "configuration_refs"]);
 
+    if (rawMod.id === "projection.constellation") throw new Error("COMPOSITION_MODULE_RETIRED");
     if (!isModuleId(rawMod.id)) {
       throw new Error("COMPOSITION_OBSERVATION_INVALID");
     }
