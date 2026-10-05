@@ -3204,7 +3204,7 @@ Wave6 authority source verification (2026-10-05):23 tests152 assertions and type
 Wave7 source verification: 132 tests, 680 assertions, zero failures and package typecheck pass. Dual primary/target private Hands context, actual disposable Git, deterministic mixed-case ordering and public projection rejection verified. Authenticated grant, capacity and atomic execution claim remain open.
 
 - [x] ISC-COMP-14: Standalone TRIVECTOR arithmetic preserves current policy and explicit legacy/v4.1 selection with no environment or private dependencies, verified by focused numerical regressions.
-- [ ] ISC-COMP-15: Standalone routing evidence and selection gates prevent pin bypass and fingerprint every consumed normalized decision signal; exact scope and acceptance provenance remain explicit.
+- [x] ISC-COMP-15: Standalone routing evidence and selection gates prevent pin bypass and fingerprint every consumed normalized decision signal; exact scope and acceptance provenance remain explicit.
 
 Standalone math source verification:9 tests58 assertions and typecheck pass; existing arithmetic/policy preserved. Explicit mode defaults legacy independent of environment. Evidence lineage validation, calibration and installed selection remain open.
 
@@ -3215,3 +3215,5 @@ TRIVECTOR evidence contract source verification:19 math/contract tests118 assert
 - [x] ISC-COMP-17: Existing public router pins cannot re-admit an open circuit; red-to-green regression and18 tests65 assertions pass without changing weights.
 
 Legacy pin receipt follow-up: independent review caught obsolete bypass label; removed and regression asserts circuit-open and absent bypass. Fresh18 tests67 assertions pass.
+
+Diagnostic selection source verification:168 composition/Git/math/contract/selection tests920 assertions and package typecheck pass; independent review passed. Legacyfraction and v4.1 window signals remain distinct, limitations precede pins, half-open shows probe-required. No full live rollback/calibration/authenticated admission claim.

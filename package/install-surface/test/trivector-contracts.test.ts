@@ -38,3 +38,11 @@ test("empty diagnostic candidates and multi-segment canonical models",()=>{
 test("serialized numeric syntax counts toward wire budget",()=>{
  const large={data:Array.from({length:6},()=>Array.from({length:32},()=>Array.from({length:32},()=>123456789012345.67)))};expect(()=>normalize(large,now)).toThrow("TRIVECTOR_PACKET_UNSAFE");
 });
+test("optional legacy quota exact stamped fraction is bounded and subject-bound",()=>{
+ const p=fixture();(p.candidates[0] as any).legacy_quota={...stamp(),remaining_fraction:.25};const n=normalize(p,now);expect(n.candidates[0]!.legacy_quota!.remaining_fraction).toBe(.25);expect(Object.isFrozen(n.candidates[0]!.legacy_quota)).toBe(true);
+ for(const patch of [{remaining_fraction:1.1},{remaining_fraction:-.1},{subject_fingerprint:`sha256:${"b".repeat(64)}`},{private_path:"/private/context"}]){const q=structuredClone(p);Object.assign((q.candidates[0] as any).legacy_quota,patch);expect(()=>normalize(q,now)).toThrow(/TRIVECTOR_PACKET_/);}
+ (p.candidates[0] as any).legacy_quota.remaining_fraction=null;expect(normalize(p,now).candidates[0]!.legacy_quota!.remaining_fraction).toBeNull();
+ let calls=0;Object.defineProperty((p.candidates[0] as any).legacy_quota,"remaining_fraction",{enumerable:true,get(){calls++;return .5;}});expect(()=>normalize(p,now)).toThrow("TRIVECTOR_PACKET_UNSAFE");expect(calls).toBe(0);
+});
+
+test("malformed optional-shape candidates use fixed safe errors",()=>{for(const value of [null,0,"seat",true,[]]){const p=fixture();(p as any).candidates=[value];expect(()=>normalize(p,now)).toThrow("TRIVECTOR_PACKET_INVALID");}});

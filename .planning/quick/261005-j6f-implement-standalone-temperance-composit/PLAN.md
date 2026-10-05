@@ -94,3 +94,18 @@ policy into consumed digest. Domain floors remain visible diagnostics; no loader
 live route flip, provider call, execution, admission or acceptance authority.
 
 Root legacy public router repair: add red-to-green forced-open-circuit regression then remove only pin eligibility bypass. Preserve scoring, static override ordering, half-open and all other legacy semantics. No live install.
+
+### Wave 7 correction — explicit legacy quota signal
+Add optional closed candidate legacy_quota stamp + remaining_fraction in [0,1]
+(or null). Legacy arithmetic consumes only its fresh fraction; missing/stale data
+stays unknown and never derives a percentage from window units. v4.1 alone uses
+window headroom/hazard and known blocking-window head gates. Preserve source
+G9 and required public binary/context gates; this is not full legacy calibration
+or live rollback. Cover divergent fractions/window units and strict validation.
+
+Public circuit half-open observations may produce context-only head proposals
+with CIRCUIT_PROBE_REQUIRED. Actual owning probe reservation/eligibility remains
+absent; no lease or execution authority is inferred. Quota diagnostic flags always
+describe only the active legacy fraction or v4.1 window signal.
+
+Root documentation: explain closed routing evidence, diagnostic selection, legacy signal compatibility and remaining owner/runtime obligations.

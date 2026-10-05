@@ -29,3 +29,5 @@ Closed TRIVECTOR evidence source: bounded immutable explicit candidate/gate/fit/
 Existing public legacy router source also removes pin circuit bypass. New regression failed before change then18 tests65 assertions pass; static override and half-open semantics retained. No installation/runtime apply.
 
 Independent pin review corrected obsolete bypass receipt label; gate and displayed reason now agree.18 tests67 assertions pass.
+
+Pure diagnostic selection source:168 focused combined tests920 assertions/typecheck and independent review pass. Binary gate/active limitation checks precede pins and fit; actual normalized evidence/time/policy digest bound. Legacy remainingfractions separate from v4.1 windowheadroom/hazard/exhaustion, half-open explicitly probe-required. Unknown quota omitted without fabricating replenishment. All effect/capacity/lease/execution flags false; semantic acceptance null. Full live legacy parity, accepted-result calibration and owning adapters remain open.

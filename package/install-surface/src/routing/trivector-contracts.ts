@@ -23,9 +23,11 @@ export interface TrivectorCandidate {
     entitlement: "observed-available" | "observed-unavailable" | "unknown";
     catalog: "resolved" | "unresolved" | "unknown";
     capability: CapabilityState;
-    circuit: "closed" | "open" | "unknown";
+    circuit: "closed" | "half-open" | "open" | "unknown";
   };
   fit: EvidenceStamp & {score: number | null};
+  /** Legacy remaining fraction is independent of v4.1 dimensional windows. */
+  legacy_quota?: EvidenceStamp & {remaining_fraction: number | null};
   quota: Array<EvidenceStamp & {
     id: string; unit: "requests" | "tokens" | "credits";
     state: "known" | "unknown"; remaining: number | null;
@@ -115,11 +117,12 @@ export function normalizeTrivectorEvidencePacket(value: unknown, now: number): R
   const r=shape(p.request,["id","task_class","arbitration","pinned_candidate_id"]);str(r.id,ID);str(r.task_class,ID);member(r.arbitration,["legacy","v4.1"]);if(r.pinned_candidate_id!==null)str(r.pinned_candidate_id,ID);
   if(!Array.isArray(p.candidates))fail("TRIVECTOR_PACKET_INVALID");
   for(const v of p.candidates){
-    const c=shape(v,["id","provider","model","scope","subject_fingerprint","static_rank","gates","fit","quota","operational_outcomes","failure_domain","limitations"]);
+    const c=shape(v,["id","provider","model","scope","subject_fingerprint","static_rank","gates","fit","quota","operational_outcomes","failure_domain","limitations",...(v&&typeof v==="object"&&!Array.isArray(v)&&Object.hasOwn(v,"legacy_quota")?["legacy_quota"]:[])]);
     str(c.id,ID);str(c.provider,PROVIDER);str(c.model,MODEL);member(c.scope,["configured-combo-member","exact-seat"]);str(c.subject_fingerprint,SHA);num(c.static_rank,0,1000000,true);
     const g=shape(c.gates,[...STAMP,"activation","operator_authorization","entitlement","catalog","capability","circuit"]);stamp(g,c.subject_fingerprint);
-    member(g.activation,["observed-enabled","observed-disabled","unknown"]);member(g.operator_authorization,["observed-allowed","observed-denied","unknown"]);member(g.entitlement,["observed-available","observed-unavailable","unknown"]);member(g.catalog,["resolved","unresolved","unknown"]);member(g.capability,["compatible","resolved-incompatible","context-conflict","tool-conflict","modality-conflict","structured-output-null","unknown"]);member(g.circuit,["closed","open","unknown"]);
+    member(g.activation,["observed-enabled","observed-disabled","unknown"]);member(g.operator_authorization,["observed-allowed","observed-denied","unknown"]);member(g.entitlement,["observed-available","observed-unavailable","unknown"]);member(g.catalog,["resolved","unresolved","unknown"]);member(g.capability,["compatible","resolved-incompatible","context-conflict","tool-conflict","modality-conflict","structured-output-null","unknown"]);member(g.circuit,["closed","half-open","open","unknown"]);
     const f=shape(c.fit,[...STAMP,"score"]);stamp(f,c.subject_fingerprint);if(f.score!==null)num(f.score,0,1);
+    if(Object.hasOwn(c,"legacy_quota")){const legacy=shape(c.legacy_quota,[...STAMP,"remaining_fraction"]);stamp(legacy,c.subject_fingerprint);if(legacy.remaining_fraction!==null)num(legacy.remaining_fraction,0,1);}
     if(!Array.isArray(c.quota)||!Array.isArray(c.limitations))fail("TRIVECTOR_PACKET_INVALID");
     for(const v of c.quota){const q=shape(v,[...STAMP,"id","unit","state","remaining","inflight","margin","estimated_units","blocking","resets_at"]);stamp(q,c.subject_fingerprint);str(q.id,ID);member(q.unit,["requests","tokens","credits"]);member(q.state,["known","unknown"]);if(typeof q.blocking!=="boolean")fail("TRIVECTOR_PACKET_INVALID");for(const k of ["remaining","inflight","margin","estimated_units"]){if(q[k]!==null)num(q[k],k==="remaining"?-1e12:0,1e12);}
       if(q.state==="known"&&(q.remaining===null||q.inflight===null||q.margin===null||q.estimated_units===null||q.estimated_units<=0)||q.state==="unknown"&&[q.remaining,q.inflight,q.margin,q.estimated_units].some(v=>v!==null))fail("TRIVECTOR_PACKET_INVALID");if(q.resets_at!==null&&time(q.resets_at)<=time(q.observed_at))fail("TRIVECTOR_PACKET_INVALID");}
