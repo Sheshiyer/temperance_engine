@@ -102,3 +102,27 @@ describe("lifecycle scope arguments", () => {
     expect(() => parseLifecycleArgs(["--only", "router"], command)).toThrow("PLAN_SCOPE_VERB_UNSUPPORTED");
   });
 });
+
+test("optional organ source profile preserves existing selected plans", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const { resolve } = await import("node:path");
+  const { compileFragments } = await import("../src/compile.ts");
+  const base = resolve(import.meta.dir, ".."); const root = resolve(base, "../..");
+  const inputs = readdirSync(`${base}/fragments`).filter(n => n.endsWith(".json")).map(name => ({name, contents:readFileSync(`${base}/fragments/${name}`,"utf8")}));
+  const authority = {isaText:readFileSync(`${root}/ISA.md`,"utf8"),requirementsText:readFileSync(`${root}/.planning/REQUIREMENTS.md`,"utf8")};
+  const before = compileFragments(inputs.filter(i => i.name !== "organ-guard.json"), authority);
+  const after = compileFragments(inputs, authority);
+  for (const profile of ["default", "minimal"]) {
+    const old = createPlan({verb:"install",profileResult:before,profile,platform:"darwin"});
+    const next = createPlan({verb:"install",profileResult:after,profile,platform:"darwin"});
+    expect(next.steps).toEqual(old.steps);
+    expect(next.outcomes.filter(o => o.record_id !== "organ-guard.source")).toEqual(old.outcomes);
+    expect(next.outcomes.find(o => o.record_id === "organ-guard.source")?.status).toBe("skipped");
+    expect(next.inventory_digest).not.toBe(old.inventory_digest);
+  }
+  const plan=createPlan({verb:"install",profileResult:after,profile:"organ-guard",platform:"darwin",onlyIds:new Set(["organ-guard.source"])});
+  expect(plan.steps.map(s=>s.record_id)).toEqual(["organ-guard.source"]);
+  expect(plan.scope?.dependency_ids).toEqual([]);
+  expect(()=>createPlan({verb:"install",profileResult:after,profile:"default",platform:"darwin",onlyIds:new Set(["organ-guard.source"])})).toThrow("PLAN_SCOPE_INELIGIBLE_RECORD");
+  expect(()=>createPlan({verb:"install",profileResult:after,profile:"organ-guard",platform:"win32",onlyIds:new Set(["organ-guard.source"])})).toThrow("PLAN_SCOPE_INELIGIBLE_RECORD");
+});

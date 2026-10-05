@@ -1009,3 +1009,43 @@ describe("INST-04: unavailable capability", () => {
     }
   });
 });
+
+test("optional organ source copies reviewed tree/modes and existing journal rollback restores preimage", async () => {
+  const {cpSync,chmodSync,lstatSync} = await import("node:fs");
+  const root=tempRoot("organ-source-copy-"); const stateRoot=join(root,"state"); const repositoryRoot=join(root,"product");
+  mkdirSync(stateRoot,{recursive:true}); mkdirSync(join(repositoryRoot,"package"),{recursive:true});
+  const packageRoot=resolve(import.meta.dir,"../..");
+  cpSync(join(packageRoot,"organ-guard"),join(repositoryRoot,"package/organ-guard"),{recursive:true});
+  const record=JSON.parse(readFileSync(resolve(import.meta.dir,"../fragments/organ-guard.json"),"utf8")).records[0] as SurfaceRecord;
+  const fixture=createFixture(); fixture.lockObject.records=[record]; fixture.semanticIds=[record.id];
+  const dest=join(stateRoot,"optional/organ-guard");mkdirSync(join(dest,"bin"),{recursive:true});
+  writeFileSync(join(dest,"bin/te-organ-contain.py"),"prior source\n");chmodSync(join(dest,"bin/te-organ-contain.py"),0o644);
+  const plan=createPlan({verb:"install",profileResult:fixture,profile:"organ-guard",onlyIds:new Set([record.id])});
+  const io=confinedTestIO(root);
+  const result=await executePlan({stateRoot,io,plan,compileResult:fixture,verb:"install",profile:"organ-guard",repositoryRoot});
+  expect(result.status).toBe("committed");
+  if(record.class!=="COPY" || record.verification.expected?.kind!=="tree")throw new Error("tree fixture");
+  for(const [path,hash] of Object.entries(record.verification.expected.files)){
+    expect(`sha256:${createHash("sha256").update(readFileSync(join(dest,path))).digest("hex")}`).toBe(hash);
+    expect((lstatSync(join(dest,path)).mode & 0o777).toString(8).padStart(4,"0")).toBe(record.verification.expected.modes![path]);
+  }
+  const restored=await rollbackTransaction(result.txid,stateRoot,io);expect(restored.status).toBe("committed");
+  expect(readFileSync(join(dest,"bin/te-organ-contain.py"),"utf8")).toBe("prior source\n");
+  expect(lstatSync(join(dest,"bin/te-organ-contain.py")).mode & 0o777).toBe(0o644);
+  expect(existsSync(join(dest,"provenance.v1.json"))).toBe(false);
+});
+
+test.each(["source-drift","destination-symlink"])("optional organ source holds %s before copying",async kind=>{
+  const {cpSync,symlinkSync}=await import("node:fs"); const root=tempRoot("organ-source-hold-");const stateRoot=join(root,"state");const repositoryRoot=join(root,"product");
+  mkdirSync(stateRoot,{recursive:true});mkdirSync(join(repositoryRoot,"package"),{recursive:true});
+  cpSync(resolve(import.meta.dir,"../../organ-guard"),join(repositoryRoot,"package/organ-guard"),{recursive:true});
+  const record=JSON.parse(readFileSync(resolve(import.meta.dir,"../fragments/organ-guard.json"),"utf8")).records[0] as SurfaceRecord;
+  const fixture=createFixture();fixture.lockObject.records=[record];fixture.semanticIds=[record.id];
+  const sentinel=join(root,"sentinel");mkdirSync(sentinel);writeFileSync(join(sentinel,"untouched"),"sentinel");
+  if(kind==="source-drift")writeFileSync(join(repositoryRoot,"package/organ-guard/bin/te-organ-contain.py"),"drift\n");
+  else {mkdirSync(join(stateRoot,"optional"));symlinkSync(sentinel,join(stateRoot,"optional/organ-guard"));}
+  const plan=createPlan({verb:"install",profileResult:fixture,profile:"organ-guard",onlyIds:new Set([record.id])});
+  const result=await executePlan({stateRoot,io:confinedTestIO(root),plan,compileResult:fixture,verb:"install",profile:"organ-guard",repositoryRoot});
+  expect(result.status).not.toBe("committed");expect(readFileSync(join(sentinel,"untouched"),"utf8")).toBe("sentinel");
+  expect(existsSync(join(sentinel,"bin/te-organ-contain.py"))).toBe(false);
+});
