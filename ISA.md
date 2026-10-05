@@ -253,6 +253,8 @@ untouched.
 - [x] ISC-COMP-07: Main composition project CLI passes actual subprocess and producer-to-projection regressions.
 - [x] ISC-COMP-08: Contained owner observations preserve distinct process dispositions and immutable presentation with no acceptance authority.
 - [x] ISC-COMP-09: Bounded owner-project CLI passes real subprocess and rejects crossed/private packets.
+- [x] ISC-COMP-10: Git-only source admission verifies canonical repository and exact fresh linked-worktree identity with explicit access scope.
+- [x] ISC-COMP-11: Main Git inspection CLI rejects observation injection and passes disposable Git subprocess proof without Superset.
 - [ ] ISC-COMP-03: Installed adapters, live causal lifecycle and independent runtime acceptance are proved.
 
 
@@ -3192,3 +3194,5 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 69 composition/CLI/lifecycle/projection tests pass (276 assertions), with typecheck. Independent review found that valid missing-organ holds were rejected by the projection; producer-to-consumer regression now passes. Native renderer installation and operational receipt authentication remain open.
 
 Wave 4 source verification (2026-10-05): 79 composition tests, 363 assertions, zero failures; package typecheck passed. Owner process observation independent review found no material defect. Runtime and installed acceptance remain open.
+
+Wave5 source verification (2026-10-05): 18 Git admission/CLI tests,97 assertions and package typecheck pass. Actual disposable primary and external linked worktree proof; strict identity, freshness, read-only write denial, ambient Git override exclusion and redaction. Required declared volume bindings hold in CLI until trusted observer. Hands execution, dirty source acceptance, leases and installation remain open.

@@ -33,3 +33,28 @@ Add a strict reusable composition/lifecycle projection for banner text and islan
 models with common lineage and stale/held/unknown states. Exclude private metadata
 and authority promotion. Expose it through the existing composition CLI; external
 native renderer/bridge consumers remain separately verified adapter obligations.
+
+## Wave 4 — actual contained-owner observation projection
+Accept a distinct closed redacted owner-process observation and project it through
+the common banner/island target model. Preserve process completion versus semantic
+acceptance and callback completion. Bind manifest/event/occurrence lineage and
+finite status codes; old evidence remains visible as stale. Expose bounded CLI.
+
+## Wave 5 — Git-only project identity evidence
+Add a reusable source verifier for approved portable capsules plus private host
+bindings. Probe canonical Git roots, normalized remote identity, common directory,
+branch/HEAD and fresh exact worktree membership through injected trusted Git IO.
+Require explicit fresh volume proof where configured. Return redacted fingerprints
+and held reasons only; no execution or lease authority. Preserve existing project
+admission. Verify deterministic failure cases and disposable real Git fixtures.
+
+## Wave 6 — reusable Git-only authority eligibility contracts
+Add only src/execution/git-authority-contracts.ts and its focused tests. Normalize
+closed immutable versioned Git ticket/grant/admission context, canonical fingerprints,
+exact bindings, timing, phase/lane and retry/time budgets. Preserve legacy contracts.
+Reviewed fingerprints are context/shape evidence only; exact Git producer integration
+waits its reviewed API. Pure eligibility never claims capacity or execution authority;
+actual claim stays held until supervisor/SQL/owning-writer migration. No ledger,
+scheduler, installation, private store, provider or runtime mutation.
+
+Wave5 public CLI scope: root owns bounded git-project inspect stdin command and main CLI wiring. Only actual local Git probe is constructed; private binding input is never projected, packet volume/probe injection is rejected. Source evidence grants no execution/lease authority.
