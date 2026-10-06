@@ -1,0 +1,2 @@
+# 5rq injected source owner
+Root approves amended5qg69420a. Own dedicated wrappertest/contract/packet only. Both fixedsource metadata and both openedFDidentities beforeANYcontentread;64KiB each128KiB total; originalclock passes capturedPreparation unchanged. MockFS only, no actualsource-owner point/native/spawn. Test bounded local owner sourcebytes fixtures; exactpins/detachedcompile. Root+indreview beforepub.
