@@ -21,6 +21,7 @@ import stat
 import sys
 import time
 from dataclasses import dataclass
+from types import MappingProxyType
 
 MAX_BYTES = 4096
 MAX_TTL_NS = 120_000_000_000
@@ -195,9 +196,82 @@ def receipt(operation, nonce, counter, limit):
     return {"schema": SCHEMA, "operation": operation, "status": "created" if operation == "create" else "reserved", "nonce": nonce, "counter": counter, "launch_limit": limit,
             "execution_authorized": False, "capacity_authorization": False, "inference_authorized": False}
 
+class _RetainedHandle:
+    __slots__ = ()
+    def __repr__(self):
+        return "<retained-launch-handle>"
+    def __reduce_ex__(self, protocol):
+        raise TypeError("retained_handle_not_serializable")
+
+@dataclass(frozen=True, repr=False)
+class RetainedResult:
+    receipt: object
+    handle: object
+    def __repr__(self):
+        return "<retained-launch-result>"
+    def __reduce_ex__(self, protocol):
+        raise TypeError("retained_result_not_serializable")
+
 class LaunchBudget:
     def __init__(self, dependencies=None):
         self.deps = dependencies or Dependencies()
+        # Cooperative private continuity, not a Python security boundary.
+        self._retained_state = "unused"
+        self._latest_handle = None
+        self._retained_record = None
+        self._retained_directory = None
+        self._retained_path = None
+
+    def _publish_retained(self, outcome, path):
+        record, did, public = outcome
+        # Retained delivery has its own final freshness fence AFTER successful
+        # closes. Legacy receipt-only operations keep their existing semantics.
+        self.fresh(record, record["owner_pid"])
+        handle = _RetainedHandle()
+        result = RetainedResult(MappingProxyType(dict(public)), handle)
+        self._retained_record = MappingProxyType(dict(record))
+        self._retained_directory = did
+        self._retained_path = path
+        self._latest_handle = handle
+        self._retained_state = "acknowledged"
+        return result
+
+    def create_retained(self, path, limit=4, ttl_ms=120_000, *, owner_pid):
+        if self._retained_state != "unused":
+            raise Held("retained_unavailable")
+        self._retained_state = "pending"
+        try:
+            if type(owner_pid) is not int or owner_pid != os.getpid():
+                raise Held("stale_owner")
+            outcome = self._create(path, limit, ttl_ms, owner_pid=owner_pid)
+            return self._publish_retained(outcome, path)
+        except Held:
+            self._retained_state = "unknown"
+            self._latest_handle = None
+            raise
+        except Exception:
+            self._retained_state = "unknown"
+            self._latest_handle = None
+            raise Held("uncertain_commit") from None
+
+    def reserve_retained(self, handle):
+        if self._retained_state != "acknowledged" or handle is not self._latest_handle:
+            raise Held("retained_unavailable")
+        expected = self._retained_record
+        did = self._retained_directory
+        path = self._retained_path
+        self._retained_state = "pending"
+        self._latest_handle = None
+        try:
+            outcome = self._reserve(path, expected["nonce"], expected["counter"], retained=(expected, did))
+            return self._publish_retained(outcome, path)
+        except Held:
+            self._retained_state = "unknown"
+            raise
+        except Exception:
+            self._retained_state = "unknown"
+            raise Held("uncertain_commit") from None
+
     def now(self):
         n = self.deps.clock()
         if not integer(n, 0, 2**63 - 1):
@@ -231,6 +305,9 @@ class LaunchBudget:
         if os.read(fd, MAX_BYTES + 1) != raw:
             raise Held("uncertain_commit")
     def create(self, path, limit=4, ttl_ms=120_000, *, owner_pid=None):
+        return self._create(path, limit, ttl_ms, owner_pid=owner_pid)[2]
+
+    def _create(self, path, limit=4, ttl_ms=120_000, *, owner_pid=None):
         # owner_pid is trusted library caller context; CLI always derives parent.
         if not integer(limit, 1, 4) or not integer(ttl_ms, 1, 120_000):
             raise Held("invalid_policy")
@@ -255,14 +332,19 @@ class LaunchBudget:
             self.fresh(record, owner)
             check_directory(path, did)
             check_file(fd, dfd, name, (s.st_dev, s.st_ino))
-            return receipt("create", nonce, 0, limit)
+            outcome = (dict(record), did, receipt("create", nonce, 0, limit))
         except Held:
             raise
         except Exception:
             raise Held("uncertain_commit") from None
         finally:
             close_pair(fd, dfd)
+        return outcome
+
     def reserve(self, path, nonce, expected_counter):
+        return self._reserve(path, nonce, expected_counter)[2]
+
+    def _reserve(self, path, nonce, expected_counter, *, retained=None):
         if type(nonce) is not str or not NONCE.fullmatch(nonce):
             raise Held("invalid_nonce")
         if not integer(expected_counter, 0, 4):
@@ -283,6 +365,10 @@ class LaunchBudget:
             if len(raw) > MAX_BYTES:
                 raise Held("malformed")
             record = decode(raw)
+            if retained is not None:
+                expected, expected_directory = retained
+                if did != expected_directory or record != expected:
+                    raise Held("retained_mismatch")
             owner = record["owner_pid"]
             identity = (record["device"], record["inode"])
             if record["nonce"] != nonce:
@@ -299,13 +385,14 @@ class LaunchBudget:
             self.fresh(record, owner)
             check_directory(path, did)
             check_file(fd, dfd, name, identity)
-            return receipt("reserve", nonce, record["counter"], record["limit"])
+            outcome = (dict(record), did, receipt("reserve", nonce, record["counter"], record["limit"]))
         except Held:
             raise
         except Exception:
             raise Held("uncertain_commit") from None
         finally:
             close_pair(fd, dfd)
+        return outcome
 
 class FixedParser(argparse.ArgumentParser):
     def error(self, message):

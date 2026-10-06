@@ -1,11 +1,13 @@
 """Disposable source protocol fixtures; no provider/adapter or native activation."""
 import contextlib
+import copy
 import ctypes
 import fcntl
 import importlib.util
 import io
 import json
 import os
+import pickle
 from pathlib import Path
 import subprocess
 import sys
@@ -302,6 +304,121 @@ class BudgetTests(unittest.TestCase):
         again = subprocess.run([sys.executable, "-B", str(SOURCE), "reserve", "--directory", self.root, "--nonce", nonce, "--expected-counter", "1"], capture_output=True, env=env, timeout=3)
         self.assertEqual(again.returncode, 2)
         self.assertEqual(json.loads(again.stderr)["reason"], "exhausted")
+
+class RetainedBudgetTests(unittest.TestCase):
+    tearDown = BudgetTests.tearDown
+    path = BudgetTests.path
+    held = BudgetTests.held
+    replace_data = BudgetTests.replace_data
+    # New fixtures use injected birth/clock; only disposable local files.
+    def setUp(self):
+        BudgetTests.setUp(self)
+        self.owner = os.getpid()
+    def retained(self, **kw):
+        return self.budget.create_retained(self.root, limit=2, owner_pid=self.owner, **kw)
+    def test_retained_sequence_immutable_redacted_and_legacy_shape(self):
+        original = self.retained()
+        self.assertEqual(set(original.receipt), set(m.receipt('create', 'a'*32, 0, 2)))
+        self.assertNotIn(original.receipt['nonce'], repr(original))
+        self.assertNotIn(self.root, repr(original.handle))
+        with self.assertRaises(TypeError): original.receipt['counter'] = 99
+        with self.assertRaises(Exception): original.handle = object()
+        for value in (original, original.handle):
+            with self.assertRaises(TypeError): pickle.dumps(value)
+            with self.assertRaises(TypeError): copy.copy(value)
+        first = self.budget.reserve_retained(original.handle)
+        second = self.budget.reserve_retained(first.handle)
+        self.assertEqual([original.receipt['counter'], first.receipt['counter'], second.receipt['counter']], [0,1,2])
+        self.assertEqual(second.receipt['nonce'], original.receipt['nonce'])
+        self.held('retained_unavailable', lambda: self.budget.reserve_retained(first.handle))
+        self.held('retained_unavailable', self.retained)
+    def test_foreign_forged_and_spent_handle_zero_mutation(self):
+        original = self.retained()
+        for budget, handle in ((m.LaunchBudget(self.deps), original.handle), (self.budget, object()), (self.budget, m._RetainedHandle())):
+            self.held('retained_unavailable', lambda: budget.reserve_retained(handle))
+        self.assertEqual(json.loads(self.path(original.receipt['nonce']).read_text())['counter'],0)
+        self.assertEqual(self.budget.reserve_retained(original.handle).receipt['counter'],1)
+    def test_same_nonce_consistent_replacement_zero_write(self):
+        original = self.retained();path = self.path(original.receipt['nonce'])
+        old = path.with_suffix('.old');path.rename(old)
+        record = json.loads(old.read_text());path.write_text(json.dumps(record));path.chmod(0o600)
+        s=path.stat();record.update(device=s.st_dev,inode=s.st_ino);path.write_text(json.dumps(record))
+        writes=[]
+        self.budget.deps=m.Dependencies(clock=lambda:self.now,birth=lambda p,u:self.birth,write=lambda fd,raw:writes.append(raw))
+        self.held('retained_mismatch', lambda:self.budget.reserve_retained(original.handle))
+        self.assertEqual(writes,[]);self.assertEqual(json.loads(path.read_text())['counter'],0)
+        self.held('retained_unavailable', lambda:self.budget.reserve_retained(original.handle))
+    def test_all_retained_record_metadata_drift_zero_increment(self):
+        for field, value in [('created_ns',self.now+1),('expires_ns',self.now+1000000),('limit',3),('counter',1),('owner_birth','darwin:555:6')]:
+            budget=m.LaunchBudget(self.deps);result=budget.create_retained(self.root,limit=2,owner_pid=self.owner)
+            self.replace_data(result.receipt['nonce'],lambda r:r.update({field:value}))
+            before=self.path(result.receipt['nonce']).read_bytes()
+            self.held('retained_mismatch',lambda:budget.reserve_retained(result.handle))
+            self.assertEqual(self.path(result.receipt['nonce']).read_bytes(),before)
+    def test_retained_close_failure_after_commit_has_no_usable_ack(self):
+        original=self.retained();real=m.close_pair;calls=[]
+        def closing(fd,dfd):
+            calls.append((fd,dfd));real(fd,dfd);raise m.Held('cleanup_uncertain')
+        with patch.object(m,'close_pair',side_effect=closing):
+            self.held('cleanup_uncertain',lambda:self.budget.reserve_retained(original.handle))
+        self.assertEqual(len(calls),1)
+        self.assertEqual(json.loads(self.path(original.receipt['nonce']).read_text())['counter'],1)
+        self.held('retained_unavailable',lambda:self.budget.reserve_retained(original.handle))
+    def test_retained_create_close_failure_no_handle_or_retry(self):
+        real=m.close_pair
+        def closing(fd,dfd):real(fd,dfd);raise m.Held('cleanup_uncertain')
+        with patch.object(m,'close_pair',side_effect=closing):self.held('cleanup_uncertain',self.retained)
+        self.assertIsNone(self.budget._latest_handle)
+        self.held('retained_unavailable',self.retained)
+    def test_retained_lost_second_result_and_reentrant_intents(self):
+        original=self.retained();first=self.budget.reserve_retained(original.handle)
+        seen=[];write=os.write
+        def reentrant(fd,raw):
+            self.held('retained_unavailable',lambda:self.budget.reserve_retained(first.handle));seen.append(1)
+            return write(fd,raw)
+        self.budget.deps=m.Dependencies(clock=lambda:self.now,birth=lambda p,u:self.birth,write=reentrant)
+        self.budget.reserve_retained(first.handle) # Caller loses acknowledgment.
+        self.assertEqual(seen,[1])
+        self.held('retained_unavailable',lambda:self.budget.reserve_retained(first.handle))
+        self.assertEqual(json.loads(self.path(first.receipt['nonce']).read_text())['counter'],2)
+    def test_retained_expiry_and_explicit_current_process_owner(self):
+        self.held('stale_owner',lambda:self.budget.create_retained(self.root,owner_pid=self.owner+1))
+        self.held('retained_unavailable',self.retained)
+        budget=m.LaunchBudget(self.deps);r=budget.create_retained(self.root,limit=2,ttl_ms=1,owner_pid=self.owner)
+        self.now+=1000000
+        self.held('expired',lambda:budget.reserve_retained(r.handle))
+        self.held('retained_unavailable',lambda:budget.reserve_retained(r.handle))
+    def test_retained_create_intent_precedes_callbacks(self):
+        calls=[]
+        def sync(fd):
+            self.held('retained_unavailable',self.retained);calls.append(1);os.fsync(fd)
+        self.budget.deps=m.Dependencies(clock=lambda:self.now,birth=lambda p,u:self.birth,fsync=sync)
+        result=self.retained();self.assertGreater(len(calls),0)
+        self.assertEqual(len(list(Path(self.root).glob('*.json'))),1)
+        self.assertEqual(result.receipt['counter'],0)
+    def test_retained_post_commit_expiry_no_usable_result(self):
+        original=self.retained(ttl_ms=1);calls=[]
+        def sync(fd):
+            calls.append(1);os.fsync(fd)
+            if len(calls)==2:self.now+=1000000
+        self.budget.deps=m.Dependencies(clock=lambda:self.now,birth=lambda p,u:self.birth,fsync=sync)
+        self.held('expired',lambda:self.budget.reserve_retained(original.handle))
+        self.assertEqual(json.loads(self.path(original.receipt['nonce']).read_text())['counter'],1)
+        self.assertIsNone(self.budget._latest_handle)
+        self.held('retained_unavailable',lambda:self.budget.reserve_retained(original.handle))
+    def test_retained_late_close_create_and_reserve_never_publish(self):
+        real=m.close_pair
+        def late(fd,dfd):real(fd,dfd);self.now+=1000000
+        with patch.object(m,'close_pair',side_effect=late):
+            self.held('expired',lambda:self.retained(ttl_ms=1))
+        self.assertIsNone(self.budget._latest_handle)
+        self.held('retained_unavailable',self.retained)
+        self.budget=m.LaunchBudget(self.deps);original=self.retained(ttl_ms=1)
+        with patch.object(m,'close_pair',side_effect=late):
+            self.held('expired',lambda:self.budget.reserve_retained(original.handle))
+        self.assertIsNone(self.budget._latest_handle)
+        self.assertEqual(json.loads(self.path(original.receipt['nonce']).read_text())['counter'],1)
+        self.held('retained_unavailable',lambda:self.budget.reserve_retained(original.handle))
 
 if __name__ == "__main__":
     unittest.main()
