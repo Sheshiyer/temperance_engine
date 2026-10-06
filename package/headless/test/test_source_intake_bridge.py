@@ -5,6 +5,9 @@ import hashlib
 import os
 import stat
 import errno
+import time
+import json
+import sys
 import unittest
 
 OWNER_PIN='5f0aa74c8679944f1eedd5656155a84f7ac38cc5a3c55560b38ce226a4a83129'
@@ -88,6 +91,7 @@ class Bridge:
                 self.check();captured[name]=b;self.close_one(ops,name)
                 if self.unknown:raise Held('cleanup_unknown')
             self.check();ns={'__name__':'captured_source_owner'};exec(compile(captured['owner'],'<fixed-owner>','exec'),ns);self.check()
+            self.reviewed_mock_prepare=ns['Tests'].prepare
             self.owner=ns['SourceOwner'](self.created,self.deadline,self.sample)
             bridge=self
             class FS:
@@ -146,6 +150,36 @@ class RealOps:
         except OSError as error:
             if error.errno==errno.EBADF:self.ebadf_verified+=1;return True
         return False
+
+def point(expected_sha,clock=time.monotonic_ns,ops_factory=RealOps,serialize=json.dumps):
+    """Trusted exact fixture entry. No execution happens until explicit --point."""
+    bridge=None;ops=None
+    fallback=dict(status='held',reason='entry_unavailable',cleanup_unknown=True,actual_native_readiness=False,native_authentication=False,execution_authorized=False,capacity_authorization=False,inference_authorized=False,native_endpoint_candidate=False)
+    try:
+        created=integer(clock(),0,2**63-1-2_500_000_000)
+        if type(expected_sha) is not str or len(expected_sha)!=64 or any(c not in '0123456789abcdef' for c in expected_sha):raise Held('expected_hash_invalid')
+        bridge=Bridge(created,created+2_000_000_000,clock,expected_sha)
+        bridge.check();ops=ops_factory();bridge.check()
+        def prepare(p):
+            # Reuse captured reviewed fixture's mock allocations; no real endpoints.
+            class State:pass
+            state=State();state.prepared=[]
+            return bridge.reviewed_mock_prepare(state,p)
+        receipt=dict(bridge.collect(ops,prepare));bridge.check()
+        receipt['status']='source-intake-point-complete' if receipt['status']=='attested-injected-intake' else 'held'
+        receipt['native_endpoint_candidate']=False
+        receipt['verified_immediate_ebadf_count']=getattr(ops,'ebadf_verified',0)
+        bridge.check();encoded=serialize(receipt,ensure_ascii=True,separators=(',',':'));bridge.check()
+        if type(encoded) is not str or len(encoded)>4096:raise Held('finalization_invalid')
+        return receipt,encoded
+    except Exception as error:
+        a=BaseException.args.__get__(error)
+        if type(a) is tuple and len(a)==1 and type(a[0]) is str and len(a[0])<=64 and a[0] in ('metadata_invalid','deadline','clock_regressed','expected_hash_invalid','finalization_invalid'):fallback['reason']=a[0]
+        if bridge is not None:
+            if ops is not None:bridge.cleanup(ops)
+            fallback.update(intake_requested_bytes=bridge.bytes_requested,source_close_intent_count=len(bridge.close_intents),verified_immediate_ebadf_count=getattr(ops,'ebadf_verified',0) if ops is not None else 0,cleanup_unknown=True,emergency_cleanup_used=bridge.emergency)
+        # Fixed already-held fallback; it cannot turn late failure into success.
+        return fallback,json.dumps(fallback,ensure_ascii=True,separators=(',',':'))
 
 # Trusted reviewed fixture bootstrap; these capped local fixture reads are not a point.
 def values_fixture():
@@ -215,4 +249,26 @@ class Tests(unittest.TestCase):
         self.ops.pread=read;r=self.b.collect(self.ops,self.prepare);self.assertEqual(self.ops.closes,[10,11,12,13]);self.assertEqual(r['status'],'held')
     def test_sticky(self):
         self.setup();self.ops.bad=13;self.b.collect(self.ops,self.prepare);before=list(self.ops.opens);self.ops.bad=None;self.b.collect(self.ops,self.prepare);self.assertEqual(before,self.ops.opens)
-if __name__=='__main__':unittest.main()
+class EntryTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):cls.values=values_fixture()
+    def test_bad_hash_zero_intake(self):
+        calls=[];r,_=point('bad',clock=lambda:0,ops_factory=lambda:calls.append(1));self.assertEqual(r['reason'],'expected_hash_invalid');self.assertEqual(calls,[])
+    def test_mock_point_same_anchor(self):
+        ops=Ops(self.values);pin=hashlib.sha256(self.values['self']).hexdigest()
+        r,encoded=point(pin,clock=lambda:0,ops_factory=lambda:ops);self.assertEqual(r['status'],'source-intake-point-complete');self.assertEqual(ops.closes,[10,11,12,13]);self.assertFalse(r['native_endpoint_candidate']);self.assertLess(len(encoded),4096)
+    def test_late_finalization_held(self):
+        ops=Ops(self.values);now=[0];pin=hashlib.sha256(self.values['self']).hexdigest()
+        def serialize(*args,**kw):now[0]=1_500_000_000;return json.dumps(*args,**kw)
+        r,_=point(pin,clock=lambda:now[0],ops_factory=lambda:ops,serialize=serialize);self.assertEqual(r['status'],'held');self.assertTrue(r['cleanup_unknown'])
+    def test_clock_error_no_str(self):
+        class Error(Exception):
+            def __str__(self):raise AssertionError('never stringify')
+        def clock():raise Error('private')
+        r,_=point('a'*64,clock=clock);self.assertEqual(r['status'],'held');self.assertEqual(r['reason'],'entry_unavailable')
+
+if __name__=='__main__':
+    if len(sys.argv)>1 and sys.argv[1]=='--point':
+        expected=sys.argv[3] if len(sys.argv)==4 and sys.argv[2]=='--expected-source-sha' else None
+        receipt,encoded=point(expected);print(encoded);raise SystemExit(0 if receipt['status']=='source-intake-point-complete' else 1)
+    unittest.main()
