@@ -1,0 +1,3 @@
+# 4q3 pure/mock lifecycle only
+
+Dedicatedtest/contract/GSD only under4ng primaryfreeze. No realctypes/nativefunctions/sourceintake/FD/attrs/actions/child/spawn. Injectedoutputboxes/lifecycle with firstnonnullcandidate beforepostclock/errors, rc0nonnullonlyinitialized/destroyeligible. Normal500ms reserve inside original2s; emergency cleanup originaldeadline+500ms ONCE sharedbothhandles, no renewedperhandle. Self+2headers closedrawbytes64KiB each/128KiBaggregate beforecopy/hash. Source/nativeadapter futureseparatepointsource review, no actualpoint branch in this puremock unit. Root+company sourcefixtures beforepublication.
