@@ -1,0 +1,21 @@
+# 3e9 current outcome: corrected private metadata point PASSED
+
+Dedicated fixture prepares exact attested budget/codec/profile bytes, serializes private create/reserve/currentcreator before FIFO/thread setup, then uses original retained counter1 through same-process codec metadata roles. Historical source preparation kept the actual `--point` unexecuted; its method is not ordinary test-discovery named. Default3 mock tests pass0.000s for closeerroronce/no retry, identityreplacementnoclose, live-thread nofallback. AST/hash and staticreview handoff recorded separately. No actual budget/FD/thread/native calls occurred in source/mock preparation.
+
+Historical source preparation awaited root/independent review and separate execution approval. Original1.5s before source/setup, conservativeownedpeak5 serializedstages, originaldeadlinecancelprebind/daemononejoin and no concurrentcleanup on livecodec thread. RecordTTL differs from stricterfixturedeadline; injectedcreation is not actualchildproof. Nativecreatorqueries onlybeforethread, trustedreceiptcallbacks afterward. All execution/inference/capacity flagsfalse, no nativeharness/auth/worker/account acceptance.
+
+## Historical first actual outcome: HELD
+
+Root separately authorized ONE explicit point at exactc5a9420da73a69eae1386a3a819d6804a09620e37c7d40d6c5285ec2af377d94. It returned exit1,1test/1failure/0errors in0.019s. Finite JSON reports attempted_bytes0/written_bytes0/read_bytes0/write_calls0,5owncloseattempts/5verifiedEBADF, cleanup_unknownfalse, thread_alivefalse and unidentified_open_intent_count0; all authority/nativeauthenticationflagsfalse. No retry occurred; private resources were removed under originalidentity checks.
+
+Read-only source investigation identified a likely fixture mismatch before write: published codec.write_frame passes memoryview(framed)[offset:] to deps.write, but fixturebounded_write accepts only exactbytes. This rejects before wire accounting and is not evidence of account/provider/budget authority failure. Actualheldreceipt omitted reservationstagecounts, so no counter-retention acceptance is inferred from source ordering alone. At that historical boundary, no followup sourcefix or execution had been authorized. That first point remains unaccepted; its mocks/static review remain narrower historical evidence.
+
+## Historical source correction stage: then no second point authorized
+
+Root authorized source/mock correction only. Write seam now accepts exactbytes or exact codec-owned readonly C-contiguous1D/itemsize1/formatB memoryview and usesnbytes before aggregate/atomicwrite checks, without copying payload. Actual existing codec.write_frame is exercised through injected wait/write seams; writable/strided/non-B views reject. Six defaultmocks pass0.004s. Initial closedstage counters now expose actualcreate/reserve/retainedresponse/injectedcreate/ACKcounts even onheld rather than success-only metrics. The historical firstpoint remains held and unaccepted; no secondpoint executed.
+
+## Separately authorized corrected invocation: PASSED
+
+After root6mock verification and independent staticclear, root authorized ONE NEW corrected privatefixture invocation at3731f41b1857b1d60ad00d08e92df4e2e0871e8b860ffd87eadaef50ba74cb65. It passed1test/0failure/0errors in0.018s, exit0. Actual budgetcreateattempt1/createresponseretained1/reservecall1/reservationresponseretained1; injectedcreatemarker1; codecretainedACK1/two metadata rolesready. Exactly1006bytes attempted/written/read,3writecalls, all within16KiB/verifiedPIPE_BUF bounds. Ownedpeak5/5closeattempts/5immediateEBADF; scopedmodulesrestoredtrue, unidentifiedopenintent0, cleanup_unknownfalse, thread_alivefalse and held_reasonnull. Original1.5s assertionpassed; originalprivate record/FIFOpaths/directory removed under matchingidentities. All execution/capacity/inference/nativeauthenticationflagsfalse.
+
+This was a new separately authorized disposable budget fixture, not retry/recovery of the historical held record. No further invocation occurred. Actual point establishes private currentcreator budget0→1 once and same-process codec metadata readiness only. No nativeharness/child/resource/model/provider/account acceptance. Root correctedpoint readback accepted fixture-only evidence and authorized exact publication.

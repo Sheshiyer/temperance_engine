@@ -1,0 +1,20 @@
+# 5qg source attestation → mocked preparation — PLAN ONLY
+
+## Small next boundary
+Own dedicated wrapper test/contract/GSD only, existing planner6247e672 and preparationbc69e73b remain exact. Add bounded fixed source snapshot ownership joining the published preparation to unchanged planner with mock allocation/identity/close; no new kernel or native allocation wrapper. No actual FD point/spawn/native functions/provider/model/installation. Default verification uses injected filesystem metadata/bytes callbacks; actual local source-intake point separately reviewed and authorized if useful.
+
+## Fixed executable source closure
+Exactly TWO fixed sources: package/headless/lib/bootstrap-fd-action-plan.py hash6247e67239cde45713f59bac223c0ba765804b9a7969b0a3bbbeb5b8fc700b1f and bootstrap-fd-preparation.py hashbc69e73b3cb6128271ce034356bffb509b33023a08a3305e6a0412791c542ccf.64KiB each128KiB aggregate; sum metadata sizes BEFORE first content read/copy. No dynamicpathselector, SDK/library intake, actor/codec/observer imports. Python trusted stdlib/interpreter outside source attestations. Detached compile executes SAME captured bytes, unique local namespaces, no SourceFileLoader second read/global import patch. No dataclass dependency here.
+
+## Snapshot owner interface
+Mockable lstat/open/fstat/pread/close primitives with fixed owner-selected paths. Bounded parent ancestry <=32components/file observed pre/post directory identities; final nofollow/nonblock regular descriptor; preopen final pathmetadata equals first fd metadata. Retain opened FD candidate BEFORE postclock/identity checks. Fixed signed64 original2s anchor before any intake,500ms normal reserve; clock nondecreasing. Atmost2 source descriptors simultaneous, not modelworker topology. Exact positional bytes according to prevalidated size, remaining bounded before allocation, onegrowthprobe then postmetadata/path readback. Hash expected literal pins; short/growth/truncation/samesize-change/pathreplacement/closefail holds. Cooperative observed continuity not atomic hostileparentABA guarantee; synchronous filesystem/callbacks not preemptible.
+
+Independent once cleanup each known original descriptor; record closeintent BEFORE call, no retry/closing reusedunknowndescriptor. Unknown intake identity or close failure holdscleanupunknown. Original+500ms one shared emergencywindow; afteroriginalcleanup alwaysheldunknown. Avoid attestation close exception skipping second peer. No source FD callback after cleanupintent restores admission.
+
+## Preparation join and acceptance
+Once both source snapshots successfully close and fresh original admission remains, invoke captured planner through captured Preparation; fixed mocked allocate returns shapevalid metadata ONLY. Synthetic two-receipt compact input is visibly not actual LaunchBudget or codec ACK.18 planner descriptors/optional1sentinel separate; no nativecaller authority. Tests exact pins, preallocation sum, drift/growth/replacement, sharedcleanupwindow/closeexception safepeer, detachedsamebyte execution, failedsnapshot0mockallocations and successfulmock preparation. Output counts/hash/falseflags only, no payload/privatepath projection.
+
+Root/independent plan review before source. Actual source-only intake would involve real read-only file descriptors and is NOT authorized by this plan. Actual native descriptor creation, bootstrap and paid Build remain held.
+
+## Root preimplementation freezes
+BOTH fixed files complete bounded ancestry/final regular metadata/type/size preflight, then BOTH opened candidates are retained and first fstat correlated to preopen metadata BEFORE ANY content read. Second invalid metadata/open identity yields zero content callbacks. Original created_ns/deadline_ns and already observed nondecreasing clock history pass unchanged into captured Preparation; no post-intake2s renewal. Fresh checks before/after each detached compile and before first mock allocation. Required regressions second-invalid zero reads and slow intake zero allocations. Default remains injected filesystem source only.

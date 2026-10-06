@@ -1,0 +1,9 @@
+# Injected two-source owner wrapper
+
+Dedicated test-local SourceOwner joins fixed pinned planner6247 and preparationbc69 using mock filesystem observations and mocked endpoint allocation. No actual snapshot-owner FD point, native function/child/provider/model or production source change. Bounded fixture bytes are read from fixed local source with65537byte cap/hash to ground mock bytes; these ordinary test imports are not OS snapshot attestation.
+
+BOTH sources ancestry/final type/size metadata preflight and BOTH returned descriptor candidates/fstat identities precede ANY content callback. Metadata each64KiB/128KiBaggregate; exact positional content/growth/postmetadata/path/hash checks. Fixed names/pins cannot be caller-selected. These mocks describe observed metadata continuity; no hostile parent-ABA sandbox or actualnofollow capability proof. Parents<=32/file; regular/directory type bits checked, legitimate permission bits allowed.
+
+Retained original created/deadline and clock history are unchanged across content, detachedcompile and capturedPreparation. Original2s/500msreserve, sharedoriginal+500mscleanup; callbacks nonpreemptible. First returned sourceFD retained before postclock; identityunknown never closed by invented authority. Two once-owned matching cleanup attempts independent; late/emergency heldunknown, closeexceptions do notskip peers. Lost open response unknown. Same captured bytes are detachedcompiled, noSourceFileLoadersecondread/globalpatch. TrustedPythonstdlib closure is outside source attestation.
+
+Mock preparation invokes exact captured planner and18metadataendpoint allocations; compact reservation projection not actual budget/codec ACK. Every authority/readiness/capacity flag false. Actual source-owner OS wrappers/native FD/precreate guards/resources remain future. Ten default mock tests include invalidsecond zero reads, slowintake zero preparation, replacement/growth/closefailure and exactsource sameclock join.

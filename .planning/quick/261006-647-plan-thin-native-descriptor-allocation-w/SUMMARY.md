@@ -1,0 +1,2 @@
+# 647 disposition
+Readerfirst/F_DUPFD_CLOEXEC67 freeze implemented677 callbackwrapper14mocks/root+companyclear. AllOSprimitives injected; actualNativeOps implementation absent andnativeflags notproven. Noactualendpointpoint/child/provider/model. ExistingPreparation/planner unchanged; genuineoriginalowner9keyreceipt capability remains future6b5dependency.

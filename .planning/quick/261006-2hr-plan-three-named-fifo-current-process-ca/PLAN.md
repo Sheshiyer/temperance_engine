@@ -1,0 +1,11 @@
+# 2hr — three named FIFO topology proposal, PLAN ONLY
+
+Prior2f9 actualpointheld duringadapterconstruction; authorizeddiagnosticrerun5776043d held adapter_descriptor_invalid0.005s, fouradapterattempts, eightowned-closebookkeeping entries andcleanup_unknown=true. These are NOTeight verifiedclosures. No syntheticwrite/child/provider occurred. Actualanonymouspipe device/identitycause unproven; production7d1c682d identity rule unchanged. No additionalactualpoint authorizedhere.
+
+Propose next separatelyapprovedtest-only fixture topology: replace twoanonymouspipes with stdout/stderr namedFIFOs alongsidefinal namedFIFO, exclusive0600 insideoneprivate0700pinneddirectory. Keep ≤8 simultaneousownedFDs: parent1/readers3/writers3/finalkeeper1. Readers3mustdistinctfirstdev/inode/type andallcomponentsvalidunderpublishedadapter, eachwriterexactmatchingownFIFO. No sourceidentityweakening oractualdup2replacement.
+
+Original1.5sdeadline beforehash/setup, ≤256bytes/chunk total<1KiB/verifiedPIPE_BUF, max16zero-waitsteps throughactualFDAdapter+CaptureStep, sourcehash7d1c682d/35e9fd42 unchanged. Opennonblocking/nofollow/CLOEXEC via parentdirFD; stdout/stderr writerownership keptuntilwriteclose topreventearlyEOF, finalkeeper helduntiltrustedfixtureterminal. Exactselfwrites+close constitutefixturefinalACK only, neverCLI/modelproof.
+
+Exposeonlyfinitecounts: reader_unique_identity_count, invalid_identity_component_count, owned_close_attempt_count, adapter_teardown_attempt_count and verified_EBADF_count. Renamemisleadingclosed_count. Recordverified_EBADF onlyimmediatelyafterclose/nointerveningallocation. Adapterattempted excludedouterdoubleclose evenunknown; unknownFDresultsremainunknown ratherthanretryinganotherwriter. Pathcleanup independentlyvalidateoriginalparent/FIFOinodes foreach3paths, nounlinkreplacement, finite3unlinkattempts/oneparentclosure/rmdir; unknownheld/no universalleakpromise. Max8FDoncecleanup unknownsvisible. No rawFD/dev/inode/path/payload/name output.
+
+Mock-onlytest/source review oftopology/cleanupmetrics first, root+independentplanreview then ONEboundedcurrentprocesspointifauthorized. Actualcapturetopologysuccess wouldestablishnamedFIFOreadpointonly; anonymouspipeproductioncompatibilityremainsunsupportedhelduntilseparatecontractreview. Originalcodec/stoppedchild/resources/actualBuild stillfuture.

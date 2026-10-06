@@ -1,0 +1,2 @@
+# 677 callback wrapper source/mock
+Root64717c13 authorizes exactreader-first/F_DUPFD_CLOEXEC67>=8 profile. Ownnewwrapper/test/contract only, existingPreparation/planner/Bridge unchanged. Allops mocked; no actualendpoint/native/spawn. PendinglegitimatepairFDs countwithin18/19,6FIFO+dir paths; firstcandidate beforepostchecks/oncecleanup/no unknownliveunlink. Originaldeadline/emergencyfixed; reviewedsourceclosure future. Root+companyreviewbeforepublication.

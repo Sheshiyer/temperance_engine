@@ -1,0 +1,3 @@
+# 29r — capture descriptor source/mock only
+
+Root approvedrevised27w. Own newadapter/test/contract/packet, existinglibrariesunchanged. Exactly4roles/≤4uniqueFDs, independentfirststat/flags discovery beforeadmissionerrors, nonblockCLOEXEC check-set-recheck originalidentity/mode, zero-wait≤16KiBread/EAGAINNone. Onceclose perFD atmostoneidentity+onecloseattempt markedbeforeexception; cleanupavailableexpired no retries. Constructorfailedpeer cannotleakknownvalidothers. Mocksyscalls only actualCaptureStepintegration; noactualFD/pipe/child/nativeprovider/rootadopt. Trustedterminal/finalACK notinferredEOF, cooperativecheckactrace remains. Reviewbeforepublication.

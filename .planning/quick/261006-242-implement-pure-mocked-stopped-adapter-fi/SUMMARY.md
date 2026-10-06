@@ -1,0 +1,5 @@
+# 242 — stageB source candidate
+
+Ten inert mockedprotocolfixturespass. FD5fixedframing/schema/duplicateUTF8/closedcontext thenindependentstoppedresource; FD6fixed69controloncewritecount+close+freshpressurebirth beforeinjectedcontinue. OriginalpostACKseam explicitlytrustednotauthenticated/nativecodecjoin. NoactualFD/spawn/signal/nativeprovider/config. CanonicalDarwinboundedASCII/signed64deadline/firstPIDUIDbirth preserved.
+
+Max256explicitsteps/50mslateholds/original500msreserve; partial/EAGAIN/lostACKnoretry, fullwritepostcontinueuncertaintyneverprovesnopayload. Allauthorityfalse, cleanupcallerownednotimplemented, finalACK/nativejoin/Buildheld. AST2/diffchecks clear. Root independently passed10fixtures; independent review cleared a22a3869/82380eb5. Receipt separates parsedowner precondition from exact trustedACK observation; neither actualreservation/nativeproof. Exact source publication authorized. Revised22c PLAN separateuntracked.

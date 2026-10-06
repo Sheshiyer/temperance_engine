@@ -1,0 +1,19 @@
+# 1gx — finite native inventory and lifetime ownership
+
+PLAN ONLY. Root review required before implementation. Published1d1 c6510d3 supplies direct metadata only; no inventory, resource enforcement, supervisor or native worker acceptance follows. This proposed unit owns one new public inventory helper, focused fixture, contract and GSD packet. Dedicated model-worker policy remains separate from organ160MiB/120s/24desc policy; Build maxima remain absent.
+
+## Bounded native capture
+
+Reuse published standalone guard289643f native patterns without private import/policycopy: Darwin `proc_listpids(PROC_UID_ONLY=4, originalUID)` into a fixed ctypes buffer of4097 signedPIDslots. This is host UID metadata enumeration, not allUID footprint sampling. Exact integer byte count, multipleof4 and<=4096*4 required; saturation/duplicate/invalidPID/unknownnativefailure holds before list/dict expansion. Fixed buffer allocated before call; no sizing query/unboundedps/stdout. Each selectedPID receives exact taskall232/BSD136 layout and PIDUIDbirth/state validation; only separately proven ESRCH disappearance may be omitted. Zombie shortBSD requires independent samebirth zombie re-read; unknown/nonzombie short holds. Ignore native name storage, no argv/environment/raw metadata projection. Use callerretained originaldeadline before/after each call and finite processing checks, not a renewed snapshotTTL. Syncsyscalls notpreemptible.
+
+## Lifetime collector
+
+Closed rows carry PID/UID/parentPID/processgroup/birth/state/RSSbytes; atmost4096 rows. A retained originalroot PIDUIDbirth anchors a linear parent→children queue with visitedset, no repeated wholeframe scanning. Every admission uses independent currentbirth equality, never replace/prune an earlier token. Missing/reused/unknown retainedliveidentity means uncertainty, not fabricated emptycleanup. Group membership is advisory unless a separately retained originalgroup creation proof exists; no blanketgroup kill or group-only ancestry inference in this unit.
+
+Honor dedicated calibration lifetime ceiling<=256 includingroot and active-descendant ceiling0. On violation freeze admission and hold. One bounded first overflow/cleanup frame may retain atmost4096 additional independently proven births for best-effort cleanup inventory only; combinedmemorybound<=4352 records and no subsequent growth. This is cleanup metadata, not permission to continue or a modelcapacitygrant. Alternatively a smaller cleanup bound may be frozen in review; exact semantics must precede code. Footprint history belongs only admitted live tree and fixedcalibrationlimits, not UID-wide queries; existing directbackend2target cap must not be silently widened here. Future resource integration needs separately reviewed treebackend.
+
+## Fixtures and actual evidence boundary
+
+Mocks first:4096boundary/4097saturation, countalignment/boolean/duplicate/PIDUIDmismatch, ESRCHvsunknown, zombie re-read, deadlineoverrun, rootbirthreplacement, retainedPIDreuse nooverwrite, lineardeep/wide ancestry, reparentingunknown, cap256inclroot, onecleanupframefreeze, unknownliveidentity notempty, activechild0violation and finiteoutcome/allfalse. If authorized implementation permits one currenthost metadata snapshot, keep it bounded/no rawPIDbirthlogs and assert only structuralvalidity; hostinventorypoint is not descendantcontainment or cleanup proof. No CLIworker/provider/processcreation test.
+
+Original executiondeadline/500ms normalcleanupreserve remain retained. A separately bounded best-effort emergency cleanup inventory cannot renew execution or claim termination. Every eventual signal needs currentbirth equality; no signal exists in this unit. Actual process launch, stop/release, ACKtransport, memoryenforcement, finitepipes/capture, appserver semanticterminal evidence, exactreaping and paidcapacity stay subsequent joins.

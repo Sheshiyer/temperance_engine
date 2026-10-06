@@ -3,6 +3,7 @@ import {
   chmodSync,
   linkSync,
   lstatSync,
+  readFileSync,
   mkdtempSync,
   mkdirSync,
   renameSync,
@@ -12,7 +13,7 @@ import {
 } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import {
   assertWorkingCopyMatches,
@@ -20,7 +21,7 @@ import {
   copyFileMode,
 } from "../src/copy-inventory.ts";
 import { canonical } from "../src/canonical-json.ts";
-import { assertSafeInventoryWriteTarget } from "../scripts/sync-copy-expectations.ts";
+import { reconstructPinnedInventory, assertSafeInventoryWriteTarget } from "../scripts/sync-copy-expectations.ts";
 import type { SurfaceRecord } from "../src/types.ts";
 
 const roots: string[] = [];
@@ -209,4 +210,69 @@ test("safe inventory writers reject symlink and hardlink publication targets", (
   linkSync(outside, hardlinked);
   expect(lstatSync(hardlinked).nlink).toBeGreaterThan(1);
   expect(() => assertSafeInventoryWriteTarget(root, hardlinked)).toThrow("COPY_INVENTORY_WRITE_TARGET_INVALID");
+});
+
+test("per-record provenance retains old revisions and reconstructs before trust", () => {
+  const f = fixture();
+  const first = buildCopyInventory({ repositoryRoot: f.repositoryRoot, revision: f.revision, records: f.records });
+  const record = f.records[0]!;
+  if (record.class !== "COPY") throw new Error("fixture");
+  record.verification.expected = first.expectations.get(record.id)!;
+  const pinned = reconstructPinnedInventory(f.repositoryRoot, f.records, first.provenance);
+  expect(pinned.provenance.schema).toBe("temperance.install-surface.copy-expectations-provenance.v2");
+  expect(pinned.provenance.records[0]!.revision).toBe(f.revision);
+  expect(canonical(pinned.expectations.get(record.id))).toBe(canonical(record.verification.expected));
+  writeFileSync(join(f.repositoryRoot, "payload/a.txt"), "later bytes\n");
+  git(f.repositoryRoot, ["add", "payload"]); git(f.repositoryRoot, ["commit", "-m", "later"]);
+  expect(reconstructPinnedInventory(f.repositoryRoot, f.records, pinned.provenance).provenance).toEqual(pinned.provenance);
+  for (const mutation of [
+    (p: any) => p.records.push(p.records[0]),
+    (p: any) => p.records.splice(0, 1),
+    (p: any) => p.records[0].id = "unknown",
+    (p: any) => p.records[0].revision = "HEAD",
+    (p: any) => p.records[0].tree = "a".repeat(40),
+    (p: any) => p.records[0].expectation_digest = `sha256:${"a".repeat(64)}`,
+    (p: any) => p.records[0].extra = true,
+    (p: any) => p.schema = "unknown",
+  ]) {
+    const changed = structuredClone(pinned.provenance); mutation(changed);
+    expect(() => reconstructPinnedInventory(f.repositoryRoot, f.records, changed)).toThrow("COPY_INVENTORY_PROVENANCE_INVALID");
+  }
+});
+
+
+test("scoped generator merges new committed source without changing retained fragment bytes", () => {
+  const f = fixture();
+  const directory = join(f.repositoryRoot,"package/install-surface/fragments"); mkdirSync(directory,{recursive:true});
+  const document=(records: SurfaceRecord[])=>({schema:"temperance.install-surface.fragment.v1",schema_uri:"https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",version:{major:1,minor:0},records});
+  writeFileSync(join(directory,"old.json"),JSON.stringify(document(f.records),null,2)+"\n");
+  const script=resolve(import.meta.dir,"../scripts/sync-copy-expectations.ts");
+  const run=(revision:string,extra:string[])=>execFileSync(process.execPath,[script,"--repository-root",f.repositoryRoot,"--revision",revision,...extra],{encoding:"utf8",stdio:["ignore","pipe","pipe"]});
+  const legacyResult=JSON.parse(run(f.revision,["--write"]));
+  expect(legacyResult.schema).toBe("temperance.install-surface.copy-inventory-result.v1");
+  expect(legacyResult.revision).toBe(f.revision);
+  expect(legacyResult.tree).toBe(git(f.repositoryRoot,["rev-parse",`${f.revision}^{tree}`]));
+  expect(legacyResult.requested_revision).toBe(f.revision);
+  writeFileSync(join(directory,"old.json"),JSON.stringify(JSON.parse(readFileSync(join(directory,"old.json"),"utf8")))+"  \n");
+  const before=readFileSync(join(directory,"old.json"),"utf8");
+  mkdirSync(join(f.repositoryRoot,"extra"));writeFileSync(join(f.repositoryRoot,"extra/file"),"optional source\n");git(f.repositoryRoot,["add","extra"]);git(f.repositoryRoot,["commit","-m","new optional source"]);const next=git(f.repositoryRoot,["rev-parse","HEAD"]);
+  const extra=copyRecord("extra");extra.id="surface.extra";
+  writeFileSync(join(directory,"extra.json"),JSON.stringify(document([extra]),null,2)+"\n");
+  const scopedResult=JSON.parse(run(next,["--only","surface.extra","--write"]));
+  expect(scopedResult.schema).toBe("temperance.install-surface.copy-inventory-result.v1");
+  expect(scopedResult.provenance_schema).toBe("temperance.install-surface.copy-expectations-provenance.v2");
+  expect(scopedResult.requested_revision).toBe(next);
+  expect(Object.hasOwn(scopedResult,"revision")).toBe(false);
+  expect(Object.hasOwn(scopedResult,"tree")).toBe(false);
+  expect(readFileSync(join(directory,"old.json"),"utf8")).toBe(before);
+  const provenance=JSON.parse(readFileSync(join(f.repositoryRoot,"package/install-surface/copy-expectations.provenance.json"),"utf8"));
+  expect(provenance.records.find((r:any)=>r.id==="surface.payload").revision).toBe(f.revision);
+  expect(provenance.records.find((r:any)=>r.id==="surface.extra").revision).toBe(next);
+  expect(()=>run(next,["--check"])).not.toThrow();
+  const unchanged=readFileSync(join(directory,"extra.json"),"utf8");
+  expect(()=>run(next,["--only","unknown","--write"])).toThrow();
+  expect(readFileSync(join(directory,"extra.json"),"utf8")).toBe(unchanged);
+  writeFileSync(join(f.repositoryRoot,"payload/a.txt"),"drift\n");
+  expect(()=>run(next,["--check"])).toThrow();
+  expect(()=>run(next,["--only","surface.extra","--check"])).not.toThrow();
 });

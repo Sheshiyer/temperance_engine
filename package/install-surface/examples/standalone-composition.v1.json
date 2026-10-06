@@ -1,0 +1,40 @@
+{
+  "schema": "temperance.composition.v1",
+  "product": {
+    "id": "temperance-engine",
+    "repository": "github.com/Sheshiyer/temperance_engine"
+  },
+  "plant": {
+    "id": "plant-standalone-local",
+    "owner": "operator",
+    "kind": "local"
+  },
+  "coordinator": {
+    "surface": "codex-cli",
+    "mode": "native"
+  },
+  "modules": [
+    {
+      "id": "executor.git",
+      "owner": "operator",
+      "plant_id": "plant-standalone-local",
+      "requires": [],
+      "configuration_refs": []
+    },
+    {
+      "id": "projection.banner",
+      "owner": "operator",
+      "plant_id": "plant-standalone-local",
+      "requires": [],
+      "configuration_refs": []
+    },
+    {
+      "id": "skills.binding",
+      "owner": "operator",
+      "plant_id": "plant-standalone-local",
+      "requires": [],
+      "configuration_refs": []
+    }
+  ],
+  "integrations": []
+}

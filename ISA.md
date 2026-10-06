@@ -243,6 +243,23 @@ untouched.
 
 ## Criteria
 
+### Standalone composition source slice (2026-10-05)
+
+- [x] ISC-COMP-01: Repository-owned composition source validates boundaries and rejects unsafe inputs.
+- [x] ISC-COMP-02: Focused tests and actual read-only CLI pass fresh verification.
+- [x] ISC-COMP-04: Explicit advisory subscriptions causally invoke injected handlers with stable replay identity and terminal receipt semantics.
+- [x] ISC-COMP-05: Proxy, stale-after-claim, timeout and persistence boundaries pass regression tests without execution authority.
+- [x] ISC-COMP-06: One immutable redacted projection supplies banner and island models with common lifecycle lineage and visible stale/held/unknown states.
+- [x] ISC-COMP-07: Main composition project CLI passes actual subprocess and producer-to-projection regressions.
+- [x] ISC-COMP-08: Contained owner observations preserve distinct process dispositions and immutable presentation with no acceptance authority.
+- [x] ISC-COMP-09: Bounded owner-project CLI passes real subprocess and rejects crossed/private packets.
+- [x] ISC-COMP-10: Git-only source admission verifies canonical repository and exact fresh linked-worktree identity with explicit access scope.
+- [x] ISC-COMP-11: Main Git inspection CLI rejects observation injection and passes disposable Git subprocess proof without Superset.
+- [x] ISC-COMP-12: Versioned Git ticket/grant context validates exact identity, timing, lane/effort and budget bindings while withholding actual authority.
+- [x] ISC-COMP-13: Private Git Hands context binds independently proved primary and selected worktree evidence with deterministic task/inventory identity and rejects public projection.
+- [ ] ISC-COMP-03: Installed adapters, live causal lifecycle and independent runtime acceptance are proved.
+
+
 - [x] ISC-1: Repository contains `install.sh`.
 - [x] ISC-2: Repository contains `verify.sh`.
 - [x] ISC-3: Repository contains rollback guidance.
@@ -3165,3 +3182,47 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - ISC-833: public guard — `./verify.sh` exited 0 with the private-path guard unchanged; the changed files contain no absolute home-directory path.
 - ISC-834: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exited 0 on 84d9410 (it exited 2 with three errors on origin/main ebe76e3).
 - ISC-835: `bun test test/doctor.test.ts` — 49 pass; removing the LAUNCHAGENT dispatch line makes the class-aware test fail with `ADAPTER_UNAVAILABLE`.
+
+### Composition source verification — 2026-10-05
+
+37 focused tests, 136 assertions; package typecheck; actual main CLI standalone packet exit 0. Configuration-only output disables effects. These checks close only the two new source criteria; inherited criteria and runtime acceptance remain unchanged.
+
+### Advisory lifecycle source verification — 2026-10-05
+
+58 composition/CLI/lifecycle tests pass (223 assertions), and package typecheck passes. Independent review defects (Proxy reflection and expiry during async claim) were fixed and regression-tested. Atomic durable storage and contained handlers remain host adapter obligations.
+
+### Shared projection verification — 2026-10-05
+
+69 composition/CLI/lifecycle/projection tests pass (276 assertions), with typecheck. Independent review found that valid missing-organ holds were rejected by the projection; producer-to-consumer regression now passes. Native renderer installation and operational receipt authentication remain open.
+
+Wave 4 source verification (2026-10-05): 79 composition tests, 363 assertions, zero failures; package typecheck passed. Owner process observation independent review found no material defect. Runtime and installed acceptance remain open.
+
+Wave5 source verification (2026-10-05): 18 Git admission/CLI tests,97 assertions and package typecheck pass. Actual disposable primary and external linked worktree proof; strict identity, freshness, read-only write denial, ambient Git override exclusion and redaction. Required declared volume bindings hold in CLI until trusted observer. Hands execution, dirty source acceptance, leases and installation remain open.
+
+Wave6 authority source verification (2026-10-05):23 tests152 assertions and typecheck pass. Independent review found PlanMax and producer repository shape incompatibilities; fixes and public phase-map parity regressions pass. Actual authenticated grants, producer join, consumed-grant replay, capacity and sole-writer SQL/claim remain held.
+
+Wave7 source verification: 132 tests, 680 assertions, zero failures and package typecheck pass. Dual primary/target private Hands context, actual disposable Git, deterministic mixed-case ordering and public projection rejection verified. Authenticated grant, capacity and atomic execution claim remain open.
+
+- [x] ISC-COMP-14: Standalone TRIVECTOR arithmetic preserves current policy and explicit legacy/v4.1 selection with no environment or private dependencies, verified by focused numerical regressions.
+- [x] ISC-COMP-15: Standalone routing evidence and selection gates prevent pin bypass and fingerprint every consumed normalized decision signal; exact scope and acceptance provenance remain explicit.
+
+Standalone math source verification:9 tests58 assertions and typecheck pass; existing arithmetic/policy preserved. Explicit mode defaults legacy independent of environment. Evidence lineage validation, calibration and installed selection remain open.
+
+- [x] ISC-COMP-16: Closed bounded TRIVECTOR evidence packet preserves explicit scope/freshness/uncertainty and deterministic fingerprints, rejects private/authority fields and unsafe objects; independent review and focused tests pass.
+
+TRIVECTOR evidence contract source verification:19 math/contract tests118 assertions and typecheck pass; independent review passed after freshness subtype, wire-byte bound and canonical identity fixes. Stale/future/unknown evidence and coarse outcome scope remain explicit; no selection, authentication or accepted-result reliability claim.
+
+- [x] ISC-COMP-17: Existing public router pins cannot re-admit an open circuit; red-to-green regression and18 tests65 assertions pass without changing weights.
+
+Legacy pin receipt follow-up: independent review caught obsolete bypass label; removed and regression asserts circuit-open and absent bypass. Fresh18 tests67 assertions pass.
+
+Diagnostic selection source verification:168 composition/Git/math/contract/selection tests920 assertions and package typecheck pass; independent review passed. Legacyfraction and v4.1 window signals remain distinct, limitations precede pins, half-open shows probe-required. No full live rollback/calibration/authenticated admission claim.
+
+- [x] ISC-COMP-18: Bounded Git authority context CLI exposes actual evaluator through interactive and dedicated three-file entrypoints;8 tests92 assertions/typecheck pass, no issuer/claim authority.
+
+- [x] ISC-COMP-19: Portable Git run lineage retains actual bound references and original claim/replay times, detaches unsafe caller values, bounds lease/deadline and emits false authority receipts; fresh composition/run suite42tests167assertions and typecheck pass. Private SQL authority remains outside the product.
+- [x] ISC-COMP-20: Retired Constellation declarations, observations and dependencies cannot re-enter standalone composition. Generic banner/island and headless modules remain.
+
+- [x] ISC-COMP-21: Reusable bounded MCP stdio caps raw frames, pending bytes/count, safe response encoding and write/EOF deadlines; serial callbacks cannot start after closure. Independent review and13 tests46 assertions plus strict typecheck pass. Owner result production and synchronous execution require their own bounds; no native-client or tool-effect authority follows.
+
+- [x] ISC-COMP-22: Bounded owner-file raw snapshot checks regular descriptor size before allocation, nonblocking/no-follow open, exact reads/growthprobe, postmetadata/path identity and cleanup;9 synthetic/disposable tests45 assertions, strictTypeScript and independentreview pass. Root confinement and synchronous wall deadlines remain owner obligations.

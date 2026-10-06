@@ -1,0 +1,5 @@
+# 1d1 — native metadata source candidate
+
+Dedicated Darwin libproc/sysctl observer only, separate from organ policies. Fixed SDK layouts/bytecounts, PIDUIDbirth/parent/state continuity, retained kernelstart and two-target map bounds. Unsupported Linux holds; pressure metadata never grants admission. No launch, process inventory, signal, config, model/provider or supervisor join.
+
+Fourteen fixtures pass, including mocks first and one current-process-only direct native ABI check; no raw metadata output. LocalSDK headers inspected statically for field/flavor/status layout. Synchronous calls are checked before/after but notpreemptible. Receiptflagsallfalse, memoryobservations notcapacity/resource enforcement. Root independently reran14fixtures in0.001s including ownprocessABI; independent review cleared repaired1a60f380/1d02a41d. AST2/diffcheck clear. Constructor deadline-before-load and finite setup failures covered. Exact source publication authorized; no worker/resource enforcement/runtime acceptance.

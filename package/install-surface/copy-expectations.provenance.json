@@ -3,113 +3,155 @@
     {
       "expectation_digest": "sha256:bd6f02ab3cd76780996fc468c0bde007b1aa1c8f17567d2d946f8b8f7987f4d7",
       "id": "enrichment.public-pipeline",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/enrich",
-      "source_object": "f9922afb7fa352a714d671e99e886e575497d24b"
+      "source_object": "f9922afb7fa352a714d671e99e886e575497d24b",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:f15d7a4a547238d093dcd4f4ea8e1d3cbc13d88e9babaf01b142fd46905ba190",
       "id": "hooks.claude.gsd-command",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/codex/GsdCommand.hook.ts",
-      "source_object": "76f9befe10ac60fdeec43c4796a92811ad592518"
+      "source_object": "76f9befe10ac60fdeec43c4796a92811ad592518",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:238b04e610ee7e721d76a77d96614410fcea7f60181d9b468b422da065563533",
       "id": "hooks.claude.manifest-mode-commit",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/codex/ManifestModeCommit.hook.ts",
-      "source_object": "e7a412d78c134fc0aa17c599c66ddbe243b91bbd"
+      "source_object": "e7a412d78c134fc0aa17c599c66ddbe243b91bbd",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:c1e673dbfddc598471cf6c881e5ea34f8ff599a2508c87ad0caea7819847b391",
       "id": "hooks.claude.prompt-processing",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/claude/PromptProcessing.hook.ts",
-      "source_object": "a5742ce588468b22fa40bd356f4b9855fdbeef59"
+      "source_object": "a5742ce588468b22fa40bd356f4b9855fdbeef59",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:4122cdd4f4c307b9b50b7a550c9cfb027eb342a1153bde8507dd1306f742d3cd",
       "id": "hooks.claude.temperance-rail-announce",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/codex/TemperanceRailAnnounce.hook.ts",
-      "source_object": "6aa89ae1ef9ef25fbf1da01356776874aae850a4"
+      "source_object": "6aa89ae1ef9ef25fbf1da01356776874aae850a4",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:f15d7a4a547238d093dcd4f4ea8e1d3cbc13d88e9babaf01b142fd46905ba190",
       "id": "hooks.codex.gsd-command",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/codex/GsdCommand.hook.ts",
-      "source_object": "76f9befe10ac60fdeec43c4796a92811ad592518"
+      "source_object": "76f9befe10ac60fdeec43c4796a92811ad592518",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:238b04e610ee7e721d76a77d96614410fcea7f60181d9b468b422da065563533",
       "id": "hooks.codex.manifest-mode-commit",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/codex/ManifestModeCommit.hook.ts",
-      "source_object": "e7a412d78c134fc0aa17c599c66ddbe243b91bbd"
+      "source_object": "e7a412d78c134fc0aa17c599c66ddbe243b91bbd",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:23b43010bf83bf3e8235ec0c604a5148d11bba6c0f1a0dc44a5a7fdecf691be4",
       "id": "hooks.codex.prompt-processing",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/codex/PromptProcessing.hook.ts",
-      "source_object": "6972f6e7ca08eed7168e2b87f715bde116d9fd6c"
+      "source_object": "6972f6e7ca08eed7168e2b87f715bde116d9fd6c",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:cdb612d26418d79c20b3f37ab836f1d2471d7a840ae283ff27138fdf1b0843b3",
       "id": "hooks.codex.session-start",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/codex/SessionStartTe.hook.ts",
-      "source_object": "731aee3e21e0aaf10c65b085a14c0c4edfddffb8"
+      "source_object": "731aee3e21e0aaf10c65b085a14c0c4edfddffb8",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:4122cdd4f4c307b9b50b7a550c9cfb027eb342a1153bde8507dd1306f742d3cd",
       "id": "hooks.codex.temperance-rail-announce",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/hooks/codex/TemperanceRailAnnounce.hook.ts",
-      "source_object": "6aa89ae1ef9ef25fbf1da01356776874aae850a4"
+      "source_object": "6aa89ae1ef9ef25fbf1da01356776874aae850a4",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:10d477e6e17921528eeab4c1d75a5b01b8d61f13777961f95c772f23039bf467",
       "id": "manifest.bridge-runtime",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/manifest-bridge",
-      "source_object": "3585b05f1b31e53c87c4f5fdf00bb511a9302534"
+      "source_object": "3585b05f1b31e53c87c4f5fdf00bb511a9302534",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
+    },
+    {
+      "expectation_digest": "sha256:041aeb0700764c08809a323cb3604177385ee70fb3af5c797629e9d44c755322",
+      "id": "organ-guard.source",
+      "revision": "6195142e5e15fae4d477243c0227c98517038383",
+      "source": "package/organ-guard",
+      "source_object": "47311f700ff41d67ad0b439f3a1d6b95f8996749",
+      "tree": "3481c522f5871ea1ac7639e05916acd9f196537f"
     },
     {
       "expectation_digest": "sha256:115fa7f2a6284e07b62f6b2f25c5f82c761b1135c4feabbbacfb2652de780b09",
       "id": "router.enrichment-runtime-dependency",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/router/task-classification.ts",
-      "source_object": "2c15ff81f4afb0865bb8db1db60f1a1d8c560077"
+      "source_object": "2c15ff81f4afb0865bb8db1db60f1a1d8c560077",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
-      "expectation_digest": "sha256:2e3fac1cfffd6130e41e6aa291f1804df57c6513d78e2fad9351b58928b21c4d",
+      "expectation_digest": "sha256:6ac8e71eb7deab8988c5a9daabf7cd3fb0a10d26bf14c214b73c850aab490140",
       "id": "router.governed-runtime",
+      "revision": "e07ee9bb531be56f62cd7afdc7be21972f28c71d",
       "source": "package/router",
-      "source_object": "b69e021963b175fa862c991fb5aea3a4985b4e43"
+      "source_object": "6d03bca0d3217b5315484f63de2c56d1e527960d",
+      "tree": "d63cfc57d66666b3507b89d1667584eaec926e44"
     },
     {
       "expectation_digest": "sha256:f40f92598d75fca3203768a53b1e5bb229d169243944f6c8bd63b949af02490f",
       "id": "router.gsd-backup-helper",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "package/bin/te-backup-if-changed",
-      "source_object": "b6916f01c114566ffcb788374f6a4c164541d152"
+      "source_object": "b6916f01c114566ffcb788374f6a4c164541d152",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:cf556d274fb8c0269227a1840bf854a6ed8998c739d6d2bf4cf74ea469327a37",
       "id": "skills.temperance-algorithm",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "skills/temperance-algorithm",
-      "source_object": "e3529e9bc1a52975fce7ed7b91d36ca5b7581b5a"
+      "source_object": "e3529e9bc1a52975fce7ed7b91d36ca5b7581b5a",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:a92f17fb9328dc5b06f177431add8d2468db0d475b9bce404e37f96ec7f6fb89",
       "id": "skills.temperance-engine",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "skills/temperance-engine",
-      "source_object": "aed3a501bb59d90c65fc173a335400e3e3fa50c6"
+      "source_object": "aed3a501bb59d90c65fc173a335400e3e3fa50c6",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:6f64ce58f1ac6e50a8e3981461c1faa35f3bb5ea2a0404a08c8fd470042edd1e",
       "id": "skills.temperance-native",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "skills/temperance-native",
-      "source_object": "c1990e963a3aa82484ed3664cf2d992e855abd9a"
+      "source_object": "c1990e963a3aa82484ed3664cf2d992e855abd9a",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     },
     {
       "expectation_digest": "sha256:67eeba838d0897f4666bf355bdc01d29b659d6e42898784845211ef7880a36fb",
       "id": "skills.temperance-parallel-dispatch",
+      "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
       "source": "skills/temperance-parallel-dispatch",
-      "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
+      "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70",
+      "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
     }
   ],
-  "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
-  "schema": "temperance.install-surface.copy-expectations-provenance.v1",
-  "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
+  "schema": "temperance.install-surface.copy-expectations-provenance.v2"
 }
