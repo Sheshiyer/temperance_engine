@@ -187,7 +187,7 @@ The preview commands are only gates for proposals and validation.
 They do not replace the governed Codex profiles.
 They do not write a live Hermes configuration.
 
-The native CLI readiness command does an offline comparison of six reviewed 3.8.48 source digests and markers.
+The native CLI readiness command does an offline comparison of seven reviewed 3.8.51 source digests and markers.
 It does not certify the full package.
 It is not an authenticated compression preview.
 

@@ -44,7 +44,7 @@ else
   collected="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
   expires="$(date -u -v+30S +%Y-%m-%dT%H:%M:%S.000Z)"
 fi
-version="${MOCK_VERSION:-3.8.48}"
+version="${MOCK_VERSION:-3.8.51}"
 missing="${MOCK_MISSING_COMBO:-none}"
 jq -n \
   --arg collected "$collected" \

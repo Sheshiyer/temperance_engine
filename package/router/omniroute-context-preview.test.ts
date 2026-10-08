@@ -16,7 +16,10 @@ import {
   CONTEXT_WRAPPER_MARKERS,
   OMNIROUTE_CONTEXT_PREVIEW_ENDPOINT,
   SYNTHETIC_CONTEXT_FIXTURES,
+  ContextPreviewError,
+  SUPPORTED_OMNIROUTE_PREVIEW_VERSION,
   buildContextPreviewRequests,
+  projectNativePreviewInvariants,
   runContextPreviewQualification,
   syntheticPreviewOriginal,
   validatePreviewPayload,
@@ -45,12 +48,12 @@ function nativeSnapshot(): Record<string, unknown> {
     promotionAuthorized: false,
     mutationMethods: [],
     evidence: {
-      installedVersion: "3.8.48",
+      installedVersion: "3.8.51",
       runtime: {
         pid: 17555,
         startedHash: "a".repeat(64),
         listener: "127.0.0.1:20128",
-        version: "3.8.48",
+        version: "3.8.51",
         packageIdentityHash: "b".repeat(64),
         databaseBindingHash: "c".repeat(64),
       },
@@ -192,6 +195,21 @@ function candidatesFetch(): PreviewFetch {
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+});
+
+describe("native snapshot version binding", () => {
+  test("accepts only the qualified OmniRoute release", () => {
+    expect(SUPPORTED_OMNIROUTE_PREVIEW_VERSION).toBe("3.8.51");
+    expect(() => projectNativePreviewInvariants(nativeSnapshot(), NOW)).not.toThrow();
+    for (const version of ["3.8.48", "3.8.52"]) {
+      const snapshot = nativeSnapshot() as { evidence: { installedVersion: string; runtime: { version: string } } };
+      snapshot.evidence.installedVersion = version;
+      snapshot.evidence.runtime.version = version;
+      let code = "no_error";
+      try { projectNativePreviewInvariants(snapshot, NOW); } catch (error) { code = error instanceof ContextPreviewError ? error.code : "unexpected"; }
+      expect(code).toBe("native_snapshot_version_invalid");
+    }
+  });
 });
 
 describe("OmniRoute context preview request contract", () => {
