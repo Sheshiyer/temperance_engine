@@ -8,7 +8,7 @@ import {
   type OnboardingCatalogV1,
   type OnboardingProfileV1,
 } from "../src/onboarding/contracts.ts";
-import { createCoreOnboardingCatalog } from "../src/onboarding/core-catalog.ts";
+import { createCoreOnboardingCatalog, createLegacyNineRouterCatalog } from "../src/onboarding/core-catalog.ts";
 import { createOnboardingPlan } from "../src/onboarding/planner.ts";
 import { validateOnboardingCatalog, validateOnboardingProfile } from "../src/onboarding/schema.ts";
 import { projectOnboardingDoctorSection } from "../src/onboarding/doctor.ts";
@@ -52,7 +52,7 @@ describe("onboarding contracts", () => {
       current_state_directory: ".9router",
       legacy_state_directory: ".omniroute",
     });
-    const router = createCoreOnboardingCatalog().modules.find((module) => module.id === "provider.9router");
+    const router = createLegacyNineRouterCatalog().modules.find((module) => module.id === "provider.9router");
     expect(router?.state_transition).toEqual({
       from_relative_path: ".omniroute",
       to_relative_path: ".9router",
@@ -119,7 +119,7 @@ describe("onboarding contracts", () => {
   });
 
   test("forbids command guidance that omits an isolated 9router DATA_DIR", () => {
-    const core = createCoreOnboardingCatalog();
+    const core = createLegacyNineRouterCatalog();
     const router = core.modules[0]!;
     const unsafe = {
       ...core,
@@ -180,7 +180,7 @@ describe("shared onboarding planner", () => {
   });
 
   test("exact 9router version mismatch is blocked and keeps the guided repair", async () => {
-    const core = createCoreOnboardingCatalog();
+    const core = createLegacyNineRouterCatalog();
     const plan = await createOnboardingPlan({
       catalog: core,
       profile: profile({ preselected_modules: ["provider.9router"] }),

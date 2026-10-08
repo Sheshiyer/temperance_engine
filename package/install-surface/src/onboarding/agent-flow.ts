@@ -74,7 +74,7 @@ export interface OnboardingAgentFlowV1 {
 function authorityFor(row: WizardRow): AgentFlowAuthority {
   switch (row.action.kind) {
     case "authorize": return "provider-sign-in";
-    case "save": case "confirm": return "explicit-confirmation";
+    case "save": case "save-organs": case "confirm": return "explicit-confirmation";
     case "project": case "module": case "defer": case "seat": return "request-change";
     default: return "read-only";
   }

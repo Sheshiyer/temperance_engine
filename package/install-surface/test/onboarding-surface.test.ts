@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { createCoreOnboardingCatalog } from "../src/onboarding/core-catalog.ts";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -133,7 +134,7 @@ describe("onboarding presentation", () => {
     expect(canConfirmOnboardingPlan(plan)).toBe(false);
     expect(canConfirmOnboardingPlan(withMadara)).toBe(true);
     const overview = createOnboardingViewModel(withMadara).pages.find(({ id }) => id === "overview");
-    expect(overview?.rows.find(({ id }) => id === "mount")?.title).toBe("Madara: absent · read-only degraded");
+    expect(overview?.rows.find(({ id }) => id === "mount")?.title).toBe("Knowledge volume: absent · read-only degraded");
   });
 
   test("shows discovered projects as pending rather than enrolled", () => {
@@ -222,17 +223,22 @@ test("CLI onboarding is JSON-capable and read-only by default", async () => {
 
 test("CLI onboarding starts with the portable core when no personal profile is selected", async () => {
   const packageRoot = resolve(import.meta.dir, "..");
+  const isolation = mkdtempSync(join(tmpdir(), "temperance-onboard-core-cli-"));
+  roots.push(isolation);
   const child = Bun.spawn(["bun", "run", "src/cli.ts", "onboard", "--json"], {
     cwd: packageRoot,
     stdout: "pipe",
     stderr: "pipe",
+    // Never pick up this host's private onboarding profile.
+    env: { ...process.env, TEMPERANCE_ONBOARDING_PROFILE: join(isolation, "absent-profile.json") },
   });
   const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
   expect(code).toBe(0);
   expect(stderr).toBe("");
   const output = JSON.parse(stdout);
   expect(output.profile_id).toBe("temperance-portable-core");
-  expect(output.modules.map(({ id }: { id: string }) => id)).toEqual(["provider.9router"]);
+  expect(output.modules.map(({ id }: { id: string }) => id).sort()).toEqual(createCoreOnboardingCatalog().modules.map(({ id }) => id).sort());
+  expect(output.modules.some(({ id }: { id: string }) => id === "provider.9router")).toBe(false);
   expect(stdout).not.toContain("magenarayan");
 }, 15_000);
 
@@ -247,7 +253,7 @@ test("CLI composes a portable host profile with a private host binding", async (
     id: "composed-cli",
     variables: [{ name: "NINE_ROUTER_DATA_DIR", kind: "absolute-path", required: true }],
     secret_references: [],
-    preselected_modules: ["provider.9router"],
+    preselected_modules: ["integration.mail-mcp"],
     required_routing_aliases: [],
   }));
   writeFileSync(hostBindingPath, JSON.stringify({
@@ -271,7 +277,7 @@ test("CLI composes a portable host profile with a private host binding", async (
   expect(stderr).toBe("");
   const output = JSON.parse(stdout);
   expect(output.profile_id).toBe("composed-cli");
-  expect(output.modules.map(({ id }: { id: string }) => id)).toEqual(["provider.9router"]);
+  expect(output.modules.find(({ id }: { id: string }) => id === "integration.mail-mcp")?.requested).toBe(true);
   expect(output.dry_run).toBe(true);
 }, 15_000);
 
