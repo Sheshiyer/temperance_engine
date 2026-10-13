@@ -38,7 +38,7 @@ check "OmniRoute gateway precedes direct fallback rails" "$expected" "$out"
 
 # Task-specific local OmniRoute portfolios use the canonical noesis namespace
 # and remain proposal-only until a promotion receipt exists. The frozen selected
-# chain must stay on the compatibility combo; company-edge te-* lifecycle names
+# chain must stay on the compatibility combo; te-* compatibility fleet names
 # have separate coverage.
 portfolio_fast=$(TEMPERANCE_BACKENDS="omniroute command-code" \
   TEMPERANCE_OMNIROUTE_CATALOG_FILE="$PORTFOLIO_CATALOG" \

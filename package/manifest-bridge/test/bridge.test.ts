@@ -11,7 +11,7 @@ import { ManifestStore } from '../src/store';
 import { RuntimeWatcher } from '../src/watcher';
 import { hookInputToEvent } from '../src/hook-adapter';
 import { activateAlgorithmRun, activeRunFor, classificationFromContext, closeAlgorithmRun, loadActivationPolicy, publishActivationEvent, resolveAlgorithmActivation } from '../src/activation';
-import { formatManifestRuntimeContext, formatPaiModeOffer, manifestRuntimeReceipt } from '../src/runtime-status';
+import { formatManifestRuntimeContext, formatPaiModeOffer, manifestRuntimeReceipt, routerEdge } from '../src/runtime-status';
 import { formatDoctorReport, runManifestDoctor } from '../src/doctor';
 import { ManifestDiagnostics } from '../src/diagnostics';
 import { readCodeGraphStatus } from '../src/codegraph';
@@ -341,6 +341,23 @@ describe('manifest event plane', () => {
     expect(context).toContain('☿ MANIFEST · READY');
     expect(context).toContain('auth protected');
     gateway.stop(); await server.close();
+  });
+
+  test('probes the router client API and does not count an identity redirect as the gateway', async () => {
+    const paths: string[] = [];
+    const gateway = Bun.serve({ port: 0, fetch: (request) => { paths.push(new URL(request.url).pathname); return new Response(null, { status: 302, headers: { location: 'https://login.example.test/' } }); } });
+    const receipt = await manifestRuntimeReceipt({ bridge_url: 'http://127.0.0.1:1', omniroute_url: `http://127.0.0.1:${gateway.port}` });
+    expect(paths).toEqual(['/v1/models']);
+    expect(receipt.omniroute.state).toBe('offline');
+    expect(receipt.omniroute.detail).toBe('identity proxy redirected; gateway not reached');
+    gateway.stop();
+  });
+
+  test('labels loopback routers local and network routers hosted', () => {
+    expect(routerEdge('http://127.0.0.1:20128')).toBe('local');
+    expect(routerEdge('http://localhost:20128')).toBe('local');
+    expect(routerEdge('http://[::1]:20128')).toBe('local');
+    expect(routerEdge('https://router.example.test')).toBe('hosted');
   });
 
   test('keeps an offline bridge explicit instead of inventing a healthy receipt', async () => {

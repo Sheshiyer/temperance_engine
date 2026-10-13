@@ -19,7 +19,7 @@ The Thoughtseed-member glove is `./install.sh --with-spine`. Public `./install.s
 - GSD slash spine (optional `--with-gsd` / `--with-spine`): thin `/gsd:*` remotes on Claude Code, Codex, OpenCode, and Grok. They read GSD 1.30.0 workflows. They do not fork GSD. `/gsd:doctor` and `/gsd:goal` are Temperance-owned. Claude also gets native `/goal`.
 - UPS compose: `package/hooks/codex` and `package/hooks/claude` PromptProcessing emit one `additionalContext` envelope — classifier + `<temperance-rail>` + `<gsd-rail>` + `<pai-mode-offer>` + hook receipt. Companion hooks must not steal stdin.
 - Manifest Zone / **Speculum** (optional `--with-manifest` / `--with-spine`): Vite LCARS on `:5173`. Named glass `https://speculum.localhost:1355` via [portless](https://github.com/vercel-labs/portless) when installed. ChatGPT IAB stays `http://127.0.0.1:5173`. Projection only. Bound planning projects, not every Vas cwd. Live STATE / ROADMAP / GOAL. Never Chrome/Safari.
-- Manifest bridge: event plane on `:8766`. Heartbeat plus 180s stale window. Edge `local|clio`.
+- Manifest bridge: event plane on `:8766`. Heartbeat plus 180s stale window. Edge `local|hosted` (loopback router or a shared hosted router).
 - Session goal loop: `.temperance/goal.json` (`temperance.goal.v1`). CLI `temperance-goal --ensure|--eval`. `/gsd:goal` (and Claude native `/goal`) loops execute until the same VERIFY probes pass. Not a planner.
 - Dual-fleet lock: `/gsd:execute-phase` writes `~/.temperance_engine/state/fleet-locks/<cwd-hash>.json` when next-wave emits tasks. A second `gsd-executor` swarm on the same `[P]` ids is forbidden while the lock is active (<2h).
 - Product symlink: `~/.temperance_engine/product` always points at this clone.
