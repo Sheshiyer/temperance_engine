@@ -61,10 +61,16 @@
       "source_object": "6aa89ae1ef9ef25fbf1da01356776874aae850a4"
     },
     {
-      "expectation_digest": "sha256:10d477e6e17921528eeab4c1d75a5b01b8d61f13777961f95c772f23039bf467",
+      "expectation_digest": "sha256:f827cf2b8284f7cd646cabeb9b678cdbdeb725b057408f1ae4a913f79d3ebd73",
       "id": "manifest.bridge-runtime",
       "source": "package/manifest-bridge",
-      "source_object": "3585b05f1b31e53c87c4f5fdf00bb511a9302534"
+      "source_object": "4dd2c961d33859fd0c0a333e51dfd2f418fac027"
+    },
+    {
+      "expectation_digest": "sha256:041aeb0700764c08809a323cb3604177385ee70fb3af5c797629e9d44c755322",
+      "id": "organ-guard.source",
+      "source": "package/organ-guard",
+      "source_object": "47311f700ff41d67ad0b439f3a1d6b95f8996749"
     },
     {
       "expectation_digest": "sha256:115fa7f2a6284e07b62f6b2f25c5f82c761b1135c4feabbbacfb2652de780b09",
@@ -73,10 +79,10 @@
       "source_object": "2c15ff81f4afb0865bb8db1db60f1a1d8c560077"
     },
     {
-      "expectation_digest": "sha256:2e3fac1cfffd6130e41e6aa291f1804df57c6513d78e2fad9351b58928b21c4d",
+      "expectation_digest": "sha256:a40a0258f14a4bf4127b327779fb8bad77e4f2917f8770dc3882245de9113761",
       "id": "router.governed-runtime",
       "source": "package/router",
-      "source_object": "b69e021963b175fa862c991fb5aea3a4985b4e43"
+      "source_object": "6ff77451edb01c9a0425c4eb165067489a7b0c30"
     },
     {
       "expectation_digest": "sha256:f40f92598d75fca3203768a53b1e5bb229d169243944f6c8bd63b949af02490f",
@@ -109,7 +115,7 @@
       "source_object": "04d3ba763f32d887672c7bbefb8d70fd1ac16e70"
     }
   ],
-  "revision": "ee71d740adcfd17ca185950019254725fbfb3ad0",
+  "revision": "5289204001428ca1a41ab5d3c9abe6034e342acd",
   "schema": "temperance.install-surface.copy-expectations-provenance.v1",
-  "tree": "8b0c4fba6b39c631d965495fbc27d6a3aba692a1"
+  "tree": "f8be149be24276bb435a8424193453d7582ed3c1"
 }

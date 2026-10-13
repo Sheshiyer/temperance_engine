@@ -119,7 +119,7 @@ owned virtual pool and is never silently promoted into a Temperance portfolio.
 
 ## Local configuration
 
-- Runtime: OmniRoute `3.8.48` from [`diegosouzapw/OmniRoute`](https://github.com/diegosouzapw/OmniRoute)
+- Runtime: OmniRoute `3.8.51` from [`diegosouzapw/OmniRoute`](https://github.com/diegosouzapw/OmniRoute)
 - Dashboard: `http://localhost:20128`
 - OpenAI-compatible API: `http://127.0.0.1:20128/v1`
 - Data: `~/.omniroute` (`.env` and SQLite are local, never repository inputs)

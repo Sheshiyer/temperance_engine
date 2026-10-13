@@ -1,0 +1,2 @@
+# 5rq source candidate
+10 mock fixtures pass; fixed capturedplanner+Preparation with mock18endpoint allocation. Invalidsecond metadata/identity zero reads; slowintake zero preparation; safepeer onceclose/replacement/growth/clock continuity. Root independently ran10mockfixtures0.005s and reviewed final5f0aa; company source review clear. Root authorized exactsource publication; noactualsourceownerpoint/native operations/runtime acceptance. Existinghelpers unchanged exactpins.

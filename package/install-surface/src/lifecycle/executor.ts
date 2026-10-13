@@ -6,6 +6,7 @@
  * Verify failure mid-run: ABORT, staged removed, preimages intact, exit 1.
  */
 
+import { normalizeRuntimeDependencies, assertRuntimeDependenciesSupported } from "../runtime-dependencies.ts";
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -178,6 +179,22 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
   const txid = generateTxId();
   const txDir = join(stateRoot, "transactions", txid);
 
+  const plannedIds = new Set(plan.steps.map(step => step.record_id));
+  const selectedDependencies = new Map<string, readonly import("../types.ts").RuntimeDependency[]>();
+  try {
+    for (const record of compileResult.lockObject.records) {
+      if (!plannedIds.has(record.id)) continue;
+      const descriptor = Object.getOwnPropertyDescriptor(record, "requires");
+      if (descriptor && !("value" in descriptor)) throw new Error("DEPENDENCY_DECLARATION_INVALID");
+      const dependencies = normalizeRuntimeDependencies(descriptor?.value);
+      assertRuntimeDependenciesSupported(dependencies);
+      selectedDependencies.set(record.id, dependencies);
+    }
+  } catch (error) {
+    const code = error instanceof Error && error.message === "DEPENDENCY_HTTP_UNSUPPORTED" ? "DEPENDENCY_HTTP_UNSUPPORTED" : "DEPENDENCY_DECLARATION_INVALID";
+    return { txid, status: "failed", exitCode: 1, outcomes: plan.outcomes.map(o => ({ ...o, status: "failed", reason: code })) };
+  }
+
   // Dry run: print plan without writes
   if (dryRun) {
     return {
@@ -193,11 +210,11 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
   if (explicitSelections) {
     for (const selection of explicitSelections) {
       const record = compileResult.lockObject.records.find((r) => r.id === selection);
-      if (!record) continue;
+      if (!record || !plannedIds.has(record.id)) continue;
 
       // Check if record has unmet dependencies
-      if (record.requires) {
-        for (const dep of record.requires) {
+      if (selectedDependencies.get(record.id)?.length) {
+        for (const dep of selectedDependencies.get(record.id)!) {
           if (dep.kind === "binary") {
             try {
               const result = await io.execFile("which", [dep.name], { signal });
@@ -291,9 +308,9 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     }
 
     // Check if this is an optional record with unavailable dependencies
-    if (record.eligibility.required === false && record.requires) {
+    if (record.eligibility.required === false && selectedDependencies.get(record.id)?.length) {
       let depsAvailable = true;
-      for (const dep of record.requires) {
+      for (const dep of selectedDependencies.get(record.id)!) {
         if (dep.kind === "binary") {
           try {
             const result = await io.execFile("which", [dep.name], { signal });
@@ -315,7 +332,7 @@ export async function executePlan(options: ExecutorOptions): Promise<ExecutorRes
     }
 
     filteredSteps.push(step);
-    filteredRecords.push(record);
+    filteredRecords.push({ ...record, requires: [...selectedDependencies.get(record.id)!] });
   }
 
   // Update outcomes for skipped optional records

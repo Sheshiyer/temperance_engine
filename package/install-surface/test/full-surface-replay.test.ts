@@ -24,7 +24,7 @@ const compiled = compileFragments(readdirSync(fragmentDirectory).filter(name => 
   requirementsText: readFileSync(join(checkout, ".planning/REQUIREMENTS.md"), "utf8"),
   priorLock: loadLock(join(checkout, "package/install-surface/install-surface-manifest.lock.json")).lockObject,
 });
-const profiles = [...new Set(compiled.lockObject.records.filter(record => record.class !== "NEVER-SHIP")
+const profiles = [...new Set(compiled.lockObject.records.filter(record => record.class !== "NEVER-SHIP" && record.eligibility.required !== false)
   .flatMap(record => record.eligibility.profiles))].sort();
 const temporaryRoots: string[] = [];
 afterEach(async () => {
@@ -146,9 +146,11 @@ async function expectInstalledDoctor(f: Awaited<ReturnType<typeof fixture>>, pla
   expect(checks).toHaveLength(compiled.lockObject.records.length);
   for (const record of compiled.lockObject.records) {
     const check = checks.find(check => check.id === record.id);
-    if (record.class === "COPY") expect(check).toMatchObject(record.id === driftRecordId
-      ? { condition: "DRIFT", reason_code: "COPY_LEAF_SET_DRIFT" }
-      : { condition: "PASS", reason_code: "COPY_DECLARATION_MATCH" });
+    if (record.class === "COPY") expect(check).toMatchObject(record.eligibility.required === false
+      ? { condition: "SKIPPED", reason_code: "OPTIONAL_SURFACE_SKIPPED" }
+      : record.id === driftRecordId
+        ? { condition: "DRIFT", reason_code: "COPY_LEAF_SET_DRIFT" }
+        : { condition: "PASS", reason_code: "COPY_DECLARATION_MATCH" });
     if (record.class === "TRANSFORM") expect(check).toMatchObject({ condition: "PASS", reason_code: "TRANSFORM_MANAGED_BLOCK_MATCH" });
     if (record.class === "REGENERATE") expect(check).toMatchObject({ condition: "UNAVAILABLE", reason_code: "GENERATOR_UNAVAILABLE" });
     if (record.class === "NEVER-SHIP") expect(check?.reason_code).toBe("NEVER_SHIP_SYMBOLIC");

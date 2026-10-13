@@ -9,7 +9,7 @@ Do not start in `docs/plans/` or the OmniRoute July stack. Those are history.
 | File | Owns |
 |---|---|
 | [release-control.md](release-control.md) | SemVer planes, Keep a Changelog, tag rules |
-| [COMPATIBILITY.md](COMPATIBILITY.md) | Glove ↔ OmniRoute 3.8.48 ↔ host VERSION pins |
+| [COMPATIBILITY.md](COMPATIBILITY.md) | Glove ↔ OmniRoute 3.8.51 ↔ host VERSION pins |
 | [OWNERS.md](OWNERS.md) | One owner per concern (Mercurius, Opus, ISA, Vas) |
 | [ECOSYSTEM.md](ECOSYSTEM.md) | Named organs (speculum.localhost) |
 | [GSD-HITL-PICKER.md](GSD-HITL-PICKER.md) | HITL seat ≠ Speculum |
@@ -25,6 +25,7 @@ Do not start in `docs/plans/` or the OmniRoute July stack. Those are history.
 | [peon-ping-packs.md](peon-ping-packs.md) | Phase → peon packs |
 | [manifest-control-plane.md](manifest-control-plane.md) | Bridge authority wall. Projection only |
 | [kimi-surface.md](kimi-surface.md) | Kimi relay-side enrich |
+| [te-memory-access.md](te-memory-access.md) | Memory host behind Cloudflare Access: service token for the memory scripts |
 | [../package/showreel/README.md](../package/showreel/README.md) | 15-second showreel, 16:9 and 9:16. Canvas2D source and render commands |
 
 ## Routing (keep; tests pin these)

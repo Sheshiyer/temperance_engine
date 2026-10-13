@@ -1,0 +1,3 @@
+# 2q8 — status/release boundary source/mock
+
+Root approvedrevised2nf. Own onehelper/test/contract/packet only. Childfixed5writer/6reader roles vsownerinternallytransferredread/write FDnumbers distinct, no parentremap/CLIenv. Closedtrustedoriginalowner/firstchildcontext beforestatus; independentchildtokenmatch beforecontrol. Explicitinjectedreviewed69byteencoder, no loaderclosureclaim. TwoFDonceidentity/closecleanup, status≤64/EAGAIN/EOFclose, PIPE_BUF69/oncewrite-count-close-freshobserve-injectedcontinue. ActualStoppedProtocol+mockOSclosure only, no actualFD/native/child/provider/rootadopt. Reviewbeforepublish.

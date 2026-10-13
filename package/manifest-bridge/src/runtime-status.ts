@@ -11,7 +11,7 @@ export interface EndpointReceipt {
 
 export interface ManifestRuntimeReceipt {
   manifest: EndpointReceipt & { event_count?: number; freshness?: string };
-  omniroute: EndpointReceipt & { edge?: 'local' | 'clio' };
+  omniroute: EndpointReceipt & { edge?: RouterEdge };
   activation: {
     state: 'active' | 'rejected' | 'unavailable';
     reason: string;
@@ -19,13 +19,23 @@ export interface ManifestRuntimeReceipt {
   };
 }
 
+/** `local` is a router on this machine; `hosted` is a shared router reached over the network. */
+export type RouterEdge = 'local' | 'hosted';
+
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
+
 function baseUrl(value: string): string {
   return value.replace(/\/$/, '');
 }
 
-async function probe(url: string, expectedService?: string): Promise<{ status_code?: number; json?: Record<string, unknown> }> {
+export function routerEdge(url: string): RouterEdge {
+  try { return LOOPBACK_HOSTS.has(new URL(url).hostname) ? 'local' : 'hosted'; } catch { return 'local'; }
+}
+
+async function probe(url: string, expectedService?: string, timeoutMs = 350): Promise<{ status_code?: number; json?: Record<string, unknown> }> {
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(350) });
+    // Never follow redirects: an identity proxy's login redirect is not the gateway answering.
+    const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), redirect: 'manual' });
     let json: Record<string, unknown> | undefined;
     try { json = await response.json() as Record<string, unknown>; } catch { /* a gateway may deliberately return an empty/HTML response */ }
     if (expectedService && (!response.ok || json?.service !== expectedService)) return { status_code: response.status, json };
@@ -42,15 +52,18 @@ export async function manifestRuntimeReceipt(input: {
 } = {}): Promise<ManifestRuntimeReceipt> {
   const bridgeUrl = baseUrl(input.bridge_url || process.env.TEMPERANCE_MANIFEST_BRIDGE_URL || 'http://127.0.0.1:8766');
   const omnirouteUrl = baseUrl(input.omniroute_url || process.env.TEMPERANCE_OMNIROUTE_URL || 'http://127.0.0.1:20128');
-  const edge: 'local' | 'clio' = /clio|company|relay/i.test(omnirouteUrl) || process.env.TEMPERANCE_EDGE === 'clio' ? 'clio' : 'local';
+  const edge = routerEdge(omnirouteUrl);
   const [bridge, omniroute] = await Promise.all([
     probe(`${bridgeUrl}/health`, 'temperance-manifest-bridge'),
-    // OmniRoute deliberately protects this API with auth. A 401 proves the local
-    // gateway is reachable without teaching a prompt hook to read a secret.
-    probe(`${omnirouteUrl}/api/status`),
+    // The client API is the one path a hosted router exposes without an identity login, and
+    // OmniRoute protects it with API keys. A 401 proves the gateway answered without teaching a
+    // prompt hook to read a secret. A hosted router gets a longer budget for the TLS round trip.
+    probe(`${omnirouteUrl}/v1/models`, undefined, edge === 'local' ? 350 : 1500),
   ]);
   const bridgeReady = bridge.status_code === 200 && bridge.json?.service === 'temperance-manifest-bridge';
-  const gatewayReady = Boolean(omniroute.status_code && omniroute.status_code < 500);
+  const gatewayStatus = omniroute.status_code;
+  const gatewayReady = Boolean(gatewayStatus && gatewayStatus < 500 && (gatewayStatus < 300 || gatewayStatus >= 400));
+  const identityRedirect = Boolean(gatewayStatus && gatewayStatus >= 300 && gatewayStatus < 400);
   const activation = input.activation;
   const run = activation?.run || activeRunFor(input.session_id, input.state_dir);
   const activationState = run ? 'active' : activation?.accepted === false ? 'rejected' : 'unavailable';
@@ -65,7 +78,7 @@ export async function manifestRuntimeReceipt(input: {
     omniroute: {
       state: gatewayReady ? 'ready' : 'offline', url: omnirouteUrl, status_code: omniroute.status_code,
       edge,
-      detail: gatewayReady ? (omniroute.status_code === 401 ? `gateway reachable · auth protected · edge ${edge}` : `gateway reachable · edge ${edge}`) : 'gateway did not answer',
+      detail: gatewayReady ? (gatewayStatus === 401 ? `gateway reachable · auth protected · edge ${edge}` : `gateway reachable · edge ${edge}`) : identityRedirect ? 'identity proxy redirected; gateway not reached' : 'gateway did not answer',
     },
     activation: { state: activationState, reason: activationReason, run },
   };

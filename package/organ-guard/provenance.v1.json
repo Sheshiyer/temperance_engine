@@ -1,0 +1,20 @@
+{
+  "schema": "temperance.organ-guard-source.v1",
+  "source_repository": "github.com/Sheshiyer/noesis-cambium",
+  "source_commit": "b57931b11859cdd5ab39fa14160abf093dd2139f",
+  "source_path": "bin/te-organ-contain.py",
+  "source_sha256": "sha256:289643f5955ec243564728bf952e36e768cc8cb20430aa3d64766a4b674ab478",
+  "packaged_path": "package/organ-guard/bin/te-organ-contain.py",
+  "policy_source_path": "router/module-descriptors/organs.json",
+  "policy_source_sha256": "sha256:9086cf1d8ce0471ed1d3fe4de5afa9eaa31ac1d32740ce5f023c794a1b7d0a25",
+  "policy_sha256": "sha256:d110277ccf55bb7937ddce1edeabd74498f7f1dcbcec6766391741c0c821f50e",
+  "policy_transform": "resource.organ_process_allowance.basis prose only",
+  "numerical_policy_changed": false,
+  "source_only": true,
+  "installed": false,
+  "callback_joined": false,
+  "semantic_acceptance": false,
+  "capacity_authorization": false,
+  "execution_authorized": false,
+  "policy_structure_sha256": "sha256:7d6d854042b38dc6a353b6d381f055e446436c16497708aadf26ea960cf97c26"
+}

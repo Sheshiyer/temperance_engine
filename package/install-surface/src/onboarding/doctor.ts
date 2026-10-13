@@ -1,15 +1,38 @@
-import type { DoctorSection } from "../types.ts";
-import type { OnboardingPlanV1 } from "./contracts.ts";
+import type { DoctorCheck, DoctorSection } from "../types.ts";
+import type { OnboardingModuleResolution, OnboardingPlanV1 } from "./contracts.ts";
 
-/** Map the shared onboarding plan into the existing doctor result vocabulary. */
-export function projectOnboardingDoctorSection(plan: OnboardingPlanV1): DoctorSection {
+/** A held modular or optional organ is a degraded convenience, not a broken host. */
+export function softHold(module: OnboardingModuleResolution): boolean {
+  return module.organ !== undefined && !module.required && module.organ.tier !== "required";
+}
+
+/**
+ * Map the shared onboarding plan into the existing doctor result vocabulary. Organ modules report
+ * their tier in `destination` so on/off status reads as "required organ held" vs "optional organ off".
+ */
+export function projectOnboardingDoctorSection(plan: OnboardingPlanV1, sectionId: DoctorSection["id"] = "host"): DoctorSection {
   const checks = plan.modules
-    .filter((module) => module.requested)
-    .flatMap((module) => {
+    // Organs report the full ON/OFF/HELD registry; other modules only report when requested.
+    .filter((module) => module.requested || module.organ !== undefined)
+    .flatMap((module): DoctorCheck[] => {
+      if (!module.requested) return [{
+        id: `onboarding-${module.id}`,
+        source: "onboarding:planner",
+        destination: `organ:${module.organ!.tier}:${module.id}`,
+        class: "RUNTIME" as const,
+        expected_state: "organ is on when selected",
+        actual_state: "off (not selected)",
+        condition: "SKIPPED" as const,
+        reason_code: "ORGAN_OFF",
+        severity: "info" as const,
+        actionable: false,
+        remediation: "Select this organ in onboarding only if its integration is needed.",
+        evidence: [plan.plan_digest],
+      }];
       const advisoryChecks = module.advisories.map((advisory, index) => ({
         id: `onboarding-${module.id}-advisory-${index + 1}`,
         source: "onboarding:planner",
-        destination: `module:${module.id}`,
+        destination: module.organ ? `organ:${module.organ.tier}:${module.id}` : `module:${module.id}`,
         class: "RUNTIME" as const,
         expected_state: "all state paths honor the configured DATA_DIR",
         actual_state: "upstream cleanup path divergence is known",
@@ -23,7 +46,7 @@ export function projectOnboardingDoctorSection(plan: OnboardingPlanV1): DoctorSe
       const readinessChecks = module.holds.length === 0 ? [{
       id: `onboarding-${module.id}`,
       source: "onboarding:planner",
-      destination: `module:${module.id}`,
+      destination: module.organ ? `organ:${module.organ.tier}:${module.id}` : `module:${module.id}`,
       class: "RUNTIME" as const,
       expected_state: "module is eligible",
       actual_state: "eligible",
@@ -36,13 +59,14 @@ export function projectOnboardingDoctorSection(plan: OnboardingPlanV1): DoctorSe
       }] : module.holds.map((hold, index) => ({
       id: `onboarding-${module.id}-${index + 1}`,
       source: "onboarding:planner",
-      destination: `module:${module.id}`,
+      destination: module.organ ? `organ:${module.organ.tier}:${module.id}` : `module:${module.id}`,
       class: "RUNTIME" as const,
       expected_state: "module is eligible",
       actual_state: "blocked",
-      condition: "FAIL" as const,
+      // A held modular/optional organ is a degraded convenience, not a broken host.
+      condition: (softHold(module) ? "WARN" : "FAIL") as "WARN" | "FAIL",
       reason_code: hold.reason_code,
-      severity: "error" as const,
+      severity: (softHold(module) ? "warning" : "error") as "warning" | "error",
       actionable: true,
       remediation: hold.remediation.join(" "),
       evidence: [plan.plan_digest, ...hold.evidence],
@@ -50,7 +74,7 @@ export function projectOnboardingDoctorSection(plan: OnboardingPlanV1): DoctorSe
       return [...readinessChecks, ...advisoryChecks];
     });
   return {
-    id: "host",
+    id: sectionId,
     condition: checks.some((check) => check.condition === "FAIL") ? "FAIL" : checks.some((check) => check.condition === "WARN") ? "WARN" : "PASS",
     checks,
   };

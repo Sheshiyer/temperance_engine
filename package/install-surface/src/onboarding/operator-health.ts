@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { DoctorCondition } from "../types.ts";
 import type { OnboardingPlanV1 } from "./contracts.ts";
 import type { NineRouterRoutingSurface } from "./nine-router-provider-capabilities.ts";
+import { softHold } from "./doctor.ts";
 
 export const OPERATOR_HEALTH_SCHEMA = "temperance.operator-health.v1" as const;
 export type OperatorHealthStatus = "PASS" | "HOLD" | "UNAVAILABLE";
@@ -80,6 +81,7 @@ const MODULE_REASONS = new Set([
   "ROUTING_API_UNAVAILABLE", "ROUTING_AUTH_UNAVAILABLE", "ROUTING_RESPONSE_INVALID", "VARIABLE_MISSING",
   "VARIABLE_INVALID", "HTTP_UNAVAILABLE", "UNSUPPORTED_PLATFORM", "PROBE_FAILED",
   "DEPENDENCY_BLOCKED", "DEPENDENCY_MISSING", "DEPENDENCY_CYCLE",
+  "PORT_CLOSED", "LAUNCH_AGENT_ABSENT", "LAUNCH_AGENT_STOPPED", "ORIGIN_OFFLINE", "ORIGIN_UNVERIFIED",
 ]);
 const SESSION_REASONS = new Set([
   "SESSION_ADMISSION_ARGUMENT_INVALID", "SESSION_POLICY_INVALID", "SESSION_POLICY_MISSING",
@@ -106,6 +108,10 @@ function moduleAction(reason: string): string {
   if (reason === "APPLICATION_MISSING") return "Install the selected application or deselect its integration.";
   if (reason === "BINARY_MISSING" || reason === "VERSION_MISMATCH") return "Install the selected tool's supported version and rerun health.";
   if (reason.startsWith("DEPENDENCY_")) return "Resolve the selected module's prerequisites in onboarding.";
+  if (reason === "PORT_CLOSED") return "Start the selected service so it listens on its configured port.";
+  if (reason.startsWith("LAUNCH_AGENT_")) return "Load and start the selected organ's LaunchAgent, then rerun health.";
+  if (reason === "ORIGIN_OFFLINE") return "Start the origin behind the public endpoint or its tunnel connector.";
+  if (reason === "ORIGIN_UNVERIFIED") return "Check the endpoint directly; an identity proxy answered before the origin.";
   return "Review the selected module's setup and rerun its prerequisite checks.";
 }
 
@@ -128,7 +134,9 @@ export function projectOperatorHealth(options: OperatorHealthOptions): OperatorH
     } else {
       const reasons = [...new Set(module.holds.map(({ reason_code }) => MODULE_REASONS.has(reason_code) ? reason_code : "MODULE_PREREQUISITES_UNVERIFIED"))].sort();
       if (reasons.length === 0) reasons.push("MODULE_PREREQUISITES_UNVERIFIED");
-      for (const reason of reasons) add({ id: `${id}.${reason.toLowerCase()}`, group: "dependencies", status: "HOLD", required: true,
+      // Same rule as the doctor projection: a held modular/optional organ warns, it does not hold the host.
+      const required = !softHold(module);
+      for (const reason of reasons) add({ id: `${id}.${reason.toLowerCase()}`, group: "dependencies", status: "HOLD", required,
         reason_code: reason, summary: "A selected module prerequisite is held.", next_action: moduleAction(reason), verification_scope: "prerequisites" });
     }
   }

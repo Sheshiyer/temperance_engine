@@ -8,6 +8,7 @@ import type { ManifestState } from './types';
 export const WORKFLOW_PROJECTION_SCHEMA = 'temperance.manifest.skill-workflow.v2' as const;
 export const PRODUCT_GUIDE_WORKFLOW_ID = 'product-guide-production' as const;
 export const WORKFLOW_REQUEST_REQUIRED_FIELDS = ['schema', 'request_id', 'approval_id', 'run_kind', 'plan_id', 'option_id', 'policy_hash', 'git_head', 'source_fingerprint', 'task_fingerprint', 'scope_hash'] as const;
+export const DEFAULT_SKILL_INDEX_PATH = join(homedir(), '.agents', 'skill-clusters', 'skill-index.json');
 
 export interface SkillRecord { id: string; label: string; role: 'hub' | 'spoke' | 'unknown'; status: string; origin: string; originSource: string | null }
 export interface SkillClusterRecord { id: string; title: string; tier: string; origin: string; originSource: string | null; usage: 'resolved' | 'available' | 'observed'; skills: SkillRecord[] }
@@ -16,8 +17,7 @@ type IndexSkill = { cluster?: string; tier?: string; role?: string; status?: str
 type IndexCluster = { title?: string; tier?: string; origin?: string; originSource?: string | null };
 type SkillIndex = { counts?: Record<string, number>; clusters?: Record<string, IndexCluster>; skills?: Record<string, IndexSkill> };
 
-function readIndex(): SkillIndex {
-  const path = join(homedir(), '.agents', 'skill-clusters', 'skill-index.json');
+function readIndex(path: string): SkillIndex {
   if (!existsSync(path)) return {};
   try { return JSON.parse(readFileSync(path, 'utf8')) as SkillIndex; } catch { return {}; }
 }
@@ -30,8 +30,8 @@ function requirementState(capabilities: ProjectCapabilities, capabilityId: strin
   return capabilities.capabilities.find((candidate) => candidate.id === capabilityId)?.requirements.find((candidate) => candidate.id === requirementId)?.state || 'unavailable';
 }
 
-export function projectSkillWorkflow(project: ProjectSummary, snapshot: ManifestState, capabilities: ProjectCapabilities) {
-  const index = readIndex();
+export function projectSkillWorkflow(project: ProjectSummary, snapshot: ManifestState, capabilities: ProjectCapabilities, skillIndexPath: string = DEFAULT_SKILL_INDEX_PATH) {
+  const index = readIndex(skillIndexPath);
   const productGuideSkills = Object.entries(index.skills || {}).filter(([, skill]) => skill.cluster === 'product-guides').map(([id, skill]): SkillRecord => ({ id, label: id.replace(/-/g, ' ').toUpperCase(), role: skill.role === 'hub' || skill.role === 'spoke' ? skill.role : 'unknown', status: skill.status || 'unknown', origin: skill.origin || 'unknown', originSource: skill.originSource || null }));
   const clusters: SkillClusterRecord[] = Object.entries(index.clusters || {}).map(([id, cluster]) => ({ id, title: cluster.title || id, tier: cluster.tier || 'unknown', origin: cluster.origin || 'unknown', originSource: cluster.originSource || null, usage: id === 'product-guides' ? 'resolved' : 'available', skills: id === 'product-guides' ? productGuideSkills : [] }));
   if (!clusters.length && productGuideSkills.length) clusters.push({ id: 'product-guides', title: 'Product Guides', tier: 'active', origin: 'unknown', originSource: null, usage: 'resolved', skills: productGuideSkills });

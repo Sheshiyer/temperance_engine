@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { isAbsolute, normalize } from "node:path";
 
 import { canonical } from "../canonical-json.ts";
-import type { OnboardingCatalogV1, OnboardingPlanV1, OnboardingProfileV1 } from "./contracts.ts";
+import type { KeychainSecretReference, OnboardingCatalogV1, OnboardingPlanV1, OnboardingProfileV1 } from "./contracts.ts";
 import { validateNineRouterGuidedSetupV1 } from "./contract-schema.ts";
 import type { MacOsKeychainAdapter } from "./keychain-adapter.ts";
 import type {
@@ -44,6 +44,14 @@ export class NineRouterGuidedSetupError extends Error {
     super(code);
     this.name = "NineRouterGuidedSetupError";
   }
+}
+
+/** The 9Router flow reads and writes Keychain items, so its references must be Keychain references. */
+export function nineRouterKeychainReference(profile: OnboardingProfileV1, id: string, missingCode: string): KeychainSecretReference {
+  const reference = profile.secret_references[id];
+  if (!reference) throw new NineRouterGuidedSetupError(missingCode);
+  if (reference.store !== "macos-keychain") throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_KEYCHAIN_REFERENCE_REQUIRED");
+  return reference;
 }
 
 const SAFE_ID = /^[a-z0-9][a-z0-9._-]{0,127}$/u;
@@ -104,9 +112,7 @@ function validateDesiredState(desired: NineRouterGuidedSetupV1, profile: Onboard
     safeId(provider.provider, "NINE_ROUTER_SETUP_PROVIDER_INVALID");
     text(provider.connection_name, "NINE_ROUTER_SETUP_CONNECTION_NAME_INVALID");
     referenceId(provider.credential_reference_id, "NINE_ROUTER_SETUP_CREDENTIAL_REFERENCE_INVALID");
-    if (!profile.secret_references[provider.credential_reference_id]) {
-      throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_CREDENTIAL_REFERENCE_MISSING");
-    }
+    nineRouterKeychainReference(profile, provider.credential_reference_id, "NINE_ROUTER_SETUP_CREDENTIAL_REFERENCE_MISSING");
     if (!API_KEY_PROVIDER_IDS.has(provider.provider)) {
       throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_PROVIDER_AUTH_KIND_INVALID");
     }
@@ -143,9 +149,7 @@ function validateDesiredState(desired: NineRouterGuidedSetupV1, profile: Onboard
 
   text(desired.gateway_key.name, "NINE_ROUTER_SETUP_GATEWAY_KEY_NAME_INVALID");
   referenceId(desired.gateway_key.secret_reference_id, "NINE_ROUTER_SETUP_GATEWAY_REFERENCE_INVALID");
-  if (!profile.secret_references[desired.gateway_key.secret_reference_id]) {
-    throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_GATEWAY_REFERENCE_MISSING");
-  }
+  nineRouterKeychainReference(profile, desired.gateway_key.secret_reference_id, "NINE_ROUTER_SETUP_GATEWAY_REFERENCE_MISSING");
   if (desired.providers.some(({ credential_reference_id }) => credential_reference_id === desired.gateway_key.secret_reference_id)) {
     throw new NineRouterGuidedSetupError("NINE_ROUTER_SETUP_SECRET_REFERENCE_CONFLICT");
   }
@@ -253,18 +257,19 @@ export function createNineRouterGuidedSetupPlanInput(
     health_url: profile.variables.NINE_ROUTER_HEALTH_URL ?? "",
     cli_entrypoint: profile.variables.NINE_ROUTER_CLI_ENTRYPOINT ?? "",
   };
+  const gatewayKeychainReference = nineRouterKeychainReference(profile, desired.gateway_key.secret_reference_id, "NINE_ROUTER_SETUP_GATEWAY_REFERENCE_MISSING");
   return {
     id: "9router-guided-setup",
     digest: `sha256:${createHash("sha256").update(canonical({ desired, routing_aliases: routingAliases, runtime_binding: runtimeBinding, secret_references: secretReferences }), "utf8").digest("hex")}`,
     details: [
       ...desired.providers.map((provider) => {
-        const reference = profile.secret_references[provider.credential_reference_id]!;
+        const reference = nineRouterKeychainReference(profile, provider.credential_reference_id, "NINE_ROUTER_SETUP_CREDENTIAL_REFERENCE_MISSING");
         return `provider ${provider.selection_id}: ${provider.provider} · ${provider.connection_name} · Keychain ref ${provider.credential_reference_id} (${reference.service}/${reference.account})`;
       }),
       ...desired.combos.map((combo) => `combo ${combo.alias}: ${canonical(combo.models)}`),
       ...routingAliases.map(({ alias, combo }) => `routing alias ${alias} → ${combo}`),
       `required aliases: ${desired.required_aliases.join(", ")}`,
-      `gateway key ${desired.gateway_key.name}: Keychain ref ${desired.gateway_key.secret_reference_id} (${profile.secret_references[desired.gateway_key.secret_reference_id]!.service}/${profile.secret_references[desired.gateway_key.secret_reference_id]!.account})`,
+      `gateway key ${desired.gateway_key.name}: Keychain ref ${desired.gateway_key.secret_reference_id} (${gatewayKeychainReference.service}/${gatewayKeychainReference.account})`,
       `runtime DATA_DIR: ${runtimeBinding.data_directory}`,
       `runtime health: ${runtimeBinding.health_url}`,
       `runtime entrypoint: ${runtimeBinding.cli_entrypoint}`,
@@ -307,9 +312,9 @@ export function createNineRouterGuidedSetupEffector(options: {
       const providerSecrets: string[] = [];
       for (const provider of desired.providers) {
         assertNotAborted(signal);
-        providerSecrets.push(await options.keychain.read(options.profile.secret_references[provider.credential_reference_id]!));
+        providerSecrets.push(await options.keychain.read(nineRouterKeychainReference(options.profile, provider.credential_reference_id, "NINE_ROUTER_SETUP_CREDENTIAL_REFERENCE_MISSING")));
       }
-      const gatewayReference = options.profile.secret_references[desired.gateway_key.secret_reference_id]!;
+      const gatewayReference = nineRouterKeychainReference(options.profile, desired.gateway_key.secret_reference_id, "NINE_ROUTER_SETUP_GATEWAY_REFERENCE_MISSING");
       assertNotAborted(signal);
       const gatewayPresent = await options.keychain.has(gatewayReference);
       gatewayBefore = gatewayPresent
@@ -396,7 +401,7 @@ export function createNineRouterGuidedSetupEffector(options: {
         } catch { failures.push("gateway-key"); }
       }
       if (gatewayCaptured && gatewayBefore) {
-        const gatewayReference = options.profile.secret_references[desired.gateway_key.secret_reference_id]!;
+        const gatewayReference = nineRouterKeychainReference(options.profile, desired.gateway_key.secret_reference_id, "NINE_ROUTER_SETUP_GATEWAY_REFERENCE_MISSING");
         try {
           if (gatewayBefore.present) await options.keychain.put(gatewayReference, gatewayBefore.secret!);
           else await options.keychain.delete(gatewayReference);

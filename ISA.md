@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 735/857
+progress: 752/874
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-04T19:57:18Z
+updated: 2026-10-13T11:36:04Z
 ---
 
 ## Problem
@@ -242,6 +242,23 @@ leaving Thoughtseed Labs, native session stores, Paseo, and every other folder
 untouched.
 
 ## Criteria
+
+### Standalone composition source slice (2026-10-05)
+
+- [x] ISC-COMP-01: Repository-owned composition source validates boundaries and rejects unsafe inputs.
+- [x] ISC-COMP-02: Focused tests and actual read-only CLI pass fresh verification.
+- [x] ISC-COMP-04: Explicit advisory subscriptions causally invoke injected handlers with stable replay identity and terminal receipt semantics.
+- [x] ISC-COMP-05: Proxy, stale-after-claim, timeout and persistence boundaries pass regression tests without execution authority.
+- [x] ISC-COMP-06: One immutable redacted projection supplies banner and island models with common lifecycle lineage and visible stale/held/unknown states.
+- [x] ISC-COMP-07: Main composition project CLI passes actual subprocess and producer-to-projection regressions.
+- [x] ISC-COMP-08: Contained owner observations preserve distinct process dispositions and immutable presentation with no acceptance authority.
+- [x] ISC-COMP-09: Bounded owner-project CLI passes real subprocess and rejects crossed/private packets.
+- [x] ISC-COMP-10: Git-only source admission verifies canonical repository and exact fresh linked-worktree identity with explicit access scope.
+- [x] ISC-COMP-11: Main Git inspection CLI rejects observation injection and passes disposable Git subprocess proof without Superset.
+- [x] ISC-COMP-12: Versioned Git ticket/grant context validates exact identity, timing, lane/effort and budget bindings while withholding actual authority.
+- [x] ISC-COMP-13: Private Git Hands context binds independently proved primary and selected worktree evidence with deterministic task/inventory identity and rejects public projection.
+- [ ] ISC-COMP-03: Installed adapters, live causal lifecycle and independent runtime acceptance are proved.
+
 
 - [x] ISC-1: Repository contains `install.sh`.
 - [x] ISC-2: Repository contains `verify.sh`.
@@ -1105,6 +1122,23 @@ untouched.
 - [x] ISC-833: Anti: the `0.7.0` public candidate contains no private absolute home path rejected by the existing guard.
 - [x] ISC-834: `bun run typecheck` in `package/install-surface` exits 0 on the `0.7.0` candidate.
 - [x] ISC-835: The install doctor reports a `LAUNCHAGENT` record as `UNAVAILABLE` with `LAUNCHAGENT_OBSERVATION_UNAVAILABLE`, never through the transform observer.
+- [x] ISC-836: The offline native CLI readiness contract pins OmniRoute 3.8.51 with seven reviewed whole-file digests, including `src/server/authz/peerContext.ts`.
+- [x] ISC-837: The installed OmniRoute 3.8.51 package returns `contract_verified` from the offline readiness command, and the receipt keeps `blockingCondition: "401 AUTH_001 unresolved"`.
+- [x] ISC-838: The 3.8.51 contract proves that the CLI sends the machine-bound token only to a loopback destination and refuses redirects while the token is attached.
+- [x] ISC-839: The context-preview and Hermes preview gates accept only an OmniRoute 3.8.51 runtime and installed version; 3.8.48 and 3.8.52 snapshots fail with `native_snapshot_version_invalid`.
+- [x] ISC-840: The native control-plane snapshot accepts the 3.8.51 seeded default compression combo, whose steps carry no intensity, and still rejects an invalid or explicitly null intensity.
+- [x] ISC-841: The dashboard topology semantics match the compiled 3.8.51 dashboard, and `versionBound` is true only for 3.8.51.
+- [x] ISC-842: Compression settings outside the four fully projected keys, including the whole `cavemanConfig`, are digested within fixed row, key and value bounds, and their values never appear in the snapshot.
+- [x] ISC-843: Anti: no 3.8.51 gate claims live authentication, provider promotion, or a resolved 401.
+- [x] ISC-844: The owner-requested minor release candidate declares product version `0.8.0`.
+- [x] ISC-845: The `0.8.0` changelog records the organ registry, the OmniRoute 3.8.51 qualification, the hosted-router probe and the composition inspection, keeps the `9router@0.5.75` legacy pin, and states the unresolved live 401 boundary.
+- [x] ISC-846: `OMNIROUTE_PACKAGE.version` equals the native CLI readiness, context-preview and topology versions (`3.8.51`), and `test/organ-registry.test.ts` passes.
+- [x] ISC-847: `scripts/verify-all.sh` exits 0 on the `0.8.0` candidate with the operator routing environment unset.
+- [x] ISC-848: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exits 0 on the `0.8.0` candidate.
+- [x] ISC-849: `sync-copy-expectations --check` passes at the recorded provenance revision, and `bun test package/install-surface` passes on the candidate.
+- [x] ISC-850: The STE docs gate passes with `docs/git-run-lineage.md` at zero errors.
+- [x] ISC-851: Anti: `./verify.sh` passes its private-path guard on the candidate, and `.temperance/project.json` and `.temperance/manifest.json` contain no `/Users/` or `/Volumes/` literal.
+- [x] ISC-852: Anti: `codex/modular-mac-lifecycle` is not an ancestor of the `0.8.0` candidate.
 
 ## Test Strategy
 
@@ -1931,6 +1965,14 @@ untouched.
 | ISC-833 | privacy | existing public-path guard | exit zero, guard unchanged | `./verify.sh` |
 | ISC-834 | release | install-surface `tsc --noEmit` | exit zero | `bun run typecheck` |
 | ISC-835 | doctor | `LAUNCHAGENT` record condition and reason | `UNAVAILABLE`, `LAUNCHAGENT_OBSERVATION_UNAVAILABLE` | `test/doctor.test.ts` class-aware test |
+| ISC-836 | router gate | native CLI readiness source contract | seven pinned 3.8.51 files, identical MacBook and EC2 digests | `bun test package/router/omniroute-native-cli-readiness.test.ts` |
+| ISC-837 | router gate | offline readiness on the installed 3.8.51 package | `contract_verified`, blocking condition kept | `bun scripts/omniroute-native-cli-readiness.ts --receipt-root <private dir>` |
+| ISC-838 | router gate | CLI token transport | loopback only; redirects refused while attached | `bun test package/router/omniroute-native-cli-readiness.test.ts` |
+| ISC-839 | router gate | preview and Hermes preview version binding | 3.8.51 only; 3.8.48 and 3.8.52 rejected | `bun test package/router/omniroute-context-preview.test.ts` + `tests/omniroute-hermes-preview.sh` |
+| ISC-840 | control plane | 3.8.51 default compression combo | intensity-less steps accepted; invalid intensity rejected | `bun test package/router/omniroute-native-control-plane.test.ts` |
+| ISC-841 | control plane | dashboard topology semantics | 3.8.51 literals; `versionBound` false for 3.8.48 | `bun test package/router/omniroute-native-control-plane.test.ts` |
+| ISC-842 | control plane | unparsed compression settings | bounded digest; values never exposed | `bun test package/router/omniroute-native-control-plane.test.ts` |
+| ISC-843 | non-claims | readiness receipt and integration guard | authentication, authorization and promotion stay false | `tests/omniroute-native-integration.sh` |
 
 ## Features
 
@@ -2030,6 +2072,7 @@ untouched.
 | Simplified Technical English skill and docs gate | ISC-813..ISC-823 | upstream 0xpili/simplified-technical-english at pinned commit | yes |
 | Showreel (16:9 and 9:16) | ISC-824..ISC-829 | Bun, ffmpeg, a Chromium-family browser; Google Fonts on first render | yes |
 | 0.7.0 additive feature release | ISC-830..ISC-835 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
+| OmniRoute 3.8.51 router-gate qualification | ISC-836..ISC-843 | installed OmniRoute 3.8.51 package and source; independent read-only audits | no |
 
 ## Architecture
 
@@ -2731,6 +2774,10 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   refuted by: the release gate ran `tsc --noEmit` in `package/install-surface` and found three errors from d4748c9; Verify runs `verify-all.sh`, which never type-checks, and one error hid a doctor that misreported LaunchAgent records as transforms.
   learned: a green CI badge proves only the gates CI runs; the release contract lists typecheck separately for this reason, and a type error on a dispatch union can be a real behavior gap.
   criterion now: ISC-834 holds typecheck at exit 0 for the candidate and ISC-835 pins honest LaunchAgent doctor reporting.
+- 2026-10-04 | conjectured: bumping the three OmniRoute version constants from 3.8.48 to 3.8.51 would qualify the deployed release.
+  refuted by: source review showed that all six pinned CLI files changed, the loopback CLI-token check moved to `src/server/authz/peerContext.ts`, the seeded default compression combo drops `intensity` (the control-plane projection threw on it), the dashboard topology colours changed meaning, and 3.8.51 dispatch reads compression settings the snapshot did not record.
+  learned: a version bump is a claim, not a qualification. Each gate needs its source contract re-reviewed against the new bytes; the Mac and EC2 installs gave identical 3.8.51 digests. The live 401 stays unresolved until a new live probe, and the EC2 install cannot anchor the collector because bun hardlinks its files and umask 002 makes them group-writable.
+  criterion now: ISC-836..ISC-843 accept the 3.8.51 contract, the preview and Hermes version binding, the intensity-less default combo, the re-audited topology, bounded settings digests, and the retained non-claims.
 
 ## Verification
 
@@ -3165,3 +3212,68 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - ISC-833: public guard — `./verify.sh` exited 0 with the private-path guard unchanged; the changed files contain no absolute home-directory path.
 - ISC-834: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exited 0 on 84d9410 (it exited 2 with three errors on origin/main ebe76e3).
 - ISC-835: `bun test test/doctor.test.ts` — 49 pass; removing the LAUNCHAGENT dispatch line makes the class-aware test fail with `ADAPTER_UNAVAILABLE`.
+- ISC-836: source contract — `OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT` lists seven files; the MacBook and EC2 3.8.51 installs gave identical SHA-256 digests for all seven on 2026-10-04.
+- ISC-837: offline readiness — `bun scripts/omniroute-native-cli-readiness.ts` against the installed 3.8.51 package returned `contract_verified` with all eight checks true; `nonClaims.blockingCondition` is still `401 AUTH_001 unresolved`.
+- ISC-838: transport probe — the `cliApiSendsCliTokenOnlyToLoopback` check is true, and the marker removal and mutation tests fail closed for every one of its six markers.
+- ISC-839: version binding — the context-preview test rejects 3.8.48 and 3.8.52 snapshots with `native_snapshot_version_invalid`; `tests/omniroute-hermes-preview.sh` passes with the 3.8.51 default.
+- ISC-840: compression probe — a control-plane test accepts `[{"engine":"session-dedup"},{"engine":"lite"}]` with null intensities and rejects a numeric intensity with `compression_pipeline_invalid`.
+- ISC-841: topology audit — read-only review of the compiled 3.8.51 dashboard found the green connected-at-rest state, the second red source (connections all in error), and the active-connection node set; a test asserts the new literals and `versionBound` false for 3.8.48.
+- ISC-842: settings digest — a test inserts an `engines` sentinel, sees the count and digest change, and finds no sentinel in the snapshot; a `cavemanConfig` change that keeps `enabled` also changes the digest; row count and key and value byte lengths are checked in SQLite over at most 65 rows before any row is loaded; more than 64 settings fail with `compression_settings_too_large`.
+- ISC-843: non-claims — `tests/omniroute-native-integration.sh` passes its literal fail-closed non-claim guard; the readiness receipt keeps authentication, authorization and promotion false.
+- 2026-10-04 suites: `bun test package/router` 415 pass, 0 fail; the OmniRoute shell suites (native integration, client auth, Hermes preview, router hardening, check, combos) and `./verify.sh` exit 0; the STE docs gate reports 0 failures.
+- 2026-10-04 open: a live end-to-end native snapshot against the hosted 3.8.51 router was refused with `omniroute_package_invalid`, because its `package.json` has two links and mode 664. The install surface COPY record `router.governed-runtime` is re-pinned to `a3c6b5b`, the latest commit that changes `package/router` on this branch.
+
+- ISC-844: version readback — `cat VERSION` returned `0.8.0` on 2026-10-13 (candidate 64c3244).
+- ISC-845: changelog readback — `[0.8.0]` names the organ registry (#35), the OmniRoute 3.8.51 gate qualification (#40), the hosted-router bridge probe (#38) and the standalone composition inspection (#42), keeps `9router@0.5.75` for the legacy repair flow, and states the unresolved live `401 AUTH_001` with PR #40's non-claims; grep for the six phrases returned 8 hits.
+- ISC-846: `package/install-surface/src/onboarding/contracts.ts:14` reads `version: "3.8.51"`, equal to `SUPPORTED_OMNIROUTE_NATIVE_CLI_VERSION`, `SUPPORTED_OMNIROUTE_PREVIEW_VERSION` and `SUPPORTED_TOPOLOGY_VERSION`; `bun test test/organ-registry.test.ts` — 50 pass, 0 fail.
+- ISC-847: canonical verification on 64c3244 with `OMNIROUTE_BASE_URL`, `TEMPERANCE_OMNIROUTE_URL`, `TEMPERANCE_OMNIROUTE_ADMIN_URL` and `OMNIROUTE_API_KEY` unset — `scripts/verify-all.sh` printed `Temperance Engine full verification passed` and exited 0 across its 63 steps: 1325 Bun tests in 24 runs with 0 failures, 1084 shell `ok` lines. One deviation, as for 0.7.0: the `bun test package/install-surface` step ran with `--timeout 30000`, because on this Mac the subprocess test "health and log actions return completed observations" took 5.04 s against the default 5 s budget on one of three runs (the unmodified step passed 826/0 on the run before). Every other step ran unmodified.
+- ISC-848: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exited 0 on 64c3244; `bun build src/cli.ts --target=bun --outdir=dist --packages=external` exited 0.
+- ISC-849: `sync-copy-expectations --revision 5289204 --check` (the revision recorded in `copy-expectations.provenance.json`) exited 0; `bun test package/install-surface` — 826 pass, 0 fail, 76 files, from the repository root. Pins were refreshed twice: at the merge base 8cb4a36 and after the bridge projection fix.
+- ISC-850: `bun package/ste-check/docs-gate.ts` — 40 files, 0 failures, 0 can tighten (baseline tightened for `CONTRIBUTING.md` and `docs/release-control.md`); `docs/git-run-lineage.md` — 0 errors.
+- ISC-851: `./verify.sh` exited 0 with `ok: no private local path in public/install surface`; `grep -c '/Users/|/Volumes/'` over `.temperance/project.json` and `.temperance/manifest.json` returned 0 and 0 (both files now use `~`-relative forms).
+- ISC-852: `git merge-base --is-ancestor origin/codex/modular-mac-lifecycle HEAD` exited 1 on 64c3244 (not an ancestor).
+- 2026-10-13 audit: a cross-vendor pass was requested but Cato's Codex helper could not run on this host (stale `~/.bun/bin/codex` path; the account rejects the `gpt-5.4` pin), so the audit came from a Claude-family model. Its findings were applied: the COMPATIBILITY history no longer backdates 3.8.51 into 0.7.0, release-control names OmniRoute as the gateway plane, the boundary carries PR #40's non-claims and the Python surface disclosure, and the rail JSON files lost their private paths. Open from that audit: the private-path guard scans only `*.ts`, `*.mjs` and `*.sh`; `package/organ-guard/provenance.v1.json` names a private source repository.
+
+### Composition source verification — 2026-10-05
+
+37 focused tests, 136 assertions; package typecheck; actual main CLI standalone packet exit 0. Configuration-only output disables effects. These checks close only the two new source criteria; inherited criteria and runtime acceptance remain unchanged.
+
+### Advisory lifecycle source verification — 2026-10-05
+
+58 composition/CLI/lifecycle tests pass (223 assertions), and package typecheck passes. Independent review defects (Proxy reflection and expiry during async claim) were fixed and regression-tested. Atomic durable storage and contained handlers remain host adapter obligations.
+
+### Shared projection verification — 2026-10-05
+
+69 composition/CLI/lifecycle/projection tests pass (276 assertions), with typecheck. Independent review found that valid missing-organ holds were rejected by the projection; producer-to-consumer regression now passes. Native renderer installation and operational receipt authentication remain open.
+
+Wave 4 source verification (2026-10-05): 79 composition tests, 363 assertions, zero failures; package typecheck passed. Owner process observation independent review found no material defect. Runtime and installed acceptance remain open.
+
+Wave5 source verification (2026-10-05): 18 Git admission/CLI tests,97 assertions and package typecheck pass. Actual disposable primary and external linked worktree proof; strict identity, freshness, read-only write denial, ambient Git override exclusion and redaction. Required declared volume bindings hold in CLI until trusted observer. Hands execution, dirty source acceptance, leases and installation remain open.
+
+Wave6 authority source verification (2026-10-05):23 tests152 assertions and typecheck pass. Independent review found PlanMax and producer repository shape incompatibilities; fixes and public phase-map parity regressions pass. Actual authenticated grants, producer join, consumed-grant replay, capacity and sole-writer SQL/claim remain held.
+
+Wave7 source verification: 132 tests, 680 assertions, zero failures and package typecheck pass. Dual primary/target private Hands context, actual disposable Git, deterministic mixed-case ordering and public projection rejection verified. Authenticated grant, capacity and atomic execution claim remain open.
+
+- [x] ISC-COMP-14: Standalone TRIVECTOR arithmetic preserves current policy and explicit legacy/v4.1 selection with no environment or private dependencies, verified by focused numerical regressions.
+- [x] ISC-COMP-15: Standalone routing evidence and selection gates prevent pin bypass and fingerprint every consumed normalized decision signal; exact scope and acceptance provenance remain explicit.
+
+Standalone math source verification:9 tests58 assertions and typecheck pass; existing arithmetic/policy preserved. Explicit mode defaults legacy independent of environment. Evidence lineage validation, calibration and installed selection remain open.
+
+- [x] ISC-COMP-16: Closed bounded TRIVECTOR evidence packet preserves explicit scope/freshness/uncertainty and deterministic fingerprints, rejects private/authority fields and unsafe objects; independent review and focused tests pass.
+
+TRIVECTOR evidence contract source verification:19 math/contract tests118 assertions and typecheck pass; independent review passed after freshness subtype, wire-byte bound and canonical identity fixes. Stale/future/unknown evidence and coarse outcome scope remain explicit; no selection, authentication or accepted-result reliability claim.
+
+- [x] ISC-COMP-17: Existing public router pins cannot re-admit an open circuit; red-to-green regression and18 tests65 assertions pass without changing weights.
+
+Legacy pin receipt follow-up: independent review caught obsolete bypass label; removed and regression asserts circuit-open and absent bypass. Fresh18 tests67 assertions pass.
+
+Diagnostic selection source verification:168 composition/Git/math/contract/selection tests920 assertions and package typecheck pass; independent review passed. Legacyfraction and v4.1 window signals remain distinct, limitations precede pins, half-open shows probe-required. No full live rollback/calibration/authenticated admission claim.
+
+- [x] ISC-COMP-18: Bounded Git authority context CLI exposes actual evaluator through interactive and dedicated three-file entrypoints;8 tests92 assertions/typecheck pass, no issuer/claim authority.
+
+- [x] ISC-COMP-19: Portable Git run lineage retains actual bound references and original claim/replay times, detaches unsafe caller values, bounds lease/deadline and emits false authority receipts; fresh composition/run suite42tests167assertions and typecheck pass. Private SQL authority remains outside the product.
+- [x] ISC-COMP-20: Retired Constellation declarations, observations and dependencies cannot re-enter standalone composition. Generic banner/island and headless modules remain.
+
+- [x] ISC-COMP-21: Reusable bounded MCP stdio caps raw frames, pending bytes/count, safe response encoding and write/EOF deadlines; serial callbacks cannot start after closure. Independent review and13 tests46 assertions plus strict typecheck pass. Owner result production and synchronous execution require their own bounds; no native-client or tool-effect authority follows.
+
+- [x] ISC-COMP-22: Bounded owner-file raw snapshot checks regular descriptor size before allocation, nonblocking/no-follow open, exact reads/growthprobe, postmetadata/path identity and cleanup;9 synthetic/disposable tests45 assertions, strictTypeScript and independentreview pass. Root confinement and synchronous wall deadlines remain owner obligations.

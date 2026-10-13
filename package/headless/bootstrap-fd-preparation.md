@@ -1,0 +1,17 @@
+# Injected descriptor preparation adapter
+
+Preparation performs no file, fcntl, native loader, allocation, spawn or signal operation. Trusted callbacks supply mock allocation/identity/close/clock; existing plan_actions(context) is injected unchanged. Returned metadata plan is not native readiness. Compact two nonce/counter/limit projections are synthetic admission prerequisites, NOT actual budget receipts or retained codec ACK. Real original-owner/native reservation joins remain held.
+
+Each unique numeric candidate is retained before postallocation clock or identity checks. Unknown/malformed/lost allocation response records cleanup uncertainty. Known first exact seven-field identity is immutable; cleanup revalidates the full record once before one close callback. Replaced/unknown descriptors are not closed. Close exceptions do not skip independently safe peers; attempts are marked before calls. Same FIFO identity for paired endpoints and stages is legitimate; unchanged planner rejects unrelated channel identity alias and numeric source/stage collision.
+
+Original2s clock anchor with500ms admission reserve is retained/nondecreasing. Synchronous callbacks cannot be preempted. Cleanup is a finite at-most19 injected identity checks/close attempts under one fixed original deadline+500ms emergency window, checked before/after each identity/close callback. Expiry stops new calls and retains cleanup uncertainty; no renewed grace/native proof/hard preemption. Ownership entries visited and actual close intents are separate metrics. Successful preparation does not automatically close endpoints needed by future owner; explicit teardown remains available and once-only.
+
+Planner output remains18 owned descriptors. Optional separately retained diagnostic FIFO is19th and never added to planner input schema or ACK/context. Diagnostic transport/absence observation remain future. Global29/30 accounting/noincomingoverlap belongs to52z integration, not demonstrated by one actor adapter. No production cap or actor schema changes.
+
+source_snapshots is a pure injected two-source byte validator: exact planner/adapter metadata, each64KiB/aggregate128KiB checked BEFORE content callbacks; exactbytes/length/hash checked; planner hash is fixed literal6247e672 and cannot be caller-selected. It is NOT a native nofollow/regular/ancestry/close implementation; continuous=true is trusted producer metadata, no filesystem proof. Future source owner must supply reviewed bounded OS snapshots. Test uses fixed local published planner pin6247e672 through bounded detached compile, plus new adapter; trusted interpreter/stdlib closure not attested entire installation. No unnecessary actor/codec imports.
+
+All native readiness, inheritedFD closure, authentication, capacity, execution and inference flags remain false. Resource policy/native creator/birth/stop/parentloss/enforcement are not joined.
+
+Teardown intent is irreversible and clears the accessible plan/sentinel before callbacks; subsequent status is settled-metadata or held, never prepared. Repeated run/acquire cannot allocate again. Cleanup after the original deadline uses only the fixed emergency window and is always held/unknown even if every injected close returns true. Later replacement/close failure also holds the teardown receipt.
+
+Reentrant trusted callbacks cannot restore admission after teardown: planner return stays local until fresh admission checks; returned allocation candidate is retained before the teardown guard, with no subsequent identity callback and cleanup uncertainty.

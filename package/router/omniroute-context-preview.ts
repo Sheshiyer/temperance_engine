@@ -22,7 +22,7 @@ export const OMNIROUTE_CONTEXT_PREVIEW_SCHEMA =
   "temperance.omniroute.context-preview.v2" as const;
 export const OMNIROUTE_NATIVE_SNAPSHOT_SCHEMA =
   "temperance.omniroute.native-control-plane.v1" as const;
-export const SUPPORTED_OMNIROUTE_PREVIEW_VERSION = "3.8.48" as const;
+export const SUPPORTED_OMNIROUTE_PREVIEW_VERSION = "3.8.51" as const;
 
 export const CONTEXT_PREVIEW_CANDIDATES = ["lite", "headroom", "rtk-minimal"] as const;
 export const CONTEXT_PREVIEW_HELD_ENGINES = [

@@ -12,7 +12,7 @@ import { ManifestStore } from './store';
 import { ManifestDiagnostics } from './diagnostics';
 import { RuntimeWatcher } from './watcher';
 import { projectCapabilities, scopeBindingFromProject, type CapabilityOptions } from './capabilities';
-import { PRODUCT_GUIDE_WORKFLOW_ID, projectSkillWorkflow } from './workflow-projection';
+import { DEFAULT_SKILL_INDEX_PATH, PRODUCT_GUIDE_WORKFLOW_ID, projectSkillWorkflow } from './workflow-projection';
 import type { ManifestEvent, ManifestState } from './types';
 
 const MAX_BODY = 1_000_000;
@@ -47,7 +47,7 @@ const GIT_OBJECT_ID = /^[a-f0-9]{40,64}$/;
 
 type ControlLedger = Pick<SwarmControlLedger, 'migrate' | 'close' | 'attest'> & Partial<Pick<SwarmControlLedger, 'recordApproval' | 'claim'>>;
 type DiagnosticSink = Pick<ManifestDiagnostics, 'request'> & Partial<Pick<ManifestDiagnostics, 'event'>>;
-interface ManifestServerDependencies { controlLedger?: ControlLedger | null; capabilityOptions?: CapabilityOptions; diagnostics?: DiagnosticSink }
+interface ManifestServerDependencies { controlLedger?: ControlLedger | null; capabilityOptions?: CapabilityOptions; diagnostics?: DiagnosticSink; skillIndexPath?: string }
 
 function headers(contentType: string): Record<string, string> {
   return { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': requestOrigin, 'Access-Control-Allow-Headers': 'Content-Type' };
@@ -143,6 +143,7 @@ export class ManifestServer {
   private unsubscribe: (() => void) | null = null;
   private readonly controlLedger: ControlLedger | null;
   private readonly capabilityOptions: CapabilityOptions;
+  private readonly skillIndexPath: string;
 
   constructor(private readonly store: ManifestStore | ManifestCatalog, dependencies: ManifestServerDependencies = {}) {
     this.diagnostics = dependencies.diagnostics || new ManifestDiagnostics();
@@ -150,6 +151,7 @@ export class ManifestServer {
       ? dependencies.controlLedger || null
       : process.env.TEMPERANCE_SWARM_CONTROL_ENABLED === '1' && process.env.TEMPERANCE_CONTROL_DATABASE_URL ? SwarmControlLedger.fromUrl() : null;
     this.capabilityOptions = dependencies.capabilityOptions || {};
+    this.skillIndexPath = dependencies.skillIndexPath || DEFAULT_SKILL_INDEX_PATH;
     this.unsubscribe = store.subscribe((event) => {
       const packet = `event: manifest\ndata: ${JSON.stringify(event)}\n\n`;
       const eventProject = event.project_id || LEGACY_PROJECT_ID;
@@ -248,7 +250,7 @@ export class ManifestServer {
         const snapshot = this.snapshot(projectId);
         const route = Object.values(snapshot.routes).find((value) => value.project_id === projectId || value.route_id === `${projectId}:latest`);
         const capabilities = await projectCapabilities(project, route, this.capabilityOptions);
-        const projection = projectSkillWorkflow(project, snapshot, capabilities);
+        const projection = projectSkillWorkflow(project, snapshot, capabilities, this.skillIndexPath);
         if (req.method === 'GET') { json(res, 200, projection); return; }
         const request = JSON.parse((await body(req)) || '{}') as Record<string, unknown>;
         const requestId = typeof request.request_id === 'string' ? request.request_id.trim() : '';

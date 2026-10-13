@@ -1,0 +1,7 @@
+# 3p1 pure Stage A candidate
+
+New purecontextcodec validates exact11/3/9/9/10 closed DTO contracts and originalclock/counter correlation before encoding, bounds literalUTF8≤16KiB before serialization, lexically prescans wire depth3/nodes128/integertokens before JSON parsing and recursively rejects duplicate keys. Injected oneframe+EOF consumer boundsappend, retainsmonotonicreportedtime and permanentlyholds/clearsbuffers on error. No actualFD/process/clockcallback/budget/native operations.
+
+Author12purefixtures pass0.002s: fragmentedimmutableEOF, counter/schema/allfalse correlation, originaldeadline exactbound/expiry/futureanchor, recursive duplicates, preparse depth/node/int/float/constants, invalidUTF8/surrogates, PIDUIDbirth/nonce/marker bounds, hostilekeycallback zero-touch, framepartial/extra/oversize/stickyhold, fragmentexpiry/backwardstime, literalUTF8/escapedencodingbudget and noarbitraryMapping. AST/diff/hash in review handoff. Root independently reran12purefixtures0.002s and independent review cleared exact0383/f25 hashes; root authorized exact source publication.
+
+Actualparent/child native identity remains an independent later owner-observation join; existingACK fields unchanged. Cooperative channel/DTOs do not authenticate issuer or capacity. StageB FDpeak/DUP2 collisions/livecodec ownership/orphancontainment remain held, with supervisorOSlaunch/memory separately accounted and no160MiB/24descorganpolicy masquerade. No actualchild/model/activation.

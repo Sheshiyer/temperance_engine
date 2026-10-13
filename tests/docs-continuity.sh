@@ -103,8 +103,12 @@ grep -qi "ratified" "$DIR/.planning/REQUIREMENTS.md" && echo "ok - .planning gat
   || { echo "FAIL - .planning/REQUIREMENTS.md missing ratified-surface policy"; fail=1; }
 grep -q "scripts/verify-all.sh" "$DIR/.planning/config.json" && echo "ok - .planning config points at verify-all" \
   || { echo "FAIL - .planning/config.json missing verify-all"; fail=1; }
-grep -q "scripts/verify-all.sh" "$DIR/.github/workflows/verify.yml" && echo "ok - CI delegates to verify-all" \
-  || { echo "FAIL - verify workflow does not call scripts/verify-all.sh"; fail=1; }
+if [ -f "$DIR/.github/workflows/verify.yml" ]; then
+  grep -q "scripts/verify-all.sh" "$DIR/.github/workflows/verify.yml" && echo "ok - CI delegates to verify-all" \
+    || { echo "FAIL - verify workflow does not call scripts/verify-all.sh"; fail=1; }
+else
+  echo "ok - no GitHub Actions verify workflow; the gate is the local scripts/verify-all.sh run"
+fi
 
 # --- OmniRoute-inspired routing boundary and provenance ---
 OMNI_DOC="$DIR/docs/omniroute-integration.md"

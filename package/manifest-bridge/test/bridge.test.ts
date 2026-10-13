@@ -542,11 +542,25 @@ describe('manifest event plane', () => {
     writeFileSync(join(projectRoot, 'package.json'), JSON.stringify({ devDependencies: { playwright: '^1.0.0' } }));
     writeFileSync(join(projectRoot, 'capture.config.json'), JSON.stringify({ schema: 'moosh.capture.v1' }));
     writeFileSync(join(projectRoot, 'film.json'), JSON.stringify({ schema: 'moosh.film.v1' }));
+    const skillIndexPath = join(root, 'skill-index.json');
+    writeFileSync(skillIndexPath, JSON.stringify({
+      clusters: {
+        'product-guides': { title: 'Product Guides', tier: 'active', origin: 'fixture', originSource: 'test' },
+        research: { title: 'Research', tier: 'active', origin: 'fixture', originSource: 'test' },
+      },
+      skills: {
+        'product-guides-orchestrator': { cluster: 'product-guides', role: 'hub', status: 'active', origin: 'fixture', originSource: 'test' },
+        'product-guides-core': { cluster: 'product-guides', role: 'spoke', status: 'active', origin: 'fixture', originSource: 'test' },
+        'build-product-user-guides': { cluster: 'product-guides', role: 'spoke', status: 'active', origin: 'fixture', originSource: 'test' },
+        'guide-to-product-video': { cluster: 'product-guides', role: 'spoke', status: 'active', origin: 'fixture', originSource: 'test' },
+        'research-core': { cluster: 'research', role: 'spoke', status: 'active', origin: 'fixture', originSource: 'test' },
+      },
+    }));
     const catalog = new ManifestCatalog(join(root, 'state'));
     const project = initProject(projectRoot).identity;
     catalog.ensureProject(project);
     catalog.ingest({ source: 'omniroute', kind: 'route.health', status: 'observed', project_id: project.project_id, correlation_id: `${project.project_id}:latest`, payload: { state: 'ready', route_id: `${project.project_id}:latest` } });
-    const server = new ManifestServer(catalog);
+    const server = new ManifestServer(catalog, { skillIndexPath });
     const address = await server.listen(0);
     const base = `http://${address.host}:${address.port}`;
     const initial = await fetch(`${base}/projects/${project.project_id}/workflows/product-guide-production/requests`);
@@ -554,6 +568,7 @@ describe('manifest event plane', () => {
     const projection = await initial.json() as { clusters: Array<{ id: string; usage: string; skills: Array<{ id: string }> }>; workflow: { stages: Array<{ id: string }> }; trigger: { eligible: boolean; blockers: string[] } };
     const resolved = projection.clusters.find((cluster) => cluster.id === 'product-guides');
     expect(resolved?.usage).toBe('resolved');
+    expect(projection.clusters.find((cluster) => cluster.id === 'research')?.usage).toBe('available');
     expect(resolved?.skills.map((skill) => skill.id)).toEqual(['product-guides-orchestrator', 'product-guides-core', 'build-product-user-guides', 'guide-to-product-video']);
     expect(projection.workflow.stages.map((stage) => stage.id)).toEqual(['observe-project', 'resolve-cluster', 'prepare-guide', 'capture-evidence', 'compose-video', 'validate-report']);
     expect(projection.trigger.eligible).toBe(false);

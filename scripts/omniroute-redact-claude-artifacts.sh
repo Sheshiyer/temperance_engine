@@ -36,8 +36,8 @@ all_artifact_rows() {
   printf '%s\n' "${result:-[]}"
 }
 
-# OmniRoute 3.8.48 calls this database field `artifact_sha256`, but its own
-# writeCallArtifact implementation stores FNV-1a 32-bit. Preserve that exact
+# OmniRoute 3.8.48 and 3.8.51 call this database field `artifact_sha256`, but
+# their writeCallArtifact implementation stores FNV-1a 32-bit. Preserve that exact
 # compatibility contract in SQLite and record a genuine SHA-256 separately in
 # our receipt.
 omniroute_artifact_checksum() {

@@ -67,7 +67,7 @@ export interface IdentityMigration {
 
 /**
  * Runtime dependency declarations for preflight checking.
- * - http-health: probes a URL token (resolved via rootBindings) with HEAD request
+ * - http-health: recognized metadata only; held before probes until an endpoint contract exists
  * - binary: checks a command exists on PATH via `which`
  *
  * Doctor v2 host section (Plan 03-01) derives its probes FROM these declarations
@@ -85,7 +85,7 @@ interface SurfaceRecordBase {
   eligibility: SurfaceEligibility;
   depends_on?: string[];
   identity_migration?: IdentityMigration;
-  /** Optional runtime dependency declarations; absent = no requirement. All 18 current records unaffected. */
+  /** Optional runtime dependency declarations; absent = no requirement. Existing records without declarations are unaffected. */
   requires?: RuntimeDependency[];
 }
 

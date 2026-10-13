@@ -27,9 +27,14 @@ export function selectedOnboardingModuleIds(plan: OnboardingPlanV1): Set<string>
   return new Set(plan.modules.filter(({ requested }) => requested).map(({ id }) => id));
 }
 export function toggleOnboardingModuleSelection(plan: OnboardingPlanV1, selections: ReadonlySet<string>, moduleId: string): Set<string> {
-  if (!plan.modules.some(({ id }) => id === moduleId)) throw new Error(`ONBOARDING_MODULE_UNKNOWN:${moduleId}`);
+  const module = plan.modules.find(({ id }) => id === moduleId);
+  if (!module) throw new Error(`ONBOARDING_MODULE_UNKNOWN:${moduleId}`);
   const next = new Set(selections);
-  if (next.has(moduleId)) next.delete(moduleId); else next.add(moduleId);
+  if (next.has(moduleId)) {
+    // Required organs (catalog tier, host escalation, or a dependency of either) cannot be dropped.
+    if (module.required || module.organ?.tier === "required") throw new Error(`ONBOARDING_MODULE_REQUIRED:${moduleId}`);
+    next.delete(moduleId);
+  } else next.add(moduleId);
   return next;
 }
 export function actionableRoutingProvider(surface: NineRouterRoutingSurface | undefined, rowId: string | undefined): string | undefined {

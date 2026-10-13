@@ -1,0 +1,5 @@
+# 1jc — inventory source candidate
+
+Implemented fixed Darwin UID metadata capture and pure immutablebirth lifetime inventory. Initial ten fixtures pass, mocks first then one currenthostUID snapshot with2s original deadline; nativepoint counts-only no PID/birth/name output. Final sticky-entry/firstreason repairs passed five author focused lifetime fixtures; root independently passed six focused fixtures in0.007s without repeating native hostsnapshot. AST2/diffcheck clear. Independent review cleared21242544/85d26f37. Exact source publication authorized; no runtime/worker acceptance.
+
+Capture bound4097slots/max4096rows before allocation; exactnativecounts/zombiesamebirth/ESRCHonlyskip. Lifetime<=256rootincl and onecleanupframe<=4096 combined<=4352 frozen; linearanchoredancestry, no groupauthority, no overwrite/recoveryfromheld ordinary state. Unknownidentity notemptycleanup. No signals/footprints/provider/config/processlaunch; existing backend2targetcap unchanged. Syncnativecalls notpreemptible and snapshotpoint notfullhistorical lineage. Allauthorityflagsfalse; Build/enforcement/supervisorjoins held.

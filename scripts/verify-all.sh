@@ -4,6 +4,10 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT_DIR"
 
+# Run every suite with CI's routing environment: drop an operator's exported
+# router URLs and keys so no test inherits them or reaches a live router.
+. "$ROOT_DIR/tests/lib/hermetic-routing-env.sh"
+
 run() {
   printf '\n==> %s\n' "$*"
   "$@"
@@ -65,6 +69,7 @@ run bash tests/omniroute-connections.sh
 run bash tests/omniroute-temperance-combos.sh
 run bash tests/omniroute-planner-quota.sh
 run bash tests/omniroute-memory-sync.sh
+run bash tests/omniroute-memory-access.sh
 run bash tests/omniroute-autostart-launchd.sh
 run bash tests/omniroute-native-integration-live-guard.sh
 run bash tests/omniroute-native-integration.sh
