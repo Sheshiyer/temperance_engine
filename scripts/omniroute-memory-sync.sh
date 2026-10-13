@@ -15,7 +15,9 @@
 # Auth mirrors scripts/omniroute-temperance-reconcile.sh's proven pattern
 # exactly (Keychain admin password -> POST /api/auth/login -> cookie jar ->
 # CSRF token), reusing the same admin credential service name, rather than
-# inventing a second auth path.
+# inventing a second auth path. A remote origin (a hosted memory endpoint)
+# additionally needs a Cloudflare Access service token; see
+# docs/te-memory-access.md.
 #
 # Usage:
 #   scripts/omniroute-memory-sync.sh                 # dry-run (default): report what would sync
@@ -74,6 +76,10 @@ fi
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+# A remote origin (te-memory) must sit behind Cloudflare Access; refuse before the
+# admin password leaves this machine when no Access service token is configured.
+omniroute_access_init "$BASE_URL" "$TMP_DIR" || exit 1
+
 ADMIN_PASSWORD="$(security find-generic-password -a "$USER_SAFE" -s "$ADMIN_SERVICE" -w)"
 login_payload="$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
 unset ADMIN_PASSWORD
@@ -81,10 +87,19 @@ login_http="$(omniroute_curl_payload "$login_payload" -sS -o "$TMP_DIR/login.jso
   -H 'content-type: application/json' \
   "$BASE_URL/api/auth/login")"
 unset login_payload
-case "$login_http" in 2*) ;; *) echo "OmniRoute admin login failed (HTTP $login_http)" >&2; exit 1 ;; esac
-CSRF="$(curl -sS -f -b "$TMP_DIR/cookie" "$BASE_URL/api/auth/csrf" | jq -er '.token')"
+case "$login_http" in
+  2*) ;;
+  *)
+    if omniroute_access_rejected "$login_http"; then
+      echo "Cloudflare Access did not accept the service token for $BASE_URL (HTTP $login_http)" >&2
+    else
+      echo "OmniRoute admin login failed (HTTP $login_http)" >&2
+    fi
+    exit 1 ;;
+esac
+CSRF="$(omniroute_curl -sS -f -b "$TMP_DIR/cookie" "$BASE_URL/api/auth/csrf" | jq -er '.token')"
 
-api_get() { curl -sS -f -b "$TMP_DIR/cookie" "$BASE_URL$1"; }
+api_get() { omniroute_curl -sS -f -b "$TMP_DIR/cookie" "$BASE_URL$1"; }
 api_mutate() {
   local method="$1" path="$2" payload="$3" response="$TMP_DIR/mutate.json" http
   http="$(omniroute_curl_csrf_payload "$CSRF" "$payload" -sS -o "$response" -w '%{http_code}' -X "$method" -b "$TMP_DIR/cookie" \
