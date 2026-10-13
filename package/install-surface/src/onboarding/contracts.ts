@@ -11,7 +11,7 @@ export const ONBOARDING_RECEIPT_SCHEMA = "temperance.onboarding.receipt.v1" as c
  */
 export const OMNIROUTE_PACKAGE = {
   name: "omniroute",
-  version: "3.8.48",
+  version: "3.8.51",
   executable: "omniroute",
   state_directory: ".omniroute",
   launch_agent_label: "com.temperance.engine.omniroute",
