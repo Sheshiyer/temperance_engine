@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdirSync, statSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
@@ -25,8 +25,9 @@ import {
   validateNineRouterSetupIntentV1,
   validateProjectCapsuleV1,
 } from "./onboarding/contract-schema.ts";
-import { createCoreOnboardingCatalog, createCoreOnboardingProfile } from "./onboarding/core-catalog.ts";
+import { createCoreOnboardingCatalog, createCoreOnboardingProfile, createLegacyNineRouterCatalog } from "./onboarding/core-catalog.ts";
 import { projectOnboardingDoctorSection } from "./onboarding/doctor.ts";
+import { retiredIdsOutsideCatalog, retiredModuleNotice, withoutRetiredModules } from "./onboarding/profile-selection.ts";
 import { createOnboardingPlan } from "./onboarding/planner.ts";
 import { validateOnboardingCatalog, validateOnboardingProfile } from "./onboarding/schema.ts";
 import { createSystemProbeAdapter } from "./onboarding/system-adapter.ts";
@@ -150,6 +151,19 @@ const lifecycleIO: LifecycleIO = {
 
 function getStateRoot(): string {
   return resolveRuntimeStateRoot({ environment: process.env, homeDirectory: process.env.HOME || homedir() });
+}
+
+/**
+ * The host-private onboarding profile (owner-only file under the state root). When present it is
+ * used by default, so `temperance onboard` and `temperance onboard --doctor` need no flags, and
+ * TUI confirmations persist the chosen organs back into it.
+ */
+function defaultOnboardingPreferencesPath(): string {
+  return resolve(dirname(defaultOnboardingProfilePath()), "preferences.v1.json");
+}
+
+function defaultOnboardingProfilePath(): string {
+  return process.env.TEMPERANCE_ONBOARDING_PROFILE || resolve(getStateRoot(), "state", "onboarding", "profile.v1.json");
 }
 
 // ─── Compile ─────────────────────────────────────────────────────────────────
@@ -381,9 +395,18 @@ async function main(): Promise<void> {
       surface = args.agent ? "agent" : args.health ? "health" : "tui";
       if (args.telemetry) eventLog = createOperatorEventLog(stateRoot);
       record({ event_type: "started", surface });
+      // 9Router is retired: its repair flow still runs against the legacy catalog, everything else
+      // plans against the OmniRoute organ registry.
       const catalog = args.catalogPath
         ? loadOnboardingJson<OnboardingCatalogV1>(args.catalogPath, validateOnboardingCatalog, "ONBOARDING_CATALOG_INVALID")
-        : createCoreOnboardingCatalog();
+        : args.routerSetupPath ? createLegacyNineRouterCatalog() : createCoreOnboardingCatalog();
+      // The host-private profile belongs to the organ registry: never apply it to a custom or legacy catalog.
+      const usesHostPrivateProfile = !args.profilePath && !args.hostProfilePath && !args.catalogPath && !args.routerSetupPath;
+      const hostPrivateProfilePath = usesHostPrivateProfile ? defaultOnboardingProfilePath() : undefined;
+      const privateProfilePath = hostPrivateProfilePath && existsSync(hostPrivateProfilePath) ? hostPrivateProfilePath : undefined;
+      if (privateProfilePath && (statSync(privateProfilePath).mode & 0o077) !== 0) {
+        process.stderr.write("temperance onboard: warning: the host profile is readable by other users; run chmod 600 on it\n");
+      }
       const hostProfile = args.hostProfilePath
         ? loadOnboardingJson<HostProfileV1>(args.hostProfilePath, validateHostProfileV1, "HOST_PROFILE_INVALID")
         : undefined;
@@ -391,8 +414,9 @@ async function main(): Promise<void> {
         ? loadOnboardingJson<HostBindingV1>(args.hostBindingPath, validateHostBindingV1, "HOST_BINDING_INVALID")
         : undefined;
       const projectCapsules = loadProjectCapsules(args.projectCapsulesPath);
-      const profile = args.profilePath
-        ? loadOnboardingJson<OnboardingProfileV1>(args.profilePath, validateOnboardingProfile, "ONBOARDING_PROFILE_INVALID")
+      const profilePath = args.profilePath ?? privateProfilePath;
+      const profile = profilePath
+        ? loadOnboardingJson<OnboardingProfileV1>(profilePath, validateOnboardingProfile, "ONBOARDING_PROFILE_INVALID")
         : hostProfile
           ? composeOnboardingProfile(
             hostProfile,
@@ -404,6 +428,11 @@ async function main(): Promise<void> {
         ? loadOnboardingJson<NineRouterGuidedSetupV1>(args.routerSetupPath, validateNineRouterGuidedSetupV1, "NINE_ROUTER_SETUP_INVALID")
         : undefined;
       const plannedCatalog = routerSetup ? prepareNineRouterGuidedSetupCatalog(catalog, routerSetup, profile) : catalog;
+      // Older host profiles may still select or require the retired 9Router module. Drop it with a
+      // notice instead of failing, unless the catalog in use still carries it (the legacy repair flow).
+      const retired = withoutRetiredModules(profile, plannedCatalog);
+      const planningProfile = retired.profile;
+      for (const id of retired.dropped) process.stderr.write(retiredModuleNotice(id));
       const buildPlan = async (selections?: ReadonlySet<string>): Promise<OnboardingPlanV1> => {
         const discovery = hostProfile && hostBinding
         ? discoverProjectCandidates(hostProfile, hostBinding, {
@@ -412,7 +441,7 @@ async function main(): Promise<void> {
         : { candidates: [], findings: [] };
         return createOnboardingPlan({
         catalog: plannedCatalog,
-        profile,
+        profile: planningProfile,
         adapter: createSystemProbeAdapter(),
         selections,
         projectCandidates: discovery.candidates,
@@ -422,7 +451,19 @@ async function main(): Promise<void> {
       });
       };
       const moduleIds = plannedCatalog.modules.map(({ id }) => id);
-      const savedPreferences = args.wizardStatePath ? readWizardPreferences(resolve(args.wizardStatePath), profile.id, moduleIds) : undefined;
+      // Organ choices live beside the host-private profile unless an explicit --wizard-state path is given.
+      const wizardStatePath = args.wizardStatePath ?? (hostPrivateProfilePath ? defaultOnboardingPreferencesPath() : undefined);
+      // Saved choices may predate a module's retirement: accept those ids, then drop them with the same notice.
+      const retiredIds = retiredIdsOutsideCatalog(plannedCatalog);
+      // The automatic path can hold choices saved under an earlier profile (for example the portable core
+      // before the host profile existed). Ignore those instead of failing; an explicit --wizard-state stays strict.
+      const automaticWizardState = !args.wizardStatePath && Boolean(wizardStatePath);
+      const storedPreferences = wizardStatePath ? readWizardPreferences(resolve(wizardStatePath), planningProfile.id, [...moduleIds, ...retiredIds], { ignoreOtherProfile: automaticWizardState }) : undefined;
+      if (automaticWizardState && !storedPreferences && existsSync(resolve(wizardStatePath!))) {
+        process.stderr.write("temperance onboard: ignoring saved organ choices from another profile; the next save replaces them\n");
+      }
+      const savedPreferences = storedPreferences && { ...storedPreferences, selected_module_ids: storedPreferences.selected_module_ids.filter((id) => !retiredIds.includes(id)) };
+      for (const id of storedPreferences?.selected_module_ids.filter((id) => retiredIds.includes(id) && !retired.dropped.includes(id)) ?? []) process.stderr.write(retiredModuleNotice(id));
       const plan = await buildPlan(args.selections ?? (savedPreferences ? new Set(savedPreferences.selected_module_ids) : undefined));
       const inspectHealth = async (currentPlan: OnboardingPlanV1) => {
         const [snapshot, install] = await Promise.all([
@@ -460,6 +501,8 @@ async function main(): Promise<void> {
           routing: snapshot.routing, allowRoutingAuthorization: Boolean(snapshot.connection),
           allowRoutingSeating: Boolean(snapshot.connection) && (snapshot.routing?.live_model_count ?? 0) > 0 && Boolean(profile.secret_references.NINE_ROUTER_GATEWAY_KEY),
           allowModuleReplan: true, allowInspection: true,
+          // Like project saves, the agent only receives an explicit-confirmation handoff; nothing is written here.
+          allowModuleSelectionSave: !args.apply && Boolean(wizardStatePath),
         };
         const requestedAction = args.actionId ? projectAgentFlow(plan, { ...options, actionId: undefined }).actions.find(({ id }) => id === args.actionId) : undefined;
         let flow = projectAgentFlow(plan, options);
@@ -512,6 +555,7 @@ async function main(): Promise<void> {
             routing,
             allowRoutingAuthorization: !args.apply && Boolean(routing?.compatible) && Boolean(routingApi),
             allowRoutingSeating: !args.apply && Boolean(routing?.compatible) && Boolean(routingApi) && (routing?.live_model_count ?? 0) > 0 && Boolean(profile.secret_references.NINE_ROUTER_GATEWAY_KEY),
+            allowModuleSelectionSave: !args.apply && Boolean(wizardStatePath),
           });
           resumeStep = result.resume_step;
           selectedCandidateIds = result.selected_candidate_ids ?? selectedCandidateIds;
@@ -554,7 +598,8 @@ async function main(): Promise<void> {
             const { runNineRouterSeatingTui } = await import("./onboarding/nine-router-seating-tui.ts");
             const { runNineRouterSetupReviewTui } = await import("./onboarding/nine-router-setup-review-tui.ts");
             const setupResult = await runWizardRouterSetup({
-              catalog, profile, requiredAliases: [...new Set(profile.routing_aliases.map(({ combo }) => combo))],
+              // 9Router is retired from the default catalog; its seating flow keeps the legacy module.
+              catalog: args.catalogPath ? catalog : createLegacyNineRouterCatalog(), profile, requiredAliases: [...new Set(profile.routing_aliases.map(({ combo }) => combo))],
               gatewayReferenceId: "NINE_ROUTER_GATEWAY_KEY", api: routingApi, keychain: new MacOsKeychainAdapter(),
               executable: { id: "9router", path: profile.variables.NINE_ROUTER_CLI_ENTRYPOINT ?? "", version: "0.5.75" },
               receiptSink: createFileOperationReceiptSink(resolve(getStateRoot(), "onboarding-receipts")),
@@ -575,10 +620,11 @@ async function main(): Promise<void> {
             mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
             await lifecycleIO.writeFileAtomic!(output, `${canonical(result.project_capsules)}\n`, { mode: 0o600 });
           }
-          if (!args.apply && result.confirmed && args.wizardStatePath) {
-            writeWizardPreferences(resolve(args.wizardStatePath), {
-              schema: "temperance.onboarding-preferences.v1", profile_id: profile.id, selected_module_ids: result.selected_module_ids,
-            }, moduleIds);
+          if (!args.apply && (result.confirmed || result.save_module_selections) && wizardStatePath) {
+            // Requests only: remembered organ choices never activate anything by themselves.
+            writeWizardPreferences(resolve(wizardStatePath), {
+              schema: "temperance.onboarding-preferences.v1", profile_id: planningProfile.id, selected_module_ids: result.selected_module_ids,
+            }, moduleIds, { previousModuleIds: [...moduleIds, ...retiredIds], replaceOtherProfile: automaticWizardState });
           }
           if (args.apply && result.confirmed) {
             if (!result.confirmed_at || !routerSetup) throw new Error("NINE_ROUTER_REPAIR_CONFIRMATION_INVALID");
@@ -600,7 +646,7 @@ async function main(): Promise<void> {
             process.exitCode = receipt.status === "committed" ? 0 : 1;
           } else {
             record({ event_type: result.confirmed ? "completed" : "cancelled", surface, outcome: result.confirmed ? "confirmed" : "cancelled", duration_ms: Date.now() - startedAt });
-            process.stdout.write(`${canonical({ confirmed: result.confirmed, preferences_saved: Boolean(result.confirmed && args.wizardStatePath), project_capsules_saved: result.save_project_capsules, runtime_activation: "not-performed", context_readiness: "unverified", telemetry: telemetry() })}\n`);
+            process.stdout.write(`${canonical({ confirmed: result.confirmed, preferences_saved: Boolean((result.confirmed || result.save_module_selections) && wizardStatePath), project_capsules_saved: result.save_project_capsules, runtime_activation: "not-performed", context_readiness: "unverified", telemetry: telemetry() })}\n`);
             process.exitCode = 0;
           }
           break;

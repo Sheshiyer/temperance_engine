@@ -2,11 +2,12 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { createCoreOnboardingCatalog, createCoreOnboardingProfile } from "../src/onboarding/core-catalog.ts";
+import { createCoreOnboardingProfile, createLegacyNineRouterCatalog } from "../src/onboarding/core-catalog.ts";
 import { createOnboardingPlan } from "../src/onboarding/planner.ts";
 import { renderOnboardingText } from "../src/onboarding/presentation.ts";
 import { readOnboardingRoutingSnapshot } from "../src/onboarding/routing-snapshot.ts";
 import type { HostProfileV1 } from "../src/onboarding/public-contracts.ts";
+import { retiredModuleNotice } from "../src/onboarding/profile-selection.ts";
 
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
@@ -17,12 +18,13 @@ const hostProfile: HostProfileV1 = {
 };
 
 async function fixture(bound: boolean) {
-  const profile = createCoreOnboardingProfile();
+  // The core profile now defaults to OmniRoute; this 9Router routing fixture requests the legacy module explicitly.
+  const profile = { ...createCoreOnboardingProfile(), preselected_modules: ["provider.9router"] };
   if (bound) {
     profile.variables = { NINE_ROUTER_DATA_DIR: join(tmpdir(), "missing-routing-fixture"), NINE_ROUTER_HEALTH_URL: "http://127.0.0.1:1/health" };
     profile.routing_aliases = [{ alias: "noesis-plan", combo: "noesis-plan" }];
   }
-  const plan = await createOnboardingPlan({ catalog: createCoreOnboardingCatalog(), profile, adapter: {
+  const plan = await createOnboardingPlan({ catalog: createLegacyNineRouterCatalog(), profile, adapter: {
     probe: async ({ id }) => ({ capability_id: id, available: true, reason_code: "AVAILABLE", evidence: [] }),
   } });
   return { profile, plan };
@@ -58,7 +60,7 @@ test("generic onboarding remains unbound and performs no management request", as
 test("an unselected router cannot imply adapter compatibility from absent holds", async () => {
   const input = await fixture(true);
   let probes = 0;
-  const plan = await createOnboardingPlan({ catalog: createCoreOnboardingCatalog(), profile: input.profile, selections: new Set(), adapter: {
+  const plan = await createOnboardingPlan({ catalog: createLegacyNineRouterCatalog(), profile: input.profile, selections: new Set(), adapter: {
     probe: async ({ id }) => { probes++; return { capability_id: id, available: true, reason_code: "AVAILABLE", evidence: [] }; },
   } });
   const snapshot = await readOnboardingRoutingSnapshot({ ...input, plan, hostProfile, observe: async () => ({ catalog: { providers: [], combos: [] }, models: [] }) });
@@ -97,7 +99,8 @@ test("CLI doctor and plain text use bound routing while JSON retains its existin
     });
     const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
     expect(code).not.toBe(64);
-    expect(stderr).toBe("");
+    // The legacy host profile preselects the retired 9Router module: the only stderr is that notice.
+    expect(stderr).toBe(retiredModuleNotice("provider.9router"));
     return stdout;
   };
   for (const flags of [[], ["--doctor"]]) {

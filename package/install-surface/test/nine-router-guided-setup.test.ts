@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { ONBOARDING_PROFILE_SCHEMA, type OnboardingPlanV1, type OnboardingProfileV1 } from "../src/onboarding/contracts.ts";
-import { createCoreOnboardingCatalog } from "../src/onboarding/core-catalog.ts";
+import { createLegacyNineRouterCatalog } from "../src/onboarding/core-catalog.ts";
 import {
   NINE_ROUTER_GUIDED_SETUP_SCHEMA,
   NineRouterGuidedSetupError,
@@ -159,7 +159,7 @@ const executable = { id: "9router", path: "/managed/bin/9router", version: "0.5.
 
 describe("fresh 9router guided setup", () => {
   test("adds selected provider Keychain probes to the reviewed plan catalog", () => {
-    const original = createCoreOnboardingCatalog();
+    const original = createLegacyNineRouterCatalog();
     const prepared = prepareNineRouterGuidedSetupCatalog(original, desired, profile);
     expect(prepared.modules[0]?.requires).toContainEqual({
       id: "9router-provider-primary-credential",
