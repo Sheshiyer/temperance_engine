@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 735/857
+progress: 743/865
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-04T19:57:18Z
+updated: 2026-10-04T20:06:41Z
 ---
 
 ## Problem
@@ -1105,6 +1105,14 @@ untouched.
 - [x] ISC-833: Anti: the `0.7.0` public candidate contains no private absolute home path rejected by the existing guard.
 - [x] ISC-834: `bun run typecheck` in `package/install-surface` exits 0 on the `0.7.0` candidate.
 - [x] ISC-835: The install doctor reports a `LAUNCHAGENT` record as `UNAVAILABLE` with `LAUNCHAGENT_OBSERVATION_UNAVAILABLE`, never through the transform observer.
+- [x] ISC-836: The offline native CLI readiness contract pins OmniRoute 3.8.51 with seven reviewed whole-file digests, including `src/server/authz/peerContext.ts`.
+- [x] ISC-837: The installed OmniRoute 3.8.51 package returns `contract_verified` from the offline readiness command, and the receipt keeps `blockingCondition: "401 AUTH_001 unresolved"`.
+- [x] ISC-838: The 3.8.51 contract proves that the CLI sends the machine-bound token only to a loopback destination and refuses redirects while the token is attached.
+- [x] ISC-839: The context-preview and Hermes preview gates accept only an OmniRoute 3.8.51 runtime and installed version; 3.8.48 and 3.8.52 snapshots fail with `native_snapshot_version_invalid`.
+- [x] ISC-840: The native control-plane snapshot accepts the 3.8.51 seeded default compression combo, whose steps carry no intensity, and still rejects an invalid or explicitly null intensity.
+- [x] ISC-841: The dashboard topology semantics match the compiled 3.8.51 dashboard, and `versionBound` is true only for 3.8.51.
+- [x] ISC-842: Compression settings outside the four fully projected keys, including the whole `cavemanConfig`, are digested within fixed row, key and value bounds, and their values never appear in the snapshot.
+- [x] ISC-843: Anti: no 3.8.51 gate claims live authentication, provider promotion, or a resolved 401.
 
 ## Test Strategy
 
@@ -1931,6 +1939,14 @@ untouched.
 | ISC-833 | privacy | existing public-path guard | exit zero, guard unchanged | `./verify.sh` |
 | ISC-834 | release | install-surface `tsc --noEmit` | exit zero | `bun run typecheck` |
 | ISC-835 | doctor | `LAUNCHAGENT` record condition and reason | `UNAVAILABLE`, `LAUNCHAGENT_OBSERVATION_UNAVAILABLE` | `test/doctor.test.ts` class-aware test |
+| ISC-836 | router gate | native CLI readiness source contract | seven pinned 3.8.51 files, identical MacBook and EC2 digests | `bun test package/router/omniroute-native-cli-readiness.test.ts` |
+| ISC-837 | router gate | offline readiness on the installed 3.8.51 package | `contract_verified`, blocking condition kept | `bun scripts/omniroute-native-cli-readiness.ts --receipt-root <private dir>` |
+| ISC-838 | router gate | CLI token transport | loopback only; redirects refused while attached | `bun test package/router/omniroute-native-cli-readiness.test.ts` |
+| ISC-839 | router gate | preview and Hermes preview version binding | 3.8.51 only; 3.8.48 and 3.8.52 rejected | `bun test package/router/omniroute-context-preview.test.ts` + `tests/omniroute-hermes-preview.sh` |
+| ISC-840 | control plane | 3.8.51 default compression combo | intensity-less steps accepted; invalid intensity rejected | `bun test package/router/omniroute-native-control-plane.test.ts` |
+| ISC-841 | control plane | dashboard topology semantics | 3.8.51 literals; `versionBound` false for 3.8.48 | `bun test package/router/omniroute-native-control-plane.test.ts` |
+| ISC-842 | control plane | unparsed compression settings | bounded digest; values never exposed | `bun test package/router/omniroute-native-control-plane.test.ts` |
+| ISC-843 | non-claims | readiness receipt and integration guard | authentication, authorization and promotion stay false | `tests/omniroute-native-integration.sh` |
 
 ## Features
 
@@ -2030,6 +2046,7 @@ untouched.
 | Simplified Technical English skill and docs gate | ISC-813..ISC-823 | upstream 0xpili/simplified-technical-english at pinned commit | yes |
 | Showreel (16:9 and 9:16) | ISC-824..ISC-829 | Bun, ffmpeg, a Chromium-family browser; Google Fonts on first render | yes |
 | 0.7.0 additive feature release | ISC-830..ISC-835 | explicit owner release request, existing release control, exact-candidate GitHub verification | no |
+| OmniRoute 3.8.51 router-gate qualification | ISC-836..ISC-843 | installed OmniRoute 3.8.51 package and source; independent read-only audits | no |
 
 ## Architecture
 
@@ -2731,6 +2748,10 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   refuted by: the release gate ran `tsc --noEmit` in `package/install-surface` and found three errors from d4748c9; Verify runs `verify-all.sh`, which never type-checks, and one error hid a doctor that misreported LaunchAgent records as transforms.
   learned: a green CI badge proves only the gates CI runs; the release contract lists typecheck separately for this reason, and a type error on a dispatch union can be a real behavior gap.
   criterion now: ISC-834 holds typecheck at exit 0 for the candidate and ISC-835 pins honest LaunchAgent doctor reporting.
+- 2026-10-04 | conjectured: bumping the three OmniRoute version constants from 3.8.48 to 3.8.51 would qualify the deployed release.
+  refuted by: source review showed that all six pinned CLI files changed, the loopback CLI-token check moved to `src/server/authz/peerContext.ts`, the seeded default compression combo drops `intensity` (the control-plane projection threw on it), the dashboard topology colours changed meaning, and 3.8.51 dispatch reads compression settings the snapshot did not record.
+  learned: a version bump is a claim, not a qualification. Each gate needs its source contract re-reviewed against the new bytes; the Mac and EC2 installs gave identical 3.8.51 digests. The live 401 stays unresolved until a new live probe, and the EC2 install cannot anchor the collector because bun hardlinks its files and umask 002 makes them group-writable.
+  criterion now: ISC-836..ISC-843 accept the 3.8.51 contract, the preview and Hermes version binding, the intensity-less default combo, the re-audited topology, bounded settings digests, and the retained non-claims.
 
 ## Verification
 
@@ -3165,3 +3186,13 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - ISC-833: public guard — `./verify.sh` exited 0 with the private-path guard unchanged; the changed files contain no absolute home-directory path.
 - ISC-834: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exited 0 on 84d9410 (it exited 2 with three errors on origin/main ebe76e3).
 - ISC-835: `bun test test/doctor.test.ts` — 49 pass; removing the LAUNCHAGENT dispatch line makes the class-aware test fail with `ADAPTER_UNAVAILABLE`.
+- ISC-836: source contract — `OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT` lists seven files; the MacBook and EC2 3.8.51 installs gave identical SHA-256 digests for all seven on 2026-10-04.
+- ISC-837: offline readiness — `bun scripts/omniroute-native-cli-readiness.ts` against the installed 3.8.51 package returned `contract_verified` with all eight checks true; `nonClaims.blockingCondition` is still `401 AUTH_001 unresolved`.
+- ISC-838: transport probe — the `cliApiSendsCliTokenOnlyToLoopback` check is true, and the marker removal and mutation tests fail closed for every one of its six markers.
+- ISC-839: version binding — the context-preview test rejects 3.8.48 and 3.8.52 snapshots with `native_snapshot_version_invalid`; `tests/omniroute-hermes-preview.sh` passes with the 3.8.51 default.
+- ISC-840: compression probe — a control-plane test accepts `[{"engine":"session-dedup"},{"engine":"lite"}]` with null intensities and rejects a numeric intensity with `compression_pipeline_invalid`.
+- ISC-841: topology audit — read-only review of the compiled 3.8.51 dashboard found the green connected-at-rest state, the second red source (connections all in error), and the active-connection node set; a test asserts the new literals and `versionBound` false for 3.8.48.
+- ISC-842: settings digest — a test inserts an `engines` sentinel, sees the count and digest change, and finds no sentinel in the snapshot; a `cavemanConfig` change that keeps `enabled` also changes the digest; row count and key and value byte lengths are checked in SQLite over at most 65 rows before any row is loaded; more than 64 settings fail with `compression_settings_too_large`.
+- ISC-843: non-claims — `tests/omniroute-native-integration.sh` passes its literal fail-closed non-claim guard; the readiness receipt keeps authentication, authorization and promotion false.
+- 2026-10-04 suites: `bun test package/router` 415 pass, 0 fail; the OmniRoute shell suites (native integration, client auth, Hermes preview, router hardening, check, combos) and `./verify.sh` exit 0; the STE docs gate reports 0 failures.
+- 2026-10-04 open: a live end-to-end native snapshot against the hosted 3.8.51 router was refused with `omniroute_package_invalid`, because its `package.json` has two links and mode 664. The install surface COPY record `router.governed-runtime` is re-pinned to `a3c6b5b`, the latest commit that changes `package/router` on this branch.

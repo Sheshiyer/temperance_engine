@@ -121,7 +121,8 @@ profile_metadata() {
 
 quick_tunnel_stopped() {
   local state="$HOME/.omniroute/cloudflared/quick-tunnel-state.json"
-  [ -r "$state" ] && jq -e '.status=="stopped" and .pid==null and ((.url // "")=="")' "$state" >/dev/null
+  # 3.8.51 writes publicUrl/apiUrl; earlier releases wrote url.
+  [ -r "$state" ] && jq -e '.status=="stopped" and .pid==null and ((.url // "")=="") and ((.publicUrl // "")=="") and ((.apiUrl // "")=="")' "$state" >/dev/null
 }
 
 listener_addresses_are_loopback() {

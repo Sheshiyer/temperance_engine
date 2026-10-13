@@ -41,3 +41,25 @@ if grep -Fq "SKIP - optional live OmniRoute inspection skipped: set TEMPERANCE_A
   exit 1
 fi
 printf '%s\n' "ok - native integration rejects non-loopback listeners when explicitly enabled"
+
+loopback_bin="$TEMP_ROOT/loopback-bin"
+mkdir -p "$loopback_bin"
+printf '%s\n' '#!/usr/bin/env sh' 'printf "%s\n" "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME" "node 1 fixture 1u IPv4 0x0 0t0 TCP 127.0.0.1:20128 (LISTEN)"' > "$loopback_bin/lsof"
+chmod 700 "$loopback_bin/lsof"
+for field in url publicUrl apiUrl; do
+  state="$TEMP_ROOT/tunnel-$field.json"
+  printf '{"status":"stopped","pid":null,"url":"","%s":"https://exposed.trycloudflare.com"}\n' "$field" > "$state"
+  tunnel_output="$TEMP_ROOT/tunnel-$field.out"
+  env HOME="$HOME_ROOT" PATH="$loopback_bin:$PATH" TEMPERANCE_ALLOW_LIVE_INSPECTION=1 OMNIROUTE_DB_PATH="$TEMP_ROOT/missing.sqlite" OMNIROUTE_QUICK_TUNNEL_STATE="$state" bash "$TARGET" >"$tunnel_output" 2>&1 || true
+  if ! grep -Fq "FAIL - optional live Quick Tunnel state is stopped and cleared" "$tunnel_output"; then
+    cat "$tunnel_output" >&2
+    printf '%s\n' "a stopped Quick Tunnel state with a live $field passed as cleared" >&2
+    exit 1
+  fi
+done
+cleared="$TEMP_ROOT/tunnel-cleared.json"
+printf '{"status":"stopped","pid":null,"url":"","publicUrl":"","apiUrl":""}\n' > "$cleared"
+cleared_output="$TEMP_ROOT/tunnel-cleared.out"
+env HOME="$HOME_ROOT" PATH="$loopback_bin:$PATH" TEMPERANCE_ALLOW_LIVE_INSPECTION=1 OMNIROUTE_DB_PATH="$TEMP_ROOT/missing.sqlite" OMNIROUTE_QUICK_TUNNEL_STATE="$cleared" bash "$TARGET" >"$cleared_output" 2>&1 || true
+grep -Fq "ok - optional live Quick Tunnel state is stopped and cleared" "$cleared_output"
+printf '%s\n' "ok - live Quick Tunnel probe treats url, publicUrl and apiUrl as a live tunnel"

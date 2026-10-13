@@ -40,7 +40,7 @@ function writeSource(root: string, relativePath: string, content: string): void 
   writeFileSync(join(root, relativePath), content, { encoding: "utf8", mode: 0o600 });
 }
 
-function makePackageFixture(version = "3.8.48"): string {
+function makePackageFixture(version = "3.8.51"): string {
   const root = makeTemporaryRoot();
   for (const contract of OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT) {
     const content =
@@ -97,7 +97,7 @@ describe("offline native CLI source contract", () => {
     expect(receipt.digestPinSource).toBe("injected-hermetic-fixture");
     expect(receipt.observedPackage).toEqual({
       name: "omniroute",
-      version: "3.8.48",
+      version: "3.8.51",
       nameMatches: true,
       versionMatches: true,
     });
@@ -121,7 +121,7 @@ describe("offline native CLI source contract", () => {
     expect(Object.values(receipt.checks).every(Boolean)).toBe(true);
     expect(receipt.nonClaims).toEqual({
       integrityScope: "exact-reviewed-allowlist-file-digests",
-      pinnedFileCount: 6,
+      pinnedFileCount: 7,
       packageIntegrityComplete: false,
       entrypointResolutionPinned: false,
       loadedModuleGraphVerified: false,
@@ -147,7 +147,7 @@ describe("offline native CLI source contract", () => {
     });
   });
 
-  test("pins all six reviewed OmniRoute 3.8.48 whole-file digests exactly", () => {
+  test("pins all seven reviewed OmniRoute 3.8.51 whole-file digests exactly", () => {
     const contractIds = OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT.map(({ id }) => id).sort();
     const pinIds = Object.keys(OMNIROUTE_NATIVE_CLI_EXPECTED_SHA256).sort();
     expect(pinIds).toEqual(contractIds);
@@ -160,16 +160,18 @@ describe("offline native CLI source contract", () => {
         "bin/cli/api.mjs",
         "bin/cli/utils/cliToken.mjs",
         "src/server/authz/policies/management.ts",
+        "src/server/authz/peerContext.ts",
         "dist/docs/openapi.yaml",
       ].sort(),
     );
     expect(OMNIROUTE_NATIVE_CLI_EXPECTED_SHA256).toEqual({
-      "package-manifest": "6f154e5c973158c95dcbb7211a5d2ec691c396948c71a30959a472e88adff626",
-      "compression-command": "5ddf420c99aea6ea72859fae27effeec5efcfd105a345afbd3cf74a4c1a52aa8",
-      "cli-api": "9584c48cb91d0dccfbd9ea86b71ffc082d27f92c2f09bfb7560c0cafb17b9033",
-      "cli-token-helper": "7cccffbbf267ee1e1f9ebf67feab66de943980b66b9d4f12f55b575d50795360",
-      "management-policy": "d0809be23364924113a46ecf91ace938d6cd7a305f583667ff46ab6061b9e2e1",
-      openapi: "e9bdf16a6ea225b4e4cad5dcf7c1fc141a40ba168f3028593ad9ac4c75e76053",
+      "package-manifest": "b002c54561bd762f41c7f4cafe6809ac5d5e58bbe175ce0399eb7c1df5b0baf6",
+      "compression-command": "ddd9af8aacd510e25bafd48f093f8ccfb3c89d99e1cf0e503e311dd4b11a2455",
+      "cli-api": "46d7693864f13814d04f47537c4f447f25eeac6d337f37ac5302cc4f6285b7dd",
+      "cli-token-helper": "859609750d595a8c9110f2cd536e788730df313def0136abf859a0e744360c8e",
+      "management-policy": "c60581deaedf0a7dd814a55685238dcf63017121d0ebf73ae4d87aaa982ec1f9",
+      "authz-peer-context": "1885309dbb495f4ec11ec356ecdde843b076373d5bb1642836e47abffaf1e643",
+      openapi: "56a167681176b5cd56e7c86c47af53cda0eb020413f9069942b0670d81b27d9d",
     });
     for (const contract of OMNIROUTE_NATIVE_CLI_SOURCE_CONTRACT) {
       expect(contract.expectedSha256).toBe(OMNIROUTE_NATIVE_CLI_EXPECTED_SHA256[contract.id]);
@@ -186,10 +188,10 @@ describe("offline native CLI source contract", () => {
     });
 
     expect(receipt.classification).toBe("contract_unverified");
-    expect(receipt.digestPinSource).toBe("reviewed-omniroute-3.8.48");
+    expect(receipt.digestPinSource).toBe("reviewed-omniroute-3.8.51");
     expect(receipt.observedPackage).toEqual({
       name: "omniroute",
-      version: "3.8.48",
+      version: "3.8.51",
       nameMatches: true,
       versionMatches: true,
     });
@@ -202,7 +204,7 @@ describe("offline native CLI source contract", () => {
       const expectedDigests = fixtureDigestMap(root);
       const path = join(root, contract.relativePath);
       if (contract.id === "package-manifest") {
-        writeFileSync(path, '{\n  "name": "omniroute",\n  "version": "3.8.48"\n}\n\n', "utf8");
+        writeFileSync(path, '{\n  "name": "omniroute",\n  "version": "3.8.51"\n}\n\n', "utf8");
       } else {
         writeFileSync(path, `${readFileSync(path, "utf8")}\n// adjacent-reviewed-source-drift\n`, "utf8");
       }
@@ -245,7 +247,7 @@ describe("offline native CLI source contract", () => {
     const receipt = inspectFixture(root, expectedDigests);
     expect(receipt.classification).toBe("contract_verified");
     expect(receipt.nonClaims).toMatchObject({
-      pinnedFileCount: 6,
+      pinnedFileCount: 7,
       packageIntegrityComplete: false,
       entrypointResolutionPinned: false,
       loadedModuleGraphVerified: false,
@@ -287,7 +289,7 @@ describe("offline native CLI source contract", () => {
     expect(inspectFixture(versionRoot).observedPackage.versionMatches).toBe(false);
 
     const identityRoot = makePackageFixture();
-    writeSource(identityRoot, "package.json", `${JSON.stringify({ name: "not-omniroute", version: "3.8.48" })}\n`);
+    writeSource(identityRoot, "package.json", `${JSON.stringify({ name: "not-omniroute", version: "3.8.51" })}\n`);
     expect(inspectFixture(identityRoot).observedPackage.nameMatches).toBe(false);
 
     const missingRoot = makePackageFixture();
@@ -325,7 +327,7 @@ describe("offline native CLI source contract", () => {
       now: () => NOW,
     });
     expect(receipt.classification).toBe("contract_unverified");
-    expect(receipt.digestPinSource).toBe("reviewed-omniroute-3.8.48");
+    expect(receipt.digestPinSource).toBe("reviewed-omniroute-3.8.51");
     expect(receipt.resolution).toEqual({
       method: "bun-which-realpath",
       executable: "omniroute",

@@ -7,7 +7,8 @@ promotion gate.
 
 ## Current state: locally promoted, remotely contained
 
-- OmniRoute 3.8.48 listens only on `127.0.0.1:20128`.
+- OmniRoute 3.8.51 listens only on `127.0.0.1:20128`. The upstream default is
+  `0.0.0.0`, so the launchd script sets `OMNIROUTE_SERVER_HOST=127.0.0.1`.
 - `REQUIRE_API_KEY` resolves to `true`; anonymous and invalid-Bearer catalog
   requests return HTTP 401.
 - OpenCode/Codex and native Claude use separate Keychain-backed inference keys.
@@ -82,10 +83,14 @@ families, and 26 active connection records. These counts may change without
 altering either OpenCode adapter.
 
 The topology badge is activity, not inventory. A blue `1` means one provider
-family has an in-flight request. Green is current activity, red is the most
-recent family whose newest request remains unsuccessful, and dim nodes are
-configured or historically observed. Red has no age cutoff in 3.8.48, so an
-old failure can remain visible without implying a current outage.
+family has an in-flight request. In 3.8.51, an animated green edge is current
+activity. A static green node is a provider with a connection and no request in
+flight. Red is the most recent family whose newest request remains unsuccessful.
+Red also marks a provider whose connections are all in error.
+
+Dim nodes are connected providers with no recent activity. The graph shows only
+providers that have an active connection. Red has no age cutoff, so an old
+failure can remain visible without implying a current outage.
 
 The same separation applies on `hermes-runner-01`. OmniRoute's service health
 reports five configured, active connections, while an offline CLI launched as
@@ -168,11 +173,12 @@ The snapshot separates what each layer can actually prove:
   snapshot cannot promote Cloudflare, contact protected EC2 Hermes,
   authenticate an S provider, or enable Algorithm routing.
 
-Topology color semantics are bound to installed OmniRoute 3.8.48. If that
-version changes, `versionBound` becomes false until the compiled dashboard
-semantics are re-audited. The blue badge counts in-flight provider families;
-green, amber, red, and dim nodes describe activity, recency, error, and
-inventory state—not the number of configured providers.
+Topology color semantics are bound to installed OmniRoute 3.8.51. We audited
+them against the compiled 3.8.51 dashboard. If the version changes,
+`versionBound` becomes false until a new audit. The blue badge counts in-flight
+provider families. Green, amber, red, and dim nodes describe activity,
+connection health, recency, and error state. They do not count configured
+providers.
 
 ## Ownership matrix
 
@@ -383,12 +389,15 @@ keep the global master off.
 
 ### Synthetic preview qualifier
 
-Installed OmniRoute 3.8.48 implements preview as exactly
+Installed OmniRoute 3.8.51 implements preview as exactly
 `POST http://127.0.0.1:20128/api/compression/preview`. The route accepts either
 an explicit mode or an engine/pipeline selection, runs the native compression
 implementation, and returns diff, validation, fallback, and token statistics.
 It contains no settings-write call. The management policy runs before that
 route, however, so a preview response is not anonymous functionality.
+
+In 3.8.51, the server requires only `messages`. It uses `stacked` when a request
+has no mode. The OpenAPI document still lists `mode` as required.
 
 Run the authority-free boundary probe with no input arguments:
 
@@ -421,6 +430,19 @@ helper a real packaging bug, but not a sufficient explanation for every
 active-server denial. The remaining locality/policy cause stays unproven and
 held.
 
+OmniRoute 3.8.51 fixes the client packaging bug. The helper reads
+`machineIdSync` from the named export or from the CommonJS default export. It
+derives the token as an HMAC of the machine ID over a per-install salt. It keeps
+that salt in an owner-only file in the data directory. If it cannot derive a
+token, it returns an empty token.
+
+The CLI sends the token only to a loopback address. It refuses redirects while the token is in a request. The server check
+moved to `src/server/authz/peerContext.ts`. It does not accept a request through
+a proxy as loopback. `OMNIROUTE_DISABLE_CLI_TOKEN=true` turns the check off.
+
+These source facts do not prove that the live denial is gone. The blocking
+condition stays until a new live probe shows a result.
+
 Inspect the installed static contract without repeating either live request:
 
 ```bash
@@ -428,13 +450,13 @@ bun scripts/omniroute-native-cli-readiness.ts
 ```
 
 This command is offline by construction. It treats the installed package as
-data, pins version 3.8.48, and compares every file in an exact relative source
+data, pins version 3.8.51, and compares every file in an exact relative source
 allowlist against its reviewed whole-file SHA-256. Ordered unique markers then
 explain the command, endpoint, OpenAPI body, token-helper fail-closed behavior,
 and loopback management-policy contracts. It never imports or executes those
 sources, never resolves a token, and has no live/network flag. Its separate
-mode-600 receipt is non-authorizing: `contract_verified` means only that six
-reviewed files at the resolved root match their pinned 3.8.48 bytes and static
+mode-600 receipt is non-authorizing: `contract_verified` means only that seven
+reviewed files at the resolved root match their pinned 3.8.51 bytes and static
 markers. It does not certify complete package integrity, entrypoint bytes, or
 the loaded module graph. Version,
 digest, or marker drift becomes `contract_unverified`. Both results retain
@@ -567,7 +589,7 @@ the caller's normal umask for repository and shared-cache files.
 
   `scripts/omniroute-hermes-preview.sh` therefore makes no HTTP request and
   never reads the dashboard password. It consumes the existing redacted,
-  read-only local snapshot, requires OmniRoute 3.8.48 runtime/database identity
+  read-only local snapshot, requires OmniRoute 3.8.51 runtime/database identity
   continuity plus exact presence of the five governed combos, and compiles a
   fixed proposal using Hermes' documented `provider: custom`, loopback `/v1`,
   and `${env:TEMPERANCE_HERMES_OMNIROUTE_API_KEY}` references. It rejects every
@@ -646,9 +668,10 @@ only the public LaunchAgent plist into an isolated directory, proves exact
 baseline restoration and exact promoted reapply, and leaves the running gateway
 untouched.
 
-OmniRoute 3.8.48 has a one-minute data-plane API-key validation cache. A live
-revocation rehearsal observed HTTP 401 sixty seconds after deletion. For an
-active compromise, first contain transport, drain bounded workers, restart the
+OmniRoute 3.8.48 and 3.8.51 have a one-minute data-plane API-key validation
+cache. A live revocation rehearsal on 3.8.48 observed HTTP 401 sixty seconds
+after deletion. In 3.8.51, a delete or revoke inside the server also clears the
+cache at once. No live rehearsal has run on 3.8.51. For an active compromise, first contain transport, drain bounded workers, restart the
 loopback service to clear the cache, and then prove the revoked key returns 401.
 
 ## Cloudflare promotion gate
