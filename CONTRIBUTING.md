@@ -45,8 +45,6 @@ When version-significant files change (`CHANGELOG.md`, docs, scripts, skills, et
 - `## 📊 Repository Signals Table`
 - `## 🔍 Asset Trail`
 
-README continuity is validated on every PR to `main` via `.github/workflows/readme-continuity.yml`.
+README continuity is validated locally: run `scripts/readme-continuity-check.sh origin/main` before you open a PR, and the release cut runs it on the candidate. The GitHub Actions workflows that ran this check and the NotebookLM auto-refresh were removed before `0.8.0` (local job migration).
 
-A companion workflow (`.github/workflows/readme-auto-refresh.yml`) runs after merges on `main` and opens/updates a follow-up branch PR (`readme-continuity-refresh`) when NotebookLM sections need refresh.
-
-For release/version updates, PRs are still expected to keep README blocks current; the auto-refresh workflow can also backfill missed updates in a separate follow-up commit/PR.
+For release and version updates, a PR must keep the README blocks and the NotebookLM reconciliation metadata current. There is no automatic backfill.

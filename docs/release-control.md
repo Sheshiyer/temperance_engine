@@ -70,13 +70,14 @@ Unreleased is the only place in-progress work may land. Cutting a release:
    change an existing published tag. Push the exact branch/tag without force.
 6. Record the commit, the OmniRoute pin (and the legacy 9router pin), and SHA-256 of
    `package/install-surface/install-surface-manifest.lock.json` in the GitHub
-   release notes. Include qualification limitations and the Verify workflow
-   result for that exact commit. Use `gh release create --verify-tag` only after
+   release notes. Include qualification limitations and the local
+   `scripts/verify-all.sh` result for that exact commit. Use `gh release create --verify-tag` only after
    verifying the remote tag and successful checks.
 
-The existing GitHub Actions `Verify` workflow runs on `main` pushes. There is no
-separate automatic release-publishing workflow; the documented release cut is
-manual. For v1.1, additionally bind the artifact digest and complete RELS-06/07
+There is no GitHub Actions workflow since the local job migration before `0.8.0`.
+Verification is the local `scripts/verify-all.sh` gate, run on the exact candidate
+before it is pushed. There is no automatic release-publishing workflow, and the
+documented release cut is manual. For v1.1, additionally bind the artifact digest and complete RELS-06/07
 and both required clean-host platform lanes before publication.
 
 ## Ecosystem identifier

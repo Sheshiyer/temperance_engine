@@ -26,6 +26,7 @@ Compatibility: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 - **The manifest bridge probes a hosted router honestly** (#38). The runtime receipt's `edge` is `local` for loopback URLs and `hosted` otherwise; there is no name matching and no `TEMPERANCE_EDGE` override. The probe calls `/v1/models`, the one path a hosted router exposes without an identity login, and a 401 counts as reachable. Redirects are never followed: an identity-proxy login redirect reports `identity proxy redirected; gateway not reached`. A hosted router gets a 1500 ms budget; loopback keeps 350 ms. The `clio` edge label and the company-edge wording are gone from the docs and router test comments.
 - Router gates that qualified only OmniRoute 3.8.48 now follow the 3.8.51 code; `docs/COMPATIBILITY.md` records the pin history, and `docs/omniroute-native-integration.md` and `QUICKSTART.md` describe the new checks.
+- The GitHub Actions workflows were removed on `main` before this cut (local job migration, `52eebe4`). `tests/docs-continuity.sh`, `CONTRIBUTING.md` and `docs/release-control.md` now describe the local `scripts/verify-all.sh` gate instead of a CI workflow; the README asset-trail line that names the retired auto-refresh workflow is generated metadata and is left as a historical pointer.
 
 ### Security
 
