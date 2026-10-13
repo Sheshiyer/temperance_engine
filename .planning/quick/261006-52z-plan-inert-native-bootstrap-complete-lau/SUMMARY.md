@@ -1,0 +1,3 @@
+# 52z plan disposition
+Root and company reviewed whole-boundary proposal. Root selected conditional monitor-alive scope, diagnostic19/normal18 actor topology and global30/29 privateFD accounting. Original budget record/directory survives directory-FD closure. Separate five-field diagnostic capsule and absent-only observation remain injected, actualtransport held.
+59j completed the approved narrow pure ordering fixture (15tests/root+independent source clear), not the whole native adapter. Actual FD/spawn/ownerchain/budget/codec/resource/reap/parent-loss and model execution remain unproved and unauthorized by this plan. Heavy Build rail remains held; no implementation-complete claim.

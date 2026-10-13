@@ -1,0 +1,7 @@
+# 0oy — pure Codex0.147 app-server protocol bootstrap
+
+Own one headless protocol helper, inert tests, contract and this packet only. No spawn, stdio, network, configuration mutation or model join.
+
+Freeze a conservative bounded profile:1MiB decoded-message bytes,8MiB cumulative incoming wire bytes, depth32,131072 lexical tokens,65536 decoded nodes,4096 items,8 retained pre-response terminal messages. Validate UTF8/recursive duplicates before state promotion. One caller-retained monotonic deadline<=120s, cancellation holds; no TTL renewal. Outgoing messages are planned once before exposure; lost submission ACK is permanently held and never resubmitted. Exact initialization home, resolved thread parameters, request/thread/turn IDs and full matching readback required. Summary is not Full. Full means available persisted history, not all actions. Failed/interrupted terminals remain unsuccessful; Plan fallback uses full history. Unsupported server requests get bounded decline/cancel when schema-supported, otherwise protocolhold; no blanket acceptance. Conservative method/schema subset explicitly holds unsupported features.
+
+Use exact0.147 camelCase app-server schemas, not execsnakecase. Non-ephemeral isolated serverhome is needed for includeTurns. Pure fixture terminal-before-startresponse race retainedwithin8 messages; no response inferred from notification. Metadata receipt all authority flagsfalse. Source tests and independentreview before publication. Existing bytecollector/launchcodec/budget/resource/admission joins remain separate.

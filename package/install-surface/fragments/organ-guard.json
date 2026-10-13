@@ -1,0 +1,64 @@
+{
+  "schema": "temperance.install-surface.fragment.v1",
+  "schema_uri": "https://thoughtseed.space/schemas/temperance/install-surface/fragment/v1",
+  "version": {
+    "major": 1,
+    "minor": 0
+  },
+  "records": [
+    {
+      "id": "organ-guard.source",
+      "owner": "temperance-engine",
+      "class": "COPY",
+      "source": "package/organ-guard",
+      "destination": {
+        "root_token": "TEMPERANCE_STATE",
+        "relative_path": "optional/organ-guard",
+        "ownership": {
+          "kind": "exclusive-path"
+        }
+      },
+      "authority": {
+        "requirement_ids": [
+          "PROV-02",
+          "PROV-04",
+          "PROV-07"
+        ],
+        "isa": "ISC-769"
+      },
+      "eligibility": {
+        "platforms": [
+          "darwin",
+          "linux"
+        ],
+        "profiles": [
+          "organ-guard"
+        ],
+        "required": false
+      },
+      "verification": {
+        "method": "sha256",
+        "expected": {
+          "kind": "tree",
+          "files": {
+            "README.md": "sha256:8387b1ead1e317f7b419e0dcf20676203637d1915a2dd131fe20261e592c20eb",
+            "bin/te-organ-contain.py": "sha256:289643f5955ec243564728bf952e36e768cc8cb20430aa3d64766a4b674ab478",
+            "provenance.v1.json": "sha256:3cc3030c79707d3c86e8981eff7331270096ec97b3cce3e195f0ba4bb44f54d2",
+            "router/module-descriptors/organs.json": "sha256:d110277ccf55bb7937ddce1edeabd74498f7f1dcbcec6766391741c0c821f50e",
+            "test/test_organ_guard.py": "sha256:d4350454b6089e0ee1ef2c03a4842d8ea5e6b4cf0232072624472c547d9644e0"
+          },
+          "modes": {
+            "README.md": "0644",
+            "bin/te-organ-contain.py": "0755",
+            "provenance.v1.json": "0644",
+            "router/module-descriptors/organs.json": "0644",
+            "test/test_organ_guard.py": "0644"
+          }
+        }
+      },
+      "rollback": {
+        "policy": "restore-backup"
+      }
+    }
+  ]
+}

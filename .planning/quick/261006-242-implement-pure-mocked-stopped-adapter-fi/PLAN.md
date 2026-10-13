@@ -1,0 +1,3 @@
+# 242 — pure mocked stopped protocol
+
+Root approvedrevised22c. Own newhelper/test/contract/packet only. Fixed FD5 frameprefix4/payload480/EOF/closedstatus before independentstoppedobservation; FD6fixed69bytes oncewritecount PIPE_BUF>=69 thenclose/freshresourcebirth before injectedcontinue. CanonicalDarwinASCIIbounded48beforehash/no normalization; originalsigned64deadline/PIDUIDfirsttoken. TrustedownerACKseam notauth/nativeproof. Max256explicitsteps/50mslatehold/original500msreserve, noactualFD/spawn/signal/provider. Fullcontrolwrite possiblychildobservable later, uncertaintyneverreplay/nopayloadproof. Root+indreview beforepublication.

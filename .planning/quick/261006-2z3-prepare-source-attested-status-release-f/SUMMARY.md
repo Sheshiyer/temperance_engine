@@ -1,0 +1,11 @@
+# 2z3 current outcome: named-FIFO point PASSED
+
+Root separately authorized ONE current-process point at exact test SHA74fe5406eff7a195a43bfefe6c32df1ee456e82eff9522e0d104de697ed364cb after root and independent static review. Execution returned1 test,0failures,0errors, with216 synthetic bytes,7 protocol steps,1 continuation callback,5 own close attempts and5 immediately verified EBADF,2 adapter teardown attempts, held_reason null and cleanup_unknown false. Both original FIFO paths were unlinked and original private directory removed; the unique scoped basis module entry was restored. No automatic retry occurred.
+
+The point exercised exact pinned5ffb972c status adapter/a22a3869 stopped protocol/d8558c16 observation bytes from bounded nofollow snapshots with metadata/growth/path/hash checks and detached compilation. Local exact-spec loader supplied attested observation bytes without a second source read, source rewrite or global import patch. Root/reviewer caught the initial intermediate-phase break error before any execution; terminal-only break and exact basis target guard were reviewed at the executed hash.
+
+Actual point bounds: five owned descriptors, two named FIFOs,216bytes<1KiB, original1.5second deadline captured before source intake/setup,16maximum zero-waitsteps. Passing assertion includes final deadline freshness, one69-byte control write with verified PIPE_BUF and release reader exact bytes+EOF. Status writer close/reader EOFclose precedes synthetic stopped observation; writer closure precedes fresh synthetic resource observation and once-only callback.
+
+This is current-process native FIFO I/O evidence only. Owner ACK, creator/child birth and stopped/resource callbacks are intentionally synthetic trusted assertions, not authentication or native process observations. No child, signal, CLI, model, provider, native PID query or runtime adoption occurred. Actual original FD3/4 issuance/retained ACK, native fixedFD5/6 bootstrap, resource enforcement, signal/reap and Build acceptance remain missing. Path/FD identity check-act races retain cooperative ownership limits; uncertainty would hold and never authorize closing/unlinking replacement identities.
+
+Root readback reviewed this point receipt and authorized exact five-file publication; production source is unchanged.

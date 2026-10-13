@@ -1,0 +1,3 @@
+# 1d1 — dedicated native metadata only
+
+Root approved1bl after14s publication. Own one helper/test/contract/PLAN/SUMMARY only. Fixed Darwin BSD136/task96/rusageV0 96 layout; SDK status2/3 live4stopped, othershold. Exact native return sizes/result0, retained PIDUIDbirth/parent continuity and kernelstart. Lazy directlibproc/sysctl; mockfirst then currentprocessonly metadata fixture. No spawn/signals/provider/config/inventory. Hostpressure2 observed notadmitted. Reuse standaloneguard289643f ABI patterns (public provenance6195142 source basis), no private import/policycopy. Synchronous calls notpreemptible; originaldeadline before/after, allflagsfalse. Native struct includes opaque name storage ignored/notprojected. Root+integration review beforepublication.

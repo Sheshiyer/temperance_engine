@@ -1,0 +1,84 @@
+{
+  "schema": "temperance.module-descriptor.v1",
+  "id": "organ.runtime",
+  "version": "1.1.0",
+  "capabilities": [
+    "observe.assist",
+    "diagnose.assist",
+    "learning.propose",
+    "event.subscribe-advisory"
+  ],
+  "kosha_affinities": [
+    "MANOMAYA",
+    "ANANDAMAYA"
+  ],
+  "default_enabled": false,
+  "authority": [
+    "advisory-proposal",
+    "bounded-recovery"
+  ],
+  "admission": {
+    "required": true,
+    "gates": [
+      "healthy",
+      "host_capacity",
+      "installed"
+    ]
+  },
+  "inputs": [
+    "redacted-receipt",
+    "v4-event-envelope"
+  ],
+  "outputs": [
+    "attributed-observation",
+    "learning-proposal"
+  ],
+  "health": {
+    "kind": "adapter-probe",
+    "required_for_kernel": false
+  },
+  "receipt_schema": "temperance.module-receipt.v1",
+  "failure_semantics": {
+    "propagates_to_kernel": false,
+    "unavailable_state": "unsupported"
+  },
+  "rollback": {
+    "required_for_mutation": true
+  },
+  "resource": {
+    "schema": "temperance.host-resource-budget.v1",
+    "max_child_processes": 24,
+    "max_tree_rss_mb": 160,
+    "max_wall_ms": 120000,
+    "reap": {
+      "on_exit": true,
+      "grace_ms": 250,
+      "escalation": [
+        "SIGTERM",
+        "SIGKILL"
+      ]
+    },
+    "organ_process_allowance": {
+      "schema": "temperance.organ-process-allowance.v1",
+      "scope": "per owning process tree; module maximum is the largest per-organ allowance",
+      "per_organ_max_child_processes": {
+        "auspex": 10,
+        "circulator": 3,
+        "nutrix": 16,
+        "praeceptor": 8,
+        "self-heal": 9,
+        "vestibule": 16,
+        "adytum": 24
+      },
+      "measured_shell_descendants": {
+        "auspex": 7,
+        "circulator": 2,
+        "nutrix": 13,
+        "vestibule": 10,
+        "adytum": 14,
+        "praeceptor": 5
+      },
+      "basis": "Inherited conservative ceilings for fixed trusted deterministic organ scripts. Host-specific workload calibration remains separate. Environment overrides may only reduce allowances. These limits grant no model/provider permission, capacity authorization, execution authority or semantic acceptance."
+    }
+  }
+}

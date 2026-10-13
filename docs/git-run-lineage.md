@@ -1,0 +1,17 @@
+# Portable Git run lineage
+
+The additive `temperance.git-run-lineage.v1` contract records a claimed run's original portable context. A claimed ledger state carries no execution, capacity, or lease authorization: all three flags are fixed false. The product neither authenticates an issuer nor owns a ledger, scheduler, runtime lease, private path, or provider seat.
+
+`buildGitRunLineage(input)` accepts exactly `run_id`, `claimed_at`, `lease_expires_at`, `deadline_at`, `context_fingerprint`, and actual public `ticket`, `grant`, `admission` contracts. It normalizes all references through the existing Git authority normalizers. All workspace bindings must agree; the grant must bind the exact ticket fingerprint and authorize its phase/lane. Admission must be context-verified and both admission and grant must be active at the original claim timestamp. Outstanding work must be positive.
+
+Claim time cannot precede ticket creation, grant issue, or admission observation. Grant issue cannot precede ticket creation. Expiry is exclusive. The deadline is after claim and no later than grant expiry or claim plus the grant time budget. The recorded advisory lease is after claim and no later than deadline or admission expiry. The owning private adapter may impose tighter limits; these portable checks do not issue a lease.
+
+The frozen output retains normalized ticket/grant/admission references, derived ticket/grant/project identifiers, phase/lane/effort/workspace, exact canonical contract fingerprints, the workspace/source fingerprints supplied by the workspace binding, and the contextual owner fingerprint. Fingerprints establish shape and replay correlation, not authentication. No fingerprint substitutes for independently selected owner authority.
+
+`normalizeGitRunLineage(input)` rejects unknown fields, inconsistent duplicated metadata, unsafe objects, accessors, and authority changes. It checks historical original claim time without reading a clock or refreshing timestamps. `gitRunLineageFingerprint(input)` hashes the canonical normalized lineage.
+
+`buildGitRunClaimReceipt({status,lineage})` accepts `claimed` or `replay` and returns `temperance.git-run-claim-receipt.v1`, the unchanged original normalized lineage and its fingerprint, fixed false authority flags, and `issuer_authentication: "unproved-by-source-fixture"`. `normalizeGitRunClaimReceipt(input)` checks the complete exact receipt. Replay status sits outside lineage: replay returns original run identity, context, deadline and lease timestamps, and never creates a new lease. A caller must retrieve the original stored lineage rather than reconstruct it from a new request.
+
+The Noesis adapter can inject these pure synchronous builder/normalizer/receipt functions into its sole owning SQLite writer. That private writer is responsible for trusted issuer selection, transactional decisions, atomic replay and revocation semantics, and durable integrity. This public source slice contains no private implementation dependency. Fixtures prove source semantics only; installed owner authentication, actual claims, capacity and eventual execution require separate acceptance.
+
+Adding the shared bounded snapshot export changes the pinned authority source bytes. Existing reviewed source closure anchors remain unchanged and must hold until a separate source proof review updates them. Rollback removes this additive contract and its adapter integration; runtime migration and data rollback remain the owning private writer's responsibility.

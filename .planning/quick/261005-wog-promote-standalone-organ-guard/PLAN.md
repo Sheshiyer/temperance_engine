@@ -1,0 +1,3 @@
+# GSD quick: standalone optional organ guard source promotion
+
+Root authorizes new package/organ-guard guard, generic descriptor, provenance, README and focused Python fixture plus this PLAN/SUMMARY. Exact guard289643f from Noesisb57931b, preserve relative bin/router policy topology. Descriptor basis prose only normalized; all other values identical. No defaultinstaller/router inventory changes, callback/scheduler/provider/nativeconfiguration changes. Prove import outsideNoesis/Cambium, descriptor caps/allowances, sourcehash/provenance and ownprocess metadata. Inert CLI only after normal pointpressure preflight; unknown/elevated remains held, no bypass or canary claim. Transport independentreview/root before exactpublication; Git serialized after wf4.

@@ -12,6 +12,7 @@
  * All IO through LifecycleIO seam for testability.
  */
 
+import { normalizeRuntimeDependencies, assertRuntimeDependenciesSupported } from "../runtime-dependencies.ts";
 import { isAbsolute } from "node:path";
 
 import { assertDestination, segmentRelationship } from "../path-policy.ts";
@@ -32,6 +33,8 @@ export type HazardCode =
   | "PATH_TYPE_CONFLICT"
   | "OWNERSHIP_AMBIGUOUS"
   | "DEPENDENCY_MISSING"
+  | "DEPENDENCY_DECLARATION_INVALID"
+  | "DEPENDENCY_HTTP_UNSUPPORTED"
   | "TRAVERSAL_BOUND"
   | "ANCESTOR_CONFLICT";
 
@@ -336,12 +339,19 @@ export async function checkDependencies(
   io: LifecycleIO,
   signal: AbortSignal,
 ): Promise<void> {
-  for (const record of records) {
-    if (!record.requires || record.requires.length === 0) continue;
-
-    for (const dep of record.requires) {
-      await checkSingleDependency(record.id, dep, resolveRoot, io, signal);
-    }
+  const snapshots = records.map(record => {
+    const descriptor = Object.getOwnPropertyDescriptor(record, "requires");
+    if (descriptor && !("value" in descriptor)) throw new HazardError("DEPENDENCY_DECLARATION_INVALID");
+    try { return { id: record.id, dependencies: normalizeRuntimeDependencies(descriptor?.value) }; }
+    catch { throw new HazardError("DEPENDENCY_DECLARATION_INVALID"); }
+  });
+  // Validate every declaration and reject HTTP before the first binary or URL probe.
+  for (const snapshot of snapshots) {
+    try { assertRuntimeDependenciesSupported(snapshot.dependencies); }
+    catch { throw new HazardError("DEPENDENCY_HTTP_UNSUPPORTED"); }
+  }
+  for (const snapshot of snapshots) for (const dep of snapshot.dependencies) {
+    await checkSingleDependency(snapshot.id, dep, resolveRoot, io, signal);
   }
 }
 
@@ -373,26 +383,8 @@ async function checkSingleDependency(
     return;
   }
 
-  if (dep.kind === "http-health") {
-    const url = resolveRoot(dep.url_token);
-    try {
-      const response = await io.fetch(url, { signal });
-      if (!response.ok) {
-        throw new HazardError("DEPENDENCY_MISSING", {
-          record_id: recordId,
-          dependency: dep,
-          remediation: `HTTP health check failed for ${dep.url_token} (status ${response.status}). Ensure the service is running.`,
-        });
-      }
-    } catch (error) {
-      if (error instanceof HazardError) throw error;
-      throw new HazardError("DEPENDENCY_MISSING", {
-        record_id: recordId,
-        dependency: dep,
-        remediation: `Cannot reach ${dep.url_token} at ${url}. Ensure the service is running and accessible.`,
-      });
-    }
-  }
+  throw new HazardError("DEPENDENCY_HTTP_UNSUPPORTED");
+
 }
 
 // ─── Full preflight ───────────────────────────────────────────────────────────
@@ -414,6 +406,9 @@ export async function preflight(
   io: LifecycleIO,
   signal: AbortSignal,
 ): Promise<void> {
+  // Dependency declarations and unsupported HTTP hold before any probe.
+  await checkDependencies(records, resolveRoot, io, signal);
+
   // 1. Traversal bound
   for (const record of records) {
     assertTraversalBound(record);
@@ -427,6 +422,5 @@ export async function preflight(
   // 3. Ancestor conflicts
   assertNoAncestorConflict(steps);
 
-  // 4. Dependency preflight
-  await checkDependencies(records, resolveRoot, io, signal);
+  // Dependency preflight completed before destination probes.
 }

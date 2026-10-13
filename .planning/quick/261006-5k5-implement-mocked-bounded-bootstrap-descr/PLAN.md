@@ -1,0 +1,2 @@
+# 5k5 mocked descriptor preparation
+Root approves5ez e72819. Own new helper/test/contract/packet only. Injected allocation/identity/close/clock and unchanged planner; no actualFD/native loader/spawn. Retain first returned FD before postcallback checks; unknown identity cleanup held.18owned planner +optional1sentinel separately. Fixed two source snapshot metadata/content interface64KiB each128KiB aggregate, no actualfileAPI. Tests actual published planner through bounded detached source bytes; source interpreter trusted. Review before publication.

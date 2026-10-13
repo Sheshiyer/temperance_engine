@@ -1,0 +1,14 @@
+# 60n ONE read-only source intake point — PLAN ONLY
+
+## Minimal entry choice
+Propose add a bounded --point entry to the already reviewed test_source_intake_bridge.py instead of importing a second shadow bootstrap. Existing Bridge/RealOps/SourceOwner logic unchanged; only entry/finalreceipt + mocked entry tests/contract/GSD. Root exactnewsource review precedes any actualpoint. Alreadyexecutingfixture/interpreter/stdlib explicitlyhumanreviewedtrustedbootstrap beforebodyclock, notrecursiveattestation. Firstpointbody captures originaltime.monotonic_ns before RealOps setup/anycontrolledsourceintake; deadline=created+2s and sharedemergencycreated+2.5s. No renewal/freshgrace.
+
+Selfconsistency expected SHA must come from independently human-reviewed exactcandidate, not self-read-and-trust. Proposed --expected-source-sha fixed64lowerhex alongside --point; it selects no path/FD/provider and grantsnoauth. Missing/malformedhash holds beforeOSintake. Root may choose trustedPythoncall point(expected_sha) instead ifCLIhashinputundesirable; exactdecision beforecode. NewcandidateSHA replaces1e00 selfpin; planner6247/Owner5f0aa/Preparationbc69 remain exact.
+
+## Operations and bounds
+RealOps only fixed4paths: ownfixture/Owner/planner/Preparation. ALL4preflight/openFDidentity beforeANYcontrolledcontent,64KiB/file/sum+4growth<=128KiB,bootstrap2once+Owner2once totalno reread/reopen. Atmost4 source-ownedFDs, allregularreadonly nofollow/nonblock, no endpoint/FIFO/directory creation. SourceOwner transfersclosepair, bootstraponlyuntransferred knownoriginals once; immediateEBADF onlyknownreturnclose/nointerveningfixtureallocation, no retry. Metadata pathparentABA/hostilesameUID exclusion notclaimed. Clockcallback/syscalls nonpreemptible; latefinalizationheld, nothardwall guarantee.
+
+Point does not allocate real endpoint descriptors. CapturedPreparation may be instantiated and validated with injected synthetic metadata-only callback; no native modelworker/ownerbudget/codec/resource/stop/spawn evidence. Entry receipt distinguishes sourceintake point from syntheticpreparedmetadata. No rawsource/privatepaths/devino/PID/prompt/output shown. Counts requestedbytes/4opens/actualcloseintents/immediateEBADF/retainedclockchecks only. Allreadiness/auth/capacity/execution/inference/unknowninheritanceflagsfalse.
+
+## Before separate ONE execution approval
+Mock entry fixtures invalidexpectedhash0intake, retainedoriginalclockthroughload/finalJSONconversion, finalclocklateheld, closeunknownfinite, noimplicitretry. Preserveexisting10sourcebridgefixtures and sourceowners unchanged. Root+company review candidatehash/AST/mocks BEFORE one explicit --point command. An actualsourceintakepoint has NOTbeen authorized by thisPLAN; no actualFDread/nativechild/provider/model/config/install. No repeats onheld.

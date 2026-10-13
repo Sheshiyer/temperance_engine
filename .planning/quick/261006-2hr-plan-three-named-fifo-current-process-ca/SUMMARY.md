@@ -1,0 +1,9 @@
+# 2hr — named-FIFO current-process point passed
+
+Root authorized ONE exacta7485d46 currentprocessnamedFIFOpoint:1testpassed0.004s. Production source hashes7d1c682d/35e9fd42 checkedbeforeuse andunchanged. Actualassertions:3unique validreaderidentities/0invalidcomponents,8ownedcloseattempts/8immediateverifiedEBADF,4adapterteardownattempts, private3FIFOunlink+directoryremoval withoutcleanupunknown. Fixedsyntheticwrites48bytes, completionwithin16zero-waitsteps/original1.5s. No rawpayload/FD/path output orchild/model/provider/config/rootadoption.
+
+Rootreadback/staticreview verifiedevidence. Independent source review clear exacta7485d46 beforepoint. Exactsourcepublication authorized. This verifies currentprocessnamedFIFO descriptor/capture behavior only; nativechild/originalcodec/resource/enforcement/Buildcapacity/actualrole remainheld.
+
+Historicalsource-onlystage: root/independent planreview approved3privateFIFOs≤8FD unchangedproductionidentity/caps/deadline. Staticreview repaired independent3originalFIFOunlink attempts, knownparentclose despitepathfailure, no unlink/rmdirreplacement; invalidcomponentcount exactint0..2^63-1. Those checks precededtheoneactualpoint above.
+
+Historical2f9anonymouspipepoints: initialadapterheld0.004s; ONEauthorizedfinite diagnostic5776043d held adapter_descriptor_invalid0.005s,4adapterattempts,8closeattemptbookkeeping entries NOT8verifiedclosures, cleanup_unknowntrue. Causeunproven andactualanonymousproductioncompatibility unaccepted. Productionidentityrule neverweakened. No automaticretry.

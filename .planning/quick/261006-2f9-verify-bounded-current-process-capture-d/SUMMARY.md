@@ -1,0 +1,7 @@
+# 2f9 — historical anonymous-pipe points held
+
+Initialauthorizedcurrentprocess-onlypointheld atFDAdapterconstructor beforefixturewrites,1testfailed0.004s. Sourcehashchecks passed; nochild/model/provider/config or rawoutput. Originalreceipt lackedfiniteconstructorreason/separatecleanupcounts; strongercleanupverificationwithheld.
+
+Root authorized ONEfinite diagnostic5776043d rerun: adapter_descriptor_invalid held,1testfailed0.005s,adapter_attempts4,closed_count8attemptbookkeepingonly,cleanup_unknowntrue. Productionadapter/capturestep unchanged. Anonymouspipecauseunproven/compatibilityunaccepted; noautomaticretry orvalidatorweakening.
+
+Subsequentseparatelyreviewed3namedFIFOtopology2hr pointpassed1test0.004s,8verifiedEBADF andmatchingprivatepathcleanup. Currenttestfile nowimplements that topology; thisSUMMARY retainspriorheldhistory. See2hrSUMMARY for finalactualscope. No actualworker/Buildacceptance.

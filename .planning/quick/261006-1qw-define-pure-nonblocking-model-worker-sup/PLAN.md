@@ -1,0 +1,5 @@
+# 1qw — stage-one pure supervisor coordination
+
+Root approved1o9 stage1only. Freeze designatedpayloadlaunch reservation once BEFOREthisunit: caller supplies original retainedpostACK owner. No reserve/create/retry API. Retainedoriginalnonce/counter/deadline/creator pluschildPIDUIDbirth immutable. FixedFD3/4 launchcodec and5/6 bootstrap declarations separate no FDoperations. Own newcoordinator/test/contract/packet only; existinglibraries unchanged.
+
+Every explicit nonblockingstep observes resource/pressure/identity before capturestep; prerelease samechecks+stoppedchild before injectedrelease. Nominalpoll≤50ms, anymeasuredgap/callbackduration late held (no syncpreemption). ResourceclosedDTO RSSphysicalcalibration/zero-desc/lifetime≤policy/unknownidentity held. Capture.step closedpending/completed/failed; no wholeblockingcollector invocation. Normaldeadline500msreserve retained; emergencycleanup separateonce500ms heldinjectedonly, freshbirthbeforetermination. Allauthorityfalse; no actualspawn/signal/write/model/Buildpolicy.
