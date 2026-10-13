@@ -4,6 +4,10 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT_DIR"
 
+# Run every suite with CI's routing environment: drop an operator's exported
+# router URLs and keys so no test inherits them or reaches a live router.
+. "$ROOT_DIR/tests/lib/hermetic-routing-env.sh"
+
 run() {
   printf '\n==> %s\n' "$*"
   "$@"
