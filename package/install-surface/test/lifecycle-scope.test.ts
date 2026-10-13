@@ -137,7 +137,7 @@ test("deliberate router reconciliation changes exactly reviewed leaves and prese
   expect({...after,verification:before.verification}).toEqual(before);
   const a=before.verification.expected;const b=after.verification.expected;
   expect(Object.keys(a.files)).toEqual(Object.keys(b.files));expect(b.modes).toEqual(a.modes);
-  expect(Object.keys(b.files).filter(p=>a.files[p]!==b.files[p])).toEqual(["routing-policy.test.ts","routing-policy.ts"]);
+  expect(Object.keys(b.files).filter(p=>a.files[p]!==b.files[p])).toEqual(["omniroute-context-preview.test.ts","omniroute-context-preview.ts","omniroute-native-cli-readiness.test.ts","omniroute-native-cli-readiness.ts","omniroute-native-control-plane.test.ts","omniroute-native-control-plane.ts","routing-policy.test.ts","routing-policy.ts"]);
   expect(b.files["routing-policy.ts"]).toBe("sha256:e71d91994cd7c2c339feb628ba8126358387cdee034736cb81e648f531d104ab");
   expect(b.files["routing-policy.test.ts"]).toBe("sha256:d23f28ab9b93f107bb707afe48cf66b79f93760e3ab30c91dde183a1ea373232");
   const result=(lock:any):CompileResult=>({lockObject:lock,canonicalBytes:canonical(lock),digest:`sha256:${createHash("sha256").update(canonical(lock)).digest("hex")}`,semanticIds:lock.records.map((r:any)=>r.id)});
