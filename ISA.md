@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 743/874
+progress: 752/874
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-13T10:40:00Z
+updated: 2026-10-13T11:36:04Z
 ---
 
 ## Problem
@@ -1130,15 +1130,15 @@ untouched.
 - [x] ISC-841: The dashboard topology semantics match the compiled 3.8.51 dashboard, and `versionBound` is true only for 3.8.51.
 - [x] ISC-842: Compression settings outside the four fully projected keys, including the whole `cavemanConfig`, are digested within fixed row, key and value bounds, and their values never appear in the snapshot.
 - [x] ISC-843: Anti: no 3.8.51 gate claims live authentication, provider promotion, or a resolved 401.
-- [ ] ISC-844: The owner-requested minor release candidate declares product version `0.8.0`.
-- [ ] ISC-845: The `0.8.0` changelog records the organ registry, the OmniRoute 3.8.51 qualification, the hosted-router probe and the composition inspection, keeps the `9router@0.5.75` legacy pin, and states the unresolved live 401 boundary.
-- [ ] ISC-846: `OMNIROUTE_PACKAGE.version` equals the native CLI readiness, context-preview and topology versions (`3.8.51`), and `test/organ-registry.test.ts` passes.
-- [ ] ISC-847: `scripts/verify-all.sh` exits 0 on the `0.8.0` candidate with the operator routing environment unset.
-- [ ] ISC-848: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exits 0 on the `0.8.0` candidate.
-- [ ] ISC-849: `sync-copy-expectations --check` passes at the recorded provenance revision, and `bun test package/install-surface` passes on the candidate.
-- [ ] ISC-850: The STE docs gate passes with `docs/git-run-lineage.md` at zero errors.
-- [ ] ISC-851: Anti: `./verify.sh` passes its private-path guard on the candidate, and `.temperance/project.json` and `.temperance/manifest.json` contain no `/Users/` or `/Volumes/` literal.
-- [ ] ISC-852: Anti: `codex/modular-mac-lifecycle` is not an ancestor of the `0.8.0` candidate.
+- [x] ISC-844: The owner-requested minor release candidate declares product version `0.8.0`.
+- [x] ISC-845: The `0.8.0` changelog records the organ registry, the OmniRoute 3.8.51 qualification, the hosted-router probe and the composition inspection, keeps the `9router@0.5.75` legacy pin, and states the unresolved live 401 boundary.
+- [x] ISC-846: `OMNIROUTE_PACKAGE.version` equals the native CLI readiness, context-preview and topology versions (`3.8.51`), and `test/organ-registry.test.ts` passes.
+- [x] ISC-847: `scripts/verify-all.sh` exits 0 on the `0.8.0` candidate with the operator routing environment unset.
+- [x] ISC-848: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exits 0 on the `0.8.0` candidate.
+- [x] ISC-849: `sync-copy-expectations --check` passes at the recorded provenance revision, and `bun test package/install-surface` passes on the candidate.
+- [x] ISC-850: The STE docs gate passes with `docs/git-run-lineage.md` at zero errors.
+- [x] ISC-851: Anti: `./verify.sh` passes its private-path guard on the candidate, and `.temperance/project.json` and `.temperance/manifest.json` contain no `/Users/` or `/Volumes/` literal.
+- [x] ISC-852: Anti: `codex/modular-mac-lifecycle` is not an ancestor of the `0.8.0` candidate.
 
 ## Test Strategy
 
@@ -3222,6 +3222,17 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - ISC-843: non-claims — `tests/omniroute-native-integration.sh` passes its literal fail-closed non-claim guard; the readiness receipt keeps authentication, authorization and promotion false.
 - 2026-10-04 suites: `bun test package/router` 415 pass, 0 fail; the OmniRoute shell suites (native integration, client auth, Hermes preview, router hardening, check, combos) and `./verify.sh` exit 0; the STE docs gate reports 0 failures.
 - 2026-10-04 open: a live end-to-end native snapshot against the hosted 3.8.51 router was refused with `omniroute_package_invalid`, because its `package.json` has two links and mode 664. The install surface COPY record `router.governed-runtime` is re-pinned to `a3c6b5b`, the latest commit that changes `package/router` on this branch.
+
+- ISC-844: version readback — `cat VERSION` returned `0.8.0` on 2026-10-13 (candidate 64c3244).
+- ISC-845: changelog readback — `[0.8.0]` names the organ registry (#35), the OmniRoute 3.8.51 gate qualification (#40), the hosted-router bridge probe (#38) and the standalone composition inspection (#42), keeps `9router@0.5.75` for the legacy repair flow, and states the unresolved live `401 AUTH_001` with PR #40's non-claims; grep for the six phrases returned 8 hits.
+- ISC-846: `package/install-surface/src/onboarding/contracts.ts:14` reads `version: "3.8.51"`, equal to `SUPPORTED_OMNIROUTE_NATIVE_CLI_VERSION`, `SUPPORTED_OMNIROUTE_PREVIEW_VERSION` and `SUPPORTED_TOPOLOGY_VERSION`; `bun test test/organ-registry.test.ts` — 50 pass, 0 fail.
+- ISC-847: canonical verification on 64c3244 with `OMNIROUTE_BASE_URL`, `TEMPERANCE_OMNIROUTE_URL`, `TEMPERANCE_OMNIROUTE_ADMIN_URL` and `OMNIROUTE_API_KEY` unset — `scripts/verify-all.sh` printed `Temperance Engine full verification passed` and exited 0 across its 63 steps: 1325 Bun tests in 24 runs with 0 failures, 1084 shell `ok` lines. One deviation, as for 0.7.0: the `bun test package/install-surface` step ran with `--timeout 30000`, because on this Mac the subprocess test "health and log actions return completed observations" took 5.04 s against the default 5 s budget on one of three runs (the unmodified step passed 826/0 on the run before). Every other step ran unmodified.
+- ISC-848: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exited 0 on 64c3244; `bun build src/cli.ts --target=bun --outdir=dist --packages=external` exited 0.
+- ISC-849: `sync-copy-expectations --revision 5289204 --check` (the revision recorded in `copy-expectations.provenance.json`) exited 0; `bun test package/install-surface` — 826 pass, 0 fail, 76 files, from the repository root. Pins were refreshed twice: at the merge base 8cb4a36 and after the bridge projection fix.
+- ISC-850: `bun package/ste-check/docs-gate.ts` — 40 files, 0 failures, 0 can tighten (baseline tightened for `CONTRIBUTING.md` and `docs/release-control.md`); `docs/git-run-lineage.md` — 0 errors.
+- ISC-851: `./verify.sh` exited 0 with `ok: no private local path in public/install surface`; `grep -c '/Users/|/Volumes/'` over `.temperance/project.json` and `.temperance/manifest.json` returned 0 and 0 (both files now use `~`-relative forms).
+- ISC-852: `git merge-base --is-ancestor origin/codex/modular-mac-lifecycle HEAD` exited 1 on 64c3244 (not an ancestor).
+- 2026-10-13 audit: a cross-vendor pass was requested but Cato's Codex helper could not run on this host (stale `~/.bun/bin/codex` path; the account rejects the `gpt-5.4` pin), so the audit came from a Claude-family model. Its findings were applied: the COMPATIBILITY history no longer backdates 3.8.51 into 0.7.0, release-control names OmniRoute as the gateway plane, the boundary carries PR #40's non-claims and the Python surface disclosure, and the rail JSON files lost their private paths. Open from that audit: the private-path guard scans only `*.ts`, `*.mjs` and `*.sh`; `package/organ-guard/provenance.v1.json` names a private source repository.
 
 ### Composition source verification — 2026-10-05
 
