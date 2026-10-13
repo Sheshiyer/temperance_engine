@@ -2,7 +2,7 @@
   "schema": "temperance.ste-docs-baseline.v1",
   "files": {
     "CONTRIBUTING.md": {
-      "errors": 3
+      "errors": 2
     },
     "QUICKSTART.md": {
       "errors": 0
@@ -95,7 +95,7 @@
       "errors": 0
     },
     "docs/release-control.md": {
-      "errors": 9
+      "errors": 8
     },
     "docs/rollback.md": {
       "errors": 1
