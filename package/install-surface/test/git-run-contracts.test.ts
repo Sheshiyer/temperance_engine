@@ -71,7 +71,7 @@ test("nested private inputs and receipt unsafe objects stay rejected", () => {
   expect(()=>buildGitRunLineage(f)).toThrow();expect(traps).toBe(0);
   const r=buildGitRunLineage(fixture());
   expect(()=>buildGitRunClaimReceipt({status:"replay",lineage:new Proxy(r,{ownKeys(){traps++;throw Error("trap")}})})).toThrow();expect(traps).toBe(0);
-  expect(()=>buildGitRunLineage({...fixture(),private_path:"/Users/private"})).toThrow();
+  expect(()=>buildGitRunLineage({...fixture(),private_path:"/opt/private"})).toThrow();
   expect(()=>buildGitRunClaimReceipt({status:"released",lineage:r})).toThrow();
   expect(()=>normalizeGitRunLineage({...r,ticket:{...r.ticket,created_at:"2026-10-05T11:00:00.000Z"}})).toThrow();
 });

@@ -587,7 +587,7 @@ test("duplicate integrations, requirements, refs and array bounds", () => {
 test("standalone example needs neither Cambium nor Superset and excludes private values", () => {
  const report = inspectComposition(exampleFixture);
  expect(report.integrations).toEqual([]); expect(report.kernel.requires_superset).toBe(false); expect(JSON.stringify(report).toLowerCase()).not.toContain("cambium");
- for (const ref of ["user@example.com", "/Users/private/key", "https://private.example/token", "secret-ref:raw=value"]) {
+ for (const ref of ["user@example.com", "/opt/private/key", "https://private.example/token", "secret-ref:raw=value"]) {
  expect(() => validateComposition({...exampleFixture, modules: [{...exampleFixture.modules[0]!, configuration_refs: [ref]}]})).toThrow("COMPOSITION_MALFORMED_REF"); }
 });
 
