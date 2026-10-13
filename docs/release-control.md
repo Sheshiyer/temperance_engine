@@ -12,7 +12,7 @@ Keep a Changelog: [CHANGELOG.md](../CHANGELOG.md). Compatibility pins: [COMPATIB
 |---|---|---|---|
 | **Glove product** | `temperance_engine` SemVer | repo `VERSION` + git tag `vX.Y.Z` | Public installer, doctor, lifecycle, or docs contract that downloaders consume |
 | **Host runtime** | installed generation and receipts | Selected state root and lifecycle transaction receipts; legacy installs may retain `~/.temperance_engine/VERSION` | A reviewed lifecycle operation actually copies and verifies new managed bytes |
-| **Mercurius** | 9router package version | Exact adapter pin in [COMPATIBILITY.md](COMPATIBILITY.md), checked against the installed executable | Upstream gateway release, only after adapter qualification |
+| **Mercurius** | OmniRoute package version (9router only for the legacy repair adapter) | Exact pins in [COMPATIBILITY.md](COMPATIBILITY.md), checked against the installed executable | Upstream gateway release, only after gate qualification |
 
 Alchemical display names (Opus, Speculum, Vas, Athanor, Mercurius) are coding names only. Tags, CHANGELOG headings, and `VERSION` files keep the real product names.
 
@@ -44,7 +44,7 @@ Each plane keeps a [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) file
 |---|---|
 | Glove | [`CHANGELOG.md`](../CHANGELOG.md) |
 | Host | Private lifecycle receipts and host changelog, when present; never updated merely because a product tag changes |
-| Mercurius | Upstream gateway notes; glove records the **pin** in COMPATIBILITY.md, not a fork changelog |
+| Mercurius | Upstream OmniRoute (and legacy 9router) notes; glove records the **pin** in COMPATIBILITY.md, not a fork changelog |
 
 Required heading shape:
 
@@ -68,7 +68,7 @@ Unreleased is the only place in-progress work may land. Cutting a release:
    expectation checks. Preserve failing gates; do not publish a failed candidate.
 5. Commit the reviewed candidate, then tag `vX.Y.Z` on a **clean** tree. Do not
    change an existing published tag. Push the exact branch/tag without force.
-6. Record the commit, 9router pin, and SHA-256 of
+6. Record the commit, the OmniRoute pin (and the legacy 9router pin), and SHA-256 of
    `package/install-surface/install-surface-manifest.lock.json` in the GitHub
    release notes. Include qualification limitations and the Verify workflow
    result for that exact commit. Use `gh release create --verify-tag` only after
@@ -84,10 +84,10 @@ and both required clean-host platform lanes before publication.
 An operator-facing ecosystem line is the triple, not a fourth SemVer:
 
 ```text
-temperance_engine@<VERSION> + 9router@<PIN> + host@<RECEIPT_OR_UNKNOWN>
+temperance_engine@<VERSION> + omniroute@<PIN> + host@<RECEIPT_OR_UNKNOWN>
 ```
 
-Example: `temperance_engine@0.8.0 + 9router@0.5.75 + host@unverified`.
+Example: `temperance_engine@0.8.0 + omniroute@3.8.51 + host@unverified`. Before `0.8.0` the triple named `9router@0.5.75`.
 
 Release notes report the independent planes. Do not change an existing doctor
 schema to synthesize a host version, and do not invent an ecosystem SemVer.
@@ -95,7 +95,7 @@ schema to synthesize a host version, and do not invent an ecosystem SemVer.
 ## What this file does not do
 
 - It does not activate or repair an operator's runtime merely by publishing.
-- It does not promote an unqualified gateway version, including 9router 0.5.81.
+- It does not promote an unqualified gateway version: OmniRoute other than `3.8.51`, or 9router other than `0.5.75` (including `0.5.81`).
 - It does not replace ISA.md as the acceptance judge.
 - Dirty host-spine files already in the working tree remain Unreleased until reviewable commits land.
 

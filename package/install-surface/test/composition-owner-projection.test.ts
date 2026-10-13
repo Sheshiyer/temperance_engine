@@ -1,6 +1,7 @@
 import {runCompositionCommand} from "../src/composition/cli.ts";
 import {expect,test} from "bun:test";
 import {inspectComposition} from "../src/composition/inspect.ts";
+import {resolve as resolvePath} from "node:path";const packageRoot=resolvePath(import.meta.dir,"..");
 import {ownerCanonicalDigest,validateOwnerObservation,type OwnerObservationV1,OWNER_OUTCOMES} from "../src/composition/owner-observation.ts";
 import {projectOwnerObservation} from "../src/composition/owner-projection.ts";
 const now=1760000000000;
@@ -45,5 +46,5 @@ test("owner-project CLI preserves process semantics and rejects crossed packets"
  const result=await runCompositionCommand(["owner-project"],()=>JSON.stringify(packet),now);expect(result.code).toBe(0);expect(JSON.parse(result.stdout)).toEqual(projectOwnerObservation(f.manifest,f.observations,f.event,f.owner,now));
  for(const invalid of [{...packet,receipt:{}},{manifest:f.manifest,event:f.event},{...packet,owner_observation:{...f.owner,execution_authorized:true}}])expect((await runCompositionCommand(["owner-project"],()=>JSON.stringify(invalid),now)).code).toBe(2);
  const live=fixture();const instant=Date.now();live.event.occurred_at=new Date(instant-100).toISOString();live.owner.observed_at=new Date(instant).toISOString();live.owner.event_digest=ownerCanonicalDigest(live.event);
- const child=Bun.spawn([process.execPath,"src/cli.ts","composition","owner-project"],{cwd:process.cwd(),stdin:"pipe",stdout:"pipe",stderr:"pipe"});child.stdin.write(JSON.stringify({manifest:live.manifest,event:live.event,owner_observation:live.owner}));child.stdin.end();const output=await new Response(child.stdout).text();expect(await child.exited).toBe(0);expect(JSON.parse(output).owner.summary).toBe("Owner process completed; acceptance unproved");expect(JSON.parse(output).execution_authorized).toBe(false);
+ const child=Bun.spawn([process.execPath,"src/cli.ts","composition","owner-project"],{cwd:packageRoot,stdin:"pipe",stdout:"pipe",stderr:"pipe"});child.stdin.write(JSON.stringify({manifest:live.manifest,event:live.event,owner_observation:live.owner}));child.stdin.end();const output=await new Response(child.stdout).text();expect(await child.exited).toBe(0);expect(JSON.parse(output).owner.summary).toBe("Owner process completed; acceptance unproved");expect(JSON.parse(output).execution_authorized).toBe(false);
 });

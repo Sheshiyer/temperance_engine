@@ -27,6 +27,10 @@ Compatibility: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 - **The manifest bridge probes a hosted router honestly** (#38). The runtime receipt's `edge` is `local` for loopback URLs and `hosted` otherwise; there is no name matching and no `TEMPERANCE_EDGE` override. The probe calls `/v1/models`, the one path a hosted router exposes without an identity login, and a 401 counts as reachable. Redirects are never followed: an identity-proxy login redirect reports `identity proxy redirected; gateway not reached`. A hosted router gets a 1500 ms budget; loopback keeps 350 ms. The `clio` edge label and the company-edge wording are gone from the docs and router test comments.
 - Router gates that qualified only OmniRoute 3.8.48 now follow the 3.8.51 code; `docs/COMPATIBILITY.md` records the pin history, and `docs/omniroute-native-integration.md` and `QUICKSTART.md` describe the new checks.
 
+### Security
+
+- `.temperance/project.json` and `.temperance/manifest.json`, the repo's own project-rail registration, carried an operator's absolute home and volume paths since the rail was registered. They now use `~`-relative forms. The private-path guard scans only `*.ts`, `*.mjs` and `*.sh`, so JSON and Markdown stay a manual check.
+
 ### Fixed
 
 - The native control-plane projection threw on the 3.8.51 seeded default compression combo, so a fresh 3.8.51 install could not be snapshotted (#40).
@@ -35,8 +39,9 @@ Compatibility: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ### Qualification boundary
 
-- This is the `0.8.0` feature release. OmniRoute `3.8.51` is the qualified default router; the `9router@0.5.75` adapter pin remains only for the legacy `--router-setup` repair flow. The live `401 AUTH_001` against the hosted router stays unresolved, and no gate claims live authentication, provider promotion, or a resolved 401.
+- This is the `0.8.0` feature release. OmniRoute `3.8.51` is the default router, qualified offline: source audits of the 3.8.51 bytes plus the offline readiness run against an installed package. Not claimed (#40): a live end-to-end snapshot of the hosted router (the collector refuses that install with `omniroute_package_invalid`), the upstream launchers shipped as mode 0777 (the collector checks only `package.json`), and the Cloudflare adapter refusal and A2A `sourceIndicatorsPass` lines, which stay dated 3.8.48 observations; the `9router@0.5.75` adapter pin remains only for the legacy `--router-setup` repair flow. The live `401 AUTH_001` against the hosted router stays unresolved, and no gate claims live authentication, provider promotion, or a resolved 401.
 - The composition inspection and organ-guard packages are source and fixture evidence. Installation, authenticated claims or capacity reservations, native-client lifecycle acceptance, live calibration, and plant canary, rollback and release proofs remain separate, and no activation is included.
+- The composition draft adds a Python surface: 23 modules under `package/headless/lib/` (some darwin-only, holding `platform_unsupported` elsewhere), a Codex 0.147 app-server protocol profile, and `package/organ-guard/bin/te-organ-contain.py`. Python runtime version, ABI and command execution remain held, as the draft states. `package/organ-guard/provenance.v1.json` names its source commit in the private `noesis-cambium` repository; downloaders can verify the shipped bytes by digest but not that provenance.
 - Per-attempt gateway context enforcement and durable checkpoint recovery remain unqualified, as in `0.7.0`. The v1.1 clean-host qualification milestone is not complete. The modular Mac lifecycle branch (`codex/modular-mac-lifecycle`) is not part of this release.
 
 ## [0.7.0] - 2026-10-04

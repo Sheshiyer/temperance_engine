@@ -5,7 +5,7 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 743/873
+progress: 743/874
 mode: interactive
 started: 2026-06-12
 updated: 2026-10-13T10:40:00Z
@@ -1133,11 +1133,12 @@ untouched.
 - [ ] ISC-844: The owner-requested minor release candidate declares product version `0.8.0`.
 - [ ] ISC-845: The `0.8.0` changelog records the organ registry, the OmniRoute 3.8.51 qualification, the hosted-router probe and the composition inspection, keeps the `9router@0.5.75` legacy pin, and states the unresolved live 401 boundary.
 - [ ] ISC-846: `OMNIROUTE_PACKAGE.version` equals the native CLI readiness, context-preview and topology versions (`3.8.51`), and `test/organ-registry.test.ts` passes.
-- [ ] ISC-847: The `0.8.0` source candidate passes the canonical verification suite with the operator routing environment unset.
+- [ ] ISC-847: `scripts/verify-all.sh` exits 0 on the `0.8.0` candidate with the operator routing environment unset.
 - [ ] ISC-848: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exits 0 on the `0.8.0` candidate.
 - [ ] ISC-849: `sync-copy-expectations --check` passes at the recorded provenance revision, and `bun test package/install-surface` passes on the candidate.
 - [ ] ISC-850: The STE docs gate passes with `docs/git-run-lineage.md` at zero errors.
-- [ ] ISC-851: Anti: the `0.8.0` public candidate contains no private absolute home path rejected by the existing guard, and `codex/modular-mac-lifecycle` is not merged into it.
+- [ ] ISC-851: Anti: `./verify.sh` passes its private-path guard on the candidate, and `.temperance/project.json` and `.temperance/manifest.json` contain no `/Users/` or `/Volumes/` literal.
+- [ ] ISC-852: Anti: `codex/modular-mac-lifecycle` is not an ancestor of the `0.8.0` candidate.
 
 ## Test Strategy
 

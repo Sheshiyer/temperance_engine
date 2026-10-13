@@ -1,4 +1,5 @@
 import {expect,test} from "bun:test";
+import {resolve as resolvePath} from "node:path";const packageRoot=resolvePath(import.meta.dir,"..");
 import {runGitAuthorityCommand as run} from "../src/execution/git-authority-cli.ts";
 import {gitDeliveryTicketFingerprint,gitExecutionGrantFingerprint,evaluateGitAuthorityEligibility} from "../src/execution/git-authority-contracts.ts";
 const now=Date.parse("2026-10-05T12:00:00.000Z"),iso=(n:number)=>new Date(n).toISOString(),sha=`sha256:${"a".repeat(64)}`;
@@ -9,7 +10,7 @@ function fixture(){
  const admission={schema:"temperance.git-project-admission-envelope.v2",mode:"context-only",workspace,status:"context-verified",observed_at:iso(now-100),expires_at:iso(now+1000),execution_authorized:false,capacity_authorization:false,lease_authorized:false};
  return {ticket,grant,admission,expected_grant_fingerprint:gitExecutionGrantFingerprint(grant),retries_used:0,elapsed_ms:0,now};
 }
-async function actual(args:string[],input:string|Uint8Array,dedicated=false){const child=Bun.spawn([process.execPath,...(dedicated?["src/execution/git-authority-cli.ts"]:["src/cli.ts","git-authority"]),...args],{stdin:"pipe",stdout:"pipe",stderr:"pipe"});child.stdin.write(input);child.stdin.end();const [stdout,stderr,code]=await Promise.all([new Response(child.stdout).text(),new Response(child.stderr).text(),child.exited]);return {stdout,stderr,code};}
+async function actual(args:string[],input:string|Uint8Array,dedicated=false){const child=Bun.spawn([process.execPath,...(dedicated?["src/execution/git-authority-cli.ts"]:["src/cli.ts","git-authority"]),...args],{cwd:packageRoot,stdin:"pipe",stdout:"pipe",stderr:"pipe"});child.stdin.write(input);child.stdin.end();const [stdout,stderr,code]=await Promise.all([new Response(child.stdout).text(),new Response(child.stderr).text(),child.exited]);return {stdout,stderr,code};}
 test("context CLI invokes actual evaluator without granting authority",async()=>{
  const p=fixture(),r=await run(["inspect"],()=>JSON.stringify(p));expect(r.code).toBe(0);expect(r.stderr).toBe("");expect(r.stdout.endsWith("\n")).toBe(true);expect(JSON.parse(r.stdout)).toEqual(evaluateGitAuthorityEligibility(p));const out=JSON.parse(r.stdout);expect(out.context_eligible).toBe(true);expect(out.claim_status).toBe("held-authority-migration");for(const field of ["execution_authorized","capacity_authorization","lease_authorized"])expect(out[field]).toBe(false);expect(r.stdout).not.toContain("repository_identity");expect(r.stdout).not.toContain("github.com");
 });

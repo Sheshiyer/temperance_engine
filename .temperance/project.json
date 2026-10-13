@@ -5,8 +5,8 @@
   "github": "Sheshiyer/temperance_engine",
   "generated_at": "2026-08-22T01:15:59.062Z",
   "host_runtime": {
-    "temperance_home": "/Users/sheshnarayaniyer/.temperance_engine",
-    "opencode": "/Users/sheshnarayaniyer/.config/opencode",
+    "temperance_home": "~/.temperance_engine",
+    "opencode": "~/.config/opencode",
     "omniroute": "http://127.0.0.1:20128",
     "proxy": "http://127.0.0.1:20129"
   },

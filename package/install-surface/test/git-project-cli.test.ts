@@ -4,6 +4,8 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {execFileSync} from "node:child_process";
 import {runGitProjectCommand} from "../src/onboarding/git-project-cli.ts";
+import {resolve as resolvePath} from "node:path";
+const packageRoot = resolvePath(import.meta.dir, "..");
 
 test("Git CLI rejects authority and observer injection with fixed errors", async () => {
   let reads = 0;
@@ -26,7 +28,7 @@ test("actual main CLI inspects a disposable Git binding without Superset or auth
     git(["remote", "add", "origin", "https://github.com/example/repo.git"]);
     const capsule = {schema: "temperance.project-capsule.v1", version: {major: 1, minor: 0}, id: "repo", repository_identity: "github.com/example/repo", root_variable: "PROJECTS", relative_path: "repo", access: "read-write", approved: true};
     const binding = {schema: "temperance.host-binding.v1", version: {major: 1, minor: 0}, profile_id: "host", variables: {PROJECTS: root}, secret_references: {}, routing_aliases: [], volume_bindings: []};
-    const child = Bun.spawn([process.execPath, "src/cli.ts", "git-project", "inspect"], {stdin: "pipe", stdout: "pipe", stderr: "pipe"});
+    const child = Bun.spawn([process.execPath, "src/cli.ts", "git-project", "inspect"], {cwd: packageRoot, stdin: "pipe", stdout: "pipe", stderr: "pipe"});
     child.stdin.write(JSON.stringify({capsule, binding, mode: "write"})); child.stdin.end();
     const output = await new Response(child.stdout).text(); expect(await child.exited).toBe(0);
     const evidence = JSON.parse(output); expect(evidence.state).toBe("verified"); expect(evidence.mode).toBe("write"); expect(evidence.execution_authorized).toBe(false); expect(evidence.lease_authorized).toBe(false);
