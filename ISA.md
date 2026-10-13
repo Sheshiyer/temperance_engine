@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: build
 iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 743/865
+progress: 743/873
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-04T20:06:41Z
+updated: 2026-10-13T10:40:00Z
 ---
 
 ## Problem
@@ -1130,6 +1130,14 @@ untouched.
 - [x] ISC-841: The dashboard topology semantics match the compiled 3.8.51 dashboard, and `versionBound` is true only for 3.8.51.
 - [x] ISC-842: Compression settings outside the four fully projected keys, including the whole `cavemanConfig`, are digested within fixed row, key and value bounds, and their values never appear in the snapshot.
 - [x] ISC-843: Anti: no 3.8.51 gate claims live authentication, provider promotion, or a resolved 401.
+- [ ] ISC-844: The owner-requested minor release candidate declares product version `0.8.0`.
+- [ ] ISC-845: The `0.8.0` changelog records the organ registry, the OmniRoute 3.8.51 qualification, the hosted-router probe and the composition inspection, keeps the `9router@0.5.75` legacy pin, and states the unresolved live 401 boundary.
+- [ ] ISC-846: `OMNIROUTE_PACKAGE.version` equals the native CLI readiness, context-preview and topology versions (`3.8.51`), and `test/organ-registry.test.ts` passes.
+- [ ] ISC-847: The `0.8.0` source candidate passes the canonical verification suite with the operator routing environment unset.
+- [ ] ISC-848: `bunx tsc --noEmit -p tsconfig.json` in `package/install-surface` exits 0 on the `0.8.0` candidate.
+- [ ] ISC-849: `sync-copy-expectations --check` passes at the recorded provenance revision, and `bun test package/install-surface` passes on the candidate.
+- [ ] ISC-850: The STE docs gate passes with `docs/git-run-lineage.md` at zero errors.
+- [ ] ISC-851: Anti: the `0.8.0` public candidate contains no private absolute home path rejected by the existing guard, and `codex/modular-mac-lifecycle` is not merged into it.
 
 ## Test Strategy
 

@@ -25,6 +25,29 @@
 <h2>Unreleased</h2>
 <p>Nothing yet.</p>
 
+<h2>0.8.0 — 2026-10-13</h2>
+<p>GitHub release: <a href="https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.8.0">v0.8.0</a></p>
+<h3>Added</h3>
+<ul>
+<li><strong>Organ registry</strong> (<code>package/install-surface</code>): the onboarding planner shows every connected organ, its tier (required, modular, optional) and its on, off or held state on any host. Required organs are locked; profiles can escalate modules. New <code>tcp-port</code>, <code>launch-agent</code> and <code>http-health</code> probes that never follow redirects.</li>
+<li><strong>OmniRoute is the default router</strong>, local or hosted on a cloud runner with operator machines as clients. 9Router is kept only for the legacy <code>--router-setup</code> repair flow.</li>
+<li><strong>OmniRoute 3.8.51 qualified</strong> across native CLI readiness, context and Hermes preview, and the native control plane. The onboarding pin moves in lockstep.</li>
+<li><strong>Standalone composition inspection</strong>: <code>temperance composition</code>, <code>git-authority</code> and <code>git-project</code> commands, redacted banner and island projections, portable Git run lineage, TRIVECTOR evidence packets, bounded MCP stdio and owner-file primitives. Constellation is retired.</li>
+<li><strong><code>package/organ-guard</code></strong>: the exact containment guard as optional source, excluded from the default installer.</li>
+<li><strong>Remote memory behind Cloudflare Access</strong>: the memory scripts send a service token to a remote origin and refuse a remote login without one. A hermetic routing environment helper keeps the shell suites off an operator's live router.</li>
+</ul>
+<h3>Changed</h3>
+<ul>
+<li>The manifest bridge probes a hosted router through <code>/v1/models</code> with a 1500 ms budget, reports <code>edge</code> as <code>local</code> or <code>hosted</code>, and treats an identity-proxy redirect as not reached. The <code>clio</code> label is gone.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>The native control-plane projection accepts the 3.8.51 seeded default compression combo.</li>
+<li>Public router pins can no longer re-admit an open circuit.</li>
+</ul>
+<h3>Qualification boundary</h3>
+<p>OmniRoute 3.8.51 is the qualified default; the <code>9router@0.5.75</code> pin stays for the legacy repair flow. The live 401 against the hosted router stays unresolved. Composition inspection and organ-guard are source and fixture evidence only. Long-context enforcement and checkpoint recovery remain unqualified; v1.1 clean-host qualification is separate.</p>
+
 <h2>0.7.0 — 2026-10-04</h2>
 <p>GitHub release: <a href="https://github.com/Sheshiyer/temperance_engine/releases/tag/v0.7.0">v0.7.0</a></p>
 <h3>Added</h3>
