@@ -130,6 +130,65 @@ not a requirement that phase count equal commit count.
 | 6. Clean-Host Qualification and Failure Rehearsal | 0/TBD | Not started | - |
 | 7. Reviewable Release and Exact-Candidate Proof | 0/TBD | Not started | - |
 
+## Capability backlog — 2 November 2026
+
+The public website presents the product story. This repository and its
+[Product capability Project](https://github.com/users/Sheshiyer/projects/27)
+own the engineering backlog removed from the website availability matrix.
+The parent issue is [#45](https://github.com/Sheshiyer/temperance_engine/issues/45).
+This is the human view of the existing finite roadmap, not another planner.
+The seven phases and their completion states above remain unchanged.
+
+Release 0.8.0 remains the baseline. The five Koshas, seven phases and existing
+composition/lifecycle contracts are shipped source. The kernel and read-only
+Vestibule additions in [PR44](https://github.com/Sheshiyer/temperance_engine/pull/44)
+remain source-review work at
+[75f3de1](https://github.com/Sheshiyer/temperance_engine/tree/75f3de1a765255d9c734c2dcffb087ad9bda9157).
+Source review, installation, runtime linkage and accepted results require
+separate evidence. The
+[capability/provenance matrix](../docs/plans/2026-11-02-portable-capabilities.md)
+provides the public source boundaries.
+
+| Key | Issue | Planning gate | Acceptance dependencies |
+|---|---|---|---|
+| R01 | [#46 — Review the draft portable phase kernel and read-only Vestibule source](https://github.com/Sheshiyer/temperance_engine/issues/46) | Source review in PR44 | None for bounded source review |
+| R02 | [#47 — Prove receipt-owned installation, rollback and native callback linkage for the portable slice](https://github.com/Sheshiyer/temperance_engine/issues/47) | Held / planned | [#46](https://github.com/Sheshiyer/temperance_engine/issues/46) |
+| R03 | [#48 — Implement and verify the portable Adytum advisory adapter](https://github.com/Sheshiyer/temperance_engine/issues/48) | Held / planned | [#46](https://github.com/Sheshiyer/temperance_engine/issues/46), [#47](https://github.com/Sheshiyer/temperance_engine/issues/47) |
+| R04 | [#49 — Implement and verify the portable Nutrix learning-proposal adapter](https://github.com/Sheshiyer/temperance_engine/issues/49) | Held / planned | [#46](https://github.com/Sheshiyer/temperance_engine/issues/46), [#47](https://github.com/Sheshiyer/temperance_engine/issues/47) |
+| R05 | [#50 — Implement and verify the diagnostics-only portable Auspex adapter](https://github.com/Sheshiyer/temperance_engine/issues/50) | Held / planned | [#46](https://github.com/Sheshiyer/temperance_engine/issues/46), [#47](https://github.com/Sheshiyer/temperance_engine/issues/47) |
+| R06 | [#51 — Implement and verify the manual portable Circulator review adapter](https://github.com/Sheshiyer/temperance_engine/issues/51) | Held / planned | [#49](https://github.com/Sheshiyer/temperance_engine/issues/49) |
+| R07 | [#52 — Implement and verify the portable Praeceptor improvement-proposal adapter](https://github.com/Sheshiyer/temperance_engine/issues/52) | Held / planned | [#49](https://github.com/Sheshiyer/temperance_engine/issues/49) |
+| R08 | [#53 — Review containment source promotion as a separate bounded slice](https://github.com/Sheshiyer/temperance_engine/issues/53) | Planned source review | None for bounded source review |
+| R09 | [#54 — Provide a portable admitted-execution adapter with attributable result receipts](https://github.com/Sheshiyer/temperance_engine/issues/54) | Held / planned | [#46](https://github.com/Sheshiyer/temperance_engine/issues/46), [#47](https://github.com/Sheshiyer/temperance_engine/issues/47), [#53](https://github.com/Sheshiyer/temperance_engine/issues/53) |
+| R10 | [#55 — Qualify v1.1 clean-host installation and lifecycle on exact artifacts](https://github.com/Sheshiyer/temperance_engine/issues/55) | Held / planned | [#47](https://github.com/Sheshiyer/temperance_engine/issues/47), [#53](https://github.com/Sheshiyer/temperance_engine/issues/53), [#54](https://github.com/Sheshiyer/temperance_engine/issues/54) |
+| R11 | [#56 — Close hosted OmniRoute authentication and native integration acceptance](https://github.com/Sheshiyer/temperance_engine/issues/56) | Held / planned | [#47](https://github.com/Sheshiyer/temperance_engine/issues/47) |
+| R12 | [#57 — Qualify long-context admission and per-attempt gateway enforcement](https://github.com/Sheshiyer/temperance_engine/issues/57) | Held / planned | [#54](https://github.com/Sheshiyer/temperance_engine/issues/54), [#56](https://github.com/Sheshiyer/temperance_engine/issues/56) |
+| R13 | [#58 — Prove durable checkpoint recovery without duplicate execution](https://github.com/Sheshiyer/temperance_engine/issues/58) | Held / planned | [#47](https://github.com/Sheshiyer/temperance_engine/issues/47), [#54](https://github.com/Sheshiyer/temperance_engine/issues/54) |
+
+### Sequence and evidence
+
+1. Review the bounded kernel/Vestibule source under #46. Complete the exact
+   install/preimage/rollback and native callback adapter proofs under #47.
+2. Build the five advisory adapters as separate slices. Adytum depends on
+   Vestibule. Circulator and Praeceptor depend on Nutrix. Adapter declarations
+   do not activate inference, memory writes, repair or schedules.
+3. Review later containment changes under #53 without a private whole-tree
+   refresh. Prove portable admitted execution under #54 with real grants,
+   atomic claims and attributable receipts.
+4. Qualify clean-host lifecycle under #55 and hosted authentication under #56.
+   Long-context enforcement (#57) and durable recovery (#58) need their own
+   actual-attempt and interruption/replay evidence.
+5. Phase 7 still owns the exact-candidate release proof and human decision.
+   None of these issues, dependencies or board columns authorizes activation,
+   provider changes, dispatch, publication or production promotion.
+
+The public product board is distinct from the optional private runtime board.
+No new issue reopens already shipped Kosha/phase or composition/lifecycle
+metadata as a missing feature. Existing unrelated routing and worktree issues
+remain unchanged. Native issue dependencies and Project fields mirror the
+links above. Source work can start before a target acceptance dependency is
+qualified, but source tests cannot close that target gate.
+
 ## Preserved Historical and Held Milestones
 
 ### Historical milestone: public-ready docs glove (2026-08-17)

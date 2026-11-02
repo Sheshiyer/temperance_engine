@@ -1187,6 +1187,16 @@ These criteria record the bounded source slice. They do not close prior v1.1 hos
 - [x] ISC-887: Six ordered descriptive caption cues cover only the 30-second film timeline.
 - [x] ISC-888: Anti: local review film production does not assert Phloem S-tier authorship or close ISC-879.
 
+### Capability planning outside the public website — 2026-11-02
+
+- [x] ISC-889: Real product issues #45 through #58 record the remaining source-review, adapter and qualification work with verifiable acceptance criteria.
+- [x] ISC-890: One product GitHub Project links the repository and its roadmap issues; the similarly named private-runtime board remains unchanged.
+- [x] ISC-891: Native issue dependencies and Project gate/dependency fields preserve the reviewed acceptance order.
+- [x] ISC-892: The tracked finite roadmap links the real issues and retains all seven existing phase states.
+- [x] ISC-893: Already shipped phase/Kosha metadata and composition/lifecycle source are baseline capabilities, not new missing-feature issues.
+- [x] ISC-894: Anti: planning changes perform no runtime installation, admission, dispatch, provider/service mutation, release bump or production promotion.
+- [x] ISC-895: Anti: GitHub planning evidence is not presented as a Cambium operational Goal Graph commit or an ISA runtime acceptance receipt.
+
 ## Test Strategy
 
 - ISC-853 | file probe | reviewed source sequence | present before construction | source history
@@ -2847,6 +2857,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   criterion now: ISC-836..ISC-843 accept the 3.8.51 contract, the preview and Hermes version binding, the intensity-less default combo, the re-audited topology, bounded settings digests, and the retained non-claims.
 
 ## Verification
+
+- 2026-11-02 capability planning: deduplication inspected all six prior product issues and found no matching capability acceptance items. The repository had no linked Project. Project19's 34 items belong to the private noesis-cambium repository, so it was preserved. Product Project27 and issues45–58 provide a separate product backlog. The existing .planning/ROADMAP.md remains the finite planning spine; no implementation phase is advanced. Fresh GitHub readback verifies all14 issue rows, their exact Status/Capability gate/Depends on fields, one repository-linked Project and20 native blocked-by edges. All14 issues remain open. Issue46 is In Progress with Source review; the remaining acceptance gates are Planned or Held. Native dependency and exact Project-row evidence is retained with the task delivery receipt. Only this roadmap and ISA planning are changed in this source slice; release/runtime and Cambium graph authority remain separate.
 
 - 2026-11-02 Phloem S-tier production, ISC-879: An admitted bounded request completed with HTTP 200, finish_reason=stop and response model metadata claude-opus-5-5. Response ID chatcmpl-msg_011Cgds5CS1Nb31nRyYZLext; request ID 31ad7cca-a41b-428e-982a-ef8df9c0c301. The complete 8,032-byte JSON contains three scene callbacks and creative/risk notes. Independent review verified canonical mappings, organ qualifiers, five enabled plugin names, unchanged timeline and no new IO; representative frames passed visual review. The sole local callback normalization removes inserted zero-width joiners from OpenCode/Cursor. This is accepted source generation, rather than a catalog or keepalive claim.
 
