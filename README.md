@@ -2,7 +2,7 @@
 
 # Temperance Engine
 
-A one-time installer for an OpenCode/Cursor-first local PAI operator runtime: Algorithm flow, skill-cluster routing, optional peon-ping voice, and CodeGraph-first search.
+A shared operating layer for your AI coding tools.
 
 Built by [Thoughtseed Labs](https://github.com/Sheshiyer). Visual library (navy / gold / cyan, same as Manifest Zone): [docs/index.html](docs/index.html).
 
@@ -14,9 +14,9 @@ Built by [Thoughtseed Labs](https://github.com/Sheshiyer). Visual library (navy 
 ![Bun](https://img.shields.io/badge/runtime-Bun-f39b54?style=flat-square&labelColor=07090b)
 ![macOS Optional](https://img.shields.io/badge/voice-macOS_optional-65d9e8?style=flat-square&labelColor=07090b)
 
-Temperance Engine packages a local AI-operator runtime pattern for teams working primarily in OpenCode or Cursor: PAI-style instruction surfaces, a guarded Algorithm flow, skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first structural search.
+Temperance Engine connects project context, reusable skills, structured workflows, model routing, and verification across your AI coding tools. Set up a configurable local operator runtime, choose the integrations you need, and keep control of approvals and changes.
 
-This repository is a public installer wrapper. It does not require Claude Code, Claude Pro/Max, Anthropic auth, private memory, private configs, proprietary model credentials, or voice/audio packs.
+This repository distributes the public installer and runtime components. Client surfaces and integrations depend on the options you select; private memory, private configurations, credentials, and voice packs are not bundled.
 
 Current product release: **0.8.0**, implementing the **v4 hand-in-glove**
 architecture. Noesis/Cambium remains an optional personal layer. Start with the
@@ -26,9 +26,11 @@ See the [release boundaries](CHANGELOG.md#080---2026-10-13) before enabling
 routing or long-context policies: this release does not claim qualified 1M
 sessions, durable checkpoint recovery, or a completed v1.1 clean-host milestone.
 
-Product Hunt draft — not scheduled.
+The portable phase kernel and read-only Vestibule orientation handler in this review branch extend the existing public composition and lifecycle contracts. They have synthetic source fixtures; installation, real host callbacks and acceptance remain held. See the [capability and provenance matrix](docs/plans/2026-11-02-portable-capabilities.md). The other five concrete advisory organ adapters remain optional and unproved.
 
-<a href="https://www.producthunt.com/products/temperance-engine?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-temperance-engine" target="_blank" rel="noopener noreferrer"><img alt="Temperance Engine - Local installer for an OpenCode operator runtime | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1301098&amp;theme=light&amp;t=1793589358027"></a>
+Product Hunt launch scheduled for November 6, 2026, 12:01 AM PST.
+
+<a href="https://www.producthunt.com/products/temperance-engine?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-temperance-engine" target="_blank" rel="noopener noreferrer"><img alt="Temperance Engine - A shared operating layer for your AI coding tools | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1301098&amp;theme=light&amp;t=1793589358027"></a>
 
 ---
 
