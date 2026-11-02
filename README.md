@@ -26,6 +26,10 @@ See the [release boundaries](CHANGELOG.md#080---2026-10-13) before enabling
 routing or long-context policies: this release does not claim qualified 1M
 sessions, durable checkpoint recovery, or a completed v1.1 clean-host milestone.
 
+Product Hunt draft — not scheduled.
+
+<a href="https://www.producthunt.com/products/temperance-engine?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-temperance-engine" target="_blank" rel="noopener noreferrer"><img alt="Temperance Engine - Local installer for an OpenCode operator runtime | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1301098&amp;theme=light&amp;t=1793589358027"></a>
+
 ---
 
 ## Showreel
