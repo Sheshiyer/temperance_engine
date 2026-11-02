@@ -127,7 +127,7 @@ Package tooling includes Bun and TypeScript. Direct package dependencies
 include OpenTUI, Ajv, and pg in their respective packages. The separate website uses React, GSAP, Vite, and
 Vercel hosting.
 
-The original film uses Canvas2D, Bun, Chromium, and FFmpeg.
+The film uses Canvas2D, Bun, Chromium, and FFmpeg. Its three new scene callbacks were refined through a selected Phloem route whose completed response reports Opus5.5. [Production provenance](../package/showreel/architecture-30s/PRODUCTION-PROVENANCE.json) separates source generation from local capture, encoding, and runtime acceptance.
 HyperFrames evaluation does not establish film use. Historical NotebookLM
 research is retained with no new generation claimed. This inventory is not a
 transitive software bill of materials.

@@ -146,6 +146,60 @@
           "sha256": "247c893c1fda15bfa6337a5777bcdcf53a0f60a1e3b294c6b39229fecf0edc22"
         }
       ]
+    },
+    {
+      "observedOn": "2026-11-02",
+      "mode": "verified-phloem-opus-scene-refinement",
+      "sourceHead": "d36da98bfc12783aa89710744d84e1046e8fbe4f",
+      "reason": "Integrate accepted Phloem Opus scene callbacks and verified thirty-second film; preserve original assets and historical research.",
+      "notebookRegenerated": false,
+      "historicalGeneratedBlocksChanged": false,
+      "sources": [
+        {
+          "path": "README.md",
+          "sha256": "74645845f0bfeb672f92f0a44b935d9f25ab742a3bb9f314f7d1dc2942193429"
+        },
+        {
+          "path": "CREDITS.md",
+          "sha256": "1cb9c1f388efef9240428fb9ebb713412105c21cdec7b96f7f6e47d27252745d"
+        },
+        {
+          "path": "ISA.md",
+          "sha256": "a62a66a51d91cba144d74e64fb118decd7f2cd8e1a1795860049c3ff737c71b4"
+        },
+        {
+          "path": "docs/architecture-explainer.md",
+          "sha256": "29571a6a5e320c14bc8703efd3e901a8ecff642ba7a36e2cb7907242b0cac628"
+        },
+        {
+          "path": "package/showreel/architecture-30s/reel.html",
+          "sha256": "cb031b4573f152ca3a22e6f608aad0a3a5c271bbd0e18b256223e1f2dbd60f77"
+        },
+        {
+          "path": "package/showreel/architecture-30s/README.md",
+          "sha256": "96318100b487e7b5d282ee1b7077fa32d5494d20e0a5688759429f661ef6348a"
+        },
+        {
+          "path": "package/showreel/architecture-30s/PRODUCTION-PROVENANCE.json",
+          "sha256": "c4dafce781f599eaeba8bc8dc02e6d52d458243234e4ea2f4201085093c1f612"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s.mp4",
+          "sha256": "5e52dd8fe63b516060267836e3446888f1f7d3546a47957c19723824de989a28"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-poster.jpg",
+          "sha256": "9540195d3da82a4c3b99d455356f9fa737f408b7ba497600ffd4a4c1fafebb89"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-captions.vtt",
+          "sha256": "67250bd5eb490a9b524ed1e6b6c7b7a448dc76aed3eec051f2f7cedf20036c68"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-transcript.md",
+          "sha256": "a69bd614f04bc773b40f74e9f870baff3d260461abc72aab4f75d405fd8b290c"
+        }
+      ]
     }
   ]
 }

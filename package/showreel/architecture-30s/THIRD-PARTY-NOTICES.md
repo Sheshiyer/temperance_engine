@@ -1,8 +1,7 @@
 # Source and third-party notices
 
 Original visual renderer and procedural soundtrack: Temperance Engine public
-repository, `package/showreel`, reused under the included MIT LICENSE. This
-30-second version is a local review adaptation. Original media is preserved.
+repository, `package/showreel`, reused under the included MIT LICENSE. This thirty-second version retains that source and adds Phloem Opus5.5 scene refinements, with local capture/encoding. Original media is preserved.
 
 Canvas2D is the browser drawing API; Chromium captures PNGs. Bun runs the local
 server and scripts; FFmpeg encodes H.264/AAC and time-stretches the authored score.

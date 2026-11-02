@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: verify
 iteration: 2026-11-02-portable-core-vestibule-source
-progress: 799/924
+progress: 800/924
 mode: interactive
 started: 2026-06-12
-updated: 2026-11-02T08:41:53Z
+updated: 2026-11-02T09:50:29Z
 ---
 
 ## Problem
@@ -1173,7 +1173,7 @@ These criteria record the bounded source slice. They do not close prior v1.1 hos
 - [x] ISC-876: Historical NotebookLM report, map, table, and metadata blocks remain byte-identical inside a labelled disclosure; the manifest states no new NotebookLM run.
 - [x] ISC-877: Public credits attribute declared direct packages, optional integrations and installed profile plugins without treating them as a portable install default or a transitive SBOM.
 - [x] ISC-878: Current instruction templates use admitted Codex/Claude execution and current noesis phase aliases; the focused wizard regression rejects legacy te-* setup advice.
-- [ ] ISC-879: Phloem returns a bounded, attributed S-tier narrative artifact and source review verifies its claims before launch-surface integration. [HELD: no accepted narrative response yet]
+- [x] ISC-879: Phloem returns a bounded, attributed S-tier narrative artifact and source review verifies its claims before launch-surface integration.
 - [x] ISC-880: Anti: alignment leaves VERSION at 0.8.0 and preserves the install-adapter and native callback holds in ISC-871..872.
 
 ### Thirty-second architecture review film — 2026-11-02
@@ -2847,6 +2847,10 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   criterion now: ISC-836..ISC-843 accept the 3.8.51 contract, the preview and Hermes version binding, the intensity-less default combo, the re-audited topology, bounded settings digests, and the retained non-claims.
 
 ## Verification
+
+- 2026-11-02 Phloem S-tier production, ISC-879: An admitted bounded request completed with HTTP 200, finish_reason=stop and response model metadata claude-opus-5-5. Response ID chatcmpl-msg_011Cgds5CS1Nb31nRyYZLext; request ID 31ad7cca-a41b-428e-982a-ef8df9c0c301. The complete 8,032-byte JSON contains three scene callbacks and creative/risk notes. Independent review verified canonical mappings, organ qualifiers, five enabled plugin names, unchanged timeline and no new IO; representative frames passed visual review. The sole local callback normalization removes inserted zero-width joiners from OpenCode/Cursor. This is accepted source generation, rather than a catalog or keepalive claim.
+
+- The resulting film passes independent full frame decoding: master 1,800 frames at 1080p60 and web 900 frames at 1080p30, both 30.000 seconds with AAC 48 kHz stereo. Source ZIP 21bb1366e9e88249d4f42d84714a9421a11fdfda4def8349d810cdac59a593a0 contains 23 portable files including explicit production provenance. All five enabled plugins now appear in the film. The original renderer/artwork/score, local encoding and prior failed/local-review attempts retain their separate provenance. All ten original 15-second source/media hashes remain unchanged. These media checks close the creative-source criterion; native installation/callback and broader hosted-router qualification holds remain unchanged.
 
 - 2026-11-02 architecture media: ISC-881/882 pass FFprobe readback: corrected master H.264/AAC, 1920×1080, 60/1 fps, 1,800 frames, 30.000 seconds; web H.264/AAC, 1920×1080, 30/1 fps, 900 frames, 30.000 seconds. AAC is 48 kHz stereo. Audio measurement is -14.6 LUFS integrated and -0.7 dBFS true peak; listening acceptance is not asserted. ISC-883: 22-entry source ZIP 3f43b4da1c49979213d34eba5968eb0c20ee00c8df639771a8e0d4d30a6fa2e7 has five finite font files, three OFL notices, no private paths or transport helpers. ISC-884: all ten original tracked showreel hashes match the preserved snapshot. ISC-885: README references existing new web MP4, 1920×1080 poster, captions, transcript and editable source. ISC-886: independent source review found inherited Plan/Learn stage and execution/learning wording defects; the corrected 420 phase frames replace the original phase range before encoding. Main-corpus and corrected-still hashes match at frames 390, 510 and 630; visual review confirms canonical labels and no overflow. ISC-887: six ordered WEBVTT cues stay within 0–30 seconds. ISC-888: film remains a local review adaptation; ISC-879 is held and no S-tier creative authorship is asserted. The original 15-second source/media remain unchanged.
 

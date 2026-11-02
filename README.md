@@ -44,7 +44,7 @@ A slower, 30-second landscape tour of the seven phases, five Koshas, six advisor
 
 **[Watch the 30-second film](assets/showreel/temperance-architecture-30s.mp4)** · [Descriptive transcript](assets/showreel/temperance-architecture-30s-transcript.md) · [Captions](assets/showreel/temperance-architecture-30s-captions.vtt) · [Editable source and render guide](package/showreel/architecture-30s/README.md)
 
-The editable source renders 1,800 frames at 1920×1080 and 60 fps. The web encode is 1080p at 30 fps. It reuses the original Canvas2D artwork and procedural soundtrack, with finite font assets and license notices. The [architecture explainer](docs/architecture-explainer.md) and [tooling credits](CREDITS.md) provide the full story and inventory.
+The editable source renders 1,800 frames at 1920×1080 and 60 fps. The web encode is 1080p at 30 fps. It reuses the original Canvas2D artwork and procedural soundtrack, with finite font assets and license notices. The [architecture explainer](docs/architecture-explainer.md) and [tooling credits](CREDITS.md) provide the full story and inventory. The current Kosha, organ and tooling callbacks were refined by Opus5.5 through the selected Phloem route, with independent source review and local rendering. The [production provenance](package/showreel/architecture-30s/PRODUCTION-PROVENANCE.json) separates that contribution from the original renderer, artwork and score.
 
 <details>
 <summary>Original 15-second concept film — preserved</summary>

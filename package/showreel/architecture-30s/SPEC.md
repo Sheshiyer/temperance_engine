@@ -3,9 +3,7 @@
 1920×1080, 60 fps, 1800 frames; landscape only. Frame seeking is deterministic.
 The exact original Temperance Canvas2D showreel supplies the orbital visual
 language, serif title, cups, planetary phase wheel, scales emblem, grain and score.
-The new callbacks and timeline are a locally authored review fallback. Connected
-Phloem requests delivered no accepted creative source. S-tier creative delivery
-remains pending. HTTP keepalive metadata is not model attribution.
+The three new scene callbacks were refined in a completed Phloem Opus5.5 response (reported model claude-opus-5-5). The source passed independent review and representative visual checks. The original artwork/timeline and local render pipeline remain explicit contributions; PRODUCTION-PROVENANCE.json records the request and source hashes. Earlier failed attempts remain historical evidence, rather than the current delivery state.
 
 | Frames | Seconds | Scene |
 |---|---|---|
@@ -14,7 +12,7 @@ remains pending. HTTP keepalive metadata is not model attribution.
 | 240–659 | 4–11 | Observe, Think, Plan, Build, Execute, Verify, Learn |
 | 660–929 | 11–15.5 | Five Koshas, plain-language work layers |
 | 930–1199 | 15.5–20 | Six optional advisory organs and adapter hold |
-| 1200–1559 | 20–26 | Selected installed Claude extensions, clients, methods, routing/search |
+| 1200–1559 | 20–26 | All five enabled Claude profile plugins, clients, methods, routing/search |
 | 1560–1799 | 26–30 | Original scales emblem, architecture CTA, held final lockup |
 
 The old illustrative provider failover and 128-criteria scenes are not called.

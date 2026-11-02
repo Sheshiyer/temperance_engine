@@ -131,6 +131,8 @@ and procedural score. Its [editable source](package/showreel/architecture-30s/RE
 includes local Cormorant Garamond, Space Grotesk and DM Mono font subsets, with
 their SIL Open Font License notices. See the [film notices](package/showreel/architecture-30s/THIRD-PARTY-NOTICES.md).
 
+The three new scene callbacks were refined through the selected Phloem/OmniRoute route. Its completed response reports `claude-opus-5-5`. Local capture and encoding remain separate steps. The [production provenance](package/showreel/architecture-30s/PRODUCTION-PROVENANCE.json) records the contribution and source review. This production route does not make Phloem or that model a portable-core dependency.
+
 ## Optional service integrations
 
 The [public onboarding catalog](package/install-surface/src/onboarding/core-catalog.ts)

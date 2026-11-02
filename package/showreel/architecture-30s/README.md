@@ -2,10 +2,7 @@
 
 This landscape composition reuses the original public 15-second showreel's
 Canvas2D artwork, title, emblem and procedural score. It adds slower pacing,
-Koshas, advisory organs and selected installed Claude extensions. The new
-callbacks/timeline are a locally authored review fallback. Connected Phloem
-attempts did not deliver accepted creative source; S-tier creative authorship
-remains pending. See SPEC.md and THIRD-PARTY-NOTICES.md.
+Koshas, advisory organs and selected installed Claude extensions. The three new Kosha, organ and tooling scene callbacks were refined by Opus5.5 through Phloem. The completed response reports claude-opus-5-5 and passed syntax, capability, independent source and representative-frame checks. The original renderer, timeline, artwork and score are retained, with local capture and encoding. See SPEC.md, PRODUCTION-PROVENANCE.json and THIRD-PARTY-NOTICES.md.
 
 Requirements: Bun, FFmpeg and a Chromium-family browser. No npm dependencies.
 The font files and OFL notices are included. Landscape only, 1920×1080,

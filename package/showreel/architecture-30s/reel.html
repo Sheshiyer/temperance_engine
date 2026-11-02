@@ -677,45 +677,74 @@ function reviewOrbit(x, cx, cy, f, count=5) {
   x.restore();
 }
 function koshaScene(x,f){
-  reviewHead(x,'Five Koshas','Descriptive layers of the work',f);
-  reviewOrbit(x,1415,560,f);
-  const rows=[['Substrate','Annamaya · Build'],['Execution & telemetry','Pranamaya · Execute'],['Context & memory','Manomaya · Observe'],['Reasoning & judgment','Vijnanamaya · Think / Plan / Verify'],['Purpose & learning','Anandamaya · Learn']];
-  rows.forEach(([name,detail],i)=>{
-    const y=390+i*91,a=tw(f,i*5,24+i*5,0,1);
-    txt(x,name,170,y,`500 43px ${SANS}`,C.text,{alpha:a});
-    txt(x,detail,172,y+34,`400 25px ${SANS}`,C.cyan,{alpha:a});
-    x.save();x.globalAlpha=a;x.fillStyle=C.gold;x.fillRect(150,y-28,2,52);x.restore();
-  });
-  txt(x,'WORK LAYERS',1415,571,`500 23px ${MONO}`,C.gold,{align:'center',ls:3});
+reviewHead(x,'Five Koshas','Descriptive layers of the work',f);
+const cx=1415,cy=560;reviewOrbit(x,cx,cy,f);
+const rows=[['Substrate','Annamaya · Build'],['Execution & telemetry','Pranamaya · Execute'],['Context & memory','Manomaya · Observe'],['Reasoning & judgment','Vijnanamaya · Think / Plan / Verify'],['Purpose & learning','Anandamaya · Learn']];
+const k=f-70,act=k<0?-1:Math.floor(k/40)%5,ph=k<0?0:k%40,glow=tw(ph,0,12,0,1)*tw(ph,28,40,1,0);
+rows.forEach(([name,detail],i)=>{
+const y=390+i*91,a=tw(f,i*5,24+i*5,0,1),r=76+(4-i)*43,ang=rad(180+(2-i)*14);
+const px=cx+Math.cos(ang)*r,py=cy+Math.sin(ang)*r,on=i===act?glow:0,lk=tw(f,30+i*6,70+i*6,0,1);
+x.save();x.globalAlpha=a*lk*(.3+.55*on);x.strokeStyle=on>0?C.cyan:C.gold;x.lineWidth=1;
+x.beginPath();x.moveTo(780,y-6);x.bezierCurveTo(960,y-6,px-150,py,px,py);x.stroke();
+x.globalAlpha=a*lk;x.fillStyle=C.ink;x.strokeStyle=C.cyan;x.lineWidth=1.5;x.beginPath();x.arc(px,py,5,0,7);x.fill();x.stroke();
+if(on>0){x.globalAlpha=on;x.strokeStyle=rgba(C.cyan,.45);x.lineWidth=2.5;x.beginPath();x.arc(cx,cy,r,0,7);x.stroke();}
+x.globalAlpha=a;x.fillStyle=C.gold;x.fillRect(150,y-28,2+2*on,52);x.restore();
+txt(x,name,170,y,`500 43px ${SANS}`,C.text,{alpha:a});
+txt(x,detail,172,y+34,`400 25px ${SANS}`,C.cyan,{alpha:a*(.8+.2*on)});
+});
+txt(x,'WORK LAYERS',cx,571,`500 24px ${MONO}`,C.gold,{align:'center',ls:2});
+txt(x,'Descriptive layers · not security partitions',150,880,`400 25px ${SANS}`,C.muted,{alpha:tw(f,40,64,0,1)});
 }
 function organScene(x,f){
-  reviewHead(x,'Six advisory organs','Optional roles · adapters in review',f);
-  const nodes=[['Vestibule','Orientation',370,405],['Adytum','Interpretation',960,365],['Nutrix','Learning proposals',1550,405],['Auspex','Diagnosis',370,740],['Circulator','Review',960,790],['Praeceptor','Improvement',1550,740]];
-  reviewOrbit(x,960,570,f,3);
-  nodes.forEach(([name,role,cx,cy],i)=>{
-    const a=tw(f,i*4,24+i*4,0,1);x.save();x.globalAlpha=a;
-    x.strokeStyle=rgba(C.gold,.35);x.lineWidth=1;x.beginPath();x.moveTo(960,570);x.lineTo(cx,cy);x.stroke();
-    x.fillStyle=C.ink;x.beginPath();x.arc(cx,cy,8,0,7);x.fill();x.strokeStyle=C.cyan;x.stroke();
-    txt(x,name,cx,cy-33,`600 47px ${SERIF}`,C.gold,{align:'center'});
-    txt(x,role,cx,cy+44,`400 30px ${SANS}`,C.text,{align:'center'});x.restore();
-  });
-  txt(x,'Vestibule: read-only draft · five further adapters held',960,900,`400 25px ${SANS}`,C.muted,{align:'center'});
+reviewHead(x,'Six advisory organs','Optional roles · adapters in review',f);
+const ox=960,oy=570;
+const nodes=[['Vestibule','Orientation',370,405],['Adytum','Interpretation',960,365],['Nutrix','Learning proposals',1550,405],['Auspex','Diagnosis',370,740],['Circulator','Review',960,770],['Praeceptor','Improvement',1550,740]];
+reviewOrbit(x,ox,oy,f,3);
+const ring=[0,1,2,5,4,3];x.save();x.globalAlpha=tw(f,30,60,0,.22);x.strokeStyle=C.gold;x.lineWidth=1;x.setLineDash([4,10]);x.lineDashOffset=-f*.2;x.beginPath();
+ring.forEach((n,j)=>{const p=nodes[n];j?x.lineTo(p[2],p[3]):x.moveTo(p[2],p[3]);});x.closePath();x.stroke();x.setLineDash([]);x.restore();
+const pf=tw(f,40,70,0,1);
+nodes.forEach(([name,role,cx,cy],i)=>{
+const a=tw(f,i*4,24+i*4,0,1),dx=cx-ox,dy=cy-oy,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L,sx=ox+ux*90,sy=oy+uy*90,ex=cx-ux*16,ey=cy-uy*16;
+x.save();x.globalAlpha=a;x.strokeStyle=rgba(C.gold,.35);x.lineWidth=1;x.beginPath();x.moveTo(sx,sy);x.lineTo(ex,ey);x.stroke();
+const t=((f+i*45)%270)/270;x.globalAlpha=a*pf*.6*Math.sin(Math.PI*t);x.fillStyle=C.cyan;x.beginPath();x.arc(sx+(ex-sx)*t,sy+(ey-sy)*t,3,0,7);x.fill();
+x.globalAlpha=a;x.lineWidth=1.5;x.strokeStyle=C.cyan;x.fillStyle=i===0?C.cyan:C.ink;x.beginPath();x.arc(cx,cy,8,0,7);x.fill();x.stroke();
+if(i>0){x.strokeStyle=rgba(C.gold,.45);x.lineWidth=1;x.setLineDash([3,5]);x.beginPath();x.arc(cx,cy,15,0,7);x.stroke();x.setLineDash([]);}
+x.restore();
+txt(x,name,cx,cy-33,`600 47px ${SERIF}`,C.gold,{align:'center',alpha:a});
+txt(x,role,cx,cy+44,`400 30px ${SANS}`,C.text,{align:'center',alpha:a});
+});
+txt(x,'ADVISORY',ox,oy+8,`500 24px ${MONO}`,C.gold,{align:'center',ls:2,alpha:tw(f,10,34,0,1)});
+const fa=tw(f,36,60,0,1);
+txt(x,'Vestibule: read-only draft · five further adapters held',960,872,`400 25px ${SANS}`,C.muted,{align:'center',alpha:fa});
+txt(x,'Public 0.8.0 plus review-source extensions · no accepted native installation asserted',960,908,`400 24px ${SANS}`,C.muted,{align:'center',alpha:fa*.85});
 }
 function toolingScene(x,f){
-  reviewHead(x,'Your tools, one operating layer','Plugins and skills extend the working profile',f);
-  const rows=[
-    ['CLAUDE EXTENSIONS','Superpowers · Feature Dev · Temperance Rail'],
-    ['CODING CLIENTS','Claude Code · Codex · OpenCode · Cursor'],
-    ['METHOD & ACCEPTANCE','PAI · optional GSD · ISA'],
-    ['ROUTING & SEARCH','OmniRoute · CodeGraph']
-  ];
-  rows.forEach(([label,names],i)=>{
-    const y=395+i*122,a=tw(f,i*6,28+i*6,0,1);
-    x.save();x.globalAlpha=a;x.strokeStyle=rgba(C.gold,.3);x.lineWidth=1;x.beginPath();x.moveTo(150,y+48);x.lineTo(1755,y+48);x.stroke();
-    txt(x,label,155,y-13,`400 21px ${MONO}`,C.cyan,{ls:2});
-    txt(x,names,155,y+28,`500 41px ${SANS}`,C.text);x.restore();
-  });
-  txt(x,'Selected installed extensions · profile choices, not core defaults',155,900,`400 25px ${SANS}`,C.muted);
+reviewHead(x,'Your tools, one operating layer','Plugins and skills extend the working profile',f);
+const ext=['Superpowers','Feature Dev','Supabase','Rust Analyzer','Temperance Rail'];
+x.save();x.font=`500 40px ${SANS}`;const ws=ext.map(s=>x.measureText(s).width);x.restore();
+const tot=ws.reduce((s,w)=>s+w,0),gap=Math.max(28,(1620-tot)/4);let run=155;const pos=ws.map(w=>{const p=run;run+=w+gap;return p;});const end=run-gap,ry=425;
+txt(x,'CLAUDE PROFILE · FIVE ENABLED PLUGINS',155,340,`400 24px ${MONO}`,C.cyan,{ls:2,alpha:tw(f,4,28,0,1)});
+const rp=tw(f,10,70,0,1),t=(f%180)/180,lx=155+t*(end-155),la=rp*Math.sin(Math.PI*t);
+x.save();x.strokeStyle=rgba(C.gold,.4);x.lineWidth=1;x.beginPath();x.moveTo(155,ry);x.lineTo(155+(end-155)*rp,ry);x.stroke();
+x.globalAlpha=.55*la;x.fillStyle=C.cyan;x.beginPath();x.arc(lx,ry,3.5,0,7);x.fill();x.restore();
+ext.forEach((n,i)=>{
+const a=tw(f,8+i*5,32+i*5,0,1),nx=pos[i]+ws[i]/2,near=Math.max(0,1-Math.abs(lx-nx)/90)*la;
+x.save();x.globalAlpha=a;x.translate(nx,ry);x.rotate(rad(45));x.fillStyle=C.ink;x.strokeStyle=near>.2?C.cyan:C.gold;x.lineWidth=1.5;x.fillRect(-5,-5,10,10);x.strokeRect(-5,-5,10,10);x.restore();
+txt(x,n,pos[i],400,`500 40px ${SANS}`,C.text,{alpha:a});
+});
+const ocx=1660,ocy=660;reviewOrbit(x,ocx,ocy,f,2);
+x.save();x.globalAlpha=tw(f,50,80,0,.5);x.strokeStyle=C.gold;x.lineWidth=1;x.beginPath();x.moveTo(ocx,ry+12);x.lineTo(ocx,ocy-119);x.stroke();x.restore();
+txt(x,'PROFILE',ocx,ocy+8,`500 24px ${MONO}`,C.gold,{align:'center',ls:2,alpha:tw(f,30,54,0,1)});
+const rows=[['CODING CLIENTS','Claude Code · Codex · OpenCode · Cursor'],['METHOD & ACCEPTANCE','PAI · optional GSD · ISA'],['ROUTING & SEARCH','OmniRoute · CodeGraph']];
+rows.forEach(([label,names],i)=>{
+const y=520+i*120,a=tw(f,24+i*6,52+i*6,0,1);
+x.save();x.globalAlpha=a;x.strokeStyle=rgba(C.gold,.3);x.lineWidth=1;x.beginPath();x.moveTo(150,y+48);x.lineTo(150+1350*a,y+48);x.stroke();x.restore();
+txt(x,label,155,y-13,`400 24px ${MONO}`,C.cyan,{ls:2,alpha:a});
+txt(x,names,155,y+28,`500 41px ${SANS}`,C.text,{alpha:a});
+});
+const fa=tw(f,60,90,0,1);
+txt(x,'Selected installed extensions · profile choices, not core defaults',155,868,`400 25px ${SANS}`,C.muted,{alpha:fa});
+txt(x,'Full 15 installed records and 150 skill manifests in companion docs · external owners retained',155,905,`400 24px ${SANS}`,C.muted,{alpha:fa*.85});
 }
 
 function render(f) {
