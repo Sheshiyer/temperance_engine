@@ -6,6 +6,6 @@ If `.planning/` exists, prefer `/gsd:progress` then the next `/gsd:*`. Run `/gsd
 
 Use the current-state to ideal-state loop. Keep verification evidence before completion claims.
 
-For `.agents` and skill-cluster structural questions, use CodeGraph with `projectPath: "$HOME/.agents"`; avoid Augment/codebase-retrieval for `$HOME` and `$HOME/.agents`. Startup scan is **hubs only** (`$HOME/.agents/skills` orchestrator+core + preserve, GSD profile `standard`). Never scan `$HOME/.agents/skill-clusters/skills`. Add a Thoughtseed git root with `thoughtseed-cockpit-add PATH --pin --te-init`. Execute stays Superset + Claude Code — not Codex App as a worker.
+For `.agents` and skill-cluster structural questions, use CodeGraph with `projectPath: "$HOME/.agents"`; avoid Augment/codebase-retrieval for `$HOME` and `$HOME/.agents`. Startup scan is **hubs only** (`$HOME/.agents/skills` orchestrator+core + preserve, GSD profile `standard`). Never scan `$HOME/.agents/skill-clusters/skills`. Add a Thoughtseed git root with `thoughtseed-cockpit-add PATH --pin --te-init`. Dispatch admitted work from a primary Codex or Claude Code surface into isolated git worktrees. Hermes keeps its own plant authority. Superset and Constellation are retired and excluded from new execution.
 
 Claude Code, Claude Pro/Max, Anthropic auth, and specific model access are optional. Do not block completion solely because a Claude-only advisor cannot run.

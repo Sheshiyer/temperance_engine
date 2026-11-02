@@ -4,7 +4,7 @@ Themed pages: [architecture/architecture.html](architecture/architecture.html) �
 
 Temperance Engine is a local runtime integration package for OpenCode/Cursor-first operator workflows. It does not require Claude Code, Claude Pro/Max, Anthropic auth, Codex auth, or a specific model; Claude and Codex instruction surfaces are optional compatibility targets.
 
-An optional second layer — a local OmniRoute gateway with governed model portfolios — sits on top once installed; see [OmniRoute Routing](architecture/omniroute-routing.html).
+OmniRoute is the default routing integration since 0.8.0. A host must install and verify its selected gateway; see [OmniRoute Routing](architecture/omniroute-routing.html).
 
 The Thoughtseed-member glove is `./install.sh --with-spine`. Public `./install.sh` stays OpenCode/Cursor-first. See [GSD + Manifest spine](gsd-manifest-spine.md) and the visual set under [docs/architecture/](architecture/README.md).
 
@@ -15,7 +15,7 @@ The Thoughtseed-member glove is `./install.sh --with-spine`. Public `./install.s
 - Voice adapter: optional peon-ping invocation by phase. Distinct from Voice `:8888`.
 - Skill-cluster routing: resolver guidance and health-check conventions.
 - CodeGraph routing: structural search for `$HOME/.agents`.
-- OmniRoute routing (optional): local gateway `:20128` plus relay `:20129` for `temperance/temperance-auto` and Kimi. Combos: `te-plan`, `te-build`, `te-reason`, `te-validate`, `te-dispatch-paid`. Sol is babysit-only, never a fleet head.
+- OmniRoute routing: the host owns provider credentials, models, combos and fallback. Current lanes use `noesis-*` names. Historical `te-*` aliases are not current routing authority. See [COMPATIBILITY.md](COMPATIBILITY.md).
 - GSD slash spine (optional `--with-gsd` / `--with-spine`): thin `/gsd:*` remotes on Claude Code, Codex, OpenCode, and Grok. They read GSD 1.30.0 workflows. They do not fork GSD. `/gsd:doctor` and `/gsd:goal` are Temperance-owned. Claude also gets native `/goal`.
 - UPS compose: `package/hooks/codex` and `package/hooks/claude` PromptProcessing emit one `additionalContext` envelope — classifier + `<temperance-rail>` + `<gsd-rail>` + `<pai-mode-offer>` + hook receipt. Companion hooks must not steal stdin.
 - Manifest Zone / **Speculum** (optional `--with-manifest` / `--with-spine`): Vite LCARS on `:5173`. Named glass `https://speculum.localhost:1355` via [portless](https://github.com/vercel-labs/portless) when installed. ChatGPT IAB stays `http://127.0.0.1:5173`. Projection only. Bound planning projects, not every Vas cwd. Live STATE / ROADMAP / GOAL. Never Chrome/Safari.
@@ -32,7 +32,7 @@ The Thoughtseed-member glove is `./install.sh --with-spine`. Public `./install.s
 3. After a mode exists, open ChatGPT IAB only (Codex/Claude) or print the URL (Grok): `http://127.0.0.1:5173/?mode=…&view=…`. Never Chrome/Safari.
 4. PromptProcessing classifies the prompt and composes one rail envelope. GSD wrappers name `/gsd:*` plus combo plus Manifest view.
 5. The agent follows the 7-phase PAI shell. `active_planner` is `isa` or `gsd`. Plan via `/gsd:plan-phase` or `writing-plans`.
-6. Execute needs next-wave approval. Fleet work uses `te-dispatch-paid` under the dual-fleet lock. Manifest cannot approve or launch.
+6. Execute needs next-wave approval. Fleet work uses `noesis-execute` under the dual-fleet lock. Manifest cannot approve or launch.
 7. `/gsd:goal` binds ISA Goal or GSD STATE into `.temperance/goal.json`. The evaluator reuses doctor/ISA probes. Fail → continue the same `/gsd:*`. Pass → stop.
 8. If Pulse is enabled, phase notifications POST to `localhost:31337/notify` (peon). Non-phase may forward to Voice `:8888`.
 9. Code search for `.agents` uses CodeGraph instead of blocked semantic retrieval.

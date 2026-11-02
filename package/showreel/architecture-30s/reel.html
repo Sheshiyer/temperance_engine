@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Temperance Showreel</title>
+<link href="assets/fonts.css" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #07090b; }
+  body { display: grid; place-items: center; }
+  canvas { width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; display: block; cursor: pointer; }
+  body.vertical canvas { width: min(100vw, calc(100vh * 9 / 16)); aspect-ratio: 9 / 16; }
+  #hint { position: fixed; bottom: 16px; left: 0; right: 0; text-align: center; color: #8d9a9c; font: 13px "DM Mono", monospace; letter-spacing: .2em; }
+  body.capture #hint { display: none; }
+  body.capture canvas { width: auto; aspect-ratio: auto; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<div id="hint">CLICK TO PLAY · SPACE PAUSE · ←/→ SCRUB</div>
+<audio id="a" src="public/soundtrack.wav" preload="auto"></audio>
+<svg id="measure" width="0" height="0" style="position:absolute"></svg>
+<script>
+"use strict";
+// ───────────────────────────────────────────── constants
+const params = new URLSearchParams(location.search);
+// ?aspect=9x16 → vertical cut for socials. Same timeline, same soundtrack, re-laid-out scenes.
+const VERT = false; // This reviewed composition supports landscape only.
+const W = VERT ? 1080 : 1920, H = VERT ? 1920 : 1080, FPS = 60, BEAT = 30, N = 1800; // 120 BPM → 1 beat = 30 frames
+if (VERT) document.body.classList.add("vertical");
+const S = { ignite: 0, title: 90, phases: 240, routing: 660, koshas: 660, verify: 930, organs: 930, tooling: 1200, lockup: 1560, end: 1800 };
+// Tokens from docs/assets/te-docs.css
+const C = {
+  ink: "#07090b", panel: "#10161a", line: "#263138", lineBright: "#394951", text: "#e7eeed",
+  muted: "#8d9a9c", cyan: "#65d9e8", ember: "#f39b54", gold: "#e9cf79", goldDeep: "#8a6d2a",
+  mint: "#a8e7c4", rose: "#ff8990", data: "#3d8ea8",
+};
+const SERIF = '"Cormorant Garamond", Palatino, serif';
+const SANS = '"Space Grotesk", system-ui, sans-serif';
+const MONO = '"DM Mono", Menlo, monospace';
+
+// ───────────────────────────────────────────── math
+const bezier = (x1, y1, x2, y2) => {
+  const B = (t, a, b) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0, hi = 1, t = x;
+    for (let i = 0; i < 24; i++) { t = (lo + hi) / 2; if (B(t, x1, x2) < x) lo = t; else hi = t; }
+    return B(t, y1, y2);
+  };
+};
+const E = { out: bezier(.16, 1, .3, 1), in: bezier(.7, 0, .84, 0), io: bezier(.65, 0, .35, 1), back: bezier(.34, 1.56, .64, 1) };
+const tw = (f, a, b, v0, v1, e = E.out) => v0 + (v1 - v0) * e(Math.min(1, Math.max(0, (f - a) / (b - a))));
+const decay = (f, at, len) => (f < at ? 0 : Math.exp(-(f - at) / len));
+const rad = (d) => (d * Math.PI) / 180;
+const rnd = (s) => {
+  let h = 2166136261; s = String(s);
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15;
+  return (h >>> 0) / 4294967296;
+};
+const noise = (s) => rnd(s) * 2 - 1;
+const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const rgba = (h, a) => { const [r, g, b] = hexRGB(h); return `rgba(${r},${g},${b},${a})`; };
+const mix = (a, b, t) => { const x = hexRGB(a), y = hexRGB(b), k = Math.min(1, Math.max(0, t)); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * k))})`; };
+
+const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&*+=<>/\\[]{}";
+const scramble = (text, f, start, per = 2, settle = 10) => text.split("").map((ch, i) => {
+  if (ch === " ") return " ";
+  if (f >= start + i * per + settle) return ch;
+  if (f < start + i * per * 0.5) return "";
+  return GLYPHS[Math.floor(rnd(`${text}${i}${Math.floor(f / 2)}`) * GLYPHS.length)];
+}).join("");
+const typed = (t, f, start, cps = 1.2) => t.slice(0, Math.max(0, Math.floor((f - start) * cps)));
+
+// ───────────────────────────────────────────── canvas plumbing
+const cv = document.getElementById("c");
+cv.width = W; cv.height = H;
+const ctx = cv.getContext("2d");
+const NS = "http://www.w3.org/2000/svg";
+const measureSvg = document.getElementById("measure");
+const PATHS = new Map();
+const P = (d) => {
+  let p = PATHS.get(d);
+  if (!p) {
+    const el = document.createElementNS(NS, "path");
+    el.setAttribute("d", d);
+    measureSvg.appendChild(el);
+    p = { p: new Path2D(d), len: el.getTotalLength() };
+    PATHS.set(d, p);
+  }
+  return p;
+};
+/** Stroke-dash draw-on: reveals `prog` (0..1) of the path. */
+const draw = (x, d, prog, len) => {
+  if (prog <= 0) return;
+  const path = typeof d === "string" ? P(d) : { p: d, len };
+  x.setLineDash([path.len, path.len + 2]);
+  x.lineDashOffset = path.len * (1 - Math.min(1, prog));
+  x.stroke(path.p);
+  x.setLineDash([]);
+};
+const circ = (cx, cy, r) => `M${cx} ${cy - r} a${r} ${r} 0 1 1 0 ${2 * r} a${r} ${r} 0 1 1 0 ${-2 * r}`;
+const poly = (n, r, rot) => "M" + Array.from({ length: n }, (_, i) => {
+  const a = rad(rot + (i * 360) / n);
+  return `${(Math.cos(a) * r).toFixed(2)} ${(Math.sin(a) * r).toFixed(2)}`;
+}).join(" L") + " Z";
+
+const pool = [];
+/** Fresh, cleared offscreen layer #i. */
+const layer = (i) => {
+  if (!pool[i]) { const c = document.createElement("canvas"); c.width = W; c.height = H; pool[i] = c; }
+  const c = pool[i], x = c.getContext("2d");
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  Object.assign(x, { globalAlpha: 1, filter: "none", globalCompositeOperation: "source-over", shadowBlur: 0, shadowColor: "transparent" });
+  x.clearRect(0, 0, W, H);
+  return [c, x];
+};
+const comp = (dst, src, o = {}) => {
+  const { alpha = 1, blur = 0, scale = 1, ox = W / 2, oy = H / 2, dx = 0, dy = 0, op = "source-over" } = o;
+  if (alpha <= 0.002) return;
+  dst.save();
+  dst.globalAlpha *= alpha;
+  dst.globalCompositeOperation = op;
+  if (blur > 0.05) dst.filter = `blur(${blur.toFixed(2)}px)`;
+  dst.translate(ox + dx, oy + dy);
+  dst.scale(scale, scale);
+  dst.translate(-ox, -oy);
+  dst.drawImage(src, 0, 0);
+  dst.restore();
+};
+/** Text with tracking; returns visual width. */
+const txt = (x, s, px, py, font, color, o = {}) => {
+  const { ls = 0, align = "left", base = "alphabetic", alpha = 1, glow = 0, glowC } = o;
+  x.save();
+  x.font = font; x.letterSpacing = `${ls}px`; x.textBaseline = base; x.textAlign = "left";
+  x.fillStyle = color; x.globalAlpha *= alpha;
+  if (glow) { x.shadowColor = glowC || color; x.shadowBlur = glow; }
+  const w = x.measureText(s).width - (s.length ? ls : 0);
+  const sx = align === "center" ? px - w / 2 : align === "right" ? px - w : px;
+  if (alpha > 0.002) x.fillText(s, sx, py);
+  x.restore();
+  return w;
+};
+const textW = (x, s, font, ls = 0) => { x.save(); x.font = font; x.letterSpacing = `${ls}px`; const w = x.measureText(s).width - (s.length ? ls : 0); x.restore(); return w; };
+const charW = (x, ch, font) => { x.save(); x.font = font; x.letterSpacing = "0px"; const w = x.measureText(ch).width; x.restore(); return w; };
+const goldFill = (x, top, bottom) => {
+  const g = x.createLinearGradient(0, top, 0, bottom);
+  g.addColorStop(0, "#fff3c4"); g.addColorStop(0.38, C.gold); g.addColorStop(0.7, "#c9a24a"); g.addColorStop(1, C.goldDeep);
+  return g;
+};
+
+// ───────────────────────────────────────────── impacts / camera
+const IMPACTS = [
+  [S.title, 1], [S.phases, 0.45],
+  ...[1, 2, 3, 4, 5, 6].map((i) => [S.phases + i * BEAT, 0.22]),
+  [S.routing, 0.6], ...[1, 2, 3, 4, 5].map((i) => [S.routing + i * BEAT, 0.1]),
+  [S.verify, 0.55], [S.lockup, 1.35],
+];
+const energy = (f) => IMPACTS.reduce((a, [at, p]) => a + p * decay(f, at, 7), 0);
+const shake = (f) => { const e = energy(f); return { x: noise(`sx${f}`) * 26 * e, y: noise(`sy${f}`) * 18 * e, r: noise(`sr${f}`) * 0.6 * e }; };
+
+// Background glow tempers through the alchemical colours: nigredo → albedo → citrinitas → rubedo.
+const TINT = [
+  [0, C.cyan], [S.title, C.gold], [S.phases, C.data], [S.phases + BEAT, C.text], [S.phases + 3 * BEAT, C.gold],
+  [S.phases + 4 * BEAT, C.ember], [S.phases + 5 * BEAT, C.rose], [S.phases + 6 * BEAT, C.mint],
+  [S.routing, C.cyan], [S.verify, C.mint], [S.lockup, C.gold],
+];
+const tint = (f) => {
+  let i = 0;
+  while (i < TINT.length - 1 && f >= TINT[i + 1][0]) i++;
+  return mix(i === 0 ? TINT[0][1] : TINT[i - 1][1], TINT[i][1], (f - TINT[i][0]) / 14);
+};
+
+// ───────────────────────────────────────────── precomputed textures
+const mk = (w, h, fn) => { const c = document.createElement("canvas"); c.width = w; c.height = h; fn(c.getContext("2d"), c); return c; };
+const lattice = mk(W + 36, H + 36, (x) => {
+  x.fillStyle = rgba(C.lineBright, 0.55);
+  for (let y = 0; y < H + 36; y += 36) for (let i = 0; i < W + 36; i += 36) { x.beginPath(); x.arc(i + 18, y + 18, 1.1, 0, 7); x.fill(); }
+  x.globalCompositeOperation = "destination-in";
+  const g = x.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 1000);
+  g.addColorStop(0, "#000"); g.addColorStop(1, "rgba(0,0,0,0)");
+  x.fillStyle = g; x.fillRect(0, 0, W + 36, H + 36);
+});
+const grains = Array.from({ length: 6 }, (_, k) => mk(W / 2, H / 2, (x) => {
+  const img = x.createImageData(W / 2, H / 2);
+  let s = 1234567 + k * 7919;
+  for (let i = 0; i < img.data.length; i += 4) {
+    s = (Math.imul(s, 1103515245) + 12345) >>> 0;
+    const v = s >>> 24;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+}));
+const scan = mk(4, 4, (x) => { x.fillStyle = "rgba(0,0,0,0.16)"; x.fillRect(0, 0, 4, 1); });
+let scanPattern = null;
+
+// ───────────────────────────────────────────── chrome
+function backdrop(x, f) {
+  x.fillStyle = C.ink; x.fillRect(0, 0, W, H);
+  const drift = Math.sin(f / 90) * 60;
+  const glow = (cx, cy, r, col, a) => {
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, rgba(col, a)); g.addColorStop(1, rgba(col, 0));
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  };
+  glow(W * 0.72 + drift, -60 + drift / 2, 1000, C.gold, 0.1);
+  glow(-80 - drift, H + 40, 900, C.cyan, 0.08);
+  x.save();
+  x.globalCompositeOperation = "screen";
+  const t = tint(f), [r, g, b] = t.match(/\d+/g).map(Number);
+  const gr = x.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 820);
+  const a = 0.15 + energy(f) * 0.09;
+  gr.addColorStop(0, `rgba(${r},${g},${b},${a})`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+  x.fillStyle = gr; x.fillRect(0, 0, W, H);
+  x.restore();
+  x.save(); x.globalAlpha = 0.4;
+  x.drawImage(lattice, -36 + ((f * 0.4) % 36), -36 + ((f * 0.25) % 36));
+  x.restore();
+}
+
+function hud(x, f) {
+  const a = Math.min(1, f / 24);
+  x.save(); x.globalAlpha = a;
+  x.strokeStyle = rgba(C.gold, 0.7); x.lineWidth = 2;
+  for (const [cx, cy, sx, sy] of [[40, 40, 1, 1], [W - 40, 40, -1, 1], [W - 40, H - 40, -1, -1], [40, H - 40, 1, -1]]) {
+    x.beginPath(); x.moveTo(cx, cy + 34 * sy); x.lineTo(cx, cy); x.lineTo(cx + 34 * sx, cy); x.stroke();
+  }
+  const m = `400 15px ${MONO}`, ls = 3.3;
+  txt(x, "●", 92, 66, m, C.gold);
+  txt(x, "TEMPERANCE ENGINE · SHOWREEL", 116, 66, m, rgba(C.muted, 0.95), { ls });
+  const sec = Math.floor(f / FPS), fr = f % FPS, pad = (n) => String(n).padStart(2, "0");
+  txt(x, `TC 00:00:${pad(sec)}:${pad(fr)}`, W - 92, 66, m, C.cyan, { ls, align: "right" });
+  txt(x, "ARCHITECTURE ILLUSTRATION · v0.8.0", 92, H - 52, m, rgba(C.muted, 0.95), { ls });
+  const bp = decay(f % BEAT, 0, 6);
+  const w = txt(x, `60 BPM · ${W}×${H} · 60P`, W - 92, H - 52, m, rgba(C.muted, 0.95), { ls, align: "right" });
+  x.save(); x.fillStyle = C.ember; x.shadowColor = C.ember; x.shadowBlur = 6 + bp * 18; x.globalAlpha *= 0.45 + bp * 0.55;
+  x.beginPath(); x.arc(W - 92 - w - 18, H - 57, 4.5, 0, 7); x.fill(); x.restore();
+  // timeline rail
+  const L = 92, R = W - 92, y = H - 92;
+  x.fillStyle = rgba(C.lineBright, 0.6); x.fillRect(L, y, R - L, 1);
+  const g = x.createLinearGradient(L, 0, R, 0); g.addColorStop(0, C.cyan); g.addColorStop(1, C.gold);
+  x.save(); x.fillStyle = g; x.shadowColor = rgba(C.gold, 0.8); x.shadowBlur = 12; x.fillRect(L, y - 0.5, (R - L) * (f / N), 2); x.restore();
+  for (const at of Object.values(S)) { x.fillStyle = f >= at ? C.gold : C.lineBright; x.fillRect(L + (R - L) * (at / N), y - 5, 1, 11); }
+  x.restore();
+}
+
+function flash(x, f) {
+  const big = decay(f, S.title, 5) + decay(f, S.lockup, 7) * 1.2;
+  const small = decay(f, S.phases, 3) * 0.4 + decay(f, S.routing, 3) * 0.5 + decay(f, S.verify, 3) * 0.45;
+  const o = Math.min(1, big * 0.85 + small * 0.6);
+  if (o < 0.003) return;
+  x.save(); x.globalCompositeOperation = "screen"; x.globalAlpha = o;
+  const g = x.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 1100);
+  g.addColorStop(0, "#fffaf0"); g.addColorStop(0.45, C.gold); g.addColorStop(1, rgba(C.ember, 0.6));
+  x.fillStyle = g; x.fillRect(0, 0, W, H); x.restore();
+}
+
+function finish(x, f) {
+  x.save();
+  x.globalCompositeOperation = "overlay"; x.globalAlpha = 0.09;
+  x.drawImage(grains[f % grains.length], 0, 0, W, H);
+  x.globalCompositeOperation = "source-over"; x.globalAlpha = 0.35;
+  scanPattern = scanPattern || x.createPattern(scan, "repeat");
+  x.fillStyle = scanPattern; x.fillRect(0, 0, W, H);
+  x.globalAlpha = 1;
+  const D = Math.hypot(W, H) / 2, v = x.createRadialGradient(W / 2, H / 2, D * 0.41, W / 2, H / 2, D * 1.08);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,0.8)");
+  x.fillStyle = v; x.fillRect(0, 0, W, H);
+  x.restore();
+}
+
+function glitch(dst, src, amt, f) {
+  let y = 0, k = 0;
+  const step = Math.floor(f / 2);
+  while (y < H) {
+    const h = 30 + rnd(`gh${step}${k}`) * 140;
+    const off = noise(`go${step}${k}`) * amt * 160;
+    dst.drawImage(src, 0, y, W, h, off, y, W, h);
+    y += h; k++;
+  }
+  dst.save(); dst.globalCompositeOperation = "lighter"; dst.globalAlpha = amt * 0.35;
+  dst.drawImage(src, amt * 22, 0); dst.drawImage(src, -amt * 22, 0);
+  dst.restore();
+}
+
+// ───────────────────────────────────────────── sigils (planetary, as in package/router/rail-announce.ts)
+const SIGILS = {
+  saturn: ["M40 12 V66", "M27 25 H53", "M40 46 Q42 36 53 37 Q66 39 63 54 Q60 66 51 74 Q45 81 55 88"],
+  mercury: ["M35 10 Q50 30 65 10", circ(50, 42, 15), "M50 57 V90", "M37 76 H63"],
+  sun: [circ(50, 50, 32), circ(50, 50, 4)],
+  jupiter: ["M26 30 Q28 16 42 17 Q56 19 50 36 L28 64 H74", "M62 38 V90"],
+  mars: [circ(42, 62, 20), "M56 47 L80 22", "M61 22 H80 V41"],
+  venus: [circ(50, 37, 21), "M50 58 V92", "M35 76 H65"],
+  moon: ["M60 12 A38 38 0 1 0 60 88 A30 30 0 1 1 60 12"],
+};
+function sigil(x, name, cx, cy, size, prog, color, stroke = 3, glow = 10) {
+  const paths = SIGILS[name];
+  x.save();
+  x.translate(cx - size / 2, cy - size / 2); x.scale(size / 100, size / 100);
+  x.strokeStyle = color; x.lineWidth = stroke; x.lineCap = "round"; x.lineJoin = "round";
+  if (glow) { x.shadowColor = color; x.shadowBlur = glow; }
+  paths.forEach((d, i) => draw(x, d, Math.min(1, Math.max(0, prog * (paths.length + 0.6) - i))));
+  x.restore();
+}
+
+// ═════════════════════════════════════════════ SCENE 1 · IGNITION (0–120)
+function ignition(x, f) {
+  const CX = W / 2, CY = VERT ? 820 : 470, R = 280;
+  const spin = f * 0.22 + tw(f, 88, 120, 0, 140, E.in);
+  const sc = tw(f, 0, 90, 0.84, 1) * tw(f, 92, 120, 1, 3.6, E.in);
+  const fade = tw(f, 104, 120, 1, 0, E.in);
+  const dr = (a, b) => tw(f, a, b, 0, 1, E.io);
+
+  const fl = tw(f, 0, 6, 0, 1) * tw(f, 6, 34, 1, 0);
+  if (fl > 0.01) {
+    x.save(); x.globalAlpha = fl;
+    const g = x.createLinearGradient(CX - 900, 0, CX + 900, 0);
+    g.addColorStop(0, rgba(C.cyan, 0)); g.addColorStop(0.35, rgba(C.cyan, 0.9)); g.addColorStop(0.5, "#ffffff");
+    g.addColorStop(0.65, rgba(C.cyan, 0.9)); g.addColorStop(1, rgba(C.cyan, 0));
+    x.fillStyle = g; x.shadowColor = C.cyan; x.shadowBlur = 16;
+    const w = 1800 * (0.2 + fl * 0.8); x.fillRect(CX - w / 2, CY - 1.5, w, 3); x.restore();
+  }
+
+  x.save();
+  x.globalAlpha = fade; x.translate(CX, CY); x.rotate(rad(spin)); x.scale(sc, sc);
+  x.lineCap = "round"; x.lineJoin = "round"; x.shadowColor = rgba(C.gold, 0.7); x.shadowBlur = 8;
+  x.strokeStyle = C.gold; x.lineWidth = 2; draw(x, circ(0, 0, R), dr(4, 40));
+  x.strokeStyle = rgba(C.gold, 0.35); x.lineWidth = 1; draw(x, circ(0, 0, R + 46), dr(10, 52));
+  for (let i = 0; i < 72; i++) {
+    const a = rad(i * 5), long = i % 6 === 0, on = tw(f, 10 + i * 0.55, 14 + i * 0.55, 0, 1);
+    if (on <= 0) continue;
+    const r1 = R + 12, r2 = r1 + ((long ? 22 : 10) * on);
+    x.strokeStyle = long ? C.gold : rgba(C.gold, 0.5); x.lineWidth = long ? 2 : 1;
+    x.beginPath(); x.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); x.lineTo(Math.cos(a) * r2, Math.sin(a) * r2); x.stroke();
+  }
+  x.lineWidth = 1.6; x.strokeStyle = C.gold; draw(x, poly(3, R, -90), dr(18, 50));
+  x.save(); x.strokeStyle = C.cyan; x.shadowColor = C.cyan; draw(x, poly(3, R, 90), dr(24, 56)); x.restore();
+  x.strokeStyle = rgba(C.gold, 0.8); x.lineWidth = 1.4; draw(x, poly(4, R * 0.707, 45), dr(30, 62));
+  x.strokeStyle = C.gold; draw(x, circ(0, 0, 140), dr(36, 66));
+  x.save(); x.globalAlpha *= tw(f, 44, 60, 0, 1); x.strokeStyle = rgba(C.cyan, 0.55); x.lineWidth = 1; x.setLineDash([3, 9]);
+  x.beginPath(); x.arc(0, 0, 98, 0, Math.PI * 2); x.stroke(); x.restore();
+  for (let i = 0; i < 7; i++) {
+    const a = rad(-90 + (i * 360) / 7), on = tw(f, 50 + i * 3, 58 + i * 3, 0, 1, E.back);
+    if (on <= 0) continue;
+    x.save(); x.translate(Math.cos(a) * R, Math.sin(a) * R); x.scale(on, on);
+    x.fillStyle = C.ink; x.strokeStyle = C.gold; x.lineWidth = 2;
+    x.beginPath(); x.arc(0, 0, 13, 0, 7); x.fill(); x.stroke();
+    x.fillStyle = C.cyan; x.shadowColor = C.cyan; x.shadowBlur = 10; x.beginPath(); x.arc(0, 0, 5, 0, 7); x.fill();
+    x.restore();
+  }
+  x.restore();
+
+  // the spark
+  const s = tw(f, 0, 10, 0, 1, E.back) * (1 + 0.15 * Math.sin(f / 3)) * tw(f, 96, 118, 1, 4, E.in);
+  if (s > 0.01 && fade > 0.01) {
+    x.save(); x.globalAlpha = fade;
+    const g = x.createRadialGradient(CX, CY, 0, CX, CY, 90 * s);
+    g.addColorStop(0, rgba(C.gold, 0.8)); g.addColorStop(0.3, rgba(C.ember, 0.35)); g.addColorStop(1, rgba(C.ember, 0));
+    x.fillStyle = g; x.beginPath(); x.arc(CX, CY, 90 * s, 0, 7); x.fill();
+    x.fillStyle = "#fff8dc"; x.shadowColor = C.gold; x.shadowBlur = 28; x.beginPath(); x.arc(CX, CY, 9 * s, 0, 7); x.fill();
+    x.restore();
+  }
+
+  const ta = tw(f, 94, 108, 1, 0);
+  txt(x, scramble("NOESIS", f, 30, 3, 12), CX, CY + R + 92, `400 30px ${MONO}`, C.gold, { ls: 27, align: "center", alpha: ta, glow: 18, glowC: rgba(C.gold, 0.6) });
+  const full = "// igniting the local operator runtime", lx = CX - textW(x, full, `400 17px ${MONO}`, 3) / 2;
+  const line = typed(full, f, 52, 1.6);
+  const lw = txt(x, line, lx, CY + R + 138, `400 17px ${MONO}`, C.muted, { ls: 3, alpha: ta });
+  if (Math.floor(f / 8) % 2 && f > 40) txt(x, "▌", lx + lw + 6, CY + R + 138, `400 17px ${MONO}`, C.cyan, { alpha: ta });
+}
+
+// ═════════════════════════════════════════════ SCENE 2 · TITLE (120–240)
+// Title layout per aspect: pour arc, cups, wordmark rows.
+const TL = VERT
+  ? { pour: [{ x: 224, y: 530 }, { x: 1010, y: 380 }, { x: 870, y: 1330 }], cupA: [190, 560], cupB: [870, 1384],
+      xivY: 930, size: 186, base: 900, engY: 1036, sub: 1124, rule: 150 }
+  : { pour: [{ x: 300, y: 300 }, { x: 980, y: -40 }, { x: 1610, y: 740 }], cupA: [266, 330], cupB: [1610, 794],
+      xivY: 560, size: 236, base: 520, engY: 664, sub: 748, rule: 300 };
+const POUR = TL.pour;
+const pourAt = (t) => ({
+  x: (1 - t) ** 2 * POUR[0].x + 2 * (1 - t) * t * POUR[1].x + t * t * POUR[2].x,
+  y: (1 - t) ** 2 * POUR[0].y + 2 * (1 - t) * t * POUR[1].y + t * t * POUR[2].y,
+});
+function chalice(x, cx, cy, rot, prog, color) {
+  x.save(); x.translate(cx, cy); x.rotate(rad(rot));
+  x.strokeStyle = color; x.lineWidth = 3; x.lineCap = "round"; x.shadowColor = color; x.shadowBlur = 12;
+  ["M-46 -44 Q-46 14 0 18 Q46 14 46 -44 Z", "M0 18 V58", "M-28 62 H28", "M-46 -44 H46"]
+    .forEach((d, i) => draw(x, d, prog * 1.6 - i * 0.2));
+  x.restore();
+}
+function title(dst, f) {
+  const [lc, x] = layer(1);
+  const e = energy(f + S.title);
+  const exit = tw(f, 102, 120, 0, 1, E.in);
+
+  // XIV — the card number, as architecture
+  x.save();
+  x.globalAlpha = tw(f, 0, 20, 0, 1);
+  x.translate(W / 2 + tw(f, 0, 120, 140, -80), TL.xivY); x.scale(tw(f, 0, 120, 1.18, 1), tw(f, 0, 120, 1.18, 1));
+  x.font = `italic 500 820px ${SERIF}`; x.textAlign = "center"; x.textBaseline = "middle";
+  x.strokeStyle = rgba(C.gold, 0.17); x.lineWidth = 1.5; x.strokeText("XIV", 0, 0);
+  x.restore();
+
+  chalice(x, TL.cupA[0], TL.cupA[1], -38, tw(f, 0, 30, 0, 1), C.cyan);
+  chalice(x, TL.cupB[0], TL.cupB[1], 0, tw(f, 8, 38, 0, 1), C.gold);
+
+  // the pour: cyan mixes into gold along the arc
+  const fill = tw(f, 6, 46, 0, 1, E.io);
+  x.save();
+  for (let i = 0; i < 150; i++) {
+    const u = (rnd(`p${i}`) + f * (0.006 + rnd(`v${i}`) * 0.004)) % 1;
+    if (u > fill) continue;
+    const p = pourAt(u), j = (rnd(`j${i}`) - 0.5) * 26 * Math.sin(u * Math.PI);
+    const col = mix(C.cyan, C.gold, u);
+    x.globalAlpha = 0.35 + rnd(`o${i}`) * 0.6; x.fillStyle = col; x.shadowColor = col; x.shadowBlur = 8;
+    x.beginPath(); x.arc(p.x + j * 0.6, p.y + j, 1.6 + rnd(`s${i}`) * 4.2, 0, 7); x.fill();
+  }
+  x.restore();
+
+  // wordmark: per-letter rise, tracking tightens, RGB split on impact
+  const WORD = "Temperance", font = `600 ${TL.size}px ${SERIF}`, base = TL.base, k = TL.size / 236;
+  const tracking = tw(f, 0, 70, 0.14, -0.025) * TL.size;
+  const widths = WORD.split("").map((ch) => charW(x, ch, font));
+  const total = widths.reduce((a, b) => a + b, 0) + tracking * (WORD.length - 1);
+  const pass = (fillStyle, dx, alpha, op) => {
+    let cx = W / 2 - total / 2;
+    WORD.split("").forEach((ch, i) => {
+      const p = tw(f, 2 + i * 2.2, 18 + i * 2.2, 0, 1);
+      if (p > 0.002) {
+        x.save();
+        x.globalCompositeOperation = op; x.globalAlpha = p * alpha; x.font = font; x.letterSpacing = "0px";
+        if ((1 - p) * 16 > 0.1) x.filter = `blur(${((1 - p) * 16).toFixed(2)}px)`;
+        x.translate(cx + widths[i] / 2 + dx, base + (1 - p) * 110 * k); x.rotate(rad((1 - p) * (i % 2 ? 8 : -8)));
+        x.fillStyle = typeof fillStyle === "function" ? fillStyle() : fillStyle;
+        if (op === "source-over") { x.shadowColor = rgba(C.gold, 0.35); x.shadowBlur = 30; x.shadowOffsetY = 6; }
+        x.fillText(ch, -widths[i] / 2, 0);
+        x.restore();
+      }
+      cx += widths[i] + tracking;
+    });
+  };
+  if (e > 0.02) { pass(C.cyan, -e * 14, Math.min(1, e * 1.4), "lighter"); pass(C.ember, e * 14, Math.min(1, e * 1.4), "lighter"); }
+  pass(() => goldFill(x, -180 * k, 20 * k), 0, 1, "source-over");
+
+  // ENGINE, revealed from the centre out, flanked by gold rules
+  const ef = `600 62px ${SANS}`, els = 52.7, CX = W / 2;
+  const ew = textW(x, "ENGINE", ef, els);
+  const rev = tw(f, 26, 54, 0, 1);
+  x.save(); x.beginPath(); x.rect(CX - (ew / 2 + 10) * rev, TL.engY - 64, (ew + 20) * rev, 100); x.clip();
+  txt(x, "ENGINE", CX, TL.engY, ef, C.cyan, { ls: els, align: "center", glow: 24, glowC: rgba(C.cyan, 0.55) });
+  x.restore();
+  const rl = tw(f, 30, 70, 0, TL.rule);
+  for (const s of [-1, 1]) {
+    const x0 = CX + s * (ew / 2 + 34), g = x.createLinearGradient(x0, 0, x0 + s * rl, 0);
+    g.addColorStop(0, C.gold); g.addColorStop(1, rgba(C.gold, 0));
+    x.fillStyle = g; x.fillRect(Math.min(x0, x0 + s * rl), TL.engY - 21, rl, 1);
+  }
+  const subFull = "LOCAL OPERATOR RUNTIME — PAI · GSD · OMNIROUTE", subF = `400 19px ${MONO}`;
+  txt(x, typed(subFull, f, 50, 1.4), CX - textW(x, subFull, subF, 6.5) / 2, TL.sub, subF, C.muted, { ls: 6.5 });
+
+  comp(dst, lc, { alpha: 1 - exit, blur: exit * 10, scale: 1 + exit * 0.12 });
+}
+
+// ═════════════════════════════════════════════ SCENE 3 · SEVEN PHASES (240–480)
+const PHASES = [
+  { name: "OBSERVE", stage: "Nigredo", sigil: "saturn", color: C.cyan, line: "reverse-engineer the ask" },
+  { name: "THINK", stage: "Albedo", sigil: "mercury", color: C.text, line: "riskiest assumptions first" },
+  { name: "PLAN", stage: "Citrinitas", sigil: "sun", color: C.text, line: "every deliverable, mapped" },
+  { name: "BUILD", stage: "Citrinitas", sigil: "jupiter", color: C.gold, line: "invoke the capabilities" },
+  { name: "EXECUTE", stage: "Rubedo", sigil: "mars", color: C.ember, line: "record the actual attempt" },
+  { name: "VERIFY", stage: "Rubedo", sigil: "venus", color: C.rose, line: "probe every claim" },
+  { name: "LEARN", stage: "Rubedo", sigil: "moon", color: C.mint, line: "review learning proposals" },
+];
+function phases(dst, f) {
+  // Landscape: type left, wheel right. Vertical: wheel on top, type centred beneath.
+  const PL = VERT
+    ? { WX: W / 2, WY: 690, WR: 270, hy: 1150, wy: 1290, sy: 1458, dy: 1524, center: true }
+    : { WX: 1350, WY: 520, WR: 300, hy: 322, wy: 460, sy: 628, dy: 694, center: false };
+  const { WX, WY, WR } = PL;
+  const idx = Math.min(6, Math.floor(f / BEAT)), lf = f - idx * BEAT, cur = PHASES[idx], prev = idx > 0 ? PHASES[idx - 1] : null;
+  const enter = tw(f, 0, 16, 0, 1), exit = tw(f, 206, 240, 0, 1, E.in), sceneA = enter * (1 - tw(f, 226, 240, 0, 1));
+  const pulse = decay(lf, 0, 7);
+  const startX = (width) => (PL.center ? W / 2 - width / 2 : 150);
+
+  // beat sweep
+  dst.save(); dst.globalAlpha = (1 - tw(lf, 6, 12, 0, 1)) * sceneA;
+  const sy = tw(lf, 0, 12, -10, H + 10), sg = dst.createLinearGradient(0, 0, W, 0);
+  sg.addColorStop(0, rgba(cur.color, 0)); sg.addColorStop(0.5, rgba(cur.color, 0.7)); sg.addColorStop(1, rgba(cur.color, 0));
+  dst.fillStyle = sg; dst.fillRect(0, sy, W, 2); dst.restore();
+
+  // kinetic type
+  const [tc, t] = layer(1);
+  const hf = `400 22px ${MONO}`, step = `${String(idx + 1).padStart(2, "0")} / 07`;
+  const headW = textW(t, step, hf, 6.6) + 22 + 120 + 22 + textW(t, "ALCHEMICAL STEP", hf, 6.6);
+  const h0 = startX(headW);
+  let hx = h0 + txt(t, step, h0, PL.hy, hf, C.gold, { ls: 6.6 }) + 22;
+  t.fillStyle = rgba(C.gold, 0.6); t.fillRect(hx, PL.hy - 8, 120, 1);
+  txt(t, "ALCHEMICAL STEP", hx + 142, PL.hy, hf, C.muted, { ls: 6.6 });
+  t.save(); t.beginPath(); t.rect(20, PL.wy - 102, W - 40, 204); t.clip();
+  const wordFont = `700 176px ${SANS}`, wls = -5.3;
+  const wordWidth = (text) => text.split("").reduce((a, ch) => a + charW(t, ch, wordFont), 0) + wls * (text.length - 1);
+  const word = (text, mode) => {
+    let cx = startX(wordWidth(text));
+    text.split("").forEach((ch, i) => {
+      const p = mode === "in" ? tw(lf, 3 + i * 1.1, 3 + i * 1.1 + 11, 0, 1, E.back) : 1 - tw(lf, i * 0.35, i * 0.35 + 4, 0, 1, E.in);
+      const y = mode === "in" ? (1 - p) * 190 : (1 - p) * -190, b = Math.abs(1 - p) * 10;
+      t.save(); t.font = wordFont; t.textBaseline = "middle"; t.fillStyle = C.text; t.letterSpacing = "0px";
+      if (b > 0.1) t.filter = `blur(${b.toFixed(2)}px)`;
+      t.fillText(ch, cx, PL.wy + y); t.restore();
+      cx += charW(t, ch, wordFont) + wls;
+    });
+  };
+  if (prev && lf < 7) word(prev.name, "out");
+  word(cur.name, "in");
+  t.restore();
+  const sf = `italic 500 78px ${SERIF}`, df = `400 22px ${MONO}`;
+  txt(t, cur.stage, startX(textW(t, cur.stage, sf)) + tw(lf, 2, 14, 30, 0), PL.sy, sf, cur.color, { alpha: tw(lf, 2, 10, 0.2, 1), glow: 30, glowC: rgba(cur.color, 0.45) });
+  txt(t, "→ " + typed(cur.line, lf, 4, 2.4), startX(textW(t, "→ " + cur.line, df, 3)), PL.dy, df, C.muted, { ls: 3 });
+  comp(dst, tc, { alpha: (1 - exit) * sceneA, blur: exit * 14, dx: (1 - enter) * -120 - exit * 260 });
+
+  // right: the wheel — turns one notch per beat with overshoot, spins out on exit
+  const [wc, w] = layer(2);
+  const notch = Math.max(-0.8, idx - 1 + tw(lf, 0, 16, 0, 1, E.back));
+  const wheelRot = -(notch * 360) / 7 - exit * 540;
+  const progress = Math.min(1, (idx + tw(lf, 0, 20, 0, 1)) / 7);
+  w.strokeStyle = rgba(C.lineBright, 0.9); w.lineWidth = 1.5; w.beginPath(); w.arc(WX, WY, WR, 0, 7); w.stroke();
+  w.save(); w.translate(WX, WY); w.rotate(rad(f * 0.8)); w.setLineDash([2, 10]); w.strokeStyle = rgba(C.gold, 0.35); w.lineWidth = 1;
+  w.beginPath(); w.arc(0, 0, WR - 40, 0, 7); w.stroke(); w.restore();
+  w.save(); w.strokeStyle = C.gold; w.lineWidth = 4; w.lineCap = "round"; w.shadowColor = C.gold; w.shadowBlur = 12;
+  w.beginPath(); w.arc(WX, WY, WR, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2); w.stroke(); w.restore();
+  if (pulse > 0.01) { w.save(); w.globalAlpha = pulse * 0.7; w.strokeStyle = cur.color; w.lineWidth = 2; w.beginPath(); w.arc(WX, WY, 120 + (1 - pulse) * 200, 0, 7); w.stroke(); w.restore(); }
+  PHASES.forEach((p, i) => {
+    const a = rad(-90 + (i * 360) / 7 + wheelRot);
+    w.strokeStyle = i <= idx ? rgba(C.gold, 0.5) : rgba(C.lineBright, 0.5); w.lineWidth = 1;
+    w.beginPath(); w.moveTo(WX + Math.cos(a) * 140, WY + Math.sin(a) * 140); w.lineTo(WX + Math.cos(a) * (WR - 34), WY + Math.sin(a) * (WR - 34)); w.stroke();
+  });
+  PHASES.forEach((p, i) => {
+    const a = rad(-90 + (i * 360) / 7 + wheelRot), nx = WX + Math.cos(a) * WR, ny = WY + Math.sin(a) * WR;
+    const active = i === idx, done = i < idx, s = active ? 1.35 + pulse * 0.25 : 1;
+    const col = active ? p.color : done ? C.gold : C.lineBright;
+    w.save(); w.translate(nx, ny); w.scale(s, s);
+    if (active) { w.shadowColor = rgba(p.color, 0.8); w.shadowBlur = 30; }
+    w.fillStyle = C.ink; w.strokeStyle = col; w.lineWidth = 2; w.beginPath(); w.arc(0, 0, 34, 0, 7); w.fill(); w.stroke();
+    w.restore();
+    w.save(); w.translate(nx, ny); w.scale(s, s); sigil(w, p.sigil, 0, 0, 40, 1, col, 6, active ? 6 : 0); w.restore();
+  });
+  w.save(); w.translate(WX, WY); w.scale(1 + pulse * 0.08, 1 + pulse * 0.08);
+  sigil(w, cur.sigil, 0, 0, 220, tw(lf, 0, 20, 0, 1, E.io), cur.color, 3.2, 18);
+  w.restore();
+  comp(dst, wc, { alpha: sceneA, blur: exit * 6, scale: (0.9 + enter * 0.1) * (1 - exit * 0.85), ox: WX, oy: WY });
+}
+
+// ═════════════════════════════════════════════ SCENE 4 · ROUTING (480–660)
+// Unused original routing/verification simulations removed from this review cut.
+function emblem(x, f) {
+  const d = (a, b) => tw(f, a, b, 0, 1, E.io);
+  // knocked off balance by the impact, the beam settles to perfect level
+  const t = Math.max(0, f - 6), tilt = f < 6 ? 0 : 16 * Math.exp(-t / 16) * Math.cos(t / 4.2), r = rad(tilt);
+  const ends = [-1, 1].map((s) => ({ x: Math.cos(r) * 150 * s, y: -92 + Math.sin(r) * 150 * s }));
+  x.save();
+  x.lineCap = "round"; x.lineJoin = "round"; x.strokeStyle = C.gold; x.lineWidth = 6; x.shadowColor = rgba(C.gold, 0.7); x.shadowBlur = 12;
+  draw(x, "M0 -196 L-12 -160 H12 Z", d(0, 18));
+  draw(x, "M0 -160 V-62", d(2, 20));
+  draw(x, "M0 82 V176", d(6, 24));
+  draw(x, "M-70 190 H70 M-50 176 H50 M-90 204 H90", d(10, 30));
+  const beam = new Path2D(`M${ends[0].x} ${ends[0].y} L${ends[1].x} ${ends[1].y}`);
+  draw(x, beam, d(4, 22), 300);
+  x.fillStyle = C.ink; x.beginPath(); x.arc(0, -92, 14, 0, 7); x.fill(); draw(x, circ(0, -92, 14), d(4, 20));
+  ends.forEach((e) => {
+    x.save(); x.translate(e.x, e.y);
+    x.fillStyle = C.ink; x.beginPath(); x.arc(0, 0, 10, 0, 7); x.fill(); draw(x, circ(0, 0, 10), d(14, 26));
+    x.lineWidth = 3; draw(x, "M0 8 L-52 120 M0 8 L52 120 M0 8 V120", d(16, 34));
+    x.lineWidth = 6; x.fillStyle = rgba(C.gold, tw(f, 34, 50, 0, 0.18)); x.fill(P("M-66 120 Q0 176 66 120 Z").p); draw(x, "M-66 120 Q0 176 66 120 Z", d(20, 40));
+    x.restore();
+  });
+  x.lineWidth = 7; draw(x, circ(0, 10, 72), d(6, 30));
+  x.lineWidth = 3.5; draw(x, "M-122 168 L-70 246 L0 284 L70 246 L122 168 M-122 168 L-40 150 L0 176 L40 150 L122 168", d(22, 46));
+  x.restore();
+  x.save();
+  x.strokeStyle = C.cyan; x.lineWidth = 9; x.lineCap = "round"; x.lineJoin = "round"; x.shadowColor = C.cyan; x.shadowBlur = 14;
+  draw(x, "M-30 -14 L4 10 L-30 34", d(18, 32));
+  if (f > 32 && Math.floor((f + S.lockup) / BEAT) % 2 === 0) { x.beginPath(); x.moveTo(12, 38); x.lineTo(38, 38); x.stroke(); }
+  x.restore();
+  [[-122, 168], [-70, 246], [0, 284], [70, 246], [122, 168]].forEach(([nx, ny], i) => {
+    const s = tw(f, 30 + i * 3, 42 + i * 3, 0, 1, E.back);
+    if (s <= 0.01) return;
+    x.save(); x.translate(nx, ny); x.scale(s, s);
+    x.fillStyle = C.ink; x.strokeStyle = C.gold; x.lineWidth = 4; x.beginPath(); x.arc(0, 0, 17, 0, 7); x.fill(); x.stroke();
+    x.fillStyle = C.cyan; x.shadowColor = C.cyan; x.shadowBlur = 12; x.beginPath(); x.arc(0, 0, 8, 0, 7); x.fill();
+    x.restore();
+  });
+}
+function lockup(dst, f) {
+  const [lc, x] = layer(1);
+  // Vertical stacks the wordmark on two lines and gives the emblem full scale.
+  const LK = VERT
+    ? { CX: W / 2, CY: 700, emY: 760, emS: 1, size: 150, lines: [["Temperance", 1150, 0], ["Engine", 1300, 5]],
+        hand: 1392, credit: [["THOUGHTSEED LABS", 1454], ["github.com/Sheshiyer/temperance_engine", 1490]] }
+    : { CX: 960, CY: 480, emY: 380, emS: 0.786, size: 132, lines: [["Temperance Engine", 676, 0]],
+        hand: 752, credit: [["temperance.thoughtseed.space", 812]] };
+  const { CX, CY } = LK, out = tw(f, 100, 120, 0, 1, E.in);
+
+  [C.gold, C.cyan, C.ember].forEach((c, i) => {
+    const p = tw(f, i * 4, i * 4 + 44, 0, 1);
+    if (p <= 0 || p >= 1) return;
+    x.save(); x.globalAlpha = (1 - p) * 0.9; x.strokeStyle = c; x.lineWidth = (1 - p) * 14 + 0.5;
+    x.beginPath(); x.arc(CX, CY, 40 + p * 1300, 0, 7); x.stroke(); x.restore();
+  });
+  const bp = tw(f, 0, 70, 0, 1);
+  if (bp < 1) {
+    x.save();
+    for (let i = 0; i < 160; i++) {
+      const a = rnd(`a${i}`) * Math.PI * 2, rr = (300 + rnd(`v${i}`) * 900) * bp, c = rnd(`c${i}`) > 0.6 ? C.cyan : C.gold;
+      x.globalAlpha = (1 - bp) * 0.95; x.fillStyle = c; x.shadowColor = c; x.shadowBlur = 8;
+      x.beginPath(); x.arc(CX + Math.cos(a) * rr, CY + Math.sin(a) * rr + bp * bp * 120, 1 + rnd(`r${i}`) * 3.4, 0, 7); x.fill();
+    }
+    x.restore();
+  }
+
+  const k = tw(f, 0, 26, 0.55, 1, E.back);
+  x.save(); x.translate(CX, LK.emY); x.scale(k, k); x.translate(0, -95); x.scale(LK.emS, LK.emS);
+  emblem(x, f);
+  x.restore();
+
+  // wordmark: letters resolve from the centre of each line outward
+  const font = `600 ${LK.size}px ${SERIF}`, trk = -2.6 * (LK.size / 132), gk = LK.size / 132;
+  for (const [WORD, base, delay] of LK.lines) {
+    const mid = (WORD.length - 1) / 2;
+    const ws = WORD.split("").map((ch) => charW(x, ch, font)), total = ws.reduce((a, b) => a + b, 0) + trk * (WORD.length - 1);
+    let cx = CX - total / 2;
+    WORD.split("").forEach((ch, i) => {
+      const t0 = 10 + delay + Math.abs(i - mid) * 1.6, p = tw(f, t0, t0 + 18, 0, 1);
+      if (p > 0.002 && ch !== " ") {
+        x.save(); x.globalAlpha = p; x.font = font; x.letterSpacing = "0px";
+        if ((1 - p) * 12 > 0.1) x.filter = `blur(${((1 - p) * 12).toFixed(2)}px)`;
+        x.translate(cx + ws[i] / 2, base + (1 - p) * 40); x.scale(1.4 - p * 0.4, 1.4 - p * 0.4);
+        x.fillStyle = goldFill(x, -105 * gk, 15 * gk); x.shadowColor = rgba(C.gold, 0.35); x.shadowBlur = 30; x.shadowOffsetY = 6;
+        x.fillText(ch, -ws[i] / 2, 0); x.restore();
+      }
+      cx += ws[i] + trk;
+    });
+  }
+
+  const hw = txt(x, "Explore the architecture", CX, LK.hand, `400 32px ${SANS}`, C.cyan, { ls: 9.2, align: "center", alpha: tw(f, 30, 46, 0, 1) });
+  const rl = tw(f, 26, 60, 0, VERT ? 170 : 260);
+  for (const s of [-1, 1]) {
+    const x0 = CX + s * (hw / 2 + 26), g = x.createLinearGradient(x0, 0, x0 + s * rl, 0);
+    g.addColorStop(0, C.gold); g.addColorStop(1, rgba(C.gold, 0));
+    x.fillStyle = g; x.fillRect(Math.min(x0, x0 + s * rl), LK.hand - 7, rl, 1);
+  }
+  LK.credit.forEach(([line, y], i) =>
+    txt(x, line, CX, y, `400 29px ${SANS}`, C.text, { ls: 1, align: "center", alpha: tw(f, 42 + i * 4, 60 + i * 4, 0, 1) }));
+
+  comp(dst, lc, { alpha: 1 - out, scale: 1 + f * 0.0006 });
+}
+
+// ───────────────────────────────────────────── frame
+// Local review fallback, authored in the coordinator after unsuccessful Phloem deliveries.
+// Reuses the original film's deterministic helpers. Architecture illustration only.
+function reviewHead(x, label, subtitle, f) {
+  x.save(); x.globalAlpha = tw(f, 0, 24, 0, 1);
+  txt(x, label, 150, 225, `600 100px ${SERIF}`, C.gold);
+  txt(x, subtitle, 153, 285, `400 29px ${SANS}`, C.muted);
+  x.restore();
+}
+function reviewOrbit(x, cx, cy, f, count=5) {
+  x.save();x.translate(cx,cy);
+  for(let i=0;i<count;i++){
+    const r=76+i*43,p=tw(f,i*5,35+i*5,0,1);
+    x.strokeStyle=rgba(i%2?C.cyan:C.gold,.25+.08*i);x.lineWidth=1.5;
+    draw(x,circ(0,0,r),p);
+    const a=rad(f*.1+i*72);x.fillStyle=i%2?C.cyan:C.gold;
+    x.beginPath();x.arc(Math.cos(a)*r,Math.sin(a)*r,4,0,7);x.fill();
+  }
+  x.restore();
+}
+function koshaScene(x,f){
+reviewHead(x,'Five Koshas','Descriptive layers of the work',f);
+const cx=1415,cy=560;reviewOrbit(x,cx,cy,f);
+const rows=[['Substrate','Annamaya · Build'],['Execution & telemetry','Pranamaya · Execute'],['Context & memory','Manomaya · Observe'],['Reasoning & judgment','Vijnanamaya · Think / Plan / Verify'],['Purpose & learning','Anandamaya · Learn']];
+const k=f-70,act=k<0?-1:Math.floor(k/40)%5,ph=k<0?0:k%40,glow=tw(ph,0,12,0,1)*tw(ph,28,40,1,0);
+rows.forEach(([name,detail],i)=>{
+const y=390+i*91,a=tw(f,i*5,24+i*5,0,1),r=76+(4-i)*43,ang=rad(180+(2-i)*14);
+const px=cx+Math.cos(ang)*r,py=cy+Math.sin(ang)*r,on=i===act?glow:0,lk=tw(f,30+i*6,70+i*6,0,1);
+x.save();x.globalAlpha=a*lk*(.3+.55*on);x.strokeStyle=on>0?C.cyan:C.gold;x.lineWidth=1;
+x.beginPath();x.moveTo(780,y-6);x.bezierCurveTo(960,y-6,px-150,py,px,py);x.stroke();
+x.globalAlpha=a*lk;x.fillStyle=C.ink;x.strokeStyle=C.cyan;x.lineWidth=1.5;x.beginPath();x.arc(px,py,5,0,7);x.fill();x.stroke();
+if(on>0){x.globalAlpha=on;x.strokeStyle=rgba(C.cyan,.45);x.lineWidth=2.5;x.beginPath();x.arc(cx,cy,r,0,7);x.stroke();}
+x.globalAlpha=a;x.fillStyle=C.gold;x.fillRect(150,y-28,2+2*on,52);x.restore();
+txt(x,name,170,y,`500 43px ${SANS}`,C.text,{alpha:a});
+txt(x,detail,172,y+34,`400 25px ${SANS}`,C.cyan,{alpha:a*(.8+.2*on)});
+});
+txt(x,'WORK LAYERS',cx,571,`500 24px ${MONO}`,C.gold,{align:'center',ls:2});
+txt(x,'Descriptive layers · not security partitions',150,880,`400 25px ${SANS}`,C.muted,{alpha:tw(f,40,64,0,1)});
+}
+function organScene(x,f){
+reviewHead(x,'Six advisory organs','Optional roles · adapters in review',f);
+const ox=960,oy=570;
+const nodes=[['Vestibule','Orientation',370,405],['Adytum','Interpretation',960,365],['Nutrix','Learning proposals',1550,405],['Auspex','Diagnosis',370,740],['Circulator','Review',960,770],['Praeceptor','Improvement',1550,740]];
+reviewOrbit(x,ox,oy,f,3);
+const ring=[0,1,2,5,4,3];x.save();x.globalAlpha=tw(f,30,60,0,.22);x.strokeStyle=C.gold;x.lineWidth=1;x.setLineDash([4,10]);x.lineDashOffset=-f*.2;x.beginPath();
+ring.forEach((n,j)=>{const p=nodes[n];j?x.lineTo(p[2],p[3]):x.moveTo(p[2],p[3]);});x.closePath();x.stroke();x.setLineDash([]);x.restore();
+const pf=tw(f,40,70,0,1);
+nodes.forEach(([name,role,cx,cy],i)=>{
+const a=tw(f,i*4,24+i*4,0,1),dx=cx-ox,dy=cy-oy,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L,sx=ox+ux*90,sy=oy+uy*90,ex=cx-ux*16,ey=cy-uy*16;
+x.save();x.globalAlpha=a;x.strokeStyle=rgba(C.gold,.35);x.lineWidth=1;x.beginPath();x.moveTo(sx,sy);x.lineTo(ex,ey);x.stroke();
+const t=((f+i*45)%270)/270;x.globalAlpha=a*pf*.6*Math.sin(Math.PI*t);x.fillStyle=C.cyan;x.beginPath();x.arc(sx+(ex-sx)*t,sy+(ey-sy)*t,3,0,7);x.fill();
+x.globalAlpha=a;x.lineWidth=1.5;x.strokeStyle=C.cyan;x.fillStyle=i===0?C.cyan:C.ink;x.beginPath();x.arc(cx,cy,8,0,7);x.fill();x.stroke();
+if(i>0){x.strokeStyle=rgba(C.gold,.45);x.lineWidth=1;x.setLineDash([3,5]);x.beginPath();x.arc(cx,cy,15,0,7);x.stroke();x.setLineDash([]);}
+x.restore();
+txt(x,name,cx,cy-33,`600 47px ${SERIF}`,C.gold,{align:'center',alpha:a});
+txt(x,role,cx,cy+44,`400 30px ${SANS}`,C.text,{align:'center',alpha:a});
+});
+txt(x,'ADVISORY',ox,oy+8,`500 24px ${MONO}`,C.gold,{align:'center',ls:2,alpha:tw(f,10,34,0,1)});
+const fa=tw(f,36,60,0,1);
+txt(x,'Vestibule: read-only draft · five further adapters held',960,872,`400 25px ${SANS}`,C.muted,{align:'center',alpha:fa});
+txt(x,'Public 0.8.0 plus review-source extensions · no accepted native installation asserted',960,908,`400 24px ${SANS}`,C.muted,{align:'center',alpha:fa*.85});
+}
+function toolingScene(x,f){
+reviewHead(x,'Your tools, one operating layer','Plugins and skills extend the working profile',f);
+const ext=['Superpowers','Feature Dev','Supabase','Rust Analyzer','Temperance Rail'];
+x.save();x.font=`500 40px ${SANS}`;const ws=ext.map(s=>x.measureText(s).width);x.restore();
+const tot=ws.reduce((s,w)=>s+w,0),gap=Math.max(28,(1620-tot)/4);let run=155;const pos=ws.map(w=>{const p=run;run+=w+gap;return p;});const end=run-gap,ry=425;
+txt(x,'CLAUDE PROFILE · FIVE ENABLED PLUGINS',155,340,`400 24px ${MONO}`,C.cyan,{ls:2,alpha:tw(f,4,28,0,1)});
+const rp=tw(f,10,70,0,1),t=(f%180)/180,lx=155+t*(end-155),la=rp*Math.sin(Math.PI*t);
+x.save();x.strokeStyle=rgba(C.gold,.4);x.lineWidth=1;x.beginPath();x.moveTo(155,ry);x.lineTo(155+(end-155)*rp,ry);x.stroke();
+x.globalAlpha=.55*la;x.fillStyle=C.cyan;x.beginPath();x.arc(lx,ry,3.5,0,7);x.fill();x.restore();
+ext.forEach((n,i)=>{
+const a=tw(f,8+i*5,32+i*5,0,1),nx=pos[i]+ws[i]/2,near=Math.max(0,1-Math.abs(lx-nx)/90)*la;
+x.save();x.globalAlpha=a;x.translate(nx,ry);x.rotate(rad(45));x.fillStyle=C.ink;x.strokeStyle=near>.2?C.cyan:C.gold;x.lineWidth=1.5;x.fillRect(-5,-5,10,10);x.strokeRect(-5,-5,10,10);x.restore();
+txt(x,n,pos[i],400,`500 40px ${SANS}`,C.text,{alpha:a});
+});
+const ocx=1660,ocy=660;reviewOrbit(x,ocx,ocy,f,2);
+x.save();x.globalAlpha=tw(f,50,80,0,.5);x.strokeStyle=C.gold;x.lineWidth=1;x.beginPath();x.moveTo(ocx,ry+12);x.lineTo(ocx,ocy-119);x.stroke();x.restore();
+txt(x,'PROFILE',ocx,ocy+8,`500 24px ${MONO}`,C.gold,{align:'center',ls:2,alpha:tw(f,30,54,0,1)});
+const rows=[['CODING CLIENTS','Claude Code · Codex · OpenCode · Cursor'],['METHOD & ACCEPTANCE','PAI · optional GSD · ISA'],['ROUTING & SEARCH','OmniRoute · CodeGraph']];
+rows.forEach(([label,names],i)=>{
+const y=520+i*120,a=tw(f,24+i*6,52+i*6,0,1);
+x.save();x.globalAlpha=a;x.strokeStyle=rgba(C.gold,.3);x.lineWidth=1;x.beginPath();x.moveTo(150,y+48);x.lineTo(150+1350*a,y+48);x.stroke();x.restore();
+txt(x,label,155,y-13,`400 24px ${MONO}`,C.cyan,{ls:2,alpha:a});
+txt(x,names,155,y+28,`500 41px ${SANS}`,C.text,{alpha:a});
+});
+const fa=tw(f,60,90,0,1);
+txt(x,'Selected installed extensions · profile choices, not core defaults',155,868,`400 25px ${SANS}`,C.muted,{alpha:fa});
+txt(x,'Full 15 installed records and 150 skill manifests in companion docs · external owners retained',155,905,`400 24px ${SANS}`,C.muted,{alpha:fa*.85});
+}
+
+function render(f) {
+  ctx.setTransform(1,0,0,1,0,0);backdrop(ctx,f*.5);
+  const [sc,sx]=layer(0);
+  if(f<S.title)ignition(sx,f*120/90);
+  else if(f<S.phases)title(sx,(f-S.title)*120/150);
+  else if(f<S.koshas)phases(sx,(f-S.phases)*210/420);
+  else if(f<S.organs)koshaScene(sx,f-S.koshas);
+  else if(f<S.tooling)organScene(sx,f-S.organs);
+  else if(f<S.lockup)toolingScene(sx,f-S.tooling);
+  else lockup(sx,Math.min(90,(f-S.lockup)*.5));
+  ctx.drawImage(sc,0,0);hud(ctx,f);finish(ctx,f);
+}
+
+// ───────────────────────────────────────────── harness: live preview, or frame-exact capture
+const FONT_SPECS = [`500 40px ${SERIF}`, `600 40px ${SERIF}`, `italic 500 40px ${SERIF}`, `400 20px ${MONO}`, `500 20px ${MONO}`,
+  `400 20px ${SANS}`, `600 20px ${SANS}`, `700 20px ${SANS}`];
+const fontsReady = () => Promise.all(FONT_SPECS.map((s) => document.fonts.load(s, "Temperance ENGINE 0123 →✓·"))).then(() => document.fonts.ready);
+
+async function capture() {
+  document.body.classList.add("capture");
+  await fontsReady();
+  const fontCheck = FONT_SPECS.map((s) => `${document.fonts.check(s) ? "ok" : "MISSING"} ${s}`);
+  await fetch("/log", { method: "POST", body: fontCheck.join("\n") });
+  const only = params.get("frames");
+  const from = Number(params.get("from") || 0), to = Number(params.get("to") || N);
+  const list = only ? only.split(",").map(Number) : Array.from({ length: to - from }, (_, i) => from + i);
+  for (const f of list) {
+    render(f);
+    const blob = await new Promise((r) => cv.toBlob(r, "image/png"));
+    await fetch(`/frame?i=${f}`, { method: "POST", body: blob });
+  }
+  await fetch("/done", { method: "POST" });
+}
+
+function preview() {
+  const audio = document.getElementById("a");
+  // Without public/soundtrack.wav (run `bun run sound`), play silently on the wall clock.
+  let f = 0, playing = false, silent = false, t0 = 0;
+  audio.addEventListener("error", () => { silent = true; });
+  const tick = () => {
+    if (playing) {
+      const t = silent ? (performance.now() - t0) / 1000 : audio.currentTime;
+      f = Math.min(N - 1, Math.floor(t * FPS));
+      if (silent ? f >= N - 1 : audio.ended) playing = false;
+    }
+    render(f);
+    requestAnimationFrame(tick);
+  };
+  const startClock = () => { silent = true; t0 = performance.now() - (f / FPS) * 1000; };
+  const toggle = () => {
+    if (playing) { if (!silent) audio.pause(); playing = false; return; }
+    if (f >= N - 1) f = 0;
+    playing = true;
+    if (silent) return startClock();
+    audio.currentTime = f / FPS;
+    audio.play().catch(startClock);
+  };
+  cv.addEventListener("click", toggle);
+  addEventListener("keydown", (e) => {
+    if (e.code === "Space") { e.preventDefault(); toggle(); }
+    if (e.code === "ArrowRight" || e.code === "ArrowLeft") {
+      if (!silent) audio.pause();
+      playing = false;
+      f = Math.max(0, Math.min(N - 1, f + (e.code === "ArrowRight" ? 1 : -1) * (e.shiftKey ? 30 : 1)));
+    }
+  });
+  fontsReady().then(() => { f = Number(params.get("f") || 0); tick(); });
+}
+
+params.has("capture") ? capture() : preview();
+</script>
+</body>
+</html>

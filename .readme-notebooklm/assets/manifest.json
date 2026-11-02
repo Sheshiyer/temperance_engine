@@ -56,5 +56,150 @@
     "reason": "Reconcile the 0.8.0 release notes (organ registry, OmniRoute default router and 3.8.51 gates, hosted-router probe, composition inspection) and README; preserve historical research assets without claiming regeneration.",
     "notebookRegenerated": false,
     "historicalResearchAssetsReused": true
-  }
+  },
+  "editorialReconciliations": [
+    {
+      "observedOn": "2026-11-02",
+      "mode": "source-backed-editorial-reconciliation",
+      "sourceHead": "30e4938b950c61f7d348b584c866427960ced86a",
+      "reason": "Source-backed local editorial reconciliation of current architecture, dated installed Claude metadata, tooling attribution and OmniRoute guidance. Historical generated research preserved without regeneration.",
+      "notebookRegenerated": false,
+      "historicalGeneratedBlocksChanged": false,
+      "sources": [
+        {
+          "path": "README.md",
+          "sha256": "df70c024f98e8599931b5bc3bb192329e2efe2d9c2764a19761d28ac9e750d95"
+        },
+        {
+          "path": "CREDITS.md",
+          "sha256": "255b0ed41399d22dc1bdb4b370bd15fe32646892c7177672ada660a0eb2ba75f"
+        },
+        {
+          "path": "ISA.md",
+          "sha256": "4c6d5265b88ad2cf7f3a9e6bd044afcf6d8fcb5a2cc3872875e1bf3956957a67"
+        },
+        {
+          "path": "docs/architecture-explainer.md",
+          "sha256": "a50b27a7da868425ffd1d835da46b01342f10fe3a2b822d338fb209e531ff6dc"
+        },
+        {
+          "path": "package/install-surface/docs/guided-onboarding.md",
+          "sha256": "f82eee70737bda91607a595ca8f1c0e6d7b86c2f65fa6f2861496f396eb46848"
+        },
+        {
+          "path": "docs/plans/2026-11-02-launch-alignment.md",
+          "sha256": "4f8277396eb0e6c2e42cff6712b278ce20877145e131a8ad1da16e85c4c58d24"
+        },
+        {
+          "path": "docs/plans/2026-11-02-claude-tooling-metadata.json",
+          "sha256": "a1803c25eeccc58d939bd56b00cfecdf7e9e72f089eab62098bd5cf5ee9651ea"
+        },
+        {
+          "path": "docs/plans/2026-11-02-claude-exposed-skills.json",
+          "sha256": "445d071b593aa8317e6570cf06025eac541d7c1d3eb2cde3a8967735707b750a"
+        }
+      ],
+      "narrativeProvenance": "source-backed local editorial reconciliation"
+    },
+    {
+      "observedOn": "2026-11-02",
+      "mode": "source-backed-media-editorial-reconciliation",
+      "sourceHead": "c108c8d7efaaaae84b7675705d5887941bf80652",
+      "reason": "Integrate verified local thirty-second architecture review film and editable source; preserve original media and historical research. Phloem S-tier creative delivery remains held.",
+      "notebookRegenerated": false,
+      "historicalGeneratedBlocksChanged": false,
+      "sources": [
+        {
+          "path": "README.md",
+          "sha256": "d4f6d9591df4eee9c810f6336fbf519991face3b9c2a80c17fceb838a4068405"
+        },
+        {
+          "path": "CREDITS.md",
+          "sha256": "7acad7fcb669dc96c108ef963b596011eb3c01ac292ce312bcca3552b82d2f56"
+        },
+        {
+          "path": "ISA.md",
+          "sha256": "29dc8b4e88bb2ee3f93b73032c0595badb0c9dfa8141c520a3293d8b89d5f226"
+        },
+        {
+          "path": "package/showreel/architecture-30s/reel.html",
+          "sha256": "e86dc62bc08f6545f788b60e3795de0fcd68ce3d17e68d3a029750636aeb44f2"
+        },
+        {
+          "path": "package/showreel/architecture-30s/README.md",
+          "sha256": "330ddba888696a676cdd1fbcb3b80abfc39fa5c6ae8b47ea1fb8ff3a1d72072c"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s.mp4",
+          "sha256": "58adab338711add7cfcc52ab4c00b03d04489beacc5b423e2e52de46897cbc8b"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-poster.jpg",
+          "sha256": "9540195d3da82a4c3b99d455356f9fa737f408b7ba497600ffd4a4c1fafebb89"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-captions.vtt",
+          "sha256": "67250bd5eb490a9b524ed1e6b6c7b7a448dc76aed3eec051f2f7cedf20036c68"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-transcript.md",
+          "sha256": "247c893c1fda15bfa6337a5777bcdcf53a0f60a1e3b294c6b39229fecf0edc22"
+        }
+      ]
+    },
+    {
+      "observedOn": "2026-11-02",
+      "mode": "verified-phloem-opus-scene-refinement",
+      "sourceHead": "d36da98bfc12783aa89710744d84e1046e8fbe4f",
+      "reason": "Integrate accepted Phloem Opus scene callbacks and verified thirty-second film; preserve original assets and historical research.",
+      "notebookRegenerated": false,
+      "historicalGeneratedBlocksChanged": false,
+      "sources": [
+        {
+          "path": "README.md",
+          "sha256": "74645845f0bfeb672f92f0a44b935d9f25ab742a3bb9f314f7d1dc2942193429"
+        },
+        {
+          "path": "CREDITS.md",
+          "sha256": "1cb9c1f388efef9240428fb9ebb713412105c21cdec7b96f7f6e47d27252745d"
+        },
+        {
+          "path": "ISA.md",
+          "sha256": "a62a66a51d91cba144d74e64fb118decd7f2cd8e1a1795860049c3ff737c71b4"
+        },
+        {
+          "path": "docs/architecture-explainer.md",
+          "sha256": "29571a6a5e320c14bc8703efd3e901a8ecff642ba7a36e2cb7907242b0cac628"
+        },
+        {
+          "path": "package/showreel/architecture-30s/reel.html",
+          "sha256": "cb031b4573f152ca3a22e6f608aad0a3a5c271bbd0e18b256223e1f2dbd60f77"
+        },
+        {
+          "path": "package/showreel/architecture-30s/README.md",
+          "sha256": "96318100b487e7b5d282ee1b7077fa32d5494d20e0a5688759429f661ef6348a"
+        },
+        {
+          "path": "package/showreel/architecture-30s/PRODUCTION-PROVENANCE.json",
+          "sha256": "c4dafce781f599eaeba8bc8dc02e6d52d458243234e4ea2f4201085093c1f612"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s.mp4",
+          "sha256": "5e52dd8fe63b516060267836e3446888f1f7d3546a47957c19723824de989a28"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-poster.jpg",
+          "sha256": "9540195d3da82a4c3b99d455356f9fa737f408b7ba497600ffd4a4c1fafebb89"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-captions.vtt",
+          "sha256": "67250bd5eb490a9b524ed1e6b6c7b7a448dc76aed3eec051f2f7cedf20036c68"
+        },
+        {
+          "path": "assets/showreel/temperance-architecture-30s-transcript.md",
+          "sha256": "a69bd614f04bc773b40f74e9f870baff3d260461abc72aab4f75d405fd8b290c"
+        }
+      ]
+    }
+  ]
 }

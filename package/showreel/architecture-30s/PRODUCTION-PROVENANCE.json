@@ -1,0 +1,48 @@
+{
+  "schema": "temperance.film-production-provenance.v1",
+  "observedOn": "2026-11-02",
+  "gatewayScope": "phloem",
+  "catalogLane": "noesis-build",
+  "dispatch": "Exact eligible Opus5.5 seat; bounded no-tools/no-history source generation; normal pressure and credit guards.",
+  "requestedModel": "claude/claude-opus-5-5",
+  "reportedResponseModel": "claude-opus-5-5",
+  "responseId": "chatcmpl-msg_011Cgds5CS1Nb31nRyYZLext",
+  "requestId": "31ad7cca-a41b-428e-982a-ef8df9c0c301",
+  "startedAt": "2026-11-02T09:27:53.790Z",
+  "finishedAt": "2026-11-02T09:29:26.539Z",
+  "transportCompleted": true,
+  "finishReason": "stop",
+  "rawArtifactSha256": "39ac55da26f00372da06aa6eecb0872dc4ffec36519c6f77f40e0cd26679ea0e",
+  "reviewedCallbacksSha256": "a4b113a32d3ba029d65d7cb9d93ac114e81ea9664ea95d971c613d9d2c0ddbd2",
+  "acceptedCreativeArtifact": true,
+  "contribution": "Three refined Kosha, organ and tooling callbacks, including all five enabled Claude profile plugins.",
+  "localContributions": [
+    "Original owner renderer, artwork, deterministic timeline and procedural score retained.",
+    "Removed inserted zero-width joiners from OpenCode and Cursor labels.",
+    "Local representative review, capture, encoding and verification."
+  ],
+  "independentSourceReview": "pass; no material source blockers",
+  "representativeVisualReview": "pass",
+  "finalEncodedVerification": "pass",
+  "encodes": {
+    "master": {
+      "duration": 30,
+      "width": 1920,
+      "height": 1080,
+      "fps": 60,
+      "frames": 1800,
+      "sha256": "c1b9ec4f0760cbf6f3bef37ffd6e515e6f6ba0d55ff7cda9e8a3096d4fb9f989"
+    },
+    "web": {
+      "duration": 30,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "frames": 900,
+      "sha256": "5e52dd8fe63b516060267836e3446888f1f7d3546a47957c19723824de989a28"
+    }
+  },
+  "audio": "AAC48kHz stereo30seconds; -14.6LUFS/-0.7dBFS truepeak; listening acceptance unasserted",
+  "runtimeAcceptance": "not asserted",
+  "earlierAttempts": "Historical failed provider/admission attempts are preserved in the prior local review package; this source response completed."
+}

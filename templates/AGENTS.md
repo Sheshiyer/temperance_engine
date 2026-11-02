@@ -24,7 +24,7 @@ Use `NOESIS` as the first visible line for PAI-formatted responses.
 - The canonical skill-cluster home is `${AGENTS_HOME:-$HOME/.agents}/skill-clusters`.
 - Startup scan is **hubs only**: `${AGENTS_HOME:-$HOME/.agents}/skills` (orchestrator+core + preserve) plus this seat's allowlist (PAI thinking skills, GSD profile `standard`). Do not scan `${AGENTS_HOME:-$HOME/.agents}/skill-clusters/skills` wholesale at startup.
 - Resolve missing skills through `skill-index.json` before saying a skill does not exist.
-- Add a Thoughtseed git root to the Codex cockpit with `thoughtseed-cockpit-add PATH --pin --te-init`. Execute stays Superset + Claude Code — not Codex App as a worker.
+- Add a Thoughtseed git root to the Codex cockpit with `thoughtseed-cockpit-add PATH --pin --te-init`. Dispatch admitted work from a primary Codex or Claude Code surface into isolated git worktrees. Hermes keeps its own plant authority. Superset and Constellation are retired and excluded from new execution.
 - Validate with `npm run health`, `npm run audit-refs`, and `npm run tier` from the skill-clusters repo.
 
 ## Local `.agents` CodeGraph Routing

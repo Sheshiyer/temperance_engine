@@ -1,14 +1,14 @@
 ---
 project: temperance_engine
-task: Repair GSD stalls and execute glove Phase 1
+task: Reconcile portable phase core and read-only Vestibule source
 effort: E4
 effort_source: classifier
-phase: build
-iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 752/874
+phase: verify
+iteration: 2026-11-02-portable-core-vestibule-source
+progress: 800/924
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-13T11:36:04Z
+updated: 2026-11-02T09:50:29Z
 ---
 
 ## Problem
@@ -1140,7 +1140,71 @@ untouched.
 - [x] ISC-851: Anti: `./verify.sh` passes its private-path guard on the candidate, and `.temperance/project.json` and `.temperance/manifest.json` contain no `/Users/` or `/Volumes/` literal.
 - [x] ISC-852: Anti: `codex/modular-mac-lifecycle` is not an ancestor of the `0.8.0` candidate.
 
+### Portable core and Vestibule source review — 2026-11-02
+
+These criteria record the bounded source slice. They do not close prior v1.1 host or release gates.
+
+- [x] ISC-853: The exact public-safe source sequence precedes construction in docs/plans/2026-11-02-portable-core-vestibule.md.
+- [x] ISC-854: A no-profile synthetic fixture traverses the seven phases without provider or host adapters.
+- [x] ISC-855: Phase frames preserve run, task, manifest and phase identity across advancement.
+- [x] ISC-856: Illegal process transitions and exhausted retries fail explicitly.
+- [x] ISC-857: Anti: process completion never asserts execution authorization or accepted results.
+- [x] ISC-858: Phase intent reuses public Kosha metadata and leaves missing adapters unsupported.
+- [x] ISC-859: Existing composition validation rejects dangling, duplicate, retired and private inputs.
+- [x] ISC-860: An injected Vestibule callback delivers a bounded immutable synthetic orientation card through runOrganLifecycle.
+- [x] ISC-861: Context provenance binds plant, occurrence and manifest identity before delivery.
+- [x] ISC-862: Stale, private, path-bearing and access-bearing context fails before consumer delivery.
+- [x] ISC-863: Concurrent occurrence and replay fixtures permit one orientation delivery.
+- [x] ISC-864: Cancellation and pre-delivery expiry prevent late consumer delivery.
+- [x] ISC-865: Ignored consumer cancellation remains timeout and unsettled.
+- [x] ISC-866: Provider, consumer and ledger failures preserve truthful lifecycle outcomes.
+- [x] ISC-867: Direct payload proxies and getters are refused without reflection or thenable invocation.
+- [x] ISC-868: Targeted TypeScript checks include the new source and fixtures.
+- [x] ISC-869: A source capability matrix separates shipped, draft, held and gap states from installation, runtime and acceptance.
+- [x] ISC-870: Anti: no private implementation, installed runtime mutation or release bump belongs to this slice.
+- [ ] ISC-871: A separate install adapter proves exact preimages and receipt-owned rollback on a disposable target. [HELD: source contract only]
+- [ ] ISC-872: A real host callback and consumer readback prove native linkage. [HELD: synthetic fixture only]
+
+### Launch source alignment — 2026-11-02
+
+- [x] ISC-873: A bounded source-change sequence records the launch alignment scope before construction.
+- [x] ISC-874: Dated metadata distinguishes 15 installed Claude plugin records, five enabled records, installation scope, and unasserted runtime acceptance; exposed skill names remain metadata only.
+- [x] ISC-875: Current README and guided onboarding identify OmniRoute as the default, with legacy 9Router setup separate.
+- [x] ISC-876: Historical NotebookLM report, map, table, and metadata blocks remain byte-identical inside a labelled disclosure; the manifest states no new NotebookLM run.
+- [x] ISC-877: Public credits attribute declared direct packages, optional integrations and installed profile plugins without treating them as a portable install default or a transitive SBOM.
+- [x] ISC-878: Current instruction templates use admitted Codex/Claude execution and current noesis phase aliases; the focused wizard regression rejects legacy te-* setup advice.
+- [x] ISC-879: Phloem returns a bounded, attributed S-tier narrative artifact and source review verifies its claims before launch-surface integration.
+- [x] ISC-880: Anti: alignment leaves VERSION at 0.8.0 and preserves the install-adapter and native callback holds in ISC-871..872.
+
+### Thirty-second architecture review film — 2026-11-02
+
+- [x] ISC-881: The master encodes 1,800 frames at 1920×1080, 60 fps, with a 30-second H.264/AAC timeline.
+- [x] ISC-882: The web encode contains 900 frames at 1920×1080 and 30 fps on the same 30-second timeline.
+- [x] ISC-883: The finite editable source bundle has valid local font references, license notices and no private paths, credentials or transport helpers.
+- [x] ISC-884: All ten original tracked showreel source and media file hashes remain unchanged.
+- [x] ISC-885: The README links the new film, poster, captions, transcript and editable source at existing repository paths.
+- [x] ISC-886: The rendered phase labels match canonical stage metadata and avoid automatic memory or acceptance claims.
+- [x] ISC-887: Six ordered descriptive caption cues cover only the 30-second film timeline.
+- [x] ISC-888: Anti: local review film production does not assert Phloem S-tier authorship or close ISC-879.
+
+### Capability planning outside the public website — 2026-11-02
+
+- [x] ISC-889: Real product issues #45 through #58 record the remaining source-review, adapter and qualification work with verifiable acceptance criteria.
+- [x] ISC-890: One product GitHub Project links the repository and its roadmap issues; the similarly named private-runtime board remains unchanged.
+- [x] ISC-891: Native issue dependencies and Project gate/dependency fields preserve the reviewed acceptance order.
+- [x] ISC-892: The tracked finite roadmap links the real issues and retains all seven existing phase states.
+- [x] ISC-893: Already shipped phase/Kosha metadata and composition/lifecycle source are baseline capabilities, not new missing-feature issues.
+- [x] ISC-894: Anti: planning changes perform no runtime installation, admission, dispatch, provider/service mutation, release bump or production promotion.
+- [x] ISC-895: Anti: GitHub planning evidence is not presented as a Cambium operational Goal Graph commit or an ISA runtime acceptance receipt.
+
 ## Test Strategy
+
+- ISC-853 | file probe | reviewed source sequence | present before construction | source history
+- ISC-854..859 | source fixture | portable-phase-kernel.test.ts | all pass | bun test
+- ISC-860..867 | lifecycle fixtures | vestibule.test.ts plus existing composition suites | all pass | bun test
+- ISC-868 | static check | isolated tsconfig includes source and tests | zero errors | TypeScript 5.9.3
+- ISC-869..870 | source inspection | capability matrix, diff, VERSION and selected files | truthful source boundary | git diff and file reads
+- ISC-871..872 | target probes | install transaction and real callback | held, no source-test substitution | future adapter probes
 
 | isc | type | check | threshold | tool |
 |---|---|---|---|---|
@@ -1976,6 +2040,10 @@ untouched.
 
 ## Features
 
+- Portable phase contract | Pure no-profile bookkeeping against public composition | satisfies ISC-854..859 | depends_on existing public contracts | parallelizable false
+- Vestibule orientation handler | Injected selected context and consumer | satisfies ISC-860..867 | depends_on existing lifecycle | parallelizable false
+- Source promotion documentation | Exact sequence, provenance, matrix and held install contract | satisfies ISC-853, ISC-868..872 | depends_on source fixtures | parallelizable false
+
 | name | satisfies | depends_on | parallelizable |
 |---|---|---|---|
 | Installer scripts | ISC-1..ISC-7 | none | no |
@@ -2100,6 +2168,13 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 <!-- arch-assets:end -->
 
 ## Decisions
+
+- 2026-11-02 refined: user scope includes an actual slower 30-second architecture film and synchronized launch surfaces. Preserve the original 15-second files. The connected Phloem source-generation attempts produced no accepted creative artifact; a local source-backed review adaptation proceeds while ISC-879 remains held. Only the affected phase frames are regenerated after independent review corrected inherited stage labels and ambiguous memory/criteria wording.
+
+- 2026-11-02: The portable source slice independently authors smaller process-frame and orientation contracts. It reuses public composition/lifecycle and phase metadata; it does not vendor the private v4 registry, admission, resolver, result verifier or organ scripts. The product remains the portable glove and a selected profile remains the hand under the existing V4 contract. Plain core/profile wording avoids reversing those names.
+- 2026-11-02: Review found expiry could pass validation then expire before consumer delivery. The same sampled delivery clock now checks deadline and context expiry before consume. Regression uses clock sequence [t,t,t+2] with expiry t+1.
+- 2026-11-02: Direct provider payload proxies and then getters are rejected before awaiting. Native promises belong to trusted injected callbacks and are not sandboxed. No callback code is claimed effect-free.
+- 2026-11-02: VERSION remains 0.8.0. New kernel and Vestibule source is draft until review; clean-host, hosted authentication, real callback linkage and durable recovery remain separate held gates.
 
 - 2026-08-20: The operator approved the first public v1.1 install-surface semantic-ID set before any lockfile write: `boundary.native-sessions`, `boundary.operator-evidence`, `boundary.personal-substrate`, `boundary.provider-authority`, `boundary.runtime-datastores`, `configuration.codex-managed-block`, `enrichment.public-pipeline`, `hooks.claude.prompt-processing`, `hooks.codex.gsd-command`, `hooks.codex.prompt-processing`, `hooks.codex.session-start`, `manifest.bridge-runtime`, `manifest.zone-project-state`, `router.governed-runtime`, `skills.temperance-algorithm`, `skills.temperance-engine`, `skills.temperance-native`, and `skills.temperance-parallel-dispatch`. These immutable IDs define the first reviewed glove inventory; later identity changes require explicit migrations. Private-boundary IDs remain symbolic and expose no host path, provider, binding, or private filename.
 
@@ -2334,6 +2409,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-10-04 20:10 UTC: refined: The owner requests a minor version bump and GitHub publication after the showreel docs change. Product `VERSION` moves from 0.6.0 to 0.7.0 and carries the merged STE skill and docs gate plus the showreel. Open router PRs #35 (organ registry) and #38 (hosted-router edge) are not merged and stay out of this release. The `9router@0.5.75` pin, host generation, credentials, and session policy do not change. The showreel ships repo-sized web encodes (CRF 24) built by `bun run publish`; the CRF 16 masters stay local and regenerable.
 
 ## Changelog
+
+- 2026-11-02 — Conjectured: context validation plus a deadline check was sufficient before orientation delivery. Refuted by: review reproduced expiry between the two clock samples. Learned: deadline and context freshness must use the delivery-time sample before consumer entry. Criterion now: ISC-864 includes the deterministic pre-delivery expiry regression.
 
 - 2026-08-02: Added a separate offline native CLI readiness inspector for six reviewed OmniRoute 3.8.48 files. Exact digest, version, source-type, and marker equality now gate the non-authorizing instant receipt; package/module-graph integrity, transport, replay, authentication, semantic qualification, mutation, and promotion remain explicitly false. Fifteen focused tests, native integration, the canonical verifier, post-build Advisor hardening, and independent Cato PASS completed with protected projections unchanged. The failed Forge attempt made no edits, so ISC-612 remains open rather than being rewritten after the fact.
 
@@ -2780,6 +2857,19 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   criterion now: ISC-836..ISC-843 accept the 3.8.51 contract, the preview and Hermes version binding, the intensity-less default combo, the re-audited topology, bounded settings digests, and the retained non-claims.
 
 ## Verification
+
+- 2026-11-02 capability planning: deduplication inspected all six prior product issues and found no matching capability acceptance items. The repository had no linked Project. Project19's 34 items belong to the private noesis-cambium repository, so it was preserved. Product Project27 and issues45–58 provide a separate product backlog. The existing .planning/ROADMAP.md remains the finite planning spine; no implementation phase is advanced. Fresh GitHub readback verifies all14 issue rows, their exact Status/Capability gate/Depends on fields, one repository-linked Project and20 native blocked-by edges. All14 issues remain open. Issue46 is In Progress with Source review; the remaining acceptance gates are Planned or Held. Native dependency and exact Project-row evidence is retained with the task delivery receipt. Only this roadmap and ISA planning are changed in this source slice; release/runtime and Cambium graph authority remain separate.
+
+- 2026-11-02 Phloem S-tier production, ISC-879: An admitted bounded request completed with HTTP 200, finish_reason=stop and response model metadata claude-opus-5-5. Response ID chatcmpl-msg_011Cgds5CS1Nb31nRyYZLext; request ID 31ad7cca-a41b-428e-982a-ef8df9c0c301. The complete 8,032-byte JSON contains three scene callbacks and creative/risk notes. Independent review verified canonical mappings, organ qualifiers, five enabled plugin names, unchanged timeline and no new IO; representative frames passed visual review. The sole local callback normalization removes inserted zero-width joiners from OpenCode/Cursor. This is accepted source generation, rather than a catalog or keepalive claim.
+
+- The resulting film passes independent full frame decoding: master 1,800 frames at 1080p60 and web 900 frames at 1080p30, both 30.000 seconds with AAC 48 kHz stereo. Source ZIP 21bb1366e9e88249d4f42d84714a9421a11fdfda4def8349d810cdac59a593a0 contains 23 portable files including explicit production provenance. All five enabled plugins now appear in the film. The original renderer/artwork/score, local encoding and prior failed/local-review attempts retain their separate provenance. All ten original 15-second source/media hashes remain unchanged. These media checks close the creative-source criterion; native installation/callback and broader hosted-router qualification holds remain unchanged.
+
+- 2026-11-02 architecture media: ISC-881/882 pass FFprobe readback: corrected master H.264/AAC, 1920×1080, 60/1 fps, 1,800 frames, 30.000 seconds; web H.264/AAC, 1920×1080, 30/1 fps, 900 frames, 30.000 seconds. AAC is 48 kHz stereo. Audio measurement is -14.6 LUFS integrated and -0.7 dBFS true peak; listening acceptance is not asserted. ISC-883: 22-entry source ZIP 3f43b4da1c49979213d34eba5968eb0c20ee00c8df639771a8e0d4d30a6fa2e7 has five finite font files, three OFL notices, no private paths or transport helpers. ISC-884: all ten original tracked showreel hashes match the preserved snapshot. ISC-885: README references existing new web MP4, 1920×1080 poster, captions, transcript and editable source. ISC-886: independent source review found inherited Plan/Learn stage and execution/learning wording defects; the corrected 420 phase frames replace the original phase range before encoding. Main-corpus and corrected-still hashes match at frames 390, 510 and 630; visual review confirms canonical labels and no overflow. ISC-887: six ordered WEBVTT cues stay within 0–30 seconds. ISC-888: film remains a local review adaptation; ISC-879 is held and no S-tier creative authorship is asserted. The original 15-second source/media remain unchanged.
+
+
+- 2026-11-02 launch alignment: ISC-873 uses docs/plans/2026-11-02-launch-alignment.md. ISC-874: sanitized metadata readback gives 15 installed records and five enabled; invocation and acceptance are not asserted. All four historical generated README blocks compare byte-identical to source 3286543. Three product package manifest hashes match the supplied source inventory. The STE docs gate passes 40 files with zero failures and no baseline increases; README continuity passes against 3286543. Changed launch text and metadata have no private home/volume path or credential-pattern match. Root-owned template/wizard alignment commit 30e4938 has 12 passing wizard tests and 94 assertions, plus package typecheck. Fresh disposable installer checks pass 35 of 35, including first and repeat installation, dry run, backups, rollback, preservation of live fixture files and forced disposable replacement. These are source and sandbox checks, not real-host routing or callback acceptance. Phloem Grok bounded streaming attempt returned HTTP 200 headers but no content before its 300-second timeout. The alternate connected Terra S streaming attempt also reached its 300-second deadline without retained substantive content. A subsequent connected openai/gpt-4.1 fallback returned an explicit stream error without an accepted artifact. The upstream error cause is unknown because the collector retained a generic error only. The local fact-based explainer and companion website/PH drafts are editorial reconciliation, not S-authored production. The new explainer passes the STE gate at zero errors. The full gate covers 41 files with zero failures, README continuity passes, and sh verify.sh plus its private-path and hook regression guards pass. ISC-879 remains unchecked. No hosted delivery outcome is inferred from a configured seat or HTTP status.
+
+- 2026-11-02 source slice: ISC-853 plan file was written before either new implementation file. ISC-854..867: 18 focused synthetic tests pass, 129 assertions. The combined baseline and new tests pass: 103 tests, 544 assertions, 8 files. ISC-868: TypeScript 5.9.3 targeted noEmit check passes for both new modules and both fixture files. The full install-surface typecheck passes. STE docs gate passes 40 files with no failures and no baseline increases. ISC-869..870: public capability matrix records review-only source, no live install, and no private implementation copying; VERSION remains 0.8.0. ISC-871..872 stay unchecked because no install adapter or host/native callback was exercised.
 
 - ISC-750: directory enumeration — The report classifies all 70 Thoughtseed immediate children: 68 directories and 2 files.
 - ISC-751: directory enumeration — The report classifies all 57 Tryambakam immediate children: 41 directories and 16 files.

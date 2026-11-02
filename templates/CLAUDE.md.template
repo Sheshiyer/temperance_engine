@@ -25,19 +25,19 @@ curl -s -X POST http://localhost:31337/notify \
 
 ## Gateway (OmniRoute + Temperance Engine)
 
-Claude Code talks HTTP to the local gateway — it does not mount those trees as skill dirs.
+Claude Code uses the host-selected OmniRoute endpoint and client adapter. The host owns endpoint and credential configuration; this template does not inject either.
 
-- `ANTHROPIC_BASE_URL` is `http://localhost:20128` (OmniRoute). Combos: Observe/Think/Learn `te-reason`, Plan `te-plan`, Build `te-build`, Execute `te-dispatch-paid`, Verify `te-validate`. Default S-session `te-algorithm`.
+- Current phase combos: Observe/Think/Learn `noesis-observe`, Plan `noesis-plan` (`noesis-plan-max` at E4+), Build `noesis-build`, Execute `noesis-execute`, Verify `noesis-verify`. Check the live phase map and actual response receipt; an alias does not prove S-tier execution.
 - `~/.temperance_engine` is the operator runtime (rails, launchd, combo map, Pulse compat).
 - `~/.omniroute` is OmniRoute process data (sqlite, oauth, logs). Do not scan it as skills.
-- Execute lock: Superset + Claude on this gateway — not Codex App as a worker.
+- Dispatch admitted work from a primary Codex or Claude Code surface into isolated git worktrees. Hermes keeps its own plant authority. Superset and Constellation are retired and excluded from new execution.
 
 ## Skill Clusters
 
 - Canonical home: `$HOME/.agents/skill-clusters`.
 - Startup scan is **hubs only**: `$HOME/.agents/skills` (orchestrator+core + preserve) plus this seat's allowlist (PAI thinking skills, GSD profile `standard`). Never scan `$HOME/.agents/skill-clusters/skills`.
 - Use `skill-index.json` for resolution. Spokes load via the cluster orchestrator or a direct Read of the indexed path — do not copy vendor dumps into `~/.claude/skills`.
-- Add a Thoughtseed git root to the Codex cockpit with `thoughtseed-cockpit-add PATH --pin --te-init`. Execute stays Superset + Claude Code — not Codex App as a worker.
+- Add a Thoughtseed git root to the Codex cockpit with `thoughtseed-cockpit-add PATH --pin --te-init`. Dispatch admitted work from a primary Codex or Claude Code surface into isolated git worktrees; keep Hermes authority separate.
 
 ## CodeGraph
 

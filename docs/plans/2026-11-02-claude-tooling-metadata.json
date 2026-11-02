@@ -1,0 +1,207 @@
+{
+  "schema": "temperance.claude-installed-tooling-metadata.v1",
+  "observedOn": "2026-11-02",
+  "purpose": "Explain the founder-selected optional Claude profile without making it a portable-core dependency.",
+  "sources": [
+    "Claude installed-plugin registry metadata",
+    "Claude enabledPlugins user-setting flags",
+    "Installed plugin manifests (name/version/repository only)",
+    "claude plugin list --json, scoped to current workspace"
+  ],
+  "scopeBoundary": "Metadata inventory only. No credentials, env values, paths, project identities, plugin state, memory stores or native sessions exported.",
+  "interpretation": "Installed, enabled in settings, available to a particular session, invoked, and accepted are different evidence levels.",
+  "plugins": [
+    {
+      "name": "superpowers",
+      "installedVersion": "4.0.3",
+      "installationScope": "user",
+      "userSettingsEnabled": false,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Reusable planning, testing, debugging and review workflows.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "superpowers-dev",
+      "upstream": "https://github.com/obra/superpowers",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "visual-documentation-skills",
+      "installedVersion": "1.1.0",
+      "installationScope": "user",
+      "userSettingsEnabled": false,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Optional visual HTML documentation and diagram skills.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "mhattingpete-claude-skills",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "rust-analyzer-lsp",
+      "installedVersion": "1.0.0",
+      "installationScope": "user",
+      "userSettingsEnabled": true,
+      "state": "enabled-in-current-cli",
+      "role": "Rust language intelligence when the language server is available.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "enabledInCurrentCli": true
+    },
+    {
+      "name": "agent-sdk-dev",
+      "installedVersion": "1.0.1",
+      "installationScope": "user",
+      "userSettingsEnabled": false,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Optional Claude Agent SDK development guidance.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "superpowers",
+      "installedVersion": "7.0.0",
+      "installationScope": "user",
+      "userSettingsEnabled": true,
+      "state": "enabled-in-current-cli",
+      "role": "Reusable planning, testing, debugging and review workflows.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "upstream": "https://github.com/obra/superpowers",
+      "enabledInCurrentCli": true
+    },
+    {
+      "name": "feature-dev",
+      "installedVersion": "1.0.1",
+      "installationScope": "user",
+      "userSettingsEnabled": true,
+      "state": "enabled-in-current-cli",
+      "role": "Feature exploration, architecture and quality-review workflow.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "enabledInCurrentCli": true
+    },
+    {
+      "name": "commit-commands",
+      "installedVersion": "1.0.1",
+      "installationScope": "user",
+      "userSettingsEnabled": false,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Optional Git commit and pull-request command helpers.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "vercel",
+      "installedVersion": "0.50.0",
+      "installationScope": "user",
+      "userSettingsEnabled": false,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Optional deployment and web-application guidance.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "upstream": "https://github.com/vercel/vercel-plugin",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "playground",
+      "installedVersion": "a7ba5b93db0c",
+      "installationScope": "user",
+      "userSettingsEnabled": false,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Optional interactive HTML explorers.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "supabase",
+      "installedVersion": "0.1.16",
+      "installationScope": "user",
+      "userSettingsEnabled": true,
+      "state": "enabled-in-current-cli",
+      "role": "Supabase development guidance and optional service tools.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "upstream": "https://github.com/supabase-community/supabase-plugin",
+      "enabledInCurrentCli": true
+    },
+    {
+      "name": "claude-md-management",
+      "installedVersion": "1.0.0",
+      "installationScope": "user",
+      "userSettingsEnabled": false,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Optional maintenance of CLAUDE.md instructions.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "claude-plugins-official",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "codex",
+      "installedVersion": "1.0.6",
+      "installationScope": "user",
+      "userSettingsEnabled": null,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Optional Codex review or task-delegation integration.",
+      "runtimeAcceptance": "not asserted",
+      "marketplace": "openai-codex-plugin-cc",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "obsidian",
+      "installedVersion": "1.0.1",
+      "installationScope": "project",
+      "userSettingsEnabled": null,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Project-scoped Obsidian Markdown, Bases and Canvas skills.",
+      "runtimeAcceptance": "not asserted",
+      "applicability": "Project-scoped installation record; no claim it applies to this workspace.",
+      "marketplace": "obsidian-skills",
+      "upstream": "https://github.com/kepano/obsidian-skills",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "claude-mem",
+      "installedVersion": "10.6.3",
+      "installationScope": "project",
+      "userSettingsEnabled": null,
+      "state": "installed-disabled-in-current-cli",
+      "role": "Project-scoped persistent-memory plugin; no store is read or promoted here.",
+      "runtimeAcceptance": "not asserted",
+      "applicability": "Project-scoped installation record; no claim it applies to this workspace.",
+      "marketplace": "thedotmack",
+      "upstream": "https://github.com/thedotmack/claude-mem",
+      "enabledInCurrentCli": false
+    },
+    {
+      "name": "temperance-rail",
+      "installedVersion": "0.11.0",
+      "installationScope": "user",
+      "userSettingsEnabled": true,
+      "state": "enabled-in-current-cli",
+      "role": "Personal-profile rail mod for phase, dispatch and provenance projections; private implementation is not distributed.",
+      "runtimeAcceptance": "not asserted",
+      "provenance": "Private profile mod, metadata only; no source or data exported.",
+      "enabledInCurrentCli": true
+    }
+  ],
+  "skills": {
+    "claudeTopLevelEntriesObserved": 155,
+    "meaning": "Exposed top-level skill entries only; not proof of 155 independent implementations or every entry active in this session.",
+    "canonicalIndex": {
+      "indexed": 1037,
+      "clusters": 49,
+      "activeHubs": 66,
+      "activeSpokes": 601,
+      "deferredHubs": 31,
+      "deferredSpokes": 275,
+      "archived": 64,
+      "digest": "sha256:eadec3d549918dfa49dacfa397697aa2a84cc8439729c2104cd05fab26f22e20"
+    },
+    "loading": "Hub-first discovery; load selected spokes on demand. Catalog presence is not installation or skill execution.",
+    "portableStory": "Skills provide reusable behavior; host profiles choose what is exposed. No personal or company corpus is bundled."
+  },
+  "notPublicDefaults": true,
+  "notAnSbom": true,
+  "cliReadback": "15 installed records; 5 enabled in current CLI; not runtime invocation or acceptance."
+}

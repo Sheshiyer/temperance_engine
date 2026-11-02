@@ -48,10 +48,13 @@ not through a machine-local project or volume path. This lets the selector keep
 showing its full proposal set while an external project volume is absent; every
 unavailable project is rendered as held and remains impossible to approve.
 
-## Router Authority
+## Current router authority
 
-`9router` is the successor package to OmniRoute. It is not installed beside
-OmniRoute as a second authority.
+OmniRoute is the default router since 0.8.0. It owns provider credentials, models, combos, quotas and fallback. See [COMPATIBILITY.md](COMPATIBILITY.md) for the qualified pin. Historical `te-*` aliases do not select current routes. Superset and Constellation are retired.
+
+## Historical 9router adapter design
+
+The following 9router design records the earlier adapter. It applies only to the legacy repair flow. It is not current default routing authority. This document activates no cutover.
 
 - The initial package pin is exactly `9router@0.5.75`.
 - Provider connections are discovered through `/api/providers`; live model and

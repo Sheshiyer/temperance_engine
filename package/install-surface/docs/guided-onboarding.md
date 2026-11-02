@@ -4,30 +4,43 @@
 
 1. Host — review the machine and explicitly selected personal profile, if any.
 2. Projects — inspect existing approvals and mapped folders/repositories; select new approvals explicitly.
-3. Providers — choose a provider and complete 9Router-owned sign-in.
-4. Combos — select ordered live model members for each alias, then review the exact 9Router changes.
+3. Providers — open the OmniRoute dashboard and review provider sign-in there.
+   OmniRoute is the current default. The legacy 9Router adapter is separate.
+4. Combos — review current phase aliases and live model choices in OmniRoute.
+   Review each change in its dashboard before you apply it.
 5. Organs and tools — request capabilities, re-probe dependencies, or explicitly defer held options.
 6. Integrations — review application prerequisites without treating presence as live service health.
 7. Review — confirm requested configuration and project approvals with Enter or y.
 
 Use the arrow keys to choose a visible action and Enter to activate it. Back and
-Continue are ordinary action rows. OAuth, combo setup, and refresh return to the
-current step with pending selections preserved. Cancel does not save pending
-project or module choices; completed provider authorizations are owned by
-9Router and are not undone by cancelling the outer wizard.
+Continue are ordinary action rows. Cancel does not save pending project or
+module choices. The outer wizard does not undo provider sign-in completed in
+the router. Dashboard presence does not prove authentication or live health.
 
 ## Persistence and authority
 
 - `--project-capsules` loads approved project access; `--project-capsules-out` explicitly enables saving new approvals. Existing capsules are preserved.
 - `--wizard-state` loads/saves owner-only requested-module preferences for this profile. Every launch re-probes; saved preferences are not admission or activation grants.
-- Provider sign-in requires an explicit provider action. Credentials stay in 9Router.
-- Combo setup currently supports a fresh combo/key state with existing OAuth providers. Existing combos, gateway keys, and occupied Keychain references are held, not overwritten.
-- Seating choices alone do not authorize writes. A separate exact-plan review binds ordered members, alias mappings, and the gateway reference into the apply digest.
+- Provider sign-in requires an explicit action in the selected router. Credentials stay in that router.
+- The current OmniRoute path hands setup to its dashboard. It does not apply the legacy combo-writer script.
+- A phase alias does not prove which provider served a request. Use a request receipt for that evidence.
 - Final wizard confirmation does not install every selected organ, certify a tunnel/dashboard, or establish 900k–1M context capacity. Those capabilities need their own operational evidence.
 
 Generic Temperance needs no Noesis profile, mounted personal volume, or provider.
 Personal paths and Keychain references belong in the explicitly supplied private
 host binding, not in the portable core.
+
+## Legacy 9Router adapter
+
+Existing 9Router users can retain the separate legacy adapter. Its OAuth,
+combo setup, and refresh actions return to the current step. Pending selections
+are preserved. This compatibility path is not the default OmniRoute handoff.
+
+The legacy combo flow supports a fresh combo/key state with existing OAuth
+providers. It holds existing combos, gateway keys, and occupied Keychain
+references. It does not overwrite them. Choices alone do not authorize writes.
+A separate plan review binds ordered members, aliases, and the gateway reference
+to the apply digest. The router owns completed provider authorizations.
 
 ## Agents, health and telemetry
 
