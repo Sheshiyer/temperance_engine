@@ -1,0 +1,11 @@
+{
+  "name": "temperance-showreel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sound": "bun scripts/prepare-audio.ts",
+    "render": "bun scripts/prepare-audio.ts && bun scripts/capture.ts --workers 1",
+    "stills": "bun scripts/capture.ts --frames",
+    "preview": "bun scripts/preview.ts"
+  }
+}

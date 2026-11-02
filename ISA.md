@@ -5,10 +5,10 @@ effort: E4
 effort_source: classifier
 phase: verify
 iteration: 2026-11-02-portable-core-vestibule-source
-progress: 791/916
+progress: 799/924
 mode: interactive
 started: 2026-06-12
-updated: 2026-11-02T06:58:14Z
+updated: 2026-11-02T08:41:53Z
 ---
 
 ## Problem
@@ -1176,6 +1176,17 @@ These criteria record the bounded source slice. They do not close prior v1.1 hos
 - [ ] ISC-879: Phloem returns a bounded, attributed S-tier narrative artifact and source review verifies its claims before launch-surface integration. [HELD: no accepted narrative response yet]
 - [x] ISC-880: Anti: alignment leaves VERSION at 0.8.0 and preserves the install-adapter and native callback holds in ISC-871..872.
 
+### Thirty-second architecture review film — 2026-11-02
+
+- [x] ISC-881: The master encodes 1,800 frames at 1920×1080, 60 fps, with a 30-second H.264/AAC timeline.
+- [x] ISC-882: The web encode contains 900 frames at 1920×1080 and 30 fps on the same 30-second timeline.
+- [x] ISC-883: The finite editable source bundle has valid local font references, license notices and no private paths, credentials or transport helpers.
+- [x] ISC-884: All ten original tracked showreel source and media file hashes remain unchanged.
+- [x] ISC-885: The README links the new film, poster, captions, transcript and editable source at existing repository paths.
+- [x] ISC-886: The rendered phase labels match canonical stage metadata and avoid automatic memory or acceptance claims.
+- [x] ISC-887: Six ordered descriptive caption cues cover only the 30-second film timeline.
+- [x] ISC-888: Anti: local review film production does not assert Phloem S-tier authorship or close ISC-879.
+
 ## Test Strategy
 
 - ISC-853 | file probe | reviewed source sequence | present before construction | source history
@@ -2148,6 +2159,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 
 ## Decisions
 
+- 2026-11-02 refined: user scope includes an actual slower 30-second architecture film and synchronized launch surfaces. Preserve the original 15-second files. The connected Phloem source-generation attempts produced no accepted creative artifact; a local source-backed review adaptation proceeds while ISC-879 remains held. Only the affected phase frames are regenerated after independent review corrected inherited stage labels and ambiguous memory/criteria wording.
+
 - 2026-11-02: The portable source slice independently authors smaller process-frame and orientation contracts. It reuses public composition/lifecycle and phase metadata; it does not vendor the private v4 registry, admission, resolver, result verifier or organ scripts. The product remains the portable glove and a selected profile remains the hand under the existing V4 contract. Plain core/profile wording avoids reversing those names.
 - 2026-11-02: Review found expiry could pass validation then expire before consumer delivery. The same sampled delivery clock now checks deadline and context expiry before consume. Regression uses clock sequence [t,t,t+2] with expiry t+1.
 - 2026-11-02: Direct provider payload proxies and then getters are rejected before awaiting. Native promises belong to trusted injected callbacks and are not sandboxed. No callback code is claimed effect-free.
@@ -2834,6 +2847,9 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   criterion now: ISC-836..ISC-843 accept the 3.8.51 contract, the preview and Hermes version binding, the intensity-less default combo, the re-audited topology, bounded settings digests, and the retained non-claims.
 
 ## Verification
+
+- 2026-11-02 architecture media: ISC-881/882 pass FFprobe readback: corrected master H.264/AAC, 1920×1080, 60/1 fps, 1,800 frames, 30.000 seconds; web H.264/AAC, 1920×1080, 30/1 fps, 900 frames, 30.000 seconds. AAC is 48 kHz stereo. Audio measurement is -14.6 LUFS integrated and -0.7 dBFS true peak; listening acceptance is not asserted. ISC-883: 22-entry source ZIP d49af4604b5e4c816c9f573b8d51987a6440831c3befb60ff96542501fa6b5b3 has five finite font files, three OFL notices, no private paths or transport helpers. ISC-884: all ten original tracked showreel hashes match the preserved snapshot. ISC-885: README references existing new web MP4, 1920×1080 poster, captions, transcript and editable source. ISC-886: independent source review found inherited Plan/Learn stage and execution/learning wording defects; the corrected 420 phase frames replace the original phase range before encoding. Main-corpus and corrected-still hashes match at frames 390, 510 and 630; visual review confirms canonical labels and no overflow. ISC-887: six ordered WEBVTT cues stay within 0–30 seconds. ISC-888: film remains a local review adaptation; ISC-879 is held and no S-tier creative authorship is asserted. The original 15-second source/media remain unchanged.
+
 
 - 2026-11-02 launch alignment: ISC-873 uses docs/plans/2026-11-02-launch-alignment.md. ISC-874: sanitized metadata readback gives 15 installed records and five enabled; invocation and acceptance are not asserted. All four historical generated README blocks compare byte-identical to source 3286543. Three product package manifest hashes match the supplied source inventory. The STE docs gate passes 40 files with zero failures and no baseline increases; README continuity passes against 3286543. Changed launch text and metadata have no private home/volume path or credential-pattern match. Root-owned template/wizard alignment commit 30e4938 has 12 passing wizard tests and 94 assertions, plus package typecheck. Fresh disposable installer checks pass 35 of 35, including first and repeat installation, dry run, backups, rollback, preservation of live fixture files and forced disposable replacement. These are source and sandbox checks, not real-host routing or callback acceptance. Phloem Grok bounded streaming attempt returned HTTP 200 headers but no content before its 300-second timeout. The alternate connected Terra S streaming attempt also reached its 300-second deadline without retained substantive content. A subsequent connected openai/gpt-4.1 fallback returned an explicit stream error without an accepted artifact. The upstream error cause is unknown because the collector retained a generic error only. The local fact-based explainer and companion website/PH drafts are editorial reconciliation, not S-authored production. The new explainer passes the STE gate at zero errors. The full gate covers 41 files with zero failures, README continuity passes, and sh verify.sh plus its private-path and hook regression guards pass. ISC-879 remains unchecked. No hosted delivery outcome is inferred from a configured seat or HTTP status.
 

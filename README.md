@@ -36,6 +36,23 @@ Product Hunt launch scheduled for November 6, 2026, 12:01 AM PST.
 
 ## Showreel
 
+### Thirty-second architecture review
+
+[![Temperance Engine architecture film: phases, Koshas, advisory organs and tooling](assets/showreel/temperance-architecture-30s-poster.jpg)](assets/showreel/temperance-architecture-30s.mp4)
+
+A slower, 30-second landscape tour of the seven phases, five Koshas, six advisory organ roles, and selected Claude plugins and third-party tools. The film is an architecture illustration. Optional profile choices, draft adapters and held runtime acceptance retain their stated boundaries.
+
+**[Watch the 30-second film](assets/showreel/temperance-architecture-30s.mp4)** · [Descriptive transcript](assets/showreel/temperance-architecture-30s-transcript.md) · [Captions](assets/showreel/temperance-architecture-30s-captions.vtt) · [Editable source and render guide](package/showreel/architecture-30s/README.md)
+
+The editable source renders 1,800 frames at 1920×1080 and 60 fps. The web encode is 1080p at 30 fps. It reuses the original Canvas2D artwork and procedural soundtrack, with finite font assets and license notices. The [architecture explainer](docs/architecture-explainer.md) and [tooling credits](CREDITS.md) provide the full story and inventory.
+
+<details>
+<summary>Original 15-second concept film — preserved</summary>
+
+The earlier cut below includes illustrative provider failover and criteria displays. Those animations are not live provider or product acceptance receipts. The original media and editable source remain preserved.
+
+### Original 15-second showreel
+
 [![Six frames from the Temperance Engine showreel: the alchemical seal, the title, the BUILD step, OmniRoute failover, ISA verification, and the lockup](assets/showreel/poster.jpg)](assets/showreel/temperance-showreel.mp4)
 
 Fifteen seconds at 60 fps, with every cut on a beat of a 120 BPM soundtrack. It covers the seven alchemical steps, a 429 → 200 OmniRoute failover, the ISA as test harness, and a balance beam that settles level on the last note.
@@ -43,6 +60,9 @@ Fifteen seconds at 60 fps, with every cut on a beat of a 120 BPM soundtrack. It 
 **[Watch 16:9](assets/showreel/temperance-showreel.mp4)** · **[Watch 9:16 for socials](assets/showreel/temperance-showreel-9x16.mp4)** · [How it is made](package/showreel/README.md)
 
 The visuals are one hand-written Canvas2D file and the soundtrack is synthesized in code. There are no animation libraries. Run `bun run render` in `package/showreel/` to rebuild both cuts from source.
+
+
+</details>
 
 ## Why It Exists
 

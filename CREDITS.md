@@ -126,6 +126,11 @@ This list covers declared direct packages and attributed integrations. It is
 not a transitive software bill of materials or proof that every catalog entry
 is installed or admitted on a host.
 
+The new thirty-second architecture review adapts the original showreel artwork
+and procedural score. Its [editable source](package/showreel/architecture-30s/README.md)
+includes local Cormorant Garamond, Space Grotesk and DM Mono font subsets, with
+their SIL Open Font License notices. See the [film notices](package/showreel/architecture-30s/THIRD-PARTY-NOTICES.md).
+
 ## Optional service integrations
 
 The [public onboarding catalog](package/install-surface/src/onboarding/core-catalog.ts)
