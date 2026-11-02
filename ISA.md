@@ -1,14 +1,14 @@
 ---
 project: temperance_engine
-task: Repair GSD stalls and execute glove Phase 1
+task: Reconcile portable phase core and read-only Vestibule source
 effort: E4
 effort_source: classifier
-phase: build
-iteration: 2026-08-20-gsd-runtime-repair-and-phase-1-execution
-progress: 752/874
+phase: verify
+iteration: 2026-11-02-portable-core-vestibule-source
+progress: 791/916
 mode: interactive
 started: 2026-06-12
-updated: 2026-10-13T11:36:04Z
+updated: 2026-11-02T06:58:14Z
 ---
 
 ## Problem
@@ -1140,7 +1140,39 @@ untouched.
 - [x] ISC-851: Anti: `./verify.sh` passes its private-path guard on the candidate, and `.temperance/project.json` and `.temperance/manifest.json` contain no `/Users/` or `/Volumes/` literal.
 - [x] ISC-852: Anti: `codex/modular-mac-lifecycle` is not an ancestor of the `0.8.0` candidate.
 
+### Portable core and Vestibule source review — 2026-11-02
+
+These criteria record the bounded source slice. They do not close prior v1.1 host or release gates.
+
+- [x] ISC-853: The exact public-safe source sequence precedes construction in docs/plans/2026-11-02-portable-core-vestibule.md.
+- [x] ISC-854: A no-profile synthetic fixture traverses the seven phases without provider or host adapters.
+- [x] ISC-855: Phase frames preserve run, task, manifest and phase identity across advancement.
+- [x] ISC-856: Illegal process transitions and exhausted retries fail explicitly.
+- [x] ISC-857: Anti: process completion never asserts execution authorization or accepted results.
+- [x] ISC-858: Phase intent reuses public Kosha metadata and leaves missing adapters unsupported.
+- [x] ISC-859: Existing composition validation rejects dangling, duplicate, retired and private inputs.
+- [x] ISC-860: An injected Vestibule callback delivers a bounded immutable synthetic orientation card through runOrganLifecycle.
+- [x] ISC-861: Context provenance binds plant, occurrence and manifest identity before delivery.
+- [x] ISC-862: Stale, private, path-bearing and access-bearing context fails before consumer delivery.
+- [x] ISC-863: Concurrent occurrence and replay fixtures permit one orientation delivery.
+- [x] ISC-864: Cancellation and pre-delivery expiry prevent late consumer delivery.
+- [x] ISC-865: Ignored consumer cancellation remains timeout and unsettled.
+- [x] ISC-866: Provider, consumer and ledger failures preserve truthful lifecycle outcomes.
+- [x] ISC-867: Direct payload proxies and getters are refused without reflection or thenable invocation.
+- [x] ISC-868: Targeted TypeScript checks include the new source and fixtures.
+- [x] ISC-869: A source capability matrix separates shipped, draft, held and gap states from installation, runtime and acceptance.
+- [x] ISC-870: Anti: no private implementation, installed runtime mutation or release bump belongs to this slice.
+- [ ] ISC-871: A separate install adapter proves exact preimages and receipt-owned rollback on a disposable target. [HELD: source contract only]
+- [ ] ISC-872: A real host callback and consumer readback prove native linkage. [HELD: synthetic fixture only]
+
 ## Test Strategy
+
+- ISC-853 | file probe | reviewed source sequence | present before construction | source history
+- ISC-854..859 | source fixture | portable-phase-kernel.test.ts | all pass | bun test
+- ISC-860..867 | lifecycle fixtures | vestibule.test.ts plus existing composition suites | all pass | bun test
+- ISC-868 | static check | isolated tsconfig includes source and tests | zero errors | TypeScript 5.9.3
+- ISC-869..870 | source inspection | capability matrix, diff, VERSION and selected files | truthful source boundary | git diff and file reads
+- ISC-871..872 | target probes | install transaction and real callback | held, no source-test substitution | future adapter probes
 
 | isc | type | check | threshold | tool |
 |---|---|---|---|---|
@@ -1976,6 +2008,10 @@ untouched.
 
 ## Features
 
+- Portable phase contract | Pure no-profile bookkeeping against public composition | satisfies ISC-854..859 | depends_on existing public contracts | parallelizable false
+- Vestibule orientation handler | Injected selected context and consumer | satisfies ISC-860..867 | depends_on existing lifecycle | parallelizable false
+- Source promotion documentation | Exact sequence, provenance, matrix and held install contract | satisfies ISC-853, ISC-868..872 | depends_on source fixtures | parallelizable false
+
 | name | satisfies | depends_on | parallelizable |
 |---|---|---|---|
 | Installer scripts | ISC-1..ISC-7 | none | no |
@@ -2100,6 +2136,11 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 <!-- arch-assets:end -->
 
 ## Decisions
+
+- 2026-11-02: The portable source slice independently authors smaller process-frame and orientation contracts. It reuses public composition/lifecycle and phase metadata; it does not vendor the private v4 registry, admission, resolver, result verifier or organ scripts. The product remains the portable glove and a selected profile remains the hand under the existing V4 contract. Plain core/profile wording avoids reversing those names.
+- 2026-11-02: Review found expiry could pass validation then expire before consumer delivery. The same sampled delivery clock now checks deadline and context expiry before consume. Regression uses clock sequence [t,t,t+2] with expiry t+1.
+- 2026-11-02: Direct provider payload proxies and then getters are rejected before awaiting. Native promises belong to trusted injected callbacks and are not sandboxed. No callback code is claimed effect-free.
+- 2026-11-02: VERSION remains 0.8.0. New kernel and Vestibule source is draft until review; clean-host, hosted authentication, real callback linkage and durable recovery remain separate held gates.
 
 - 2026-08-20: The operator approved the first public v1.1 install-surface semantic-ID set before any lockfile write: `boundary.native-sessions`, `boundary.operator-evidence`, `boundary.personal-substrate`, `boundary.provider-authority`, `boundary.runtime-datastores`, `configuration.codex-managed-block`, `enrichment.public-pipeline`, `hooks.claude.prompt-processing`, `hooks.codex.gsd-command`, `hooks.codex.prompt-processing`, `hooks.codex.session-start`, `manifest.bridge-runtime`, `manifest.zone-project-state`, `router.governed-runtime`, `skills.temperance-algorithm`, `skills.temperance-engine`, `skills.temperance-native`, and `skills.temperance-parallel-dispatch`. These immutable IDs define the first reviewed glove inventory; later identity changes require explicit migrations. Private-boundary IDs remain symbolic and expose no host path, provider, binding, or private filename.
 
@@ -2334,6 +2375,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
 - 2026-10-04 20:10 UTC: refined: The owner requests a minor version bump and GitHub publication after the showreel docs change. Product `VERSION` moves from 0.6.0 to 0.7.0 and carries the merged STE skill and docs gate plus the showreel. Open router PRs #35 (organ registry) and #38 (hosted-router edge) are not merged and stay out of this release. The `9router@0.5.75` pin, host generation, credentials, and session policy do not change. The showreel ships repo-sized web encodes (CRF 24) built by `bun run publish`; the CRF 16 masters stay local and regenerable.
 
 ## Changelog
+
+- 2026-11-02 — Conjectured: context validation plus a deadline check was sufficient before orientation delivery. Refuted by: review reproduced expiry between the two clock samples. Learned: deadline and context freshness must use the delivery-time sample before consumer entry. Criterion now: ISC-864 includes the deterministic pre-delivery expiry regression.
 
 - 2026-08-02: Added a separate offline native CLI readiness inspector for six reviewed OmniRoute 3.8.48 files. Exact digest, version, source-type, and marker equality now gate the non-authorizing instant receipt; package/module-graph integrity, transport, replay, authentication, semantic qualification, mutation, and promotion remain explicitly false. Fifteen focused tests, native integration, the canonical verifier, post-build Advisor hardening, and independent Cato PASS completed with protected projections unchanged. The failed Forge attempt made no edits, so ISC-612 remains open rather than being rewritten after the fact.
 
@@ -2780,6 +2823,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   criterion now: ISC-836..ISC-843 accept the 3.8.51 contract, the preview and Hermes version binding, the intensity-less default combo, the re-audited topology, bounded settings digests, and the retained non-claims.
 
 ## Verification
+
+- 2026-11-02 source slice: ISC-853 plan file was written before either new implementation file. ISC-854..867: 18 focused synthetic tests pass, 129 assertions. The combined baseline and new tests pass: 103 tests, 544 assertions, 8 files. ISC-868: TypeScript 5.9.3 targeted noEmit check passes for both new modules and both fixture files. The full install-surface typecheck passes. STE docs gate passes 40 files with no failures and no baseline increases. ISC-869..870: public capability matrix records review-only source, no live install, and no private implementation copying; VERSION remains 0.8.0. ISC-871..872 stay unchecked because no install adapter or host/native callback was exercised.
 
 - ISC-750: directory enumeration — The report classifies all 70 Thoughtseed immediate children: 68 directories and 2 files.
 - ISC-751: directory enumeration — The report classifies all 57 Tryambakam immediate children: 41 directories and 16 files.

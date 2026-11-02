@@ -6,7 +6,7 @@ integration; Cambium owns company operations. Each plant owns its bindings and c
 
 Run `bun src/cli.ts composition inspect` from the install-surface package with a
 JSON stdin packet containing `manifest` and optional `observations`. The example
-`examples/standalone-composition.v1.json` requires no integrations or Superset.
+`examples/standalone-composition.v1.json` requires no integrations or retired application.
 The dedicated `src/composition/cli.ts inspect` uses the same implementation.
 
 The contract declares a native coordinator, module owners, symbolic references
@@ -16,13 +16,13 @@ effects disabled. Caller-provided healthy or admitted observations never authori
 execution. Adapters must independently prove authorization, account capacity,
 effects and owner read-back.
 
-Optional organs, Hands, A2A, routing, Constellation, banners and islands share these
+Optional organs, Hands, A2A, routing, banners and islands share these
 declarations. This source slice does not install or activate them. Reusable code
 belongs here; personal profiles belong in Noesis Cambium; company admissions and
 result lineage belong in Cambium.
 
 Remaining implementation order: causal organ lifecycle; Git workspace admission
-independent of Superset; per-account capacity and native handoff; lifecycle receipts;
+independent of retired applications; per-account capacity and native handoff; lifecycle receipts;
 typed companion actions; shared redacted projections and independent runtime acceptance.
 Thoughtseed, HeyZack and external fleets retain distinct configuration and authority.
 
@@ -63,3 +63,11 @@ bridge consume this already-redacted model through their own bounded adapters.
 ### Contained owner observations
 
 `composition owner-project` reads a bounded JSON stdin packet with `manifest`, optional `observations`, `event`, and `owner_observation`. The portable `temperance.lifecycle-owner-observation.v1` contract carries only fixed process dispositions and redacted lineage digests. It shares the banner/island target model while retaining “Owner process completed; acceptance unproved” wording. Process completion, replay, pending, and held outcomes remain distinct. Digests establish supplied-content consistency, not authenticity. No command dispatches organs or grants capacity, execution, or semantic acceptance.
+
+## Portable phase and orientation review slice
+
+`package/router/portable-phase-kernel.ts` reuses this composition validator and the public phase metadata. It records pure process transitions with no profile or provider requirement. A completed phase does not assert an accepted result. Logical skill and lane intent stays unsupported until an independent host adapter proves its own capability.
+
+`createVestibuleHandler` in `src/composition/vestibule.ts` supplies one read-only orientation callback for `runOrganLifecycle`. It accepts an injected provider, consumer and clock. It validates bounded public or synthetic context, plant and occurrence identity, provenance and freshness. It makes an immutable card before consumer delivery. No default files, memory, network, repair or scheduling adapter is supplied. The callbacks are trusted dependencies, not a sandbox. Other organ adapters remain optional and unproved.
+
+See [the source capability matrix](../../../docs/plans/2026-11-02-portable-capabilities.md) for source evidence and separate installation, callback and acceptance gates. Constellation and Superset are retired and excluded.
