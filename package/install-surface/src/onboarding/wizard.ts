@@ -152,8 +152,8 @@ export function createOnboardingWizardView(plan: OnboardingPlanV1, state: Onboar
   if (state.step === "combos") {
     if (!options.routing && usesOmniRoute) {
       rows.push(info("omniroute.combos", "Set up combos in the OmniRoute dashboard", dashboard, [
-        `Create or review the governed te-* combos at ${dashboard}.`,
-        "Or, from the Temperance Engine checkout, run scripts/omniroute-temperance-combos.sh (a dry run), then again with --apply.",
+        `Review current phase combos at ${dashboard}: Observe/Think/Learn noesis-observe; Plan noesis-plan (E4+ noesis-plan-max); Build noesis-build; Execute noesis-execute; Verify noesis-verify.`,
+        "Review connected providers and ordered live seats in that dashboard. A combo alias alone does not prove S-tier execution or a successful provider response.",
         "No provider or combo is changed by this wizard.",
       ]));
     } else rows.push(action("setup-combos", "Set up combos", options.allowRoutingSeating ? "Choose ordered live models for each phase alias" : "Unavailable — connect providers and refresh models", { kind: "seat" }, !options.allowRoutingSeating, ["Opens the dedicated combo seating flow.", "No provider is silently activated."]));

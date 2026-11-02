@@ -13,6 +13,6 @@ Temperance Engine is editor/runtime agnostic. Do not require Claude Code, Claude
 
 For `.agents` and skill-cluster structural questions, use CodeGraph with `projectPath: "$HOME/.agents"` when available. Use direct file reads or literal search for exact strings and specific files.
 
-Skill-cluster routing should go through `$HOME/.agents/skill-clusters/skill-index.json`. Startup scan is **hubs only** (`$HOME/.agents/skills` orchestrator+core + preserve, GSD profile `standard`). Do not add `$HOME/.agents/skill-clusters/skills` as a startup skill scan path. Add a Thoughtseed git root with `thoughtseed-cockpit-add PATH --pin --te-init`. Execute stays Superset + Claude Code — not Codex App as a worker.
+Skill-cluster routing should go through `$HOME/.agents/skill-clusters/skill-index.json`. Startup scan is **hubs only** (`$HOME/.agents/skills` orchestrator+core + preserve, GSD profile `standard`). Do not add `$HOME/.agents/skill-clusters/skills` as a startup skill scan path. Add a Thoughtseed git root with `thoughtseed-cockpit-add PATH --pin --te-init`. Dispatch admitted work from a primary Codex or Claude Code surface into isolated git worktrees. Hermes keeps its own plant authority. Superset and Constellation are retired and excluded from new execution.
 
 To apply this in a Cursor project, copy this file to the project root as `AGENTS.md`.

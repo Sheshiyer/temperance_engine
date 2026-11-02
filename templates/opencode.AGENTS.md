@@ -9,7 +9,7 @@ First visible line for PAI-formatted responses: `NOESIS`.
 
 Use CodeGraph for structural search in `$HOME/.agents` and avoid Augment/codebase-retrieval for home-directory or `.agents` trees.
 
-Skill-cluster routing should go through `$HOME/.agents/skill-clusters/skill-index.json`. Startup scan is **hubs only** (`$HOME/.agents/skills` orchestrator+core + preserve, GSD profile `standard`). Do not add `$HOME/.agents/skill-clusters/skills` as a startup skill scan path. Add a Thoughtseed git root with `thoughtseed-cockpit-add PATH --pin --te-init`. Execute stays Superset + Claude Code — not Codex App as a worker.
+Skill-cluster routing should go through `$HOME/.agents/skill-clusters/skill-index.json`. Startup scan is **hubs only** (`$HOME/.agents/skills` orchestrator+core + preserve, GSD profile `standard`). Do not add `$HOME/.agents/skill-clusters/skills` as a startup skill scan path. Add a Thoughtseed git root with `thoughtseed-cockpit-add PATH --pin --te-init`. Dispatch admitted work from a primary Codex or Claude Code surface into isolated git worktrees. Hermes keeps its own plant authority. Superset and Constellation are retired and excluded from new execution.
 
 For technical docs, use the `simplified-technical-english` skill when it is installed (`./install.sh --with-ste`). In a Temperance Engine checkout, check drafts with `bun package/ste-check/cli.ts` and keep `bun package/ste-check/docs-gate.ts` green. See `docs/ste.md`.
 

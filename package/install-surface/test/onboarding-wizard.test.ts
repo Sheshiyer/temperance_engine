@@ -22,6 +22,17 @@ const options: OnboardingWizardOptions = { existingProjectCapsules: existing, al
 const blocked: OnboardingPlanV1 = { ...ready, operating_mode: "blocked", modules: [...ready.modules, { id: "delegate.hands", title: "Hands", requested: true, status: "blocked", holds: [{ reason_code: "SECRET_UNAVAILABLE", message: "Gateway key missing", remediation: ["Connect the gateway"], evidence: [] }], guided_installs: [], advisories: [] }] };
 
 describe("sequential onboarding controller", () => {
+  test("OmniRoute combo guidance names current phases without invoking a legacy writer", () => {
+    const plan: OnboardingPlanV1 = { ...ready, install_order: ["provider.omniroute"], modules: [{ ...ready.modules[0]!, id: "provider.omniroute", title: "OmniRoute" }] };
+    const state = createOnboardingWizardState(plan, { initialStep: "combos" });
+    const row = createOnboardingWizardView(plan, state, {}).rows.find(({ id }) => id === "omniroute.combos");
+    const guidance = row?.details.join("\n") ?? "";
+    for (const alias of ["noesis-observe", "noesis-plan", "noesis-plan-max", "noesis-build", "noesis-execute", "noesis-verify"]) expect(guidance).toContain(alias);
+    expect(guidance).not.toContain("te-*");
+    expect(guidance).not.toContain("omniroute-temperance-combos.sh");
+    expect(guidance).toContain("No provider or combo is changed by this wizard.");
+    expect(handleOnboardingWizardKey(plan, state, {}, "enter", "omniroute.combos").effect).toBeUndefined();
+  });
   test("Enter advances through exactly seven ordered steps, with visible Back and Continue", () => {
     let state = createOnboardingWizardState(ready, options);
     for (const [index, step] of ONBOARDING_WIZARD_STEPS.entries()) {
