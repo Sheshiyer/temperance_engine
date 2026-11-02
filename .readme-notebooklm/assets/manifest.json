@@ -56,5 +56,50 @@
     "reason": "Reconcile the 0.8.0 release notes (organ registry, OmniRoute default router and 3.8.51 gates, hosted-router probe, composition inspection) and README; preserve historical research assets without claiming regeneration.",
     "notebookRegenerated": false,
     "historicalResearchAssetsReused": true
-  }
+  },
+  "editorialReconciliations": [
+    {
+      "observedOn": "2026-11-02",
+      "mode": "source-backed-editorial-reconciliation",
+      "sourceHead": "30e4938b950c61f7d348b584c866427960ced86a",
+      "reason": "Source-backed local editorial reconciliation of current architecture, dated installed Claude metadata, tooling attribution and OmniRoute guidance. Historical generated research preserved without regeneration.",
+      "notebookRegenerated": false,
+      "historicalGeneratedBlocksChanged": false,
+      "sources": [
+        {
+          "path": "README.md",
+          "sha256": "df70c024f98e8599931b5bc3bb192329e2efe2d9c2764a19761d28ac9e750d95"
+        },
+        {
+          "path": "CREDITS.md",
+          "sha256": "255b0ed41399d22dc1bdb4b370bd15fe32646892c7177672ada660a0eb2ba75f"
+        },
+        {
+          "path": "ISA.md",
+          "sha256": "4c6d5265b88ad2cf7f3a9e6bd044afcf6d8fcb5a2cc3872875e1bf3956957a67"
+        },
+        {
+          "path": "docs/architecture-explainer.md",
+          "sha256": "a50b27a7da868425ffd1d835da46b01342f10fe3a2b822d338fb209e531ff6dc"
+        },
+        {
+          "path": "package/install-surface/docs/guided-onboarding.md",
+          "sha256": "f82eee70737bda91607a595ca8f1c0e6d7b86c2f65fa6f2861496f396eb46848"
+        },
+        {
+          "path": "docs/plans/2026-11-02-launch-alignment.md",
+          "sha256": "4f8277396eb0e6c2e42cff6712b278ce20877145e131a8ad1da16e85c4c58d24"
+        },
+        {
+          "path": "docs/plans/2026-11-02-claude-tooling-metadata.json",
+          "sha256": "a1803c25eeccc58d939bd56b00cfecdf7e9e72f089eab62098bd5cf5ee9651ea"
+        },
+        {
+          "path": "docs/plans/2026-11-02-claude-exposed-skills.json",
+          "sha256": "445d071b593aa8317e6570cf06025eac541d7c1d3eb2cde3a8967735707b750a"
+        }
+      ],
+      "narrativeProvenance": "source-backed local editorial reconciliation"
+    }
+  ]
 }

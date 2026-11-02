@@ -1165,6 +1165,17 @@ These criteria record the bounded source slice. They do not close prior v1.1 hos
 - [ ] ISC-871: A separate install adapter proves exact preimages and receipt-owned rollback on a disposable target. [HELD: source contract only]
 - [ ] ISC-872: A real host callback and consumer readback prove native linkage. [HELD: synthetic fixture only]
 
+### Launch source alignment — 2026-11-02
+
+- [x] ISC-873: A bounded source-change sequence records the launch alignment scope before construction.
+- [x] ISC-874: Dated metadata distinguishes 15 installed Claude plugin records, five enabled records, installation scope, and unasserted runtime acceptance; exposed skill names remain metadata only.
+- [x] ISC-875: Current README and guided onboarding identify OmniRoute as the default, with legacy 9Router setup separate.
+- [x] ISC-876: Historical NotebookLM report, map, table, and metadata blocks remain byte-identical inside a labelled disclosure; the manifest states no new NotebookLM run.
+- [x] ISC-877: Public credits attribute declared direct packages, optional integrations and installed profile plugins without treating them as a portable install default or a transitive SBOM.
+- [x] ISC-878: Current instruction templates use admitted Codex/Claude execution and current noesis phase aliases; the focused wizard regression rejects legacy te-* setup advice.
+- [ ] ISC-879: Phloem returns a bounded, attributed S-tier narrative artifact and source review verifies its claims before launch-surface integration. [HELD: no accepted narrative response yet]
+- [x] ISC-880: Anti: alignment leaves VERSION at 0.8.0 and preserves the install-adapter and native callback holds in ISC-871..872.
+
 ## Test Strategy
 
 - ISC-853 | file probe | reviewed source sequence | present before construction | source history
@@ -2823,6 +2834,8 @@ _Last refreshed: 2026-08-17T00:00:00.000Z_
   criterion now: ISC-836..ISC-843 accept the 3.8.51 contract, the preview and Hermes version binding, the intensity-less default combo, the re-audited topology, bounded settings digests, and the retained non-claims.
 
 ## Verification
+
+- 2026-11-02 launch alignment: ISC-873 uses docs/plans/2026-11-02-launch-alignment.md. ISC-874: sanitized metadata readback gives 15 installed records and five enabled; invocation and acceptance are not asserted. All four historical generated README blocks compare byte-identical to source 3286543. Three product package manifest hashes match the supplied source inventory. The STE docs gate passes 40 files with zero failures and no baseline increases; README continuity passes against 3286543. Changed launch text and metadata have no private home/volume path or credential-pattern match. Root-owned template/wizard alignment commit 30e4938 has 12 passing wizard tests and 94 assertions, plus package typecheck. Fresh disposable installer checks pass 35 of 35, including first and repeat installation, dry run, backups, rollback, preservation of live fixture files and forced disposable replacement. These are source and sandbox checks, not real-host routing or callback acceptance. Phloem Grok bounded streaming attempt returned HTTP 200 headers but no content before its 300-second timeout. The alternate connected Terra S streaming attempt also reached its 300-second deadline without retained substantive content. A subsequent connected openai/gpt-4.1 fallback returned an explicit stream error without an accepted artifact. The upstream error cause is unknown because the collector retained a generic error only. The local fact-based explainer and companion website/PH drafts are editorial reconciliation, not S-authored production. The new explainer passes the STE gate at zero errors. The full gate covers 41 files with zero failures, README continuity passes, and sh verify.sh plus its private-path and hook regression guards pass. ISC-879 remains unchecked. No hosted delivery outcome is inferred from a configured seat or HTTP status.
 
 - 2026-11-02 source slice: ISC-853 plan file was written before either new implementation file. ISC-854..867: 18 focused synthetic tests pass, 129 assertions. The combined baseline and new tests pass: 103 tests, 544 assertions, 8 files. ISC-868: TypeScript 5.9.3 targeted noEmit check passes for both new modules and both fixture files. The full install-surface typecheck passes. STE docs gate passes 40 files with no failures and no baseline increases. ISC-869..870: public capability matrix records review-only source, no live install, and no private implementation copying; VERSION remains 0.8.0. ISC-871..872 stay unchecked because no install adapter or host/native callback was exercised.
 

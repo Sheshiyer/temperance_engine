@@ -48,10 +48,16 @@ The visuals are one hand-written Canvas2D file and the soundtrack is synthesized
 
 Local AI-agent setups tend to sprawl across hidden config directories, voice hooks, MCP servers, skills, and search indexes. Temperance Engine turns a working local runtime into a reviewable public installer with backups, docs, skip-safe voice behavior, and explicit credits.
 
+Current tooling attribution is in [CREDITS.md](CREDITS.md), including the dated
+[installed Claude plugin inventory](docs/plans/2026-11-02-claude-tooling-metadata.json)
+and [exposed skill metadata](docs/plans/2026-11-02-claude-exposed-skills.json).
+These records describe a selected optional profile. They do not make its plugins
+portable defaults or prove that each tool ran in this session.
+
 ## What It Installs
 
 - PAI instruction templates for OpenCode, Cursor, and portable `AGENTS.md` use.
-- **9router-backed agent routing** via `temperance-route` — Temperance classifies work and presents dependency-aware provider setup, while 9router exclusively owns live models, connections, combos, and failover.
+- **OmniRoute agent routing** — the guided installer defaults to the OmniRoute dashboard handoff. OmniRoute owns live models, connections, combos, and failover. The separate legacy `temperance-route` adapter retains 9Router compatibility for existing setups; it is not the guided default.
 - **Enrichment context** with automatic task classification — every prompt gets a `<temperance-context>` block with routing hints.
 - Optional templates **and compose UPS hooks** for Claude Code and Codex when a user opts in (`--with-claude` / `--with-codex` / `--with-spine`). `/gsd:*` binds PAI mode; a native card only on a bare first prompt with no saved mode.
 - **Optional Kimi surface** — kimi-cli and the Kimi desktop app opt into the governed `temperance/temperance-auto` lane via `scripts/configure-kimi-relay.sh`, with enrichment injected relay-side and the repo skills discoverable in Kimi's skill scopes (see [`docs/kimi-surface.md`](docs/kimi-surface.md)).
@@ -65,7 +71,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 
 | Capability | What it does |
 |---|---|
-| **9router agent gateway** | Exact `9router@0.5.75` pin, dependency-aware provider onboarding, live-only model seating, and one exclusive routing authority. |
+| **OmniRoute gateway** | Current guided default; the public catalog pins `omniroute@3.8.51`. The gateway owns provider credentials, models, combos, and failover. Legacy 9Router compatibility is separate. |
 | **Automatic task classification** | Classifies prompts as fast/long-horizon/reasoning/validation/creative and recommends optimal model. |
 | Guarded PAI templates | Installs `NOESIS`-style instruction surfaces without copying private memory. |
 | Pulse compatibility | Provides a tiny local `/notify` and `/healthz` endpoint for phase events. |
@@ -109,7 +115,15 @@ automatic OpenCode routing. The
 Context Settings, CLI Code/Agents, Hermes, Cloudflare, PAI/GSD/ISA ownership,
 and provider-topology semantics.
 
-Default install is OpenCode/Cursor-first. It does not install Claude Code or Codex templates unless you pass `--with-claude` or `--with-codex`.
+Default install is OpenCode/Cursor-first. It does not install Claude Code or Codex templates unless you pass `--with-claude` or `--with-codex`. The portable core does not require Claude Code, Claude Pro/Max, or Anthropic authentication.
+
+## Current architecture and tooling
+
+The [architecture explainer](docs/architecture-explainer.md) connects seven work phases, five Koshas, and six advisory organ roles. The portable phase kernel and injected Vestibule handler are source-review additions. Other concrete portable organ adapters and real native callbacks remain held.
+
+The selected Claude profile has five enabled plugins: Feature Dev 1.0.1, rust-analyzer 1.0.0, Supabase 0.1.16, Superpowers 7.0.0, and the private Temperance rail 0.11.0. The [dated metadata](docs/plans/2026-11-02-claude-tooling-metadata.json) includes all installed records and their scope. Installed or enabled does not establish invocation or acceptance. These plugins are optional profile choices, rather than portable defaults.
+
+[Credits](CREDITS.md) attributes client surfaces, workflows, routing, search, optional services, direct package dependencies and launch production tools. The inventory is source-backed and is not a transitive SBOM.
 
 ## Live Manifest Operator View
 
@@ -135,6 +149,11 @@ On non-macOS systems, voice installation is skipped automatically. On macOS, voi
 ### Source convergence update — 8 September 2026
 
 The reviewed TypeScript foundation now shares routing-observation contracts and explicit installer ownership. Source verification covers disposable installation and rollback; host deployment and live research acceptance remain pending. The historical changelog was deidentified. The intelligence sections below reuse the existing NotebookLM research assets; this local README refresh does not represent a new NotebookLM research run. The asset manifest records the source revision and digest.
+
+<details>
+<summary>Historical NotebookLM research snapshot — retained for provenance</summary>
+
+These generated report, map, table, and metadata blocks describe the earlier research snapshot. Provider lists, model names, status labels, and setup advice in this disclosure are historical. Use the current release boundaries, onboarding guide, and source catalog above for current behavior. This editorial reconciliation does not represent a new NotebookLM run.
 
 <!-- readme-gen:start:notebooklm-report -->
 ## 🚀 Project Intelligence Snapshot
@@ -270,6 +289,8 @@ graph LR
 - notebooklm-owner: Sheshiyer
 
 <!-- readme-gen:end:notebooklm-metadata -->
+
+</details>
 ## System Flow
 
 Temperance Engine helps by turning a scattered local-agent setup into one explicit, inspectable loop: install safely, route work through PAI instructions, keep skills discoverable without context bloat, use CodeGraph for structural understanding, and make phase progress audible when local peon-ping packs are available.

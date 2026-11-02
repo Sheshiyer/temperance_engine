@@ -64,3 +64,75 @@ This repo was shaped from a local integration session that verified:
 - `.agents` CodeGraph indexing and routing.
 - OpenCode Augment disablement for blocked home and `.agents` retrieval paths.
 - Cursor project-rule guidance that does not require Claude Code, Claude Pro/Max, Anthropic auth, or a specific model.
+
+## Current routing and optional Claude profile
+
+[OmniRoute](https://github.com/diegosouzapw/OmniRoute), maintained by its upstream
+contributors, owns provider connections, model discovery, combos, and failover.
+The public onboarding catalog pins version 3.8.51. Phloem is a selected hosted
+OmniRoute deployment; it is not bundled with the portable core. Legacy 9Router
+compatibility remains separate from the current guided default.
+
+The founder-selected Claude profile has its own installed plugins. The dated
+[plugin metadata](docs/plans/2026-11-02-claude-tooling-metadata.json) records
+versions, scope, roles, sources, and enabled state. The
+[exposed skill metadata](docs/plans/2026-11-02-claude-exposed-skills.json) records
+names and discovery status only. These inventories do not make the personal
+profile a portable dependency. Installation, enablement, session availability,
+invocation, and accepted results are separate evidence levels.
+
+| Installed plugin | Version | Current CLI state | Attribution and role |
+|---|---|---|---|
+| [superpowers](https://github.com/obra/superpowers) | 4.0.3 | disabled | superpowers-dev. Reusable planning, testing, debugging and review workflows. |
+| visual-documentation-skills | 1.1.0 | disabled | mhattingpete-claude-skills. Optional visual HTML documentation and diagram skills. |
+| rust-analyzer-lsp | 1.0.0 | enabled | claude-plugins-official. Rust language intelligence when the language server is available. |
+| agent-sdk-dev | 1.0.1 | disabled | claude-plugins-official. Optional Claude Agent SDK development guidance. |
+| [superpowers](https://github.com/obra/superpowers) | 7.0.0 | enabled | claude-plugins-official. Reusable planning, testing, debugging and review workflows. |
+| feature-dev | 1.0.1 | enabled | claude-plugins-official. Feature exploration, architecture and quality-review workflow. |
+| commit-commands | 1.0.1 | disabled | claude-plugins-official. Optional Git commit and pull-request command helpers. |
+| [vercel](https://github.com/vercel/vercel-plugin) | 0.50.0 | disabled | claude-plugins-official. Optional deployment and web-application guidance. |
+| playground | a7ba5b93db0c | disabled | claude-plugins-official. Optional interactive HTML explorers. |
+| [supabase](https://github.com/supabase-community/supabase-plugin) | 0.1.16 | enabled | claude-plugins-official. Supabase development guidance and optional service tools. |
+| claude-md-management | 1.0.0 | disabled | claude-plugins-official. Optional maintenance of CLAUDE.md instructions. |
+| codex | 1.0.6 | disabled | openai-codex-plugin-cc. Optional Codex review or task-delegation integration. |
+| [obsidian](https://github.com/kepano/obsidian-skills) | 1.0.1 | disabled; project-scoped record | obsidian-skills. Project-scoped Obsidian Markdown, Bases and Canvas skills. |
+| [claude-mem](https://github.com/thedotmack/claude-mem) | 10.6.3 | disabled; project-scoped record | thedotmack. Project-scoped persistent-memory plugin; no store is read or promoted here. |
+| temperance-rail | 0.11.0 | enabled | Private profile; metadata only. Personal-profile rail mod for phase, dispatch and provenance projections; private implementation is not distributed. |
+
+The official marketplace source is
+[Anthropic's Claude plugins repository](https://github.com/anthropics/claude-plugins-official).
+Superpowers workflows come from [obra/superpowers](https://github.com/obra/superpowers).
+Project-scoped installation records do not establish applicability to this
+workspace. The private Temperance rail implementation is not distributed here.
+
+## Package and launch production dependencies
+
+| Surface | Declared tooling | Source and owner |
+|---|---|---|
+| Install surface | OpenTUI 0.5.11, Ajv 8.20.0; TypeScript 5.9.3 and Bun types 1.3.5 for development | [Package manifest](package/install-surface/package.json); [OpenTUI](https://github.com/anomalyco/opentui), [Ajv](https://github.com/ajv-validator/ajv), [TypeScript](https://github.com/microsoft/TypeScript), [Bun](https://github.com/oven-sh/bun) |
+| Manifest bridge | pg ^8.23.0; pg types ^8.21.0 for development | [Package manifest](package/manifest-bridge/package.json); [node-postgres](https://github.com/brianc/node-postgres) and DefinitelyTyped contributors |
+| Launch website | React and React DOM 18.3.1, GSAP 3.15.0, GSAP React 2.1.2; Vite 5.4.21, React plugin 4.3.4, parse5 7.3.0 for development | Separate website package manifest; [React](https://github.com/facebook/react), [GSAP](https://github.com/greensock/GSAP), [Vite](https://github.com/vitejs/vite), [parse5](https://github.com/inikulin/parse5); Vercel preview hosting |
+| Original showreel | Canvas2D, Bun, Chromium, FFmpeg, procedural soundtrack | [Showreel source guide](package/showreel/README.md); [Chromium](https://www.chromium.org/), [FFmpeg](https://ffmpeg.org/) |
+
+The original film loads Cormorant Garamond, DM Mono, and Space Grotesk through
+[Google Fonts](https://fonts.google.com/). The exact family requests are in
+[the film source](package/showreel/reel.html).
+
+The website and film are separate launch assets. Website animation dependencies
+are not film dependencies. HyperFrames was evaluated; evaluation alone is not
+proof that a rendered film used it. Historical NotebookLM research remains a
+dated research artifact, with no new run claimed by this editorial refresh.
+This list covers declared direct packages and attributed integrations. It is
+not a transitive software bill of materials or proof that every catalog entry
+is installed or admitted on a host.
+
+## Optional service integrations
+
+The [public onboarding catalog](package/install-surface/src/onboarding/core-catalog.ts)
+also lists Hermes A2A, Obsidian REST, Apple Mail MCP, and Cloudflare tunnel
+integration slots. These are optional host integrations with separate owners,
+credentials, installation, and health checks. Catalog presence does not make
+them bundled services or prove accepted tool calls. See the
+[native integration guide](docs/omniroute-native-integration.md) for their
+ownership boundaries. The optional knowledge volume and personal memory remain
+profile data; no personal corpus is included in this package.

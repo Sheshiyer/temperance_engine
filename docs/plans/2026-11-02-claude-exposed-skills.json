@@ -1,0 +1,1095 @@
+{
+  "schema": "temperance.claude-exposed-skills.v1",
+  "observedOn": "2026-11-02",
+  "source": "Top-level Claude skill entry names and canonical skill-index status only; no skill body, symlink target or personal data exported.",
+  "topLevelEntryCount": 155,
+  "entriesWithSkillManifest": 150,
+  "entries": [
+    {
+      "name": "_MOTIONSKIN",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "_NOTEBOOKLM",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "_XBOOKMARKECO",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "agentic-ops-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "agentic-ops-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "agents-sdk",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "ai-agents-meta-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "ai-agents-meta",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "ai-agents-meta-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "ai-agents-meta",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "Aphorisms",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "astro-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "astro",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "astro-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "astro",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "backend-architecture-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "backend-architecture",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "backend-architecture-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "backend-architecture",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "basin",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "BeCreative",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "browser-automation-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "browser-automation",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "browser-automation-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "browser-automation",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cf-cli",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "chronicle",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cli-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "cli",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cli-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "cli",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cloudflare",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cloudflare-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cloudflare-email-service",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cloudflare-one",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cloudflare-one-migrations",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "cloudflare-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "codex-primary-runtime",
+      "hasSkillManifest": false,
+      "indexedStatus": "archived",
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "conductor-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "conductor",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "conductor-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "conductor",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "core",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "Council",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "CreateCLI",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "CreateSkill",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "creative-frontend-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "creative-frontend",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "creative-frontend-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "creative-frontend",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "databases-data-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "databases-data",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "databases-data-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "databases-data",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "Delegation",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "design-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "design",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "design-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "design",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "devops-infra-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "devops-infra",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "devops-infra-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "devops-infra",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "durable-objects",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "electron-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "electron",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "electron-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "electron",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "expo-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "expo",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "expo-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "expo",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "ExtractWisdom",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "fieldtheory",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "social-media",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "find-skills",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "FirstPrinciples",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "frontend-web-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "frontend-web",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "frontend-web-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "frontend-web",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "gateway-workers",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "git-pr-ops-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "git-pr-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "git-pr-ops-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "git-pr-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "growth-content-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "growth-content",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "growth-content-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "growth-content",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "growth-seo-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "growth-seo",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "growth-seo-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "growth-seo",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "gsd-execute-phase",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "gsd",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "gsd-help",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "gsd",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "gsd-review",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "gsd",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "gsd-surface",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "gsd",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "HeyZackBrandPdf",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "higgsfield-brandkit",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "higgsfield-generate",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "higgsfield-marketplace-cards",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "higgsfield-product-photoshoot",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "higgsfield-soul-id",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "higgsfield-video-explainer",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "higgsfield-websites",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "higgsfield-youtube-thumbnail",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "hyperframes",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "hyperframes-cli",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "hyperframes-registry",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "Ideate",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "Interview",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "ISA",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "IterativeDepth",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "k2",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "learned",
+      "hasSkillManifest": false,
+      "indexedStatus": "archived",
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "MarketingAgentKnowledgeBase",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "media-use",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "Meshy",
+      "hasSkillManifest": true,
+      "indexedStatus": "archived",
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "migrate-to-codex",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "native-ios-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "native-ios",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "native-ios-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "native-ios",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "nextjs-on-cloudflare",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "notebooklm",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "documents",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "Optimize",
+      "hasSkillManifest": true,
+      "indexedStatus": "archived",
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "pai",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "paseo",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "paseo-advisor",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "paseo-committee",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "paseo-handoff",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "paseo-loop",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "peon-ping-config",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "peon-ping-log",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "peon-ping-toggle",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "peon-ping-use",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "playwright",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "browser-automation",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "PrivateInvestigator",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "product-guides-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "product-guides",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "product-guides-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "product-guides",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "PROPOSED",
+      "hasSkillManifest": false,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "python-backend-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "python-backend",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "python-backend-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "python-backend",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "quality-eval-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "quality-eval",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "quality-eval-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "quality-eval",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "raycast-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "raycast",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "raycast-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "raycast",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "react-native-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "react-native",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "react-native-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "react-native",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "readme",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "documents",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "RedTeam",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "RefreshArchitecture",
+      "hasSkillManifest": true,
+      "indexedStatus": "archived",
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "research-knowledge-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "research-knowledge",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "research-knowledge-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "research-knowledge",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "RootCauseAnalysis",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "running-creator-editing-os",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "social-media",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "rust-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "rust",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "rust-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "rust",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "sandbox-migrate-to-next",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "sandbox-next",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "sandbox-sdk",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "sandbox-stable",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "security-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "security",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "security-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "security",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "selemene-cheatsheet.md",
+      "hasSkillManifest": false,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "selemene-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "selemene",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "selemene-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "selemene",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "shorts-animator",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "media-gen",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "supabase-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "supabase",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "supabase-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "supabase",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "supacode-cli",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "agentic-ops",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "synced",
+      "hasSkillManifest": false,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "SystemsThinking",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "taste-skill",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "design",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "tauri-core",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "tauri",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "tauri-orchestrator",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-hub",
+      "cluster": "tauri",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "temperance-algorithm",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "temperance",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "temperance-engine",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "temperance",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "temperance-native",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "temperance",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "temperance-parallel-dispatch",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "temperance",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "thoughtseed-letterhead",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "documents",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "turnstile-spin",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "use-railway",
+      "hasSkillManifest": true,
+      "indexedStatus": "deferred-spoke",
+      "cluster": "superset",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "using-superpowers",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "web-perf",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "creative-frontend",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "workers-best-practices",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "workers-profiling",
+      "hasSkillManifest": true,
+      "indexedStatus": null,
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "wrangler",
+      "hasSkillManifest": true,
+      "indexedStatus": "active-spoke",
+      "cluster": "cloudflare",
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    },
+    {
+      "name": "WriteStory",
+      "hasSkillManifest": true,
+      "indexedStatus": "archived",
+      "cluster": null,
+      "evidence": "Exposed entry metadata; not proof of invocation, permission or acceptance."
+    }
+  ],
+  "boundary": "Containers, markdown notes and legacy exposures can appear in this list. It is an inventory, not a recommended install set or portable-core dependency list. The canonical index includes optional, deferred and archived skills that are not all loaded."
+}
