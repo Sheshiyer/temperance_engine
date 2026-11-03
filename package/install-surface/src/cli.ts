@@ -1,6 +1,7 @@
 import {runGitAuthorityCommand, readGitAuthorityStdin} from "./execution/git-authority-cli.ts";
 import {runGitProjectCommand, readGitProjectStdin} from "./onboarding/git-project-cli.ts";
 import { runCompositionCommand, readCompositionStdin } from "./composition/cli.ts";
+import { runEngineCommand } from "./composition/engine-cli.ts";
 import { existsSync, readFileSync, readdirSync, mkdirSync, statSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { homedir } from "node:os";
@@ -268,6 +269,12 @@ function loadProjectCapsules(path: string | undefined): ProjectCapsuleV1[] {
 
 async function main(): Promise<void> {
   const command = process.argv[2];
+  if (command === "engine") {
+    const result = runEngineCommand(process.argv.slice(3), process.stdin.isTTY ? undefined : await readCompositionStdin());
+    process.stdout.write(result.output);
+    process.exitCode = result.code;
+    return;
+  }
   if (command === "git-authority") {
     const result = await runGitAuthorityCommand(process.argv.slice(3), readGitAuthorityStdin);
     if (result.stdout) process.stdout.write(result.stdout);

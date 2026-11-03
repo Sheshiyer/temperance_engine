@@ -3277,3 +3277,39 @@ Diagnostic selection source verification:168 composition/Git/math/contract/selec
 - [x] ISC-COMP-21: Reusable bounded MCP stdio caps raw frames, pending bytes/count, safe response encoding and write/EOF deadlines; serial callbacks cannot start after closure. Independent review and13 tests46 assertions plus strict typecheck pass. Owner result production and synchronous execution require their own bounds; no native-client or tool-effect authority follows.
 
 - [x] ISC-COMP-22: Bounded owner-file raw snapshot checks regular descriptor size before allocation, nonblocking/no-follow open, exact reads/growthprobe, postmetadata/path identity and cleanup;9 synthetic/disposable tests45 assertions, strictTypeScript and independentreview pass. Root confinement and synchronous wall deadlines remain owner obligations.
+
+
+## Neutral generic glove source — 2026-11-04
+
+The approved generic-engine request reserves ISC-1000..1029 independently of historical v1.1 and private-profile criteria. Checked source criteria do not imply release acceptance.
+
+- [x] ISC-1000: Neutral composition accepts replaceable client and external flow references.
+- [x] ISC-1001: No-profile startup and diagnosis require no personal runtime, provider, client or memory service.
+- [x] ISC-1002: External workflows own sequence, branching and stop rules; the core chooses no next step.
+- [x] ISC-1003: Changed wire shapes use versioned contracts while explicit v1 compatibility remains available.
+- [x] ISC-1004: Selected module descriptors and owner implementations are source-pinned.
+- [x] ISC-1005: Dependency and freshness checks bind the exact plant and manifest.
+- [x] ISC-1006: Write approval binds the exact task and immutable operation plan before dispatch.
+- [x] ISC-1007: Concurrent and repeated step requests invoke one claimed operation.
+- [x] ISC-1008: Unsettled callbacks, owner errors and persistence failures stay uncertain.
+- [x] ISC-1009: Receipts retain references and digests without copying input/response bodies.
+- [x] ISC-1010: Neutral action hashing preserves input array order and exact string bytes.
+- [x] ISC-1011: All six organs are reusable optional source modules with owner-backed handlers.
+- [x] ISC-1012: Learning preserves verified outcomes, provisional proposals and distinct source planes.
+- [x] ISC-1013: Exact proposal promotion and recovery readback require their configured owners.
+- [x] ISC-1014: Primary client guides require exact official-package versions and integrity.
+- [x] ISC-1015: Client signal mapping is external and rejects raw native envelopes.
+- [x] ISC-1016: The installation bridge reuses the existing confirmed executor and receipt store.
+- [x] ISC-1017: Installation preconditions bind observed target, versions and preimages.
+- [x] ISC-1018: Disposable installation, upgrade interruption, rollback and drift-refusal checks pass.
+- [x] ISC-1019: Legacy composition/lifecycle and reviewed prototype checks remain passing.
+- [x] ISC-1020: Actual local OS/runtime/client versions are recorded separately from platform qualification.
+- [ ] ISC-1021: Linux x64 source and installation qualification is observed on a real target.
+- [ ] ISC-1022: Native Windows x64 source and installation qualification is observed on a real target.
+- [ ] ISC-1023: macOS Intel qualification is independently observed.
+- [ ] ISC-1024: Real Codex CLI and Claude Code callback linkage and consumer readback are observed.
+- [ ] ISC-1025: Noesis pins a reviewed engine version in a separate owning-repository source task.
+- [ ] ISC-1026: Noesis installed adoption passes its own ISA without blocking the public engine gate.
+- [ ] ISC-1027: The expanded neutral website passes independent copy/CRO and rendered accessibility checks.
+- [ ] ISC-1028: Existing Product Hunt listing is verified unscheduled before a replacement launch date is selected.
+- [x] ISC-1029: Public release acceptance requires the declared target matrix; VERSION is not bumped by fixtures.

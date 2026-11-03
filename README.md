@@ -2,7 +2,7 @@
 
 # Temperance Engine
 
-A one-time installer for an OpenCode/Cursor-first local PAI operator runtime: Algorithm flow, skill-cluster routing, optional peon-ping voice, and CodeGraph-first search.
+A client- and flow-agnostic operator engine. Bring your client, keep your workflow, and select the modules your own profile needs.
 
 Built by [Thoughtseed Labs](https://github.com/Sheshiyer). Visual library (navy / gold / cyan, same as Manifest Zone): [docs/index.html](docs/index.html).
 
@@ -14,21 +14,25 @@ Built by [Thoughtseed Labs](https://github.com/Sheshiyer). Visual library (navy 
 ![Bun](https://img.shields.io/badge/runtime-Bun-f39b54?style=flat-square&labelColor=07090b)
 ![macOS Optional](https://img.shields.io/badge/voice-macOS_optional-65d9e8?style=flat-square&labelColor=07090b)
 
-Temperance Engine packages a local AI-operator runtime pattern for teams working primarily in OpenCode or Cursor: PAI-style instruction surfaces, a guarded Algorithm flow, skill-cluster routing, optional peon-ping voice feedback, and CodeGraph-first structural search.
+## Neutral engine v2 source preview
 
-This repository is a public installer wrapper. It does not require Claude Code, Claude Pro/Max, Anthropic auth, private memory, private configs, proprietary model credentials, or voice/audio packs.
+The neutral engine provides composition, lifecycle, capability, adapter and receipt contracts. External workflows own their steps and decisions. Clients, Alchemy, routing and memory are selected through optional modules and profiles.
 
-Current product release: **0.8.0**, implementing the **v4 hand-in-glove**
-architecture. Noesis/Cambium remains an optional personal layer. Start with the
-[guided seven-step TUI](package/install-surface/docs/guided-onboarding.md), or
-use the [shared agent flow, health checks, and local logs](package/install-surface/docs/agent-operations.md).
-See the [release boundaries](CHANGELOG.md#080---2026-10-13) before enabling
-routing or long-context policies: this release does not claim qualified 1M
-sessions, durable checkpoint recovery, or a completed v1.1 clean-host milestone.
+`Sheshiyer/noesis-cambium` is a separate personalised consumer of a pinned engine version. Its infrastructure and policies are not engine defaults. The six organs are an optional public module pack.
 
-Product Hunt draft — not scheduled.
+Start with the [neutral-engine guide](docs/generic-engine.md) and the no-profile check:
 
-<a href="https://www.producthunt.com/products/temperance-engine?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-temperance-engine" target="_blank" rel="noopener noreferrer"><img alt="Temperance Engine - Local installer for an OpenCode operator runtime | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1301098&amp;theme=light&amp;t=1793589358027"></a>
+```sh
+bun package/install-surface/src/composition/engine-cli.ts doctor --json
+```
+
+Requires Bun. This reports core availability without installing a client, workflow, router or memory service. The initial optional client targets are Codex CLI and Claude Code; platform and native callback qualification remain separate gates.
+
+**Release baseline remains 0.8.0.** This branch adds v2 source for review and does not qualify a new release, the v1.1 milestone, long-context operation or personal runtime adoption. Public launch is intended to follow engine acceptance; removal of the previously scheduled date remains an external operation until confirmed.
+
+The installer material below describes explicitly selected v1 compatibility profiles. Read their dependencies before enabling them.
+
+<a href="https://www.producthunt.com/products/temperance-engine?launch=temperance-engine"><img alt="Temperance Engine on Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1301098&amp;theme=light"></a>
 
 ---
 
@@ -46,7 +50,7 @@ The visuals are one hand-written Canvas2D file and the soundtrack is synthesized
 
 Local AI-agent setups tend to sprawl across hidden config directories, voice hooks, MCP servers, skills, and search indexes. Temperance Engine turns a working local runtime into a reviewable public installer with backups, docs, skip-safe voice behavior, and explicit credits.
 
-## What It Installs
+## Optional v1 compatibility installation
 
 - PAI instruction templates for OpenCode, Cursor, and portable `AGENTS.md` use.
 - **9router-backed agent routing** via `temperance-route` — Temperance classifies work and presents dependency-aware provider setup, while 9router exclusively owns live models, connections, combos, and failover.
@@ -74,7 +78,7 @@ Local AI-agent setups tend to sprawl across hidden config directories, voice hoo
 | **GSD slash spine** | Optional `--with-spine` installs `/gsd:*` on Claude, Codex, OpenCode, and Grok, `/gsd:doctor`, `/gsd:goal`, skip-quiz mode-bind, and Manifest LCARS. GSD core stays external. |
 | **Manifest projection** | Local bridge `:8766` + LCARS `:5173`. Projection only — no approve/launch. |
 
-## Quick Start
+## Legacy profile quick start
 
 ```bash
 git clone https://github.com/Sheshiyer/temperance_engine.git

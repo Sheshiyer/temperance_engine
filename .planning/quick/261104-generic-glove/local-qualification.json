@@ -1,0 +1,41 @@
+{
+  "schema": "temperance.source-qualification.v1",
+  "recorded_at": "2026-11-03T19:51:56.733Z",
+  "source_commit": "42b391b44b7655972d9322d87aa3865956a5165e",
+  "source_dirty": true,
+  "platform": {
+    "os": "darwin",
+    "release": "27.2.0",
+    "arch": "arm64",
+    "bun": "1.3.13",
+    "node": "v24.3.0"
+  },
+  "bare_startup": "passed",
+  "clients": [
+    {
+      "client": "codex-cli",
+      "distribution": "@openai/codex",
+      "version": "0.166.0",
+      "integrity": "sha512-2Szlp1l1cz5TX1ccpX4Zok3DZrot9xeZe0km+6/1v8JmqxADwyJxKBJah4dBymkwtS25j/u6dipJusTOI97Z8Q==",
+      "observed_version": "codex-cli 0.166.0",
+      "fresh_disposable_install": "passed",
+      "native_callback": "unobserved",
+      "guidance_digest": "sha256:9db6e6d806f300271a9e84c9d9160a540a29b15350d89598d51f974e81090ff3"
+    },
+    {
+      "client": "claude-code",
+      "distribution": "@anthropic-ai/claude-code",
+      "version": "2.1.316",
+      "integrity": "sha512-i3BpzyDkcCPnsa0CSkWgxGPs7WMsyqDkxkqT0SDxyEC5XMIxEmcUmluWRHG9VSeBY8Vyv+l9X34JvJ/Bj54nBQ==",
+      "observed_version": "2.1.316 (Claude Code)",
+      "fresh_disposable_install": "passed",
+      "native_callback": "unobserved",
+      "guidance_digest": "sha256:335973b1fb5c1e0e9342eeaa4edce4d82d3135d6cb9dd20bfdc042005a34f782"
+    }
+  ],
+  "evidence_scope": "bare source startup and optional disposable official-package installation/version probes",
+  "semantic_acceptance": false,
+  "sandbox_isolation": "not-established",
+  "installed_profile": "unchanged",
+  "public_release": "held"
+}
