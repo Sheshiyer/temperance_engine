@@ -2,7 +2,7 @@
   "updated": "2026-11-04",
   "status": "source-candidate-qualified-locally",
   "active_task": "Neutral generic glove source and optional modules",
-  "next_action": "Read the generic-glove summary and exact CI receipts. Finish platform/native callback acceptance and the supported Product Hunt unscheduling step before release. Noesis adoption is a separate owning-repository gate.",
+  "next_action": "Continue manual source, installation and owner-boundary verification. CI is deferred; future Woodpecker is external infrastructure on existing hardware with no new paid resources. Keep public-engine platform/native callback acceptance and supported Product Hunt unscheduling held until observed.",
   "next_command": "bun package/install-surface/src/composition/engine-cli.ts doctor --json",
   "continuations": {
     "generic_glove": {
@@ -14,7 +14,8 @@
       "profile_adoption": "separate owning-repository gate",
       "launch": "wait for public-engine acceptance; unscheduling needs confirmed external readback",
       "proof": ".planning/quick/261104-generic-glove/SUMMARY.md",
-      "local_qualification": ".planning/quick/261104-generic-glove/local-qualification.json"
+      "local_qualification": ".planning/quick/261104-generic-glove/local-qualification.json",
+      "ci": "Deferred by owner; Woodpecker is the future external CI choice on existing hardware, with no new paid resources. No CI setup or activation selected."
     }
   }
 }

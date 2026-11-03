@@ -2,8 +2,8 @@ import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promi
 import { arch, platform, release, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createBareComposition, inspectCompositionV2 } from "../src/engine.ts";
-import { PRIMARY_CLIENTS, guideClientInstallation } from "../src/modules/clients.ts";
+import { createBareComposition, inspectCompositionV2 } from "../package/install-surface/src/engine.ts";
+import { PRIMARY_CLIENTS, guideClientInstallation } from "../package/install-surface/src/modules/clients.ts";
 
 // Qualification is explicit and disposable. No authentication, model call,
 // callback subscription, personal installation or background service is used.
@@ -16,7 +16,7 @@ if (args.some((arg, index) => arg !== "--clients" && arg !== "--output" && args[
 const outputIndex = args.indexOf("--output");
 const output = outputIndex < 0 ? undefined : args[outputIndex + 1];
 if (outputIndex >= 0 && (!output || output.startsWith("--"))) throw new Error("QUALIFICATION_OUTPUT_REQUIRED");
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 async function command(argv: string[], cwd = root) {
   const child = Bun.spawn(argv, { cwd, stdout: "pipe", stderr: "pipe", env: { ...process.env, DISABLE_UPDATES: "1", DISABLE_AUTOUPDATER: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" } });
   const timer = setTimeout(() => child.kill(), 240_000);

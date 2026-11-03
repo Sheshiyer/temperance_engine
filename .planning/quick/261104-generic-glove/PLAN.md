@@ -5,7 +5,7 @@ Status: implementation in progress. Owner request: the approved client- and flow
 1. Preserve current work; use the current public main and only reviewed prototype source.
 2. Implement neutral versioned composition and one-step invocation with external flow owners, source pins, fresh observations, approval and durable receipt interfaces. Preserve explicit v1 compatibility.
 3. Implement the optional six-organ pack, primary client guidance and existing installation-owner bridge. Verify boundary failures and disposable recovery.
-4. Add platform qualification automation and record actual local evidence without claiming missing callback or host acceptance.
+4. Continue manual qualification and record actual local evidence without claiming missing callback or host acceptance. CI is deferred by the owner. Woodpecker on existing hardware is the future external CI choice, with no new paid resources.
 5. Prepare a pinned Noesis consumer in its owning repository; keep installed services, callbacks and provider configuration unchanged.
 6. Reconcile the expanded public website against independent copy and CRO reviews; verify the reviewed preview.
 7. Repair the reviewed source pin and read-only product graph in Cambium; update the selected continuation while preserving historical bytes.

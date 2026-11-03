@@ -12,6 +12,7 @@ Read `AGENTS.md` and select the current fields and matching continuation from `.
 
 ```sh
 bun package/install-surface/src/composition/engine-cli.ts doctor --json
+bun verification/qualify-source.ts
 cd package/install-surface
 bun install --frozen-lockfile
 bun run typecheck
@@ -20,3 +21,5 @@ bun run build
 ```
 
 `VERSION` remains the published baseline. Source and fixture checks do not qualify a new release or a personal installation. Preserve the existing v1 interfaces and historical qualification evidence.
+
+Verification tooling lives under `verification/`, outside the runtime package. CI is deferred. Future Woodpecker execution belongs to external development infrastructure on existing hardware, with no new paid resources.
