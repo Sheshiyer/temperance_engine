@@ -3,6 +3,7 @@ import { types } from "node:util";
 import { canonical } from "../canonical-json.ts";
 import { inspectComposition } from "./inspect.ts";
 import { validateComposition, validateObservations, type ModuleId } from "./contracts.ts";
+import { invokeBounded } from "./invoke.ts";
 
 export const ORGAN_IDS = ["organ.vestibule", "organ.adytum", "organ.nutrix", "organ.auspex", "organ.circulator", "organ.praeceptor"] as const;
 export type OrganId = typeof ORGAN_IDS[number];
@@ -138,11 +139,9 @@ export async function runOrganLifecycle(options: OrganLifecycleOptions): Promise
   }
   const handler=handlers[id];
   if(typeof handler!=="function") {results.set(id,{...base,outcome:"unavailable",reason_code:"HANDLER_UNAVAILABLE"});return;}
-  const controller=new AbortController(); let settled=false; let timer: ReturnType<typeof setTimeout>;
-  const work=Promise.resolve().then(()=>handler({event,signal:controller.signal,deadline_ms:callbackNow+timeout})).then(()=>{settled=true;return "advisory-completed" as const;},()=>{settled=true;return "failed" as const;});
-  const expiry=new Promise<"timeout">(resolve=>{timer=setTimeout(()=>{controller.abort();resolve("timeout");},timeout);});
-  const outcome=await Promise.race([work,expiry]); clearTimeout(timer!);
-  results.set(id,{...base,outcome,reason_code:outcome==="advisory-completed"?"ADVISORY_COMPLETED":outcome==="timeout"?"CALLBACK_TIMEOUT":"CALLBACK_FAILED",cancellation_requested:outcome==="timeout",callback_settled:settled});
+  const bounded=await invokeBounded(signal=>handler({event,signal,deadline_ms:callbackNow+timeout}),timeout);
+  const outcome=bounded.outcome==="completed"?"advisory-completed":bounded.outcome==="cancelled"?"timeout":bounded.outcome;
+  results.set(id,{...base,outcome,reason_code:outcome==="advisory-completed"?"ADVISORY_COMPLETED":outcome==="timeout"?"CALLBACK_TIMEOUT":"CALLBACK_FAILED",cancellation_requested:bounded.cancellation_requested,callback_settled:bounded.callback_settled});
  }
  for(const id of selected) await invoke(id);
  receipt.organs=[...results.values()];

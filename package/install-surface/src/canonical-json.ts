@@ -51,3 +51,20 @@ export function normalizeCanonical(value: unknown): unknown {
 export function canonical(value: unknown): string {
   return `${JSON.stringify(normalizeCanonical(value), null, 2)}\n`;
 }
+
+/** Neutral action inputs preserve array order and exact string bytes.
+ * Callers validate plain JSON before using this serializer. v1 metadata keeps
+ * its historical semantic-array and Unicode normalization above.
+ */
+export function canonicalExact(value: unknown): string {
+  function order(item: unknown): unknown {
+    if (Array.isArray(item)) return item.map(order);
+    if (item && typeof item === "object") {
+      const result = Object.create(null) as Record<string, unknown>;
+      for (const key of Object.keys(item).sort(keyOrder)) result[key] = order((item as Record<string, unknown>)[key]);
+      return result;
+    }
+    return item;
+  }
+  return JSON.stringify(order(value)) + "\n";
+}
